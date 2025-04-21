@@ -3,7 +3,22 @@ import React from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { AreaChart, BarChart } from "@/components/ui/chart";
+import { 
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+} from "@/components/ui/chart";
+import { 
+  AreaChart as RechartsAreaChart,
+  BarChart as RechartsBarChart,
+  Area,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer 
+} from "recharts";
 import { DollarSign } from 'lucide-react';
 import { 
   Table,
@@ -81,6 +96,110 @@ const expenseData = [
     total: 3000,
   },
 ];
+
+// Custom AreaChart component using recharts
+const AreaChartComponent = ({ data, index, categories, colors, valueFormatter }) => {
+  return (
+    <ResponsiveContainer width="100%" height="100%">
+      <RechartsAreaChart
+        data={data}
+        margin={{
+          top: 10,
+          right: 30,
+          left: 0,
+          bottom: 0,
+        }}
+      >
+        <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+        <XAxis dataKey={index} className="text-sm text-muted-foreground" />
+        <YAxis
+          width={80}
+          tickFormatter={(value) => valueFormatter(value)}
+          className="text-sm text-muted-foreground"
+        />
+        <Tooltip
+          content={({ active, payload }) => {
+            if (active && payload && payload.length) {
+              return (
+                <div className="rounded-lg border bg-background p-2 shadow-md">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="flex flex-col">
+                      <span className="text-sm text-muted-foreground">
+                        {payload[0].payload[index]}
+                      </span>
+                      <span className="font-bold text-green-600">
+                        {valueFormatter(payload[0].value)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              );
+            }
+            return null;
+          }}
+        />
+        <Area
+          type="monotone"
+          dataKey={categories[0]}
+          stroke="#10B981"
+          fill="#10B981"
+          fillOpacity={0.2}
+        />
+      </RechartsAreaChart>
+    </ResponsiveContainer>
+  );
+};
+
+// Custom BarChart component using recharts
+const BarChartComponent = ({ data, index, categories, colors, valueFormatter }) => {
+  return (
+    <ResponsiveContainer width="100%" height="100%">
+      <RechartsBarChart
+        data={data}
+        margin={{
+          top: 10,
+          right: 30,
+          left: 0,
+          bottom: 0,
+        }}
+      >
+        <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+        <XAxis dataKey={index} className="text-sm text-muted-foreground" />
+        <YAxis
+          width={80}
+          tickFormatter={(value) => valueFormatter(value)}
+          className="text-sm text-muted-foreground"
+        />
+        <Tooltip
+          content={({ active, payload }) => {
+            if (active && payload && payload.length) {
+              return (
+                <div className="rounded-lg border bg-background p-2 shadow-md">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="flex flex-col">
+                      <span className="text-sm text-muted-foreground">
+                        {payload[0].payload[index]}
+                      </span>
+                      <span className="font-bold text-red-600">
+                        {valueFormatter(payload[0].value)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              );
+            }
+            return null;
+          }}
+        />
+        <Bar
+          dataKey={categories[0]}
+          fill="#EF4444"
+          radius={[4, 4, 0, 0]}
+        />
+      </RechartsBarChart>
+    </ResponsiveContainer>
+  );
+};
 
 export default function Finance() {
   return (
@@ -219,12 +338,12 @@ export default function Finance() {
             </CardHeader>
             <CardContent>
               <div className="h-[300px]">
-                <AreaChart 
+                <AreaChartComponent 
                   data={revenueData}
                   index="name"
                   categories={["total"]}
                   colors={["green"]}
-                  valueFormatter={(value: number) => `$${value.toLocaleString()}`}
+                  valueFormatter={(value) => `$${value.toLocaleString()}`}
                 />
               </div>
             </CardContent>
@@ -238,12 +357,12 @@ export default function Finance() {
             </CardHeader>
             <CardContent>
               <div className="h-[300px]">
-                <BarChart 
+                <BarChartComponent 
                   data={expenseData}
                   index="name"
                   categories={["total"]}
                   colors={["red"]}
-                  valueFormatter={(value: number) => `$${value.toLocaleString()}`}
+                  valueFormatter={(value) => `$${value.toLocaleString()}`}
                 />
               </div>
             </CardContent>
@@ -253,3 +372,4 @@ export default function Finance() {
     </div>
   );
 }
+
