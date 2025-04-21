@@ -7,25 +7,55 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from '@/contexts/AuthContext';
 
+// Demo users for testing role-based access
+const demoUsers = [
+  {
+    id: '1',
+    name: 'Demo Admin',
+    email: 'admin@schoolportal.com',
+    role: 'admin',
+    avatar: 'https://ui-avatars.com/api/?name=Admin+User&background=0D8ABC&color=fff'
+  },
+  {
+    id: '2',
+    name: 'Demo Teacher',
+    email: 'teacher@schoolportal.com',
+    role: 'teacher',
+    avatar: 'https://ui-avatars.com/api/?name=Teacher+User&background=F59E0B&color=fff'
+  },
+  {
+    id: '3',
+    name: 'Demo Student',
+    email: 'student@schoolportal.com',
+    role: 'student',
+    avatar: 'https://ui-avatars.com/api/?name=Student+User&background=10B981&color=fff'
+  },
+  {
+    id: '4',
+    name: 'Demo Parent',
+    email: 'parent@schoolportal.com',
+    role: 'parent',
+    avatar: 'https://ui-avatars.com/api/?name=Parent+User&background=2563EB&color=fff'
+  },
+];
+
 export default function Login() {
   const { login } = useAuth();
   const navigate = useNavigate();
-  
+
+  // Optionally, still handle manual form, but default to Admin
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // For demo, we'll just log the user in with the mock user
-    login({
-      id: '1',
-      name: 'Demo User',
-      email: 'admin@schoolportal.com',
-      role: 'admin',
-      avatar: 'https://ui-avatars.com/api/?name=Admin+User&background=0D8ABC&color=fff'
-    });
-    
+    login(demoUsers[0]); // Admin login by default
     navigate('/dashboard');
   };
-  
+
+  // Handler for demo user login
+  const handleDemoLogin = (userIdx: number) => {
+    login(demoUsers[userIdx]);
+    navigate('/dashboard');
+  };
+
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-50">
       <Card className="w-full max-w-md">
@@ -53,8 +83,27 @@ export default function Login() {
               </div>
               <Input id="password" type="password" placeholder="••••••••" required />
             </div>
-            <Button type="submit" className="w-full">Sign In</Button>
+            <Button type="submit" className="w-full">Sign In (as Admin)</Button>
           </form>
+          <div className="mt-6">
+            <div className="text-center text-sm text-muted-foreground mb-2">
+              Or use demo credentials:
+            </div>
+            <div className="flex flex-col gap-2">
+              <Button variant="outline" className="w-full" onClick={() => handleDemoLogin(0)}>
+                Log in as Admin
+              </Button>
+              <Button variant="outline" className="w-full" onClick={() => handleDemoLogin(1)}>
+                Log in as Teacher
+              </Button>
+              <Button variant="outline" className="w-full" onClick={() => handleDemoLogin(2)}>
+                Log in as Student
+              </Button>
+              <Button variant="outline" className="w-full" onClick={() => handleDemoLogin(3)}>
+                Log in as Parent
+              </Button>
+            </div>
+          </div>
         </CardContent>
         <CardFooter className="flex flex-col">
           <div className="text-sm text-muted-foreground text-center">
@@ -65,3 +114,4 @@ export default function Login() {
     </div>
   );
 }
+
