@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/table";
 import { Search } from 'lucide-react';
 import { useAuth } from "@/contexts/AuthContext";
+import { Link } from 'react-router-dom';
 
 // Mock data
 const students = [
@@ -50,7 +51,9 @@ export default function Students() {
           <p className="text-muted-foreground">Manage all students</p>
         </div>
         {canAddStudent && (
-          <Button>Add New Student</Button>
+          <Button asChild>
+            <Link to="/students/new">Add New Student</Link>
+          </Button>
         )}
       </div>
       

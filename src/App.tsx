@@ -12,10 +12,14 @@ import Layout from "@/components/layout/Layout";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Students from "./pages/Students";
+import StudentForm from "./pages/StudentForm";
 import Teachers from "./pages/Teachers";
+import TeacherForm from "./pages/TeacherForm";
 import Subjects from "./pages/Subjects";
+import SubjectForm from "./pages/SubjectForm";
 import Schedule from "./pages/Schedule";
 import Finance from "./pages/Finance";
+import PaymentForm from "./pages/PaymentForm";
 import Settings from "./pages/Settings";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
@@ -50,6 +54,7 @@ const AppRoutes = () => {
         </ProtectedRoute>
       } />
       
+      {/* Student Routes */}
       <Route path="/students" element={
         <ProtectedRoute>
           <Layout>
@@ -58,6 +63,15 @@ const AppRoutes = () => {
         </ProtectedRoute>
       } />
       
+      <Route path="/students/new" element={
+        <ProtectedRoute>
+          <Layout>
+            <StudentForm />
+          </Layout>
+        </ProtectedRoute>
+      } />
+      
+      {/* Teacher Routes */}
       <Route path="/teachers" element={
         <ProtectedRoute>
           <Layout>
@@ -66,10 +80,27 @@ const AppRoutes = () => {
         </ProtectedRoute>
       } />
       
+      <Route path="/teachers/new" element={
+        <ProtectedRoute>
+          <Layout>
+            <TeacherForm />
+          </Layout>
+        </ProtectedRoute>
+      } />
+      
+      {/* Subject Routes */}
       <Route path="/subjects" element={
         <ProtectedRoute>
           <Layout>
             <Subjects />
+          </Layout>
+        </ProtectedRoute>
+      } />
+      
+      <Route path="/subjects/new" element={
+        <ProtectedRoute>
+          <Layout>
+            <SubjectForm />
           </Layout>
         </ProtectedRoute>
       } />
@@ -82,10 +113,19 @@ const AppRoutes = () => {
         </ProtectedRoute>
       } />
       
+      {/* Finance Routes */}
       <Route path="/finance" element={
         <ProtectedRoute>
           <Layout>
             <Finance />
+          </Layout>
+        </ProtectedRoute>
+      } />
+      
+      <Route path="/finance/record" element={
+        <ProtectedRoute>
+          <Layout>
+            <PaymentForm />
           </Layout>
         </ProtectedRoute>
       } />

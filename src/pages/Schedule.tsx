@@ -1,7 +1,13 @@
 
-import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import React, { useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { useAuth } from "@/contexts/AuthContext";
+import { Plus, Save } from "lucide-react";
 
 // Mock data - Weekly schedule
 const weekSchedule = [
@@ -57,8 +63,69 @@ const weekSchedule = [
   },
 ];
 
+// Mock data for form selects
+const mockTeachers = [
+  { id: "1", name: "Dr. Amanda Lewis" },
+  { id: "2", name: "Mrs. Elizabeth Chen" },
+  { id: "3", name: "Prof. Richard Thomas" },
+  { id: "4", name: "Mr. James Wilson" },
+  { id: "5", name: "Dr. Maria Rodriguez" },
+  { id: "6", name: "Mr. Robert Johnson" },
+  { id: "7", name: "Dr. Emily Chen" },
+];
+
+const mockSubjects = [
+  { id: "1", name: "Mathematics" },
+  { id: "2", name: "English" },
+  { id: "3", name: "Physics" },
+  { id: "4", name: "Chemistry" },
+  { id: "5", name: "Biology" },
+  { id: "6", name: "History" },
+  { id: "7", name: "Computer Science" },
+  { id: "8", name: "Physical Education" },
+];
+
+const mockRooms = [
+  { id: "1", name: "101" },
+  { id: "2", name: "203" },
+  { id: "3", name: "Lab 1" },
+  { id: "4", name: "Lab 2" },
+  { id: "5", name: "Lab 3" },
+  { id: "6", name: "105" },
+  { id: "7", name: "CompLab" },
+  { id: "8", name: "Gym" },
+];
+
+const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
+
 export default function Schedule() {
+  const { user } = useAuth();
   const [selectedClass, setSelectedClass] = React.useState("10A");
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [newPeriod, setNewPeriod] = useState({
+    day: "",
+    time: "",
+    subject: "",
+    teacher: "",
+    room: "",
+  });
+  
+  const canCreateSchedule = user?.role === "admin";
+
+  const handleAddPeriod = () => {
+    console.log("Adding new period:", newPeriod);
+    // In a real app, this would save to the backend
+    // For now just close the dialog
+    setIsDialogOpen(false);
+    // Reset form
+    setNewPeriod({
+      day: "",
+      time: "",
+      subject: "",
+      teacher: "",
+      room: "",
+    });
+  };
 
   return (
     <div className="space-y-6">
@@ -81,6 +148,110 @@ export default function Schedule() {
               <SelectItem value="11B">Class 11B</SelectItem>
             </SelectContent>
           </Select>
+
+          {canCreateSchedule && (
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+              <DialogTrigger asChild>
+                <Button>
+                  <Plus className="mr-2 h-4 w-4" /> 
+                  Create Schedule
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                  <DialogTitle>Add New Period</DialogTitle>
+                  <DialogDescription>
+                    Create a new class period for the selected class.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="day">Day</Label>
+                    <Select 
+                      value={newPeriod.day} 
+                      onValueChange={(value) => setNewPeriod({...newPeriod, day: value})}
+                    >
+                      <SelectTrigger id="day">
+                        <SelectValue placeholder="Select day" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {days.map((day) => (
+                          <SelectItem key={day} value={day}>{day}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="grid gap-2">
+                    <Label htmlFor="time">Time</Label>
+                    <Input 
+                      id="time" 
+                      placeholder="e.g., 09:00 - 10:00" 
+                      value={newPeriod.time}
+                      onChange={(e) => setNewPeriod({...newPeriod, time: e.target.value})}
+                    />
+                  </div>
+                  
+                  <div className="grid gap-2">
+                    <Label htmlFor="subject">Subject</Label>
+                    <Select 
+                      value={newPeriod.subject}
+                      onValueChange={(value) => setNewPeriod({...newPeriod, subject: value})}
+                    >
+                      <SelectTrigger id="subject">
+                        <SelectValue placeholder="Select subject" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {mockSubjects.map((subject) => (
+                          <SelectItem key={subject.id} value={subject.name}>{subject.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="grid gap-2">
+                    <Label htmlFor="teacher">Teacher</Label>
+                    <Select 
+                      value={newPeriod.teacher}
+                      onValueChange={(value) => setNewPeriod({...newPeriod, teacher: value})}
+                    >
+                      <SelectTrigger id="teacher">
+                        <SelectValue placeholder="Select teacher" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {mockTeachers.map((teacher) => (
+                          <SelectItem key={teacher.id} value={teacher.name}>{teacher.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="grid gap-2">
+                    <Label htmlFor="room">Room</Label>
+                    <Select 
+                      value={newPeriod.room}
+                      onValueChange={(value) => setNewPeriod({...newPeriod, room: value})}
+                    >
+                      <SelectTrigger id="room">
+                        <SelectValue placeholder="Select room" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {mockRooms.map((room) => (
+                          <SelectItem key={room.id} value={room.name}>{room.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button type="submit" onClick={handleAddPeriod}>
+                    <Save className="mr-2 h-4 w-4" />
+                    Save Period
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          )}
         </div>
       </div>
       
