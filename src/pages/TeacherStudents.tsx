@@ -80,7 +80,7 @@ export default function TeacherStudents() {
                   <SelectValue placeholder="All Classes" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Classes</SelectItem>
+                  <SelectItem value="all_classes">All Classes</SelectItem>
                   {teacherClasses.map(className => (
                     <SelectItem key={className} value={className}>{className}</SelectItem>
                   ))}
