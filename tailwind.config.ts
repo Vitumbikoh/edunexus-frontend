@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -61,6 +62,14 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
+				},
+				// School management system theme colors
+				sms: {
+					primary: '#2563eb',
+					secondary: '#0891b2',
+					accent: '#0ea5e9',
+					light: '#f1f5f9',
+					dark: '#1e293b'
 				}
 			},
 			borderRadius: {
