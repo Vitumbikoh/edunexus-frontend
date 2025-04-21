@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Menu, Bell } from 'lucide-react';
 import { useSidebar } from '@/contexts/SidebarContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -13,10 +13,39 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Link } from 'react-router-dom';
+
+const mockNotifications = [
+  {
+    id: 1,
+    title: "New Student Registered",
+    description: "Sarah Connor has joined Class 9A",
+    time: "2 mins ago"
+  },
+  {
+    id: 2,
+    title: "Fee Payment Received",
+    description: "Payment from Michael Grant",
+    time: "30 mins ago"
+  },
+  {
+    id: 3,
+    title: "Event Reminder",
+    description: "PTA Meeting tomorrow at 4pm",
+    time: "1 hour ago"
+  },
+  {
+    id: 4,
+    title: "Schedule Updated",
+    description: "Class 10B timetable changed",
+    time: "Yesterday"
+  }
+];
 
 export default function Header() {
   const { toggle, isOpen } = useSidebar();
   const { user, logout } = useAuth();
+  const [notifications] = useState(mockNotifications);
 
   if (!user) return null;
   
@@ -26,6 +55,8 @@ export default function Header() {
       .join('')
       .toUpperCase();
   };
+
+  const isAdmin = user.role === "admin";
 
   return (
     <header className="h-16 flex items-center justify-between px-4 border-b border-gray-200 bg-white">
@@ -39,10 +70,40 @@ export default function Header() {
       </div>
       
       <div className="flex items-center space-x-4">
-        <Button variant="ghost" size="icon">
-          <Bell className="h-5 w-5" />
-        </Button>
-        
+        {isAdmin && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="relative">
+                <Bell className="h-5 w-5" />
+                {notifications.length > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-green-500 text-white text-[10px] rounded-full px-1.5 py-0.5 border border-white font-bold animate-pulse">
+                    {notifications.length}
+                  </span>
+                )}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-80 max-w-sm" align="end" forceMount>
+              <DropdownMenuLabel>
+                Notifications
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {notifications.length === 0 ? (
+                <DropdownMenuItem>
+                  <span className="text-sm text-gray-500">No new notifications</span>
+                </DropdownMenuItem>
+              ) : (
+                notifications.map((note) => (
+                  <DropdownMenuItem key={note.id} className="flex flex-col items-start py-3 hover:bg-gray-100 cursor-pointer transition-all">
+                    <span className="font-medium text-gray-900">{note.title}</span>
+                    <span className="text-xs text-gray-500">{note.description}</span>
+                    <span className="text-[10px] text-gray-400 mt-1">{note.time}</span>
+                  </DropdownMenuItem>
+                ))
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
+
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="relative h-8 w-8 rounded-full">
@@ -76,5 +137,3 @@ export default function Header() {
     </header>
   );
 }
-
-import { Link } from 'react-router-dom';
