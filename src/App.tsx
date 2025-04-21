@@ -1,4 +1,5 @@
 
+import React, { useState } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -7,7 +8,6 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { SidebarProvider } from "@/contexts/SidebarContext";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import Layout from "@/components/layout/Layout";
-import { useState } from "react";
 
 // Pages
 import Login from "./pages/Login";
@@ -152,10 +152,10 @@ const AppRoutes = () => {
   );
 };
 
-// Define the App component properly as a function component
+// Make sure React is properly imported at the top and imported before using hooks
 const App = () => {
-  // Create a new QueryClient instance inside the component
-  const [queryClient] = useState(() => new QueryClient());
+  // Create a new QueryClient instance inside the component using React.useState
+  const [queryClient] = React.useState(() => new QueryClient());
 
   return (
     <QueryClientProvider client={queryClient}>
