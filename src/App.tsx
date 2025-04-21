@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { SidebarProvider } from "@/contexts/SidebarContext";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import Layout from "@/components/layout/Layout";
+import { useState } from "react";
 
 // Pages
 import Login from "./pages/Login";
@@ -151,22 +152,26 @@ const AppRoutes = () => {
   );
 };
 
-const queryClient = new QueryClient();
+// Define the App component properly as a function component
+const App = () => {
+  // Create a new QueryClient instance inside the component
+  const [queryClient] = useState(() => new QueryClient());
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <AuthProvider>
-        <BrowserRouter>
-          <SidebarProvider>
-            <AppRoutes />
-            <Toaster />
-            <Sonner />
-          </SidebarProvider>
-        </BrowserRouter>
-      </AuthProvider>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <AuthProvider>
+          <BrowserRouter>
+            <SidebarProvider>
+              <AppRoutes />
+              <Toaster />
+              <Sonner />
+            </SidebarProvider>
+          </BrowserRouter>
+        </AuthProvider>
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;
