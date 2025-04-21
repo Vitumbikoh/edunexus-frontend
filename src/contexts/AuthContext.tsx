@@ -2,7 +2,7 @@
 import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
 
 // Define user roles
-export type UserRole = 'admin' | 'teacher' | 'student' | 'parent';
+export type UserRole = 'admin' | 'teacher' | 'student' | 'parent' | 'finance';
 
 // Define user type
 export type User = {
