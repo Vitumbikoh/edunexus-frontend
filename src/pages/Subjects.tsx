@@ -1,11 +1,10 @@
-
 import React from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from 'react-router-dom';
 
-// Mock data
 const subjects = [
   { 
     id: "1", 
@@ -53,6 +52,7 @@ const subjects = [
 
 export default function Subjects() {
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   const canAdd = user?.role === "admin" || user?.role === "teacher";
   const canEdit = user?.role === "admin" || user?.role === "teacher";
@@ -62,7 +62,9 @@ export default function Subjects() {
   if (!canShow) {
     return (
       <div className="flex items-center justify-center h-96">
-        <div className="text-center p-8 rounded-lg bg-red-50 border border-red-200 text-red-700 font-semibold">You do not have permission to view subjects.</div>
+        <div className="text-center p-8 rounded-lg bg-red-50 border border-red-200 text-red-700 font-semibold">
+          You do not have permission to view subjects.
+        </div>
       </div>
     );
   }
@@ -74,7 +76,11 @@ export default function Subjects() {
           <h1 className="text-2xl font-bold">Subjects</h1>
           <p className="text-muted-foreground">Manage all subjects and courses</p>
         </div>
-        {canAdd && <Button>Add New Subject</Button>}
+        {canAdd && (
+          <Button onClick={() => navigate('/subjects/new')}>
+            Add New Subject
+          </Button>
+        )}
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">

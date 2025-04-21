@@ -93,36 +93,41 @@ export default function Dashboard() {
         <p className="text-muted-foreground">Welcome back, {user?.name}</p>
       </div>
       
+      {/* Stats Overview */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard 
           title="Total Students" 
           value="1,235" 
           icon={<Users size={24} />} 
           trend={{ value: 12, isPositive: true }}
+          className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-900/10"
         />
         <StatCard 
           title="Total Courses" 
           value="42" 
           icon={<BookOpen size={24} />} 
           trend={{ value: 4, isPositive: true }}
+          className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-900/10"
         />
         <StatCard 
           title="Upcoming Events" 
           value="8" 
-          icon={<Calendar size={24} />} 
+          icon={<Calendar size={24} />}
+          className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-900/10" 
         />
         <StatCard 
           title="Fee Collection" 
           value="$24,500" 
           icon={<DollarSign size={24} />} 
           trend={{ value: 8, isPositive: false }}
+          className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-900/10"
         />
       </div>
       
       {isAdmin && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Class Performance Chart */}
-          <Card>
+          {/* Performance Chart with enhanced visuals */}
+          <Card className="bg-gradient-to-br from-white to-slate-50 dark:from-gray-900 dark:to-gray-900/50">
             <CardHeader>
               <CardTitle>Class Performance</CardTitle>
               <CardDescription>Average scores by subject</CardDescription>
@@ -144,16 +149,16 @@ export default function Dashboard() {
                     <ChartTooltip
                       content={<ChartTooltipContent />}
                     />
-                    <Bar dataKey="students" fill="var(--color-students)" name="Students" />
-                    <Bar dataKey="average" fill="var(--color-average)" name="Class Average" />
+                    <Bar dataKey="students" fill="var(--color-students)" name="Students" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="average" fill="var(--color-average)" name="Class Average" radius={[4, 4, 0, 0]} />
                   </BarChart>
                 </ChartContainer>
               </div>
             </CardContent>
           </Card>
 
-          {/* Attendance Overview */}
-          <Card>
+          {/* Attendance Overview with visual improvements */}
+          <Card className="bg-gradient-to-br from-white to-slate-50 dark:from-gray-900 dark:to-gray-900/50">
             <CardHeader>
               <CardTitle>Attendance Overview</CardTitle>
               <CardDescription>Current month attendance by class</CardDescription>
@@ -166,10 +171,14 @@ export default function Dashboard() {
                       <span className="text-sm font-medium">{item.name}</span>
                       <span className="text-sm font-medium">{item.value}%</span>
                     </div>
-                    <Progress value={item.value} className="h-2" 
-                      style={{ 
-                        backgroundColor: 'rgba(0,0,0,0.1)', 
-                      }}
+                    <Progress 
+                      value={item.value} 
+                      className="h-2" 
+                      indicatorClassName={`bg-gradient-to-r ${
+                        item.value >= 90 ? 'from-green-400 to-green-500' :
+                        item.value >= 80 ? 'from-blue-400 to-blue-500' :
+                        'from-orange-400 to-orange-500'
+                      }`}
                     />
                   </div>
                 ))}
@@ -177,8 +186,8 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
-          {/* Fee Collection Status */}
-          <Card>
+          {/* Fee Collection Status with refined visuals */}
+          <Card className="bg-gradient-to-br from-white to-slate-50 dark:from-gray-900 dark:to-gray-900/50">
             <CardHeader>
               <CardTitle>Fee Collection Status</CardTitle>
               <CardDescription>Current academic year</CardDescription>
@@ -199,7 +208,7 @@ export default function Dashboard() {
                       label={({name, percent}) => `${name} ${(percent * 100).toFixed(0)}%`}
                     >
                       {feeCollection.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+                        <Cell key={`cell-${index}`} fill={index === 0 ? '#10B981' : '#F97316'} />
                       ))}
                     </Pie>
                     <Tooltip />
