@@ -6,6 +6,23 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from 'react-router-dom';
+import { Progress } from '@/components/ui/progress';
+import { 
+  ChartContainer, 
+  ChartTooltip, 
+  ChartTooltipContent 
+} from '@/components/ui/chart';
+import { 
+  BarChart, 
+  Bar, 
+  XAxis, 
+  YAxis, 
+  PieChart, 
+  Pie, 
+  Cell, 
+  Tooltip,
+  ResponsiveContainer
+} from 'recharts';
 
 const mockActivities = [
   {
