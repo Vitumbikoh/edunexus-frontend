@@ -25,6 +25,14 @@ import Settings from "./pages/Settings";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 
+// Teacher specific pages
+import TeacherStudents from "./pages/TeacherStudents";
+import TeacherSubjects from "./pages/TeacherSubjects";
+import TeacherSchedule from "./pages/TeacherSchedule";
+import TeacherAttendance from "./pages/TeacherAttendance";
+import LearningMaterials from "./pages/LearningMaterials";
+import SubmitGrades from "./pages/SubmitGrades";
+
 // Protected route component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated, loading } = useAuth();
@@ -35,6 +43,21 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
+  }
+  
+  return <>{children}</>;
+};
+
+// Teacher route component - only accessible by teachers
+const TeacherRoute = ({ children }: { children: React.ReactNode }) => {
+  const { user, loading } = useAuth();
+  
+  if (loading) {
+    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+  }
+  
+  if (!user || user.role !== 'teacher') {
+    return <Navigate to="/dashboard" replace />;
   }
   
   return <>{children}</>;
@@ -145,6 +168,55 @@ const AppRoutes = () => {
             <Profile />
           </Layout>
         </ProtectedRoute>
+      } />
+
+      {/* Teacher specific routes */}
+      <Route path="/my-students" element={
+        <TeacherRoute>
+          <Layout>
+            <TeacherStudents />
+          </Layout>
+        </TeacherRoute>
+      } />
+      
+      <Route path="/my-subjects" element={
+        <TeacherRoute>
+          <Layout>
+            <TeacherSubjects />
+          </Layout>
+        </TeacherRoute>
+      } />
+      
+      <Route path="/my-schedule" element={
+        <TeacherRoute>
+          <Layout>
+            <TeacherSchedule />
+          </Layout>
+        </TeacherRoute>
+      } />
+      
+      <Route path="/take-attendance" element={
+        <TeacherRoute>
+          <Layout>
+            <TeacherAttendance />
+          </Layout>
+        </TeacherRoute>
+      } />
+      
+      <Route path="/learning-materials" element={
+        <TeacherRoute>
+          <Layout>
+            <LearningMaterials />
+          </Layout>
+        </TeacherRoute>
+      } />
+      
+      <Route path="/submit-grades" element={
+        <TeacherRoute>
+          <Layout>
+            <SubmitGrades />
+          </Layout>
+        </TeacherRoute>
       } />
       
       <Route path="*" element={<NotFound />} />

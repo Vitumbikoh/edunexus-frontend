@@ -16,6 +16,9 @@ import {
   LogOut,
   Menu,
   ChevronLeft,
+  Check,
+  Upload,
+  FileText,
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 
@@ -26,7 +29,8 @@ type NavItem = {
   roles: UserRole[];
 };
 
-const navItems: NavItem[] = [
+// Admin navigation items
+const adminNavItems: NavItem[] = [
   { label: 'Dashboard', icon: Home, href: '/dashboard', roles: ['admin', 'teacher', 'student', 'parent'] },
   { label: 'Students', icon: Users, href: '/students', roles: ['admin', 'teacher'] },
   { label: 'Teachers', icon: User, href: '/teachers', roles: ['admin'] },
@@ -36,12 +40,27 @@ const navItems: NavItem[] = [
   { label: 'Settings', icon: Settings, href: '/settings', roles: ['admin'] },
 ];
 
+// Teacher navigation items
+const teacherNavItems: NavItem[] = [
+  { label: 'Dashboard', icon: Home, href: '/dashboard', roles: ['teacher'] },
+  { label: 'My Students', icon: Users, href: '/my-students', roles: ['teacher'] },
+  { label: 'My Subjects', icon: BookOpen, href: '/my-subjects', roles: ['teacher'] },
+  { label: 'My Schedule', icon: Calendar, href: '/my-schedule', roles: ['teacher'] },
+  { label: 'Take Attendance', icon: Check, href: '/take-attendance', roles: ['teacher'] },
+  { label: 'Learning Materials', icon: Upload, href: '/learning-materials', roles: ['teacher'] },
+  { label: 'Submit Grades', icon: FileText, href: '/submit-grades', roles: ['teacher'] },
+  { label: 'Settings', icon: Settings, href: '/settings', roles: ['teacher'] },
+];
+
 export default function Sidebar() {
   const { isOpen, toggle } = useSidebar();
   const { user, logout } = useAuth();
   
   if (!user) return null;
 
+  // Choose navigation items based on user role
+  const navItems = user.role === 'teacher' ? teacherNavItems : adminNavItems;
+  
   const filteredNavItems = navItems.filter(item => 
     item.roles.includes(user.role)
   );
@@ -87,10 +106,13 @@ export default function Sidebar() {
       </div>
       
       <div className="p-4 border-t border-gray-200">
-        <div className={cn(
-          "flex items-center cursor-pointer text-sidebar-foreground hover:bg-sidebar-accent p-2 rounded-md",
-          isOpen ? "" : "justify-center"
-        )}>
+        <div 
+          className={cn(
+            "flex items-center cursor-pointer text-sidebar-foreground hover:bg-sidebar-accent p-2 rounded-md",
+            isOpen ? "" : "justify-center"
+          )}
+          onClick={logout}
+        >
           <LogOut size={20} />
           {isOpen && <span className="ml-2">Logout</span>}
         </div>

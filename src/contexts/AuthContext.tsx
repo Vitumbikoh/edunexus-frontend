@@ -11,6 +11,12 @@ export type User = {
   email: string;
   role: UserRole;
   avatar?: string;
+  // Teacher specific data
+  teacherData?: {
+    subjects: string[];
+    classes: string[];
+    students: string[];
+  }
 };
 
 type AuthContextType = {
@@ -30,6 +36,20 @@ const mockUser: User = {
   avatar: 'https://ui-avatars.com/api/?name=Admin+User&background=0D8ABC&color=fff'
 };
 
+// Mock teacher user
+const mockTeacher: User = {
+  id: '2',
+  name: 'John Smith',
+  email: 'teacher@schoolportal.com',
+  role: 'teacher',
+  avatar: 'https://ui-avatars.com/api/?name=John+Smith&background=10B981&color=fff',
+  teacherData: {
+    subjects: ['Mathematics', 'Physics'],
+    classes: ['10A', '11B'],
+    students: ['1', '3', '4', '7'] // IDs of students taught by this teacher
+  }
+};
+
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -40,8 +60,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Simulating initial auth check
     const checkAuth = () => {
       // In a real app, check local storage, cookies, or make an API call
-      // For now, we'll auto-login with mock user
-      setUser(mockUser);
+      // Using mock teacher by default for testing teacher functionality
+      setUser(mockTeacher); // Change to mockUser for admin view
       setLoading(false);
     };
     
