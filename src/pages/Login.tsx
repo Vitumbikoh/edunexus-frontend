@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth, UserRole } from '@/contexts/AuthContext';
 
 // Demo users for testing role-based access
 const demoUsers = [
@@ -13,28 +13,28 @@ const demoUsers = [
     id: '1',
     name: 'Demo Admin',
     email: 'admin@schoolportal.com',
-    role: 'admin',
+    role: 'admin' as UserRole,
     avatar: 'https://ui-avatars.com/api/?name=Admin+User&background=0D8ABC&color=fff'
   },
   {
     id: '2',
     name: 'Demo Teacher',
     email: 'teacher@schoolportal.com',
-    role: 'teacher',
+    role: 'teacher' as UserRole,
     avatar: 'https://ui-avatars.com/api/?name=Teacher+User&background=F59E0B&color=fff'
   },
   {
     id: '3',
     name: 'Demo Student',
     email: 'student@schoolportal.com',
-    role: 'student',
+    role: 'student' as UserRole,
     avatar: 'https://ui-avatars.com/api/?name=Student+User&background=10B981&color=fff'
   },
   {
     id: '4',
     name: 'Demo Parent',
     email: 'parent@schoolportal.com',
-    role: 'parent',
+    role: 'parent' as UserRole,
     avatar: 'https://ui-avatars.com/api/?name=Parent+User&background=2563EB&color=fff'
   },
 ];
@@ -114,4 +114,3 @@ export default function Login() {
     </div>
   );
 }
-
