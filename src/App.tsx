@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -33,6 +32,12 @@ import TeacherAttendance from "./pages/TeacherAttendance";
 import LearningMaterials from "./pages/LearningMaterials";
 import SubmitGrades from "./pages/SubmitGrades";
 
+// Student specific pages
+import StudentAssignments from "./pages/StudentAssignments";
+import StudentGrades from "./pages/StudentGrades";
+import StudentSchedule from "./pages/StudentSchedule";
+import StudentMaterials from "./pages/StudentMaterials";
+
 // Protected route component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated, loading } = useAuth();
@@ -57,6 +62,21 @@ const TeacherRoute = ({ children }: { children: React.ReactNode }) => {
   }
   
   if (!user || user.role !== 'teacher') {
+    return <Navigate to="/dashboard" replace />;
+  }
+  
+  return <>{children}</>;
+};
+
+// Student route component - only accessible by students
+const StudentRoute = ({ children }: { children: React.ReactNode }) => {
+  const { user, loading } = useAuth();
+  
+  if (loading) {
+    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+  }
+  
+  if (!user || user.role !== 'student') {
     return <Navigate to="/dashboard" replace />;
   }
   
@@ -217,6 +237,39 @@ const AppRoutes = () => {
             <SubmitGrades />
           </Layout>
         </TeacherRoute>
+      } />
+      
+      {/* Student specific routes */}
+      <Route path="/assignments" element={
+        <StudentRoute>
+          <Layout>
+            <StudentAssignments />
+          </Layout>
+        </StudentRoute>
+      } />
+      
+      <Route path="/grades" element={
+        <StudentRoute>
+          <Layout>
+            <StudentGrades />
+          </Layout>
+        </StudentRoute>
+      } />
+      
+      <Route path="/schedule" element={
+        <ProtectedRoute>
+          <Layout>
+            {user => user?.role === 'student' ? <StudentSchedule /> : <Schedule />}
+          </Layout>
+        </ProtectedRoute>
+      } />
+      
+      <Route path="/materials" element={
+        <StudentRoute>
+          <Layout>
+            <StudentMaterials />
+          </Layout>
+        </StudentRoute>
       } />
       
       <Route path="*" element={<NotFound />} />

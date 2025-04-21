@@ -1,7 +1,7 @@
 import React from 'react';
 import StatCard from '@/components/dashboard/StatCard';
 import RecentActivitiesCard from '@/components/dashboard/RecentActivitiesCard';
-import { Users, BookOpen, Calendar, DollarSign, ChevronRight, Check, Upload, FileText } from 'lucide-react';
+import { Users, BookOpen, Calendar, DollarSign, ChevronRight, Check, Upload, FileText, Award, Download } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -93,6 +93,7 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const isAdmin = user?.role === 'admin';
   const isTeacher = user?.role === 'teacher';
+  const isStudent = user?.role === 'student';
   
   const teacherStats = [
     { 
@@ -120,6 +121,74 @@ export default function Dashboard() {
       className: "bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-900/10"
     },
   ];
+  
+  const studentStats = [
+    { 
+      title: "My Subjects", 
+      value: isStudent && user.studentData ? `${user.studentData.subjects.length}` : "0", 
+      icon: <BookOpen size={24} />, 
+      className: "bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-900/10" 
+    },
+    { 
+      title: "Assignments", 
+      value: isStudent && user.studentData ? `${user.studentData.assignments.length}` : "0", 
+      icon: <FileText size={24} />, 
+      className: "bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-900/10" 
+    },
+    { 
+      title: "Class Rank", 
+      value: "3", 
+      icon: <Award size={24} />,
+      className: "bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-900/10" 
+    },
+    { 
+      title: "Today's Classes", 
+      value: "4", 
+      icon: <Calendar size={24} />, 
+      className: "bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-900/10"
+    },
+  ];
+  
+  const generateStudentPerformanceData = () => {
+    if (!isStudent || !user?.studentData) return [];
+    
+    return user.studentData.subjects.map(subject => {
+      const grade = user.studentData?.grades.find(g => g.subject === subject)?.grade || '';
+      let score = 0;
+      
+      if (grade.startsWith('A')) score = 90 + Math.floor(Math.random() * 10);
+      else if (grade.startsWith('B')) score = 80 + Math.floor(Math.random() * 10);
+      else if (grade.startsWith('C')) score = 70 + Math.floor(Math.random() * 10);
+      else if (grade.startsWith('D')) score = 60 + Math.floor(Math.random() * 10);
+      else score = 50 + Math.floor(Math.random() * 10);
+      
+      return {
+        name: subject,
+        score: score,
+        average: Math.min(Math.max(score - 5 - Math.floor(Math.random() * 10), 50), 95)
+      };
+    });
+  };
+  
+  const studentPerformanceData = generateStudentPerformanceData();
+  
+  const generateAssignmentStatusData = () => {
+    if (!isStudent || !user?.studentData) return [];
+    
+    const pending = user.studentData.assignments.filter(a => a.status === 'pending').length;
+    const submitted = user.studentData.assignments.filter(a => a.status === 'submitted').length;
+    const graded = user.studentData.assignments.filter(a => a.status === 'graded').length;
+    
+    return [
+      { name: 'Pending', value: pending },
+      { name: 'Submitted', value: submitted },
+      { name: 'Graded', value: graded }
+    ];
+  };
+  
+  const assignmentStatusData = generateAssignmentStatusData();
+  
+  const ASSIGNMENT_COLORS = ['#f97316', '#3b82f6', '#10b981'];
   
   return (
     <div className="space-y-6">
@@ -161,6 +230,16 @@ export default function Dashboard() {
           </>
         ) : isTeacher ? (
           teacherStats.map((stat, index) => (
+            <StatCard
+              key={index}
+              title={stat.title}
+              value={stat.value}
+              icon={stat.icon}
+              className={stat.className}
+            />
+          ))
+        ) : isStudent ? (
+          studentStats.map((stat, index) => (
             <StatCard
               key={index}
               title={stat.title}
@@ -300,6 +379,77 @@ export default function Dashboard() {
         </div>
       )}
       
+      {isStudent && user?.studentData && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Card className="bg-gradient-to-br from-white to-slate-50 dark:from-gray-900 dark:to-gray-900/50">
+            <CardHeader>
+              <CardTitle>My Performance</CardTitle>
+              <CardDescription>Subject scores compared to class average</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="h-80">
+                <ChartContainer
+                  config={{
+                    score: { theme: { light: "#7c3aed", dark: "#7c3aed" } },
+                    average: { theme: { light: "#94a3b8", dark: "#94a3b8" } },
+                  }}
+                >
+                  <BarChart
+                    data={studentPerformanceData}
+                    margin={{ top: 10, right: 30, left: 0, bottom: 20 }}
+                  >
+                    <XAxis dataKey="name" />
+                    <YAxis />
+                    <ChartTooltip
+                      content={<ChartTooltipContent />}
+                    />
+                    <Bar dataKey="score" fill="var(--color-score)" name="Your Score" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="average" fill="var(--color-average)" name="Class Average" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ChartContainer>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-white to-slate-50 dark:from-gray-900 dark:to-gray-900/50">
+            <CardHeader>
+              <CardTitle>Assignment Status</CardTitle>
+              <CardDescription>Overview of your assignments</CardDescription>
+            </CardHeader>
+            <CardContent className="flex justify-center">
+              <div className="h-64 w-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={assignmentStatusData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={60}
+                      outerRadius={80}
+                      fill="#8884d8"
+                      paddingAngle={5}
+                      dataKey="value"
+                      label={({name, percent}) => `${name} ${(percent * 100).toFixed(0)}%`}
+                    >
+                      {assignmentStatusData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={ASSIGNMENT_COLORS[index % ASSIGNMENT_COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+            <div className="px-6 pb-6">
+              <Button className="w-full" onClick={() => navigate("/assignments")}>
+                View All Assignments
+                <ChevronRight className="ml-2 h-4 w-4" />
+              </Button>
+            </div>
+          </Card>
+        </div>
+      )}
+      
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {!isAdmin && <RecentActivitiesCard activities={mockActivities} />}
         
@@ -348,10 +498,22 @@ export default function Dashboard() {
             
             {user?.role === 'student' && (
               <>
-                <Button className="w-full">View Assignments</Button>
-                <Button className="w-full">Check Grades</Button>
-                <Button className="w-full">View Schedule</Button>
-                <Button className="w-full">Download Learning Materials</Button>
+                <Button className="w-full" onClick={() => navigate("/assignments")}>
+                  <FileText className="mr-2 h-4 w-4" />
+                  View Assignments
+                </Button>
+                <Button className="w-full" onClick={() => navigate("/grades")}>
+                  <Award className="mr-2 h-4 w-4" />
+                  Check Grades
+                </Button>
+                <Button className="w-full" onClick={() => navigate("/schedule")}>
+                  <Calendar className="mr-2 h-4 w-4" />
+                  View Schedule
+                </Button>
+                <Button className="w-full" onClick={() => navigate("/materials")}>
+                  <Download className="mr-2 h-4 w-4" />
+                  Download Learning Materials
+                </Button>
               </>
             )}
             

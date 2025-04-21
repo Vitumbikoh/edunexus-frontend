@@ -19,6 +19,8 @@ import {
   Check,
   Upload,
   FileText,
+  Award,
+  Download,
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 
@@ -52,6 +54,16 @@ const teacherNavItems: NavItem[] = [
   { label: 'Settings', icon: Settings, href: '/settings', roles: ['teacher'] },
 ];
 
+// Student navigation items
+const studentNavItems: NavItem[] = [
+  { label: 'Dashboard', icon: Home, href: '/dashboard', roles: ['student'] },
+  { label: 'Assignments', icon: FileText, href: '/assignments', roles: ['student'] },
+  { label: 'Grades', icon: Award, href: '/grades', roles: ['student'] },
+  { label: 'Schedule', icon: Calendar, href: '/schedule', roles: ['student'] },
+  { label: 'Learning Materials', icon: Download, href: '/materials', roles: ['student'] },
+  { label: 'Settings', icon: Settings, href: '/settings', roles: ['student'] },
+];
+
 export default function Sidebar() {
   const { isOpen, toggle } = useSidebar();
   const { user, logout } = useAuth();
@@ -59,7 +71,13 @@ export default function Sidebar() {
   if (!user) return null;
 
   // Choose navigation items based on user role
-  const navItems = user.role === 'teacher' ? teacherNavItems : adminNavItems;
+  let navItems = adminNavItems;
+  
+  if (user.role === 'teacher') {
+    navItems = teacherNavItems;
+  } else if (user.role === 'student') {
+    navItems = studentNavItems;
+  }
   
   const filteredNavItems = navItems.filter(item => 
     item.roles.includes(user.role)
