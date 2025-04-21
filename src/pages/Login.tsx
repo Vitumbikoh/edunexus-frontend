@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth, UserRole } from '@/contexts/AuthContext';
 
-// Demo users for testing role-based access
+// Demo users, now including Finance for strict roles
 const demoUsers = [
   {
     id: '1',
@@ -37,20 +37,25 @@ const demoUsers = [
     role: 'parent' as UserRole,
     avatar: 'https://ui-avatars.com/api/?name=Parent+User&background=2563EB&color=fff'
   },
+  {
+    id: '5',
+    name: 'Demo Finance',
+    email: 'finance@schoolportal.com',
+    role: 'finance' as UserRole,
+    avatar: 'https://ui-avatars.com/api/?name=Finance+User&background=EC4899&color=fff'
+  },
 ];
 
 export default function Login() {
   const { login } = useAuth();
   const navigate = useNavigate();
 
-  // Optionally, still handle manual form, but default to Admin
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     login(demoUsers[0]); // Admin login by default
     navigate('/dashboard');
   };
 
-  // Handler for demo user login
   const handleDemoLogin = (userIdx: number) => {
     login(demoUsers[userIdx]);
     navigate('/dashboard');
@@ -102,6 +107,48 @@ export default function Login() {
               <Button variant="outline" className="w-full" onClick={() => handleDemoLogin(3)}>
                 Log in as Parent
               </Button>
+              <Button variant="outline" className="w-full" onClick={() => handleDemoLogin(4)}>
+                Log in as Finance
+              </Button>
+            </div>
+            <div className="mt-6 border rounded-lg p-3 bg-gray-50 overflow-x-auto">
+              <h3 className="text-sm font-bold mb-2 text-gray-700">Demo Credentials & Role Permissions</h3>
+              <table className="w-full text-xs text-left">
+                <thead>
+                  <tr>
+                    <th className="font-bold py-1 pr-3">Role</th>
+                    <th className="font-bold py-1 pr-3">Email</th>
+                    <th className="font-bold py-1 pr-3">Sample Abilities</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr className="border-t">
+                    <td className="py-1 pr-3 font-semibold text-gray-800">Admin</td>
+                    <td className="py-1 pr-3">admin@schoolportal.com</td>
+                    <td className="py-1 pr-3">All access</td>
+                  </tr>
+                  <tr className="border-t">
+                    <td className="py-1 pr-3 font-semibold text-yellow-600">Teacher</td>
+                    <td className="py-1 pr-3">teacher@schoolportal.com</td>
+                    <td className="py-1 pr-3">View students, subjects, schedules</td>
+                  </tr>
+                  <tr className="border-t">
+                    <td className="py-1 pr-3 font-semibold text-green-600">Student</td>
+                    <td className="py-1 pr-3">student@schoolportal.com</td>
+                    <td className="py-1 pr-3">View students & subjects, edit only own profile</td>
+                  </tr>
+                  <tr className="border-t">
+                    <td className="py-1 pr-3 font-semibold text-blue-600">Parent</td>
+                    <td className="py-1 pr-3">parent@schoolportal.com</td>
+                    <td className="py-1 pr-3">View child grades & attendance, pay fees</td>
+                  </tr>
+                  <tr className="border-t">
+                    <td className="py-1 pr-3 font-semibold text-pink-600">Finance</td>
+                    <td className="py-1 pr-3">finance@schoolportal.com</td>
+                    <td className="py-1 pr-3">View & manage finance only</td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           </div>
         </CardContent>

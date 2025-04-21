@@ -12,6 +12,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Search } from 'lucide-react';
+import { useAuth } from "@/contexts/AuthContext";
 
 // Mock data
 const students = [
@@ -26,6 +27,21 @@ const students = [
 ];
 
 export default function Students() {
+  const { user } = useAuth();
+
+  // Permission checks
+  const canAddStudent = user?.role === "admin" || user?.role === "teacher";
+  const canEdit = user?.role === "admin" || user?.role === "teacher";
+  const canView = user?.role !== "finance"; // All except finance (finance cannot view students)
+
+  if (!canView) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="text-center p-8 rounded-lg bg-red-50 border border-red-200 text-red-700 font-semibold">You do not have permission to view students.</div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -33,7 +49,9 @@ export default function Students() {
           <h1 className="text-2xl font-bold">Students</h1>
           <p className="text-muted-foreground">Manage all students</p>
         </div>
-        <Button>Add New Student</Button>
+        {canAddStudent && (
+          <Button>Add New Student</Button>
+        )}
       </div>
       
       <Card>
@@ -70,7 +88,7 @@ export default function Students() {
                   <TableCell>{student.performance}</TableCell>
                   <TableCell className="text-right">
                     <Button variant="ghost" size="sm">View</Button>
-                    <Button variant="ghost" size="sm">Edit</Button>
+                    {canEdit && <Button variant="ghost" size="sm">Edit</Button>}
                   </TableCell>
                 </TableRow>
               ))}

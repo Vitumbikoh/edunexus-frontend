@@ -3,6 +3,7 @@ import React from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { useAuth } from "@/contexts/AuthContext";
 
 // Mock data
 const subjects = [
@@ -51,6 +52,21 @@ const subjects = [
 ];
 
 export default function Subjects() {
+  const { user } = useAuth();
+
+  const canAdd = user?.role === "admin" || user?.role === "teacher";
+  const canEdit = user?.role === "admin" || user?.role === "teacher";
+  const canView = user?.role === "admin" || user?.role === "teacher" || user?.role === "student";
+  const canShow = canView;
+
+  if (!canShow) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="text-center p-8 rounded-lg bg-red-50 border border-red-200 text-red-700 font-semibold">You do not have permission to view subjects.</div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -58,7 +74,7 @@ export default function Subjects() {
           <h1 className="text-2xl font-bold">Subjects</h1>
           <p className="text-muted-foreground">Manage all subjects and courses</p>
         </div>
-        <Button>Add New Subject</Button>
+        {canAdd && <Button>Add New Subject</Button>}
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
@@ -93,7 +109,9 @@ export default function Subjects() {
                 </div>
                 
                 <div className="pt-2 flex justify-end">
-                  <Button variant="outline" size="sm" className="mr-2">Edit</Button>
+                  {canEdit && (
+                    <Button variant="outline" size="sm" className="mr-2">Edit</Button>
+                  )}
                   <Button variant="default" size="sm">View Details</Button>
                 </div>
               </div>
