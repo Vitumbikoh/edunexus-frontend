@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -40,6 +39,37 @@ export default function Dashboard() {
   const { user } = useAuth();
   
   if (!user) return null;
+  
+  // Sample recent activities data for the dashboard
+  const recentActivities = [
+    {
+      id: "act1",
+      user: {
+        name: "Sarah Wilson",
+        avatar: "/assets/sarah-wilson.jpg"
+      },
+      action: "created a new invoice #INV-2025",
+      time: "2 hours ago"
+    },
+    {
+      id: "act2",
+      user: {
+        name: "John Smith",
+        avatar: "/assets/john-smith.jpg"
+      },
+      action: "recorded a payment of $1,500",
+      time: "5 hours ago"
+    },
+    {
+      id: "act3",
+      user: {
+        name: "System",
+        avatar: "/assets/system.jpg"
+      },
+      action: "generated the monthly financial report",
+      time: "1 day ago"
+    }
+  ];
   
   // Render finance-specific dashboard if user is finance
   if (user.role === 'finance') {
@@ -85,7 +115,7 @@ export default function Dashboard() {
             <CardTitle>Recent Activity</CardTitle>
           </CardHeader>
           <CardContent>
-            <RecentActivitiesCard />
+            <RecentActivitiesCard activities={recentActivities} />
           </CardContent>
         </Card>
         
@@ -128,6 +158,46 @@ export default function Dashboard() {
 
 // Finance-specific dashboard
 function FinanceDashboard({ user }: { user: any }) {
+  // Finance activities data
+  const financeActivities = [
+    {
+      id: "fact1",
+      user: {
+        name: "Sarah Wilson",
+        avatar: "/assets/sarah-wilson.jpg"
+      },
+      action: "processed tuition fee payment from Student #1245",
+      time: "1 hour ago"
+    },
+    {
+      id: "fact2",
+      user: {
+        name: "System",
+        avatar: "/assets/system.jpg"
+      },
+      action: "generated Q2 financial report",
+      time: "3 hours ago"
+    },
+    {
+      id: "fact3",
+      user: {
+        name: user.name,
+        avatar: user.avatar
+      },
+      action: "updated budget allocation for IT department",
+      time: "Yesterday at 4:30 PM"
+    },
+    {
+      id: "fact4",
+      user: {
+        name: "John Davis",
+        avatar: "/assets/john-davis.jpg"
+      },
+      action: "submitted expense report for approval",
+      time: "Yesterday at 2:15 PM"
+    }
+  ];
+
   // Finance stats
   const financeStats = {
     totalRevenue: 1250000,
