@@ -1,10 +1,12 @@
+
 import React from 'react';
 import StatCard from '@/components/dashboard/StatCard';
 import RecentActivitiesCard from '@/components/dashboard/RecentActivitiesCard';
-import { Users, BookOpen, Calendar, DollarSign, ChevronRight, Check, Upload, FileText, Award, Download } from 'lucide-react';
+import { Users, BookOpen, Calendar, DollarSign, ChevronRight, Check, Upload, FileText, Award, Download, ChartPie } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge"; // Add missing Badge import
 import { useNavigate } from 'react-router-dom';
 import { Progress } from '@/components/ui/progress';
 import { 
@@ -282,7 +284,8 @@ export default function Dashboard() {
               key={index}
               title={stat.title}
               value={stat.value}
-              icon={stat.icon}
+              // Fix the icon prop - pass the component instead of the reference
+              icon={React.createElement(stat.icon, { size: 24 })}
               className={stat.className}
             />
           ))
@@ -560,7 +563,7 @@ export default function Dashboard() {
             {user?.role === 'parent' && (
               <>
                 <Button className="w-full" onClick={() => navigate("/children/performance")}>
-                  <Chart className="mr-2 h-4 w-4" />
+                  <ChartPie className="mr-2 h-4 w-4" />
                   View Children's Performance
                 </Button>
                 <Button className="w-full" onClick={() => navigate("/finance")}>

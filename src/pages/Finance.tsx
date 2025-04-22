@@ -28,7 +28,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { useAuth } from "@/context/auth";
+import { useAuth } from "@/contexts/AuthContext";
 
 // Mock data
 const feePayments = [
