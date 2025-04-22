@@ -36,6 +36,15 @@ export type User = {
   };
 };
 
+// Define AuthContext type
+export type AuthContextType = {
+  user: User | null;
+  isAuthenticated: boolean;
+  login: (userData: User) => void;
+  logout: () => void;
+  loading: boolean;
+};
+
 // Mock user for demonstration
 const mockUser: User = {
   id: '1',

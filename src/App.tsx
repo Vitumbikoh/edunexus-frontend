@@ -84,6 +84,8 @@ const StudentRoute = ({ children }: { children: React.ReactNode }) => {
 };
 
 const AppRoutes = () => {
+  const { user } = useAuth();
+  
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
@@ -259,7 +261,7 @@ const AppRoutes = () => {
       <Route path="/schedule" element={
         <ProtectedRoute>
           <Layout>
-            {user => user?.role === 'student' ? <StudentSchedule /> : <Schedule />}
+            {user?.role === 'student' ? <StudentSchedule /> : <Schedule />}
           </Layout>
         </ProtectedRoute>
       } />
