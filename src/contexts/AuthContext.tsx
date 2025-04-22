@@ -256,6 +256,15 @@ const mockFinanceUser: User = {
   }
 };
 
+// Define AuthContextType
+type AuthContextType = {
+  user: User | null;
+  isAuthenticated: boolean;
+  loading: boolean;
+  login: (userData: User) => void;
+  logout: () => void;
+};
+
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {

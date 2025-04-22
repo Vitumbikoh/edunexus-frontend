@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  FileChart,
+  FileHeart,
   Receipt,
   FileText,
   Calculator,
@@ -69,7 +69,7 @@ export default function Finance() {
             Record Transaction
           </Button>
           <Button variant="outline">
-            <FileChart className="mr-2 h-4 w-4" />
+            <FileHeart className="mr-2 h-4 w-4" />
             Generate Report
           </Button>
         </div>

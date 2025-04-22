@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useSidebar } from '@/contexts/SidebarContext';
@@ -20,10 +21,10 @@ import {
   FileText,
   Award,
   Download,
+  FileHeart,
   ChartPie,
   MessageSquare,
   Receipt,
-  FileChart,
   Calculator
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
@@ -82,7 +83,7 @@ const parentNavItems: NavItem[] = [
 const financeNavItems: NavItem[] = [
   { label: 'Dashboard', icon: Home, href: '/dashboard', roles: ['finance'] },
   { label: 'Transactions', icon: Receipt, href: '/finance', roles: ['finance'] },
-  { label: 'Reports', icon: FileChart, href: '/finance/reports', roles: ['finance'] },
+  { label: 'Reports', icon: FileHeart, href: '/finance/reports', roles: ['finance'] },
   { label: 'Budgets', icon: Calculator, href: '/finance/budgets', roles: ['finance'] },
   { label: 'Settings', icon: Settings, href: '/settings', roles: ['finance'] },
 ];
