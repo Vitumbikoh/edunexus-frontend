@@ -1,7 +1,5 @@
 import React from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import StatCard from '@/components/dashboard/StatCard';
 import RecentActivitiesCard from '@/components/dashboard/RecentActivitiesCard';
 import { useAuth } from '@/contexts/AuthContext';
@@ -9,8 +7,6 @@ import { Link } from 'react-router-dom';
 import {
   Calendar,
   DollarSign,
-  FileText,
-  User,
   Users,
   BookOpen,
   Receipt,
@@ -24,6 +20,7 @@ import {
   Search,
   BarChart
 } from 'lucide-react';
+import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -40,15 +37,15 @@ export default function Dashboard() {
   
   if (!user) return null;
   
-  // Sample recent activities data for the dashboard
-  const recentActivities = [
+  // Sample recent activities data for admin dashboard
+  const adminActivities = [
     {
       id: "act1",
       user: {
         name: "Sarah Wilson",
         avatar: "/assets/sarah-wilson.jpg"
       },
-      action: "created a new invoice #INV-2025",
+      action: "registered a new student",
       time: "2 hours ago"
     },
     {
@@ -57,7 +54,7 @@ export default function Dashboard() {
         name: "John Smith",
         avatar: "/assets/john-smith.jpg"
       },
-      action: "recorded a payment of $1,500",
+      action: "updated class schedule",
       time: "5 hours ago"
     },
     {
@@ -66,97 +63,97 @@ export default function Dashboard() {
         name: "System",
         avatar: "/assets/system.jpg"
       },
-      action: "generated the monthly financial report",
+      action: "generated attendance report",
       time: "1 day ago"
     }
   ];
   
-  // Render finance-specific dashboard if user is finance
+  // Render finance dashboard if user is finance
   if (user.role === 'finance') {
     return <FinanceDashboard user={user} />;
   }
   
-  // For other roles, render default dashboard
-  return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
-      
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <StatCard
-          title="Total Students"
-          value="1,235"
-          icon={<Users className="h-4 w-4" />}
-          trend={{ value: 3.2, isPositive: true }}
-        />
+  // For admin role, render admin dashboard
+  if (user.role === 'admin') {
+    return (
+      <div className="space-y-6">
+        <h1 className="text-2xl font-bold tracking-tight">Admin Dashboard</h1>
         
-        <StatCard
-          title="Total Courses"
-          value="42"
-          icon={<BookOpen className="h-4 w-4" />}
-        />
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <StatCard
+            title="Total Students"
+            value="1,235"
+            icon={<Users className="h-4 w-4" />}
+            trend={{ value: 3.2, isPositive: true }}
+          />
+          
+          <StatCard
+            title="Total Courses"
+            value="42"
+            icon={<BookOpen className="h-4 w-4" />}
+          />
+          
+          <StatCard
+            title="Upcoming Events"
+            value="8"
+            icon={<Calendar className="h-4 w-4" />}
+          />
+          
+          <StatCard
+            title="Fee Collection"
+            value="$24,500"
+            icon={<DollarSign className="h-4 w-4" />}
+            trend={{ value: 10.5, isPositive: true }}
+          />
+        </div>
         
-        <StatCard
-          title="Upcoming Events"
-          value="8"
-          icon={<Calendar className="h-4 w-4" />}
-        />
-        
-        <StatCard
-          title="Fee Collection"
-          value="$24,500"
-          icon={<DollarSign className="h-4 w-4" />}
-          trend={{ value: 10.5, isPositive: true }}
-        />
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+          <Card className="md:col-span-4">
+            <CardHeader>
+              <CardTitle>Recent Activity</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <RecentActivitiesCard activities={adminActivities} />
+            </CardContent>
+          </Card>
+          
+          <Card className="md:col-span-3">
+            <CardHeader>
+              <CardTitle>Quick Actions</CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-2">
+              <Button className="justify-start" variant="outline" asChild>
+                <Link to="/students">
+                  <Users className="mr-2 h-4 w-4" />
+                  View Students
+                </Link>
+              </Button>
+              <Button className="justify-start" variant="outline" asChild>
+                <Link to="/schedule">
+                  <Calendar className="mr-2 h-4 w-4" />
+                  View Schedule
+                </Link>
+              </Button>
+              <Button className="justify-start" variant="outline" asChild>
+                <Link to="/subjects">
+                  <BookOpen className="mr-2 h-4 w-4" />
+                  View Subjects
+                </Link>
+              </Button>
+              <Button className="justify-start" variant="outline" asChild>
+                <Link to="/finance">
+                  <DollarSign className="mr-2 h-4 w-4" />
+                  Finance Management
+                </Link>
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
       </div>
-      
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-        <Card className="md:col-span-4">
-          <CardHeader>
-            <CardTitle>Recent Activity</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <RecentActivitiesCard activities={recentActivities} />
-          </CardContent>
-        </Card>
-        
-        <Card className="md:col-span-3">
-          <CardHeader>
-            <CardTitle>Quick Actions</CardTitle>
-            <CardDescription>Common tasks and operations</CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-2">
-            <Button className="justify-start" variant="outline" asChild>
-              <Link to="/students">
-                <Users className="mr-2 h-4 w-4" />
-                View Students
-              </Link>
-            </Button>
-            <Button className="justify-start" variant="outline" asChild>
-              <Link to="/schedule">
-                <Calendar className="mr-2 h-4 w-4" />
-                View Schedule
-              </Link>
-            </Button>
-            <Button className="justify-start" variant="outline" asChild>
-              <Link to="/subjects">
-                <BookOpen className="mr-2 h-4 w-4" />
-                View Subjects
-              </Link>
-            </Button>
-            <Button className="justify-start" variant="outline" asChild>
-              <Link to="/finance">
-                <DollarSign className="mr-2 h-4 w-4" />
-                Finance Management
-              </Link>
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    </div>
-  );
-}
-
-// Finance-specific dashboard
+    );
+  }
+  
+  // Finance-specific dashboard
 function FinanceDashboard({ user }: { user: any }) {
   // Finance activities data
   const financeActivities = [
@@ -390,4 +387,5 @@ function FinanceDashboard({ user }: { user: any }) {
       </div>
     </div>
   );
+}
 }
