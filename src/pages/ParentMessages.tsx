@@ -83,7 +83,7 @@ export default function ParentMessages() {
   const handleOpenMessage = (message) => {
     setSelectedMessage(message);
     // Mark as read if it was unread
-    if (!message.read && activeTab === 'inbox') {
+    if (message.read === false && activeTab === 'inbox') {
       message.read = true;
     }
   };
@@ -119,7 +119,7 @@ export default function ParentMessages() {
                   <Mail className="mr-2 h-4 w-4" />
                   Inbox
                   <Badge className="ml-auto" variant="secondary">
-                    {mockMessages.filter(m => !m.read).length}
+                    {mockMessages.filter(m => m.read === false).length}
                   </Badge>
                 </Button>
                 
@@ -210,13 +210,13 @@ export default function ParentMessages() {
                       {(activeTab === 'inbox' ? mockMessages : sentMessages).map((message) => (
                         <TableRow 
                           key={message.id} 
-                          className={`cursor-pointer ${!message.read && activeTab === 'inbox' ? 'font-medium' : ''}`}
+                          className={`cursor-pointer ${message.read === false && activeTab === 'inbox' ? 'font-medium' : ''}`}
                           onClick={() => handleOpenMessage(message)}
                         >
                           <TableCell>{activeTab === 'inbox' ? message.from : message.to}</TableCell>
                           <TableCell>
                             {message.subject}
-                            {!message.read && activeTab === 'inbox' && (
+                            {message.read === false && activeTab === 'inbox' && (
                               <Badge className="ml-2" variant="default">New</Badge>
                             )}
                           </TableCell>

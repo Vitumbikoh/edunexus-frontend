@@ -112,7 +112,7 @@ export default function ParentAttendance() {
                         <TableCell className="text-right">
                           <Badge variant={
                             record.status === 'present' ? 'default' :
-                            record.status === 'late' ? 'warning' : 'destructive'
+                            record.status === 'late' ? 'secondary' : 'destructive'
                           } className="capitalize">
                             {record.status}
                           </Badge>

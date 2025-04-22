@@ -12,7 +12,7 @@ import {
   DollarSign,
   CreditCard,
   Receipt,
-  Buildings,
+  Building,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
@@ -289,7 +289,7 @@ export default function Finance() {
                       <TableCell className="text-right">${invoice.amount}</TableCell>
                       <TableCell className="text-right">
                         <Badge variant={
-                          invoice.status === "paid" ? "success" :
+                          invoice.status === "paid" ? "default" :
                           invoice.status === "pending" ? "outline" : "destructive"
                         } className="capitalize">
                           {invoice.status}
