@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useSidebar } from '@/contexts/SidebarContext';
@@ -22,7 +21,10 @@ import {
   Award,
   Download,
   ChartPie,
-  MessageSquare
+  MessageSquare,
+  Receipt,
+  FileChart,
+  Calculator
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 
@@ -76,6 +78,15 @@ const parentNavItems: NavItem[] = [
   { label: 'Settings', icon: Settings, href: '/settings', roles: ['parent'] },
 ];
 
+// Finance navigation items
+const financeNavItems: NavItem[] = [
+  { label: 'Dashboard', icon: Home, href: '/dashboard', roles: ['finance'] },
+  { label: 'Transactions', icon: Receipt, href: '/finance', roles: ['finance'] },
+  { label: 'Reports', icon: FileChart, href: '/finance/reports', roles: ['finance'] },
+  { label: 'Budgets', icon: Calculator, href: '/finance/budgets', roles: ['finance'] },
+  { label: 'Settings', icon: Settings, href: '/settings', roles: ['finance'] },
+];
+
 export default function Sidebar() {
   const { isOpen, toggle } = useSidebar();
   const { user, logout } = useAuth();
@@ -91,6 +102,8 @@ export default function Sidebar() {
     navItems = studentNavItems;
   } else if (user.role === 'parent') {
     navItems = parentNavItems;
+  } else if (user.role === 'finance') {
+    navItems = financeNavItems;
   }
   
   const filteredNavItems = navItems.filter(item => 
