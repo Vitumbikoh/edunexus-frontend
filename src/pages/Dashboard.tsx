@@ -19,7 +19,9 @@ import {
   CreditCard,
   Download,
   Search,
-  BarChart
+  BarChart,
+  FileText,
+  Award
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import {
@@ -154,11 +156,360 @@ export default function Dashboard() {
     );
   }
   
-  // Default dashboard for other user roles (teacher, student, parent)
+  // For teacher role
+  if (user.role === 'teacher') {
+    return (
+      <div className="space-y-6">
+        <h1 className="text-2xl font-bold tracking-tight">Teacher Dashboard</h1>
+        <p className="text-muted-foreground">Welcome, {user.name}!</p>
+        
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <StatCard
+            title="My Students"
+            value={user.teacherData?.students?.length.toString() || "0"}
+            icon={<Users className="h-4 w-4" />}
+          />
+          
+          <StatCard
+            title="My Classes"
+            value={user.teacherData?.classes?.length.toString() || "0"}
+            icon={<Calendar className="h-4 w-4" />}
+          />
+          
+          <StatCard
+            title="My Subjects"
+            value={user.teacherData?.subjects?.length.toString() || "0"}
+            icon={<BookOpen className="h-4 w-4" />}
+          />
+          
+          <StatCard
+            title="Pending Assignments"
+            value="12"
+            icon={<FileText className="h-4 w-4" />}
+            trend={{ value: 2.5, isPositive: false }}
+          />
+        </div>
+        
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+          <Card className="md:col-span-4">
+            <CardHeader>
+              <CardTitle>Today's Schedule</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex items-center p-3 bg-blue-50 rounded-lg border border-blue-100">
+                  <div className="bg-blue-100 p-2 rounded-md mr-3">
+                    <Calendar className="h-5 w-5 text-blue-600" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-medium">Mathematics - Class 10A</h3>
+                    <p className="text-sm text-muted-foreground">9:00 AM - 10:30 AM • Room 101</p>
+                  </div>
+                </div>
+                
+                <div className="flex items-center p-3 bg-green-50 rounded-lg border border-green-100">
+                  <div className="bg-green-100 p-2 rounded-md mr-3">
+                    <Calendar className="h-5 w-5 text-green-600" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-medium">Physics - Class 11B</h3>
+                    <p className="text-sm text-muted-foreground">11:00 AM - 12:30 PM • Room 204</p>
+                  </div>
+                </div>
+                
+                <div className="flex items-center p-3 bg-purple-50 rounded-lg border border-purple-100">
+                  <div className="bg-purple-100 p-2 rounded-md mr-3">
+                    <Calendar className="h-5 w-5 text-purple-600" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-medium">Staff Meeting</h3>
+                    <p className="text-sm text-muted-foreground">2:00 PM - 3:00 PM • Conference Room</p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card className="md:col-span-3">
+            <CardHeader>
+              <CardTitle>Quick Actions</CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-2">
+              <Button className="justify-start" variant="outline" asChild>
+                <Link to="/my-students">
+                  <Users className="mr-2 h-4 w-4" />
+                  View My Students
+                </Link>
+              </Button>
+              <Button className="justify-start" variant="outline" asChild>
+                <Link to="/my-schedule">
+                  <Calendar className="mr-2 h-4 w-4" />
+                  View My Schedule
+                </Link>
+              </Button>
+              <Button className="justify-start" variant="outline" asChild>
+                <Link to="/take-attendance">
+                  <Users className="mr-2 h-4 w-4" />
+                  Take Attendance
+                </Link>
+              </Button>
+              <Button className="justify-start" variant="outline" asChild>
+                <Link to="/learning-materials">
+                  <FileText className="mr-2 h-4 w-4" />
+                  Upload Materials
+                </Link>
+              </Button>
+              <Button className="justify-start" variant="outline" asChild>
+                <Link to="/submit-grades">
+                  <Award className="mr-2 h-4 w-4" />
+                  Submit Grades
+                </Link>
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+  
+  // For student role
+  if (user.role === 'student' && user.studentData) {
+    return (
+      <div className="space-y-6">
+        <h1 className="text-2xl font-bold tracking-tight">Student Dashboard</h1>
+        <p className="text-muted-foreground">Welcome, {user.name}!</p>
+        
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <StatCard
+            title="Classes Today"
+            value="4"
+            icon={<Calendar className="h-4 w-4" />}
+          />
+          
+          <StatCard
+            title="Subjects"
+            value={user.studentData.subjects.length.toString()}
+            icon={<BookOpen className="h-4 w-4" />}
+          />
+          
+          <StatCard
+            title="Pending Assignments"
+            value={user.studentData.assignments.filter(a => a.status === 'pending').length.toString()}
+            icon={<FileText className="h-4 w-4" />}
+            trend={{ value: user.studentData.assignments.filter(a => a.status === 'pending').length > 2 ? 1.5 : 0, isPositive: false }}
+          />
+          
+          <StatCard
+            title="Overall Grade"
+            value="A-"
+            icon={<Award className="h-4 w-4" />}
+          />
+        </div>
+        
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+          <Card className="md:col-span-4">
+            <CardHeader>
+              <CardTitle>Recent Assignments</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Subject</TableHead>
+                    <TableHead>Title</TableHead>
+                    <TableHead>Due Date</TableHead>
+                    <TableHead>Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {user.studentData.assignments.map((assignment) => (
+                    <TableRow key={assignment.id}>
+                      <TableCell className="font-medium">{assignment.subject}</TableCell>
+                      <TableCell>{assignment.title}</TableCell>
+                      <TableCell>{assignment.dueDate}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className={
+                          assignment.status === 'pending' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' :
+                          assignment.status === 'submitted' ? 'bg-blue-50 text-blue-700 border-blue-200' : 
+                          'bg-green-50 text-green-700 border-green-200'
+                        }>
+                          {assignment.status.charAt(0).toUpperCase() + assignment.status.slice(1)}
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+          
+          <Card className="md:col-span-3">
+            <CardHeader>
+              <CardTitle>Quick Actions</CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-2">
+              <Button className="justify-start" variant="outline" asChild>
+                <Link to="/assignments">
+                  <FileText className="mr-2 h-4 w-4" />
+                  View Assignments
+                </Link>
+              </Button>
+              <Button className="justify-start" variant="outline" asChild>
+                <Link to="/schedule">
+                  <Calendar className="mr-2 h-4 w-4" />
+                  View Schedule
+                </Link>
+              </Button>
+              <Button className="justify-start" variant="outline" asChild>
+                <Link to="/grades">
+                  <Award className="mr-2 h-4 w-4" />
+                  View Grades
+                </Link>
+              </Button>
+              <Button className="justify-start" variant="outline" asChild>
+                <Link to="/materials">
+                  <Download className="mr-2 h-4 w-4" />
+                  Download Materials
+                </Link>
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+  
+  // For parent role
+  if (user.role === 'parent' && user.parentData) {
+    const children = user.parentData.children || [];
+    
+    return (
+      <div className="space-y-6">
+        <h1 className="text-2xl font-bold tracking-tight">Parent Dashboard</h1>
+        <p className="text-muted-foreground">Welcome, {user.name}!</p>
+        
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <StatCard
+            title="Children"
+            value={children.length.toString()}
+            icon={<Users className="h-4 w-4" />}
+          />
+          
+          <StatCard
+            title="Pending Assignments"
+            value={children.reduce((total, child) => 
+              total + child.assignments.filter(a => a.status === 'pending').length, 0).toString()}
+            icon={<FileText className="h-4 w-4" />}
+          />
+          
+          <StatCard
+            title="Total Fees"
+            value={`$${children.reduce((total, child) => total + child.fees.total, 0).toLocaleString()}`}
+            icon={<DollarSign className="h-4 w-4" />}
+          />
+          
+          <StatCard
+            title="Pending Fees"
+            value={`$${children.reduce((total, child) => total + child.fees.pending, 0).toLocaleString()}`}
+            icon={<Wallet className="h-4 w-4" />}
+            trend={{ 
+              value: children.reduce((total, child) => total + child.fees.pending, 0) > 1000 ? 5 : 0, 
+              isPositive: false 
+            }}
+          />
+        </div>
+        
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+          <Card className="md:col-span-4">
+            <CardHeader>
+              <CardTitle>Children Overview</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                {children.map((child) => (
+                  <div key={child.id} className="bg-card p-4 rounded-lg border">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-lg font-semibold">{child.name}</h3>
+                      <Badge variant="outline">Grade {child.grade}</Badge>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4 mb-4">
+                      <div>
+                        <p className="text-sm text-muted-foreground">Attendance</p>
+                        <div className="flex items-end gap-2 mt-1">
+                          <span className="text-xl font-bold">{Math.round((child.attendance.present / child.attendance.total) * 100)}%</span>
+                          <span className="text-xs text-muted-foreground">
+                            ({child.attendance.present}/{child.attendance.total} days)
+                          </span>
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <p className="text-sm text-muted-foreground">Fee Status</p>
+                        <div className="flex items-end gap-2 mt-1">
+                          <span className="text-xl font-bold">{Math.round((child.fees.paid / child.fees.total) * 100)}%</span>
+                          <span className="text-xs text-muted-foreground">
+                            Paid (Due: {child.fees.dueDate})
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <Progress value={Math.round((child.fees.paid / child.fees.total) * 100)} className="h-2 mb-1" />
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card className="md:col-span-3">
+            <CardHeader>
+              <CardTitle>Quick Actions</CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-2">
+              <Button className="justify-start" variant="outline" asChild>
+                <Link to="/children/performance">
+                  <ChartPie className="mr-2 h-4 w-4" />
+                  Children's Performance
+                </Link>
+              </Button>
+              <Button className="justify-start" variant="outline" asChild>
+                <Link to="/attendance">
+                  <Users className="mr-2 h-4 w-4" />
+                  View Attendance
+                </Link>
+              </Button>
+              <Button className="justify-start" variant="outline" asChild>
+                <Link to="/finance">
+                  <DollarSign className="mr-2 h-4 w-4" />
+                  Fee Payments
+                </Link>
+              </Button>
+              <Button className="justify-start" variant="outline" asChild>
+                <Link to="/messages">
+                  <MessageSquare className="mr-2 h-4 w-4" />
+                  Contact Teachers
+                </Link>
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+  
+  // Default dashboard for any other user roles (fallback)
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold tracking-tight">{user.role.charAt(0).toUpperCase() + user.role.slice(1)} Dashboard</h1>
-      <p>Welcome, {user.name}! Your personalized dashboard is loading...</p>
+      <p className="text-muted-foreground">Welcome, {user.name}! Your personalized dashboard is being set up.</p>
+      
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card className="p-6">
+          <h3 className="font-medium mb-2">Quick Navigation</h3>
+          <p className="text-sm text-muted-foreground">Use the sidebar menu to navigate to different sections.</p>
+        </Card>
+      </div>
     </div>
   );
 }
