@@ -15,12 +15,34 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Send, Mail, MailOpen } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+
+// Define message types for better type checking
+interface InboxMessage {
+  id: string;
+  from: string;
+  to: string;
+  subject: string;
+  date: string;
+  read: boolean;
+  content: string;
+}
+
+interface SentMessage {
+  id: string;
+  from: string;
+  to: string;
+  subject: string;
+  date: string;
+  content: string;
+}
 
 export default function ParentMessages() {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [activeTab, setActiveTab] = useState('inbox');
   const [composing, setComposing] = useState(false);
-  const [selectedMessage, setSelectedMessage] = useState(null);
+  const [selectedMessage, setSelectedMessage] = useState<InboxMessage | SentMessage | null>(null);
   
   if (!user?.parentData) {
     return (
@@ -31,7 +53,7 @@ export default function ParentMessages() {
   }
 
   // Mock messages data
-  const mockMessages = [
+  const mockMessages: InboxMessage[] = [
     {
       id: '1',
       from: 'Mr. Smith (Math Teacher)',
@@ -61,7 +83,7 @@ export default function ParentMessages() {
     }
   ];
 
-  const sentMessages = [
+  const sentMessages: SentMessage[] = [
     {
       id: '101',
       from: user.name,
@@ -80,10 +102,10 @@ export default function ParentMessages() {
     }
   ];
 
-  const handleOpenMessage = (message) => {
+  const handleOpenMessage = (message: InboxMessage | SentMessage) => {
     setSelectedMessage(message);
-    // Mark as read if it was unread
-    if (message.read === false && activeTab === 'inbox') {
+    // Mark as read if it was unread (only for inbox messages)
+    if ('read' in message && message.read === false && activeTab === 'inbox') {
       message.read = true;
     }
   };
@@ -91,6 +113,15 @@ export default function ParentMessages() {
   const handleComposeMessage = () => {
     setComposing(true);
     setSelectedMessage(null);
+  };
+
+  const handleSendMessage = () => {
+    // Here you would normally send the message to the API
+    toast({
+      title: "Message Sent",
+      description: "Your message has been sent successfully.",
+    });
+    setComposing(false);
   };
 
   return (
@@ -165,7 +196,7 @@ export default function ParentMessages() {
                 </CardContent>
                 <CardFooter className="flex justify-between">
                   <Button variant="outline" onClick={() => setComposing(false)}>Cancel</Button>
-                  <Button>Send Message</Button>
+                  <Button onClick={handleSendMessage}>Send Message</Button>
                 </CardFooter>
               </>
             ) : selectedMessage ? (
@@ -185,7 +216,7 @@ export default function ParentMessages() {
                 <CardFooter>
                   <Button variant="outline" onClick={() => setSelectedMessage(null)}>Back</Button>
                   {activeTab === 'inbox' && (
-                    <Button className="ml-auto">
+                    <Button className="ml-auto" onClick={handleComposeMessage}>
                       <Send className="mr-2 h-4 w-4" />
                       Reply
                     </Button>
@@ -207,22 +238,36 @@ export default function ParentMessages() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {(activeTab === 'inbox' ? mockMessages : sentMessages).map((message) => (
-                        <TableRow 
-                          key={message.id} 
-                          className={`cursor-pointer ${message.read === false && activeTab === 'inbox' ? 'font-medium' : ''}`}
-                          onClick={() => handleOpenMessage(message)}
-                        >
-                          <TableCell>{activeTab === 'inbox' ? message.from : message.to}</TableCell>
-                          <TableCell>
-                            {message.subject}
-                            {message.read === false && activeTab === 'inbox' && (
-                              <Badge className="ml-2" variant="default">New</Badge>
-                            )}
-                          </TableCell>
-                          <TableCell className="text-right">{message.date}</TableCell>
-                        </TableRow>
-                      ))}
+                      {activeTab === 'inbox' ? (
+                        mockMessages.map((message) => (
+                          <TableRow 
+                            key={message.id} 
+                            className={`cursor-pointer ${message.read === false ? 'font-medium' : ''}`}
+                            onClick={() => handleOpenMessage(message)}
+                          >
+                            <TableCell>{message.from}</TableCell>
+                            <TableCell>
+                              {message.subject}
+                              {message.read === false && (
+                                <Badge className="ml-2" variant="default">New</Badge>
+                              )}
+                            </TableCell>
+                            <TableCell className="text-right">{message.date}</TableCell>
+                          </TableRow>
+                        ))
+                      ) : (
+                        sentMessages.map((message) => (
+                          <TableRow 
+                            key={message.id} 
+                            className="cursor-pointer"
+                            onClick={() => handleOpenMessage(message)}
+                          >
+                            <TableCell>{message.to}</TableCell>
+                            <TableCell>{message.subject}</TableCell>
+                            <TableCell className="text-right">{message.date}</TableCell>
+                          </TableRow>
+                        ))
+                      )}
                       {(activeTab === 'inbox' ? mockMessages : sentMessages).length === 0 && (
                         <TableRow>
                           <TableCell colSpan={3} className="text-center py-6 text-muted-foreground">
