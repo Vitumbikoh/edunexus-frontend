@@ -154,7 +154,16 @@ export default function Dashboard() {
     );
   }
   
-  // Finance-specific dashboard
+  // Default dashboard for other user roles (teacher, student, parent)
+  return (
+    <div className="space-y-6">
+      <h1 className="text-2xl font-bold tracking-tight">{user.role.charAt(0).toUpperCase() + user.role.slice(1)} Dashboard</h1>
+      <p>Welcome, {user.name}! Your personalized dashboard is loading...</p>
+    </div>
+  );
+}
+
+// Finance-specific dashboard
 function FinanceDashboard({ user }: { user: any }) {
   // Finance activities data
   const financeActivities = [
@@ -388,5 +397,4 @@ function FinanceDashboard({ user }: { user: any }) {
       </div>
     </div>
   );
-}
 }
