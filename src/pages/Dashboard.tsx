@@ -94,6 +94,7 @@ export default function Dashboard() {
   const isAdmin = user?.role === 'admin';
   const isTeacher = user?.role === 'teacher';
   const isStudent = user?.role === 'student';
+  const isParent = user?.role === 'parent';
   
   const teacherStats = [
     { 
@@ -190,6 +191,33 @@ export default function Dashboard() {
   
   const ASSIGNMENT_COLORS = ['#f97316', '#3b82f6', '#10b981'];
   
+  const parentStats = user?.parentData?.children.map((child) => [
+    { 
+      title: `${child.name}'s Attendance`, 
+      value: `${child.attendance.present}%`, 
+      icon: Users, 
+      className: "bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-900/10" 
+    },
+    { 
+      title: `${child.name}'s Classes`, 
+      value: `${child.subjects.length}`, 
+      icon: BookOpen, 
+      className: "bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-900/10" 
+    },
+    { 
+      title: `${child.name}'s Assignments`, 
+      value: `${child.assignments.length}`, 
+      icon: FileText,
+      className: "bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-900/10" 
+    },
+    { 
+      title: `${child.name}'s Fees Due`, 
+      value: `$${child.fees.pending}`, 
+      icon: DollarSign, 
+      className: "bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-900/10"
+    },
+  ]).flat() || [];
+
   return (
     <div className="space-y-6">
       <div>
@@ -240,6 +268,16 @@ export default function Dashboard() {
           ))
         ) : isStudent ? (
           studentStats.map((stat, index) => (
+            <StatCard
+              key={index}
+              title={stat.title}
+              value={stat.value}
+              icon={stat.icon}
+              className={stat.className}
+            />
+          ))
+        ) : isParent ? (
+          parentStats.map((stat, index) => (
             <StatCard
               key={index}
               title={stat.title}
@@ -379,6 +417,67 @@ export default function Dashboard() {
         </div>
       )}
       
+      {isParent && user?.parentData && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {user.parentData.children.map((child) => (
+            <React.Fragment key={child.id}>
+              <Card className="bg-gradient-to-br from-white to-slate-50 dark:from-gray-900 dark:to-gray-900/50">
+                <CardHeader>
+                  <CardTitle>{child.name}'s Performance</CardTitle>
+                  <CardDescription>Latest grades in all subjects</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {child.grades.map((grade, index) => (
+                      <div key={index} className="flex justify-between items-center p-2 rounded-lg bg-background/50">
+                        <span className="font-medium">{grade.subject}</span>
+                        <Badge variant={
+                          grade.grade.startsWith('A') ? 'default' :
+                          grade.grade.startsWith('B') ? 'secondary' :
+                          'outline'
+                        }>
+                          {grade.grade}
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-gradient-to-br from-white to-slate-50 dark:from-gray-900 dark:to-gray-900/50">
+                <CardHeader>
+                  <CardTitle>{child.name}'s Attendance</CardTitle>
+                  <CardDescription>Current academic year</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <span>Present</span>
+                      <span className="text-green-600">{child.attendance.present}%</span>
+                    </div>
+                    <Progress value={child.attendance.present} className="h-2" />
+                    <div className="grid grid-cols-3 gap-4 mt-4">
+                      <div className="text-center">
+                        <div className="text-2xl font-bold">{child.attendance.absent}</div>
+                        <div className="text-sm text-muted-foreground">Absent</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold">{child.attendance.late}</div>
+                        <div className="text-sm text-muted-foreground">Late</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold">{child.attendance.total}</div>
+                        <div className="text-sm text-muted-foreground">Total Days</div>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </React.Fragment>
+          ))}
+        </div>
+      )}
+      
       {isStudent && user?.studentData && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Card className="bg-gradient-to-br from-white to-slate-50 dark:from-gray-900 dark:to-gray-900/50">
@@ -458,19 +557,23 @@ export default function Dashboard() {
             <CardTitle>Quick Actions</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {user?.role === 'admin' && (
+            {user?.role === 'parent' && (
               <>
-                <Button className="w-full" asChild>
-                  <a href="/students/new">Add New Student</a>
+                <Button className="w-full" onClick={() => navigate("/children/performance")}>
+                  <Chart className="mr-2 h-4 w-4" />
+                  View Children's Performance
                 </Button>
-                <Button className="w-full" asChild>
-                  <a href="/teachers/new">Add New Teacher</a>
+                <Button className="w-full" onClick={() => navigate("/finance")}>
+                  <DollarSign className="mr-2 h-4 w-4" />
+                  Pay Fees
                 </Button>
-                <Button className="w-full" asChild>
-                  <a href="/subjects/new">Create New Course</a>
+                <Button className="w-full" onClick={() => navigate("/attendance")}>
+                  <Users className="mr-2 h-4 w-4" />
+                  View Attendance
                 </Button>
-                <Button className="w-full" asChild>
-                  <a href="/finance/record">Record Payment</a>
+                <Button className="w-full" onClick={() => navigate("/messages")}>
+                  <FileText className="mr-2 h-4 w-4" />
+                  Contact Teachers
                 </Button>
               </>
             )}
@@ -514,15 +617,6 @@ export default function Dashboard() {
                   <Download className="mr-2 h-4 w-4" />
                   Download Learning Materials
                 </Button>
-              </>
-            )}
-            
-            {user?.role === 'parent' && (
-              <>
-                <Button className="w-full">View Child's Performance</Button>
-                <Button className="w-full">Pay Fees</Button>
-                <Button className="w-full">Contact Teachers</Button>
-                <Button className="w-full">View Attendance</Button>
               </>
             )}
           </CardContent>

@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useSidebar } from '@/contexts/SidebarContext';
@@ -21,6 +20,7 @@ import {
   FileText,
   Award,
   Download,
+  ChartPie
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 
@@ -64,6 +64,17 @@ const studentNavItems: NavItem[] = [
   { label: 'Settings', icon: Settings, href: '/settings', roles: ['student'] },
 ];
 
+// Parent navigation items
+const parentNavItems: NavItem[] = [
+  { label: 'Dashboard', icon: Home, href: '/dashboard', roles: ['parent'] },
+  { label: "Children's Performance", icon: ChartPie, href: '/children/performance', roles: ['parent'] },
+  { label: 'Attendance', icon: Users, href: '/attendance', roles: ['parent'] },
+  { label: 'Schedule', icon: Calendar, href: '/schedule', roles: ['parent'] },
+  { label: 'Finance', icon: DollarSign, href: '/finance', roles: ['parent'] },
+  { label: 'Messages', icon: FileText, href: '/messages', roles: ['parent'] },
+  { label: 'Settings', icon: Settings, href: '/settings', roles: ['parent'] },
+];
+
 export default function Sidebar() {
   const { isOpen, toggle } = useSidebar();
   const { user, logout } = useAuth();
@@ -77,6 +88,8 @@ export default function Sidebar() {
     navItems = teacherNavItems;
   } else if (user.role === 'student') {
     navItems = studentNavItems;
+  } else if (user.role === 'parent') {
+    navItems = parentNavItems;
   }
   
   const filteredNavItems = navItems.filter(item => 

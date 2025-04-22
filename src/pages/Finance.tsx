@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -29,6 +28,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { useAuth } from "@/context/auth";
 
 // Mock data
 const feePayments = [
@@ -202,6 +202,22 @@ const BarChartComponent = ({ data, index, categories, colors, valueFormatter }) 
 };
 
 export default function Finance() {
+  const { user } = useAuth();
+  const isParent = user?.role === 'parent';
+  
+  // Parent-specific payment data
+  const parentPayments = user?.parentData?.children.flatMap(child => ({
+    id: `${child.id}-payment`,
+    student: child.name,
+    grade: child.grade,
+    amount: `$${child.fees.pending}`,
+    status: child.fees.pending > 0 ? 'Pending' : 'Paid',
+    dueDate: child.fees.dueDate,
+    totalFee: child.fees.total,
+    paidAmount: child.fees.paid,
+    pendingAmount: child.fees.pending,
+  })) || [];
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -215,79 +231,121 @@ export default function Finance() {
         </div>
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Total Revenue</p>
-                <h3 className="text-2xl font-bold mt-1">$124,500</h3>
-                <p className="text-sm text-muted-foreground mt-1">This academic year</p>
+      {isParent ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {user?.parentData?.children.map(child => (
+            <React.Fragment key={child.id}>
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">{child.name}'s Total Fees</p>
+                      <h3 className="text-2xl font-bold mt-1">${child.fees.total}</h3>
+                      <p className="text-sm text-muted-foreground mt-1">Academic year 2025</p>
+                    </div>
+                    <div className="p-2 rounded-full bg-blue-100 text-blue-600">
+                      <DollarSign size={24} />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Paid Amount</p>
+                      <h3 className="text-2xl font-bold mt-1">${child.fees.paid}</h3>
+                      <p className="text-sm text-green-600 mt-1">Paid</p>
+                    </div>
+                    <div className="p-2 rounded-full bg-green-100 text-green-600">
+                      <DollarSign size={24} />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </React.Fragment>
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Total Revenue</p>
+                  <h3 className="text-2xl font-bold mt-1">$124,500</h3>
+                  <p className="text-sm text-muted-foreground mt-1">This academic year</p>
+                </div>
+                <div className="p-2 rounded-full bg-green-100 text-green-600">
+                  <DollarSign size={24} />
+                </div>
               </div>
-              <div className="p-2 rounded-full bg-green-100 text-green-600">
-                <DollarSign size={24} />
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Pending Payments</p>
+                  <h3 className="text-2xl font-bold mt-1">$12,800</h3>
+                  <p className="text-sm text-muted-foreground mt-1">24 students</p>
+                </div>
+                <div className="p-2 rounded-full bg-yellow-100 text-yellow-600">
+                  <DollarSign size={24} />
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Pending Payments</p>
-                <h3 className="text-2xl font-bold mt-1">$12,800</h3>
-                <p className="text-sm text-muted-foreground mt-1">24 students</p>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Total Expenses</p>
+                  <h3 className="text-2xl font-bold mt-1">$79,000</h3>
+                  <p className="text-sm text-muted-foreground mt-1">This academic year</p>
+                </div>
+                <div className="p-2 rounded-full bg-red-100 text-red-600">
+                  <DollarSign size={24} />
+                </div>
               </div>
-              <div className="p-2 rounded-full bg-yellow-100 text-yellow-600">
-                <DollarSign size={24} />
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Net Balance</p>
+                  <h3 className="text-2xl font-bold mt-1">$45,500</h3>
+                  <p className="text-sm text-muted-foreground mt-1">Current academic year</p>
+                </div>
+                <div className="p-2 rounded-full bg-blue-100 text-blue-600">
+                  <DollarSign size={24} />
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Total Expenses</p>
-                <h3 className="text-2xl font-bold mt-1">$79,000</h3>
-                <p className="text-sm text-muted-foreground mt-1">This academic year</p>
-              </div>
-              <div className="p-2 rounded-full bg-red-100 text-red-600">
-                <DollarSign size={24} />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Net Balance</p>
-                <h3 className="text-2xl font-bold mt-1">$45,500</h3>
-                <p className="text-sm text-muted-foreground mt-1">Current academic year</p>
-              </div>
-              <div className="p-2 rounded-full bg-blue-100 text-blue-600">
-                <DollarSign size={24} />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
       
       <Tabs defaultValue="payments">
         <TabsList className="mb-4">
           <TabsTrigger value="payments">Fee Payments</TabsTrigger>
-          <TabsTrigger value="revenue">Revenue</TabsTrigger>
-          <TabsTrigger value="expenses">Expenses</TabsTrigger>
+          {!isParent && (
+            <>
+              <TabsTrigger value="revenue">Revenue</TabsTrigger>
+              <TabsTrigger value="expenses">Expenses</TabsTrigger>
+            </>
+          )}
         </TabsList>
         
         <TabsContent value="payments">
           <Card>
             <CardHeader>
-              <CardTitle>Recent Fee Payments</CardTitle>
+              <CardTitle>{isParent ? "My Children's Fee Details" : "Recent Fee Payments"}</CardTitle>
             </CardHeader>
             <CardContent>
               <Table>
@@ -295,14 +353,14 @@ export default function Finance() {
                   <TableRow>
                     <TableHead>Student</TableHead>
                     <TableHead>Grade</TableHead>
-                    <TableHead>Amount</TableHead>
+                    <TableHead>Amount Due</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead>Date</TableHead>
+                    <TableHead>Due Date</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {feePayments.map((payment) => (
+                  {(isParent ? parentPayments : feePayments).map((payment) => (
                     <TableRow key={payment.id}>
                       <TableCell className="font-medium">{payment.student}</TableCell>
                       <TableCell>{payment.grade}</TableCell>
@@ -318,10 +376,12 @@ export default function Finance() {
                           {payment.status}
                         </Badge>
                       </TableCell>
-                      <TableCell>{payment.date}</TableCell>
+                      <TableCell>{payment.dueDate}</TableCell>
                       <TableCell className="text-right">
-                        <Button variant="ghost" size="sm">View</Button>
-                        <Button variant="ghost" size="sm">Receipt</Button>
+                        <Button variant="ghost" size="sm">Pay Now</Button>
+                        {payment.status === "Paid" && (
+                          <Button variant="ghost" size="sm">Receipt</Button>
+                        )}
                       </TableCell>
                     </TableRow>
                   ))}
@@ -331,45 +391,48 @@ export default function Finance() {
           </Card>
         </TabsContent>
         
-        <TabsContent value="revenue">
-          <Card>
-            <CardHeader>
-              <CardTitle>Revenue Overview</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="h-[300px]">
-                <AreaChartComponent 
-                  data={revenueData}
-                  index="name"
-                  categories={["total"]}
-                  colors={["green"]}
-                  valueFormatter={(value) => `$${value.toLocaleString()}`}
-                />
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+        {!isParent && (
+          <TabsContent value="revenue">
+            <Card>
+              <CardHeader>
+                <CardTitle>Revenue Overview</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="h-[300px]">
+                  <AreaChartComponent 
+                    data={revenueData}
+                    index="name"
+                    categories={["total"]}
+                    colors={["green"]}
+                    valueFormatter={(value) => `$${value.toLocaleString()}`}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        )}
         
-        <TabsContent value="expenses">
-          <Card>
-            <CardHeader>
-              <CardTitle>Expense Categories</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="h-[300px]">
-                <BarChartComponent 
-                  data={expenseData}
-                  index="name"
-                  categories={["total"]}
-                  colors={["red"]}
-                  valueFormatter={(value) => `$${value.toLocaleString()}`}
-                />
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+        {!isParent && (
+          <TabsContent value="expenses">
+            <Card>
+              <CardHeader>
+                <CardTitle>Expense Categories</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="h-[300px]">
+                  <BarChartComponent 
+                    data={expenseData}
+                    index="name"
+                    categories={["total"]}
+                    colors={["red"]}
+                    valueFormatter={(value) => `$${value.toLocaleString()}`}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   );
 }
-
