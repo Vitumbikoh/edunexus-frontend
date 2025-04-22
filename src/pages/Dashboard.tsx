@@ -21,7 +21,9 @@ import {
   Search,
   BarChart,
   FileText,
-  Award
+  Award,
+  ChartPie,
+  MessageSquare
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import {
@@ -152,6 +154,108 @@ export default function Dashboard() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Admin Summary Charts */}
+        <div className="grid gap-4 md:grid-cols-2">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Student Enrollment Trends</CardTitle>
+              <Users className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent className="p-6">
+              <div className="h-[200px] w-full bg-gray-100 rounded-md flex items-center justify-center">
+                <p className="text-muted-foreground">Student enrollment visualization</p>
+              </div>
+              <div className="mt-4 space-y-2">
+                <div className="flex items-center">
+                  <div className="w-3 h-3 rounded-full bg-blue-500 mr-2"></div>
+                  <span className="text-sm text-muted-foreground">New enrollments: 45 (last 30 days)</span>
+                </div>
+                <div className="flex items-center">
+                  <div className="w-3 h-3 rounded-full bg-green-500 mr-2"></div>
+                  <span className="text-sm text-muted-foreground">Total growth: +12% (year to date)</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Fee Collection Overview</CardTitle>
+              <DollarSign className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent className="p-6">
+              <div className="h-[200px] w-full bg-gray-100 rounded-md flex items-center justify-center">
+                <p className="text-muted-foreground">Fee collection visualization</p>
+              </div>
+              <div className="mt-4 grid grid-cols-3 gap-4 text-center">
+                <div className="space-y-1">
+                  <p className="text-2xl font-bold text-green-500">78%</p>
+                  <p className="text-xs text-muted-foreground">Collected</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-2xl font-bold text-yellow-500">17%</p>
+                  <p className="text-xs text-muted-foreground">Pending</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-2xl font-bold text-red-500">5%</p>
+                  <p className="text-xs text-muted-foreground">Overdue</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+        
+        {/* Department Performance Overview */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Department Performance</CardTitle>
+            <CardDescription>Academic performance by department</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-sm font-medium">Science Department</p>
+                  <p className="text-sm text-muted-foreground">85%</p>
+                </div>
+                <Progress value={85} className="h-2" />
+              </div>
+              
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-sm font-medium">Mathematics Department</p>
+                  <p className="text-sm text-muted-foreground">92%</p>
+                </div>
+                <Progress value={92} className="h-2" />
+              </div>
+              
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-sm font-medium">Humanities Department</p>
+                  <p className="text-sm text-muted-foreground">78%</p>
+                </div>
+                <Progress value={78} className="h-2" />
+              </div>
+              
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-sm font-medium">Arts Department</p>
+                  <p className="text-sm text-muted-foreground">81%</p>
+                </div>
+                <Progress value={81} className="h-2" />
+              </div>
+              
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-sm font-medium">Physical Education</p>
+                  <p className="text-sm text-muted-foreground">89%</p>
+                </div>
+                <Progress value={89} className="h-2" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
