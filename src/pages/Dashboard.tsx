@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import StatCard from '@/components/dashboard/StatCard';
@@ -222,7 +223,7 @@ function FinanceDashboard({ user }: { user: any }) {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Finance Dashboard</h1>
           <p className="text-muted-foreground">
-            Welcome back, {user.name} - {user.financeData?.department} Department
+            Welcome back, {user.name} - {user.financeData?.department || 'Finance'} Department
           </p>
         </div>
         
