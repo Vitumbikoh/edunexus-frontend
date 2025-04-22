@@ -20,6 +20,8 @@ import Subjects from "./pages/Subjects";
 import SubjectForm from "./pages/SubjectForm";
 import Schedule from "./pages/Schedule";
 import Finance from "./pages/Finance";
+import FinanceReports from "./pages/FinanceReports";
+import FinanceBudgets from "./pages/FinanceBudgets";
 import PaymentForm from "./pages/PaymentForm";
 import Settings from "./pages/Settings";
 import Profile from "./pages/Profile";
@@ -193,6 +195,22 @@ const AppRoutes = () => {
         <ProtectedRoute>
           <Layout>
             <PaymentForm />
+          </Layout>
+        </ProtectedRoute>
+      } />
+
+      <Route path="/finance/reports" element={
+        <ProtectedRoute>
+          <Layout>
+            <FinanceReports />
+          </Layout>
+        </ProtectedRoute>
+      } />
+
+      <Route path="/finance/budgets" element={
+        <ProtectedRoute>
+          <Layout>
+            <FinanceBudgets />
           </Layout>
         </ProtectedRoute>
       } />
