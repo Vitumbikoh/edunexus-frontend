@@ -19,6 +19,8 @@ import Subjects from "./pages/Subjects";
 import SubjectForm from "./pages/SubjectForm";
 import Schedule from "./pages/Schedule";
 import Finance from "./pages/Finance";
+import FinanceReports from "./pages/FinanceReports";
+import FinanceBudgets from "./pages/FinanceBudgets";
 import PaymentForm from "./pages/PaymentForm";
 import FinanceBudgets from "./pages/FinanceBudgets";
 import Settings from "./pages/Settings";
@@ -38,6 +40,11 @@ import StudentAssignments from "./pages/StudentAssignments";
 import StudentGrades from "./pages/StudentGrades";
 import StudentSchedule from "./pages/StudentSchedule";
 import StudentMaterials from "./pages/StudentMaterials";
+
+// Parent specific pages
+import ParentChildrenPerformance from "./pages/ParentChildrenPerformance";
+import ParentAttendance from "./pages/ParentAttendance";
+import ParentMessages from "./pages/ParentMessages";
 
 // Protected route component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -170,7 +177,7 @@ const AppRoutes = () => {
       <Route path="/schedule" element={
         <ProtectedRoute>
           <Layout>
-            <Schedule />
+            {user?.role === 'student' ? <StudentSchedule /> : <Schedule />}
           </Layout>
         </ProtectedRoute>
       } />
@@ -282,20 +289,37 @@ const AppRoutes = () => {
         </StudentRoute>
       } />
       
-      <Route path="/schedule" element={
-        <ProtectedRoute>
-          <Layout>
-            {user?.role === 'student' ? <StudentSchedule /> : <Schedule />}
-          </Layout>
-        </ProtectedRoute>
-      } />
-      
       <Route path="/materials" element={
         <StudentRoute>
           <Layout>
             <StudentMaterials />
           </Layout>
         </StudentRoute>
+      } />
+      
+      {/* Parent specific routes */}
+      <Route path="/children/performance" element={
+        <ParentRoute>
+          <Layout>
+            <ParentChildrenPerformance />
+          </Layout>
+        </ParentRoute>
+      } />
+      
+      <Route path="/attendance" element={
+        <ParentRoute>
+          <Layout>
+            <ParentAttendance />
+          </Layout>
+        </ParentRoute>
+      } />
+      
+      <Route path="/messages" element={
+        <ParentRoute>
+          <Layout>
+            <ParentMessages />
+          </Layout>
+        </ParentRoute>
       } />
       
       <Route path="*" element={<NotFound />} />

@@ -24,6 +24,11 @@ import {
   FileText,
   Award,
   Download,
+  FileHeart,
+  ChartPie,
+  MessageSquare,
+  Receipt,
+  Calculator
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 
@@ -40,7 +45,7 @@ const adminNavItems: NavItem[] = [
   { label: 'Students', icon: Users, href: '/students', roles: ['admin', 'teacher'] },
   { label: 'Teachers', icon: User, href: '/teachers', roles: ['admin'] },
   { label: 'Subjects', icon: BookOpen, href: '/subjects', roles: ['admin', 'teacher', 'student'] },
-  { label: 'Schedule', icon: Calendar, href: '/schedule', roles: ['admin', 'teacher', 'student', 'parent'] },
+  { label: 'Schedule', icon: Calendar, href: '/schedule', roles: ['admin', 'teacher', 'student'] },
   { label: 'Finance', icon: DollarSign, href: '/finance', roles: ['admin', 'parent'] },
   { label: 'Settings', icon: Settings, href: '/settings', roles: ['admin'] },
 ];

@@ -1,26 +1,24 @@
-
-import React from 'react';
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { 
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-} from "@/components/ui/chart";
-import { 
-  AreaChart as RechartsAreaChart,
-  BarChart as RechartsBarChart,
-  Area,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer 
-} from "recharts";
-import { DollarSign } from 'lucide-react';
-import { 
+import {
+  FileHeart,
+  Receipt,
+  FileText,
+  Calculator,
+  DollarSign,
+  CreditCard,
+  Download,
+  Search,
+  Wallet,
+  ArrowUpRight,
+  PlusCircle,
+} from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Progress } from "@/components/ui/progress";
+import {
   Table,
   TableBody,
   TableCell,
@@ -29,347 +27,187 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-
-// Mock data
-const feePayments = [
-  { id: "1", student: "John Doe", grade: "10A", amount: "$1200", status: "Paid", date: "2023-03-05" },
-  { id: "2", student: "Jane Smith", grade: "9B", amount: "$1200", status: "Paid", date: "2023-03-02" },
-  { id: "3", student: "Michael Johnson", grade: "11C", amount: "$1500", status: "Pending", date: "2023-03-10" },
-  { id: "4", student: "Emily Davis", grade: "10A", amount: "$1200", status: "Paid", date: "2023-03-01" },
-  { id: "5", student: "Robert Wilson", grade: "9B", amount: "$1200", status: "Overdue", date: "2023-02-15" },
-  { id: "6", student: "Sarah Brown", grade: "11C", amount: "$1500", status: "Paid", date: "2023-03-04" },
-  { id: "7", student: "David Miller", grade: "10A", amount: "$1200", status: "Pending", date: "2023-03-12" },
-];
-
-// Revenue data for charts
-const revenueData = [
-  {
-    name: "Jan",
-    total: 15000,
-  },
-  {
-    name: "Feb",
-    total: 18500,
-  },
-  {
-    name: "Mar",
-    total: 24500,
-  },
-  {
-    name: "Apr",
-    total: 21000,
-  },
-  {
-    name: "May",
-    total: 22000,
-  },
-  {
-    name: "Jun",
-    total: 19000,
-  },
-];
-
-// Expense Categories data
-const expenseData = [
-  {
-    name: "Salaries",
-    total: 45000,
-  },
-  {
-    name: "Maintenance",
-    total: 12000,
-  },
-  {
-    name: "Utilities",
-    total: 8000,
-  },
-  {
-    name: "Supplies",
-    total: 6500,
-  },
-  {
-    name: "Transportation",
-    total: 4500,
-  },
-  {
-    name: "Others",
-    total: 3000,
-  },
-];
-
-// Custom AreaChart component using recharts
-const AreaChartComponent = ({ data, index, categories, colors, valueFormatter }) => {
-  return (
-    <ResponsiveContainer width="100%" height="100%">
-      <RechartsAreaChart
-        data={data}
-        margin={{
-          top: 10,
-          right: 30,
-          left: 0,
-          bottom: 0,
-        }}
-      >
-        <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-        <XAxis dataKey={index} className="text-sm text-muted-foreground" />
-        <YAxis
-          width={80}
-          tickFormatter={(value) => valueFormatter(value)}
-          className="text-sm text-muted-foreground"
-        />
-        <Tooltip
-          content={({ active, payload }) => {
-            if (active && payload && payload.length) {
-              return (
-                <div className="rounded-lg border bg-background p-2 shadow-md">
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="flex flex-col">
-                      <span className="text-sm text-muted-foreground">
-                        {payload[0].payload[index]}
-                      </span>
-                      <span className="font-bold text-green-600">
-                        {valueFormatter(payload[0].value)}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              );
-            }
-            return null;
-          }}
-        />
-        <Area
-          type="monotone"
-          dataKey={categories[0]}
-          stroke="#10B981"
-          fill="#10B981"
-          fillOpacity={0.2}
-        />
-      </RechartsAreaChart>
-    </ResponsiveContainer>
-  );
-};
-
-// Custom BarChart component using recharts
-const BarChartComponent = ({ data, index, categories, colors, valueFormatter }) => {
-  return (
-    <ResponsiveContainer width="100%" height="100%">
-      <RechartsBarChart
-        data={data}
-        margin={{
-          top: 10,
-          right: 30,
-          left: 0,
-          bottom: 0,
-        }}
-      >
-        <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-        <XAxis dataKey={index} className="text-sm text-muted-foreground" />
-        <YAxis
-          width={80}
-          tickFormatter={(value) => valueFormatter(value)}
-          className="text-sm text-muted-foreground"
-        />
-        <Tooltip
-          content={({ active, payload }) => {
-            if (active && payload && payload.length) {
-              return (
-                <div className="rounded-lg border bg-background p-2 shadow-md">
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="flex flex-col">
-                      <span className="text-sm text-muted-foreground">
-                        {payload[0].payload[index]}
-                      </span>
-                      <span className="font-bold text-red-600">
-                        {valueFormatter(payload[0].value)}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              );
-            }
-            return null;
-          }}
-        />
-        <Bar
-          dataKey={categories[0]}
-          fill="#EF4444"
-          radius={[4, 4, 0, 0]}
-        />
-      </RechartsBarChart>
-    </ResponsiveContainer>
-  );
-};
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function Finance() {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const isFinanceUser = user?.role === 'finance';
+  const [searchQuery, setSearchQuery] = useState("");
+
+  // Redirect non-finance users
+  if (!isFinanceUser) {
+    navigate('/dashboard');
+    return null;
+  }
+
+  const financeStats = {
+    totalRevenue: 1250000,
+    collectedFees: 980000,
+    pendingFees: 270000,
+    overdueAmount: 85000,
+    expensesBudget: 750000,
+    expensesUsed: 520000,
+  };
+
+  const collectionPercentage = Math.round((financeStats.collectedFees / financeStats.totalRevenue) * 100);
+  const budgetUsagePercentage = Math.round((financeStats.expensesUsed / financeStats.expensesBudget) * 100);
+
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Finance Management</h1>
-          <p className="text-muted-foreground">Manage school financial records</p>
+          <h1 className="text-2xl font-bold tracking-tight">Finance Dashboard</h1>
+          <p className="text-muted-foreground">
+            Welcome back, {user.name} - {user.financeData?.department} Department
+          </p>
         </div>
+        
         <div className="flex space-x-2">
-          <Button variant="outline">Generate Report</Button>
-          <Button>Record Payment</Button>
+          <Button onClick={() => navigate("/finance/record")}>
+            <PlusCircle className="mr-2 h-4 w-4" />
+            Record Transaction
+          </Button>
+          <Button variant="outline">
+            <FileHeart className="mr-2 h-4 w-4" />
+            Generate Report
+          </Button>
         </div>
       </div>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Total Revenue</p>
-                <h3 className="text-2xl font-bold mt-1">$124,500</h3>
-                <p className="text-sm text-muted-foreground mt-1">This academic year</p>
-              </div>
-              <div className="p-2 rounded-full bg-green-100 text-green-600">
-                <DollarSign size={24} />
-              </div>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">${(financeStats.totalRevenue).toLocaleString()}</div>
+            <div className="mt-2">
+              <Progress value={collectionPercentage} className="h-2" />
+              <p className="text-xs text-muted-foreground mt-1">
+                {collectionPercentage}% collected
+              </p>
             </div>
           </CardContent>
         </Card>
         
         <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Pending Payments</p>
-                <h3 className="text-2xl font-bold mt-1">$12,800</h3>
-                <p className="text-sm text-muted-foreground mt-1">24 students</p>
-              </div>
-              <div className="p-2 rounded-full bg-yellow-100 text-yellow-600">
-                <DollarSign size={24} />
-              </div>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Collected Fees</CardTitle>
+            <Receipt className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">${financeStats.collectedFees.toLocaleString()}</div>
+            <p className="text-xs text-muted-foreground">
+              From {financeStats.totalRevenue.toLocaleString()} total expected
+            </p>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Budget Usage</CardTitle>
+            <Calculator className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">${financeStats.expensesUsed.toLocaleString()}</div>
+            <div className="mt-2">
+              <Progress value={budgetUsagePercentage} className="h-2" />
+              <p className="text-xs text-muted-foreground mt-1">
+                {budgetUsagePercentage}% of budget used
+              </p>
             </div>
           </CardContent>
         </Card>
         
         <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Total Expenses</p>
-                <h3 className="text-2xl font-bold mt-1">$79,000</h3>
-                <p className="text-sm text-muted-foreground mt-1">This academic year</p>
-              </div>
-              <div className="p-2 rounded-full bg-red-100 text-red-600">
-                <DollarSign size={24} />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Net Balance</p>
-                <h3 className="text-2xl font-bold mt-1">$45,500</h3>
-                <p className="text-sm text-muted-foreground mt-1">Current academic year</p>
-              </div>
-              <div className="p-2 rounded-full bg-blue-100 text-blue-600">
-                <DollarSign size={24} />
-              </div>
-            </div>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Pending Collection</CardTitle>
+            <Wallet className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">${financeStats.pendingFees.toLocaleString()}</div>
+            <p className="text-xs text-muted-foreground">
+              {Math.round((financeStats.pendingFees / financeStats.totalRevenue) * 100)}% of total revenue
+            </p>
           </CardContent>
         </Card>
       </div>
-      
-      <Tabs defaultValue="payments">
-        <TabsList className="mb-4">
-          <TabsTrigger value="payments">Fee Payments</TabsTrigger>
-          <TabsTrigger value="revenue">Revenue</TabsTrigger>
+
+      <Tabs defaultValue="transactions">
+        <TabsList>
+          <TabsTrigger value="transactions">Recent Transactions</TabsTrigger>
+          <TabsTrigger value="invoices">Outstanding Invoices</TabsTrigger>
           <TabsTrigger value="expenses">Expenses</TabsTrigger>
         </TabsList>
         
-        <TabsContent value="payments">
+        <TabsContent value="transactions" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Recent Fee Payments</CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle>Recent Transactions</CardTitle>
+                <div className="flex items-center space-x-2">
+                  <div className="relative">
+                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      type="search"
+                      placeholder="Search transactions..."
+                      className="pl-8 w-[200px] md:w-[300px]"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                  </div>
+                  <Button variant="outline" size="sm">
+                    <Download className="mr-2 h-4 w-4" />
+                    Export
+                  </Button>
+                </div>
+              </div>
             </CardHeader>
+            
             <CardContent>
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Student</TableHead>
-                    <TableHead>Grade</TableHead>
-                    <TableHead>Amount</TableHead>
-                    <TableHead>Status</TableHead>
+                    <TableHead>Transaction ID</TableHead>
                     <TableHead>Date</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                    <TableHead>Description</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead className="text-right">Amount</TableHead>
+                    <TableHead className="text-right">Status</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {feePayments.map((payment) => (
-                    <TableRow key={payment.id}>
-                      <TableCell className="font-medium">{payment.student}</TableCell>
-                      <TableCell>{payment.grade}</TableCell>
-                      <TableCell>{payment.amount}</TableCell>
-                      <TableCell>
-                        <Badge variant={
-                          payment.status === "Paid" 
-                            ? "default" 
-                            : payment.status === "Pending" 
-                              ? "secondary" 
-                              : "destructive"
-                        }>
-                          {payment.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{payment.date}</TableCell>
-                      <TableCell className="text-right">
-                        <Button variant="ghost" size="sm">View</Button>
-                        <Button variant="ghost" size="sm">Receipt</Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  {/* Example transaction data */}
+                  <TableRow>
+                    <TableCell className="font-medium">TRX-001</TableCell>
+                    <TableCell>2025-04-22</TableCell>
+                    <TableCell>Term 2 Tuition Fee</TableCell>
+                    <TableCell>
+                      <Badge variant="outline">Income</Badge>
+                    </TableCell>
+                    <TableCell className="text-right">$1,500.00</TableCell>
+                    <TableCell className="text-right">
+                      <Badge variant="default">Completed</Badge>
+                    </TableCell>
+                  </TableRow>
+                  {/* Add more rows as needed */}
                 </TableBody>
               </Table>
             </CardContent>
           </Card>
         </TabsContent>
         
-        <TabsContent value="revenue">
-          <Card>
-            <CardHeader>
-              <CardTitle>Revenue Overview</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="h-[300px]">
-                <AreaChartComponent 
-                  data={revenueData}
-                  index="name"
-                  categories={["total"]}
-                  colors={["green"]}
-                  valueFormatter={(value) => `$${value.toLocaleString()}`}
-                />
-              </div>
-            </CardContent>
-          </Card>
+        {/* Similar structure for other tabs */}
+        <TabsContent value="invoices">
+          {/* Outstanding invoices content */}
         </TabsContent>
         
         <TabsContent value="expenses">
-          <Card>
-            <CardHeader>
-              <CardTitle>Expense Categories</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="h-[300px]">
-                <BarChartComponent 
-                  data={expenseData}
-                  index="name"
-                  categories={["total"]}
-                  colors={["red"]}
-                  valueFormatter={(value) => `$${value.toLocaleString()}`}
-                />
-              </div>
-            </CardContent>
-          </Card>
+          {/* Expenses content */}
         </TabsContent>
       </Tabs>
     </div>
   );
 }
-
