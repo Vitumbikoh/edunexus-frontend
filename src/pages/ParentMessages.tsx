@@ -14,7 +14,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Send, Mail, MailOpen } from "lucide-react";
+import { Send, Mail, MessageCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 // Define message types for better type checking
@@ -37,12 +37,19 @@ interface SentMessage {
   content: string;
 }
 
+type Message = InboxMessage | SentMessage;
+
+// Type guard to check if a message is an InboxMessage
+function isInboxMessage(message: Message): message is InboxMessage {
+  return 'read' in message;
+}
+
 export default function ParentMessages() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState('inbox');
   const [composing, setComposing] = useState(false);
-  const [selectedMessage, setSelectedMessage] = useState<InboxMessage | SentMessage | null>(null);
+  const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
   
   if (!user?.parentData) {
     return (
@@ -102,10 +109,10 @@ export default function ParentMessages() {
     }
   ];
 
-  const handleOpenMessage = (message: InboxMessage | SentMessage) => {
+  const handleOpenMessage = (message: Message) => {
     setSelectedMessage(message);
     // Mark as read if it was unread (only for inbox messages)
-    if ('read' in message && message.read === false && activeTab === 'inbox') {
+    if (isInboxMessage(message) && !message.read && activeTab === 'inbox') {
       message.read = true;
     }
   };
@@ -159,7 +166,7 @@ export default function ParentMessages() {
                   className="w-full justify-start" 
                   onClick={() => setActiveTab('sent')}
                 >
-                  <MailOpen className="mr-2 h-4 w-4" />
+                  <MessageCircle className="mr-2 h-4 w-4" />
                   Sent
                 </Button>
               </div>
@@ -242,13 +249,13 @@ export default function ParentMessages() {
                         mockMessages.map((message) => (
                           <TableRow 
                             key={message.id} 
-                            className={`cursor-pointer ${message.read === false ? 'font-medium' : ''}`}
+                            className={`cursor-pointer ${!message.read ? 'font-medium' : ''}`}
                             onClick={() => handleOpenMessage(message)}
                           >
                             <TableCell>{message.from}</TableCell>
                             <TableCell>
                               {message.subject}
-                              {message.read === false && (
+                              {!message.read && (
                                 <Badge className="ml-2" variant="default">New</Badge>
                               )}
                             </TableCell>
