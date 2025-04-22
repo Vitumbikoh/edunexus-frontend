@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -38,6 +39,11 @@ import StudentGrades from "./pages/StudentGrades";
 import StudentSchedule from "./pages/StudentSchedule";
 import StudentMaterials from "./pages/StudentMaterials";
 
+// Parent specific pages
+import ParentChildrenPerformance from "./pages/ParentChildrenPerformance";
+import ParentAttendance from "./pages/ParentAttendance";
+import ParentMessages from "./pages/ParentMessages";
+
 // Protected route component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated, loading } = useAuth();
@@ -77,6 +83,21 @@ const StudentRoute = ({ children }: { children: React.ReactNode }) => {
   }
   
   if (!user || user.role !== 'student') {
+    return <Navigate to="/dashboard" replace />;
+  }
+  
+  return <>{children}</>;
+};
+
+// Parent route component - only accessible by parents
+const ParentRoute = ({ children }: { children: React.ReactNode }) => {
+  const { user, loading } = useAuth();
+  
+  if (loading) {
+    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+  }
+  
+  if (!user || user.role !== 'parent') {
     return <Navigate to="/dashboard" replace />;
   }
   
@@ -154,7 +175,7 @@ const AppRoutes = () => {
       <Route path="/schedule" element={
         <ProtectedRoute>
           <Layout>
-            <Schedule />
+            {user?.role === 'student' ? <StudentSchedule /> : <Schedule />}
           </Layout>
         </ProtectedRoute>
       } />
@@ -258,20 +279,37 @@ const AppRoutes = () => {
         </StudentRoute>
       } />
       
-      <Route path="/schedule" element={
-        <ProtectedRoute>
-          <Layout>
-            {user?.role === 'student' ? <StudentSchedule /> : <Schedule />}
-          </Layout>
-        </ProtectedRoute>
-      } />
-      
       <Route path="/materials" element={
         <StudentRoute>
           <Layout>
             <StudentMaterials />
           </Layout>
         </StudentRoute>
+      } />
+      
+      {/* Parent specific routes */}
+      <Route path="/children/performance" element={
+        <ParentRoute>
+          <Layout>
+            <ParentChildrenPerformance />
+          </Layout>
+        </ParentRoute>
+      } />
+      
+      <Route path="/attendance" element={
+        <ParentRoute>
+          <Layout>
+            <ParentAttendance />
+          </Layout>
+        </ParentRoute>
+      } />
+      
+      <Route path="/messages" element={
+        <ParentRoute>
+          <Layout>
+            <ParentMessages />
+          </Layout>
+        </ParentRoute>
       } />
       
       <Route path="*" element={<NotFound />} />

@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useSidebar } from '@/contexts/SidebarContext';
@@ -20,7 +21,8 @@ import {
   FileText,
   Award,
   Download,
-  ChartPie
+  ChartPie,
+  MessageSquare
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 
@@ -37,7 +39,7 @@ const adminNavItems: NavItem[] = [
   { label: 'Students', icon: Users, href: '/students', roles: ['admin', 'teacher'] },
   { label: 'Teachers', icon: User, href: '/teachers', roles: ['admin'] },
   { label: 'Subjects', icon: BookOpen, href: '/subjects', roles: ['admin', 'teacher', 'student'] },
-  { label: 'Schedule', icon: Calendar, href: '/schedule', roles: ['admin', 'teacher', 'student', 'parent'] },
+  { label: 'Schedule', icon: Calendar, href: '/schedule', roles: ['admin', 'teacher', 'student'] },
   { label: 'Finance', icon: DollarSign, href: '/finance', roles: ['admin', 'parent'] },
   { label: 'Settings', icon: Settings, href: '/settings', roles: ['admin'] },
 ];
@@ -69,9 +71,8 @@ const parentNavItems: NavItem[] = [
   { label: 'Dashboard', icon: Home, href: '/dashboard', roles: ['parent'] },
   { label: "Children's Performance", icon: ChartPie, href: '/children/performance', roles: ['parent'] },
   { label: 'Attendance', icon: Users, href: '/attendance', roles: ['parent'] },
-  { label: 'Schedule', icon: Calendar, href: '/schedule', roles: ['parent'] },
   { label: 'Finance', icon: DollarSign, href: '/finance', roles: ['parent'] },
-  { label: 'Messages', icon: FileText, href: '/messages', roles: ['parent'] },
+  { label: 'Messages', icon: MessageSquare, href: '/messages', roles: ['parent'] },
   { label: 'Settings', icon: Settings, href: '/settings', roles: ['parent'] },
 ];
 
