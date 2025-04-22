@@ -1,7 +1,7 @@
 import React from 'react';
 import StatCard from '@/components/dashboard/StatCard';
 import RecentActivitiesCard from '@/components/dashboard/RecentActivitiesCard';
-import { Users, BookOpen, Calendar, DollarSign, ChevronRight, Check, Upload, FileText, Award, Download } from 'lucide-react';
+import { Users, BookOpen, Calendar, DollarSign, ChevronRight, Check, Upload, FileText, Award, Download, Receipt, Calculator, FileHeart, Wallet, PlusCircle, CreditCard } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,8 @@ import {
   Tooltip,
   ResponsiveContainer
 } from 'recharts';
+import { Badge } from '@/components/ui/badge';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 const mockActivities = [
   {
@@ -88,12 +90,73 @@ const feeCollection = [
 const COLORS = ['#0088FE', '#FFBB28', '#00C49F', '#FF8042', '#8884D8', '#82ca9d'];
 const PIE_COLORS = ['#10B981', '#F97316'];
 
+// Finance data
+const financeActivities = [
+  {
+    id: "fact1",
+    user: {
+      name: "Sarah Wilson",
+      avatar: "https://ui-avatars.com/api/?name=Sarah+Wilson&background=0D8ABC&color=fff"
+    },
+    action: "processed tuition fee payment from Student #1245",
+    time: "1 hour ago"
+  },
+  {
+    id: "fact2",
+    user: {
+      name: "System",
+      avatar: "https://ui-avatars.com/api/?name=System&background=2563EB&color=fff"
+    },
+    action: "generated Q2 financial report",
+    time: "3 hours ago"
+  },
+  {
+    id: "fact3",
+    user: {
+      name: "Finance User",
+      avatar: "https://ui-avatars.com/api/?name=Finance+User&background=10B981&color=fff"
+    },
+    action: "updated budget allocation for IT department",
+    time: "Yesterday at 4:30 PM"
+  },
+  {
+    id: "fact4",
+    user: {
+      name: "John Davis",
+      avatar: "https://ui-avatars.com/api/?name=John+Davis&background=F59E0B&color=fff"
+    },
+    action: "submitted expense report for approval",
+    time: "Yesterday at 2:15 PM"
+  }
+];
+
+const recentTransactions = [
+  { id: 'TRX-001', date: '2025-04-22', description: 'Term 2 Tuition Fee', type: 'Income', amount: 1500, status: 'Completed' },
+  { id: 'TRX-002', date: '2025-04-21', description: 'Library Resources', type: 'Expense', amount: 2500, status: 'Completed' },
+  { id: 'TRX-003', date: '2025-04-20', description: 'Staff Salary Payment', type: 'Expense', amount: 45000, status: 'Completed' },
+  { id: 'TRX-004', date: '2025-04-19', description: 'Registration Fees', type: 'Income', amount: 3200, status: 'Completed' },
+  { id: 'TRX-005', date: '2025-04-18', description: 'Transport Fees', type: 'Income', amount: 800, status: 'Pending' },
+];
+
 export default function Dashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const isAdmin = user?.role === 'admin';
   const isTeacher = user?.role === 'teacher';
   const isStudent = user?.role === 'student';
+  const isFinance = user?.role === 'finance';
+  
+  // Finance stats
+  const financeStats = {
+    totalRevenue: 1250000,
+    collectedFees: 980000,
+    pendingFees: 270000,
+    expensesBudget: 750000,
+    expensesUsed: 520000,
+  };
+
+  const collectionPercentage = Math.round((financeStats.collectedFees / financeStats.totalRevenue) * 100);
+  const budgetUsagePercentage = Math.round((financeStats.expensesUsed / financeStats.expensesBudget) * 100);
   
   const teacherStats = [
     { 
@@ -189,6 +252,168 @@ export default function Dashboard() {
   const assignmentStatusData = generateAssignmentStatusData();
   
   const ASSIGNMENT_COLORS = ['#f97316', '#3b82f6', '#10b981'];
+  
+  if (isFinance) {
+    return (
+      <div className="space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="text-2xl font-bold">Finance Dashboard</h1>
+            <p className="text-muted-foreground">
+              Welcome back, {user?.name} - {user?.role === 'finance' ? 'Finance' : ''} Department
+            </p>
+          </div>
+          
+          <div className="flex space-x-2 mt-4 sm:mt-0">
+            <Button onClick={() => navigate("/finance/record")}>
+              <PlusCircle className="mr-2 h-4 w-4" />
+              Record Transaction
+            </Button>
+            <Button variant="outline" onClick={() => navigate("/finance/reports")}>
+              <FileHeart className="mr-2 h-4 w-4" />
+              Generate Report
+            </Button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+              <DollarSign className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">${financeStats.totalRevenue.toLocaleString()}</div>
+              <div className="mt-2">
+                <Progress value={collectionPercentage} className="h-2" />
+                <p className="text-xs text-muted-foreground mt-1">
+                  {collectionPercentage}% collected
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Collected Fees</CardTitle>
+              <Receipt className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">${financeStats.collectedFees.toLocaleString()}</div>
+              <p className="text-xs text-muted-foreground">
+                From {financeStats.totalRevenue.toLocaleString()} total expected
+              </p>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Budget Usage</CardTitle>
+              <Calculator className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">${financeStats.expensesUsed.toLocaleString()}</div>
+              <div className="mt-2">
+                <Progress value={budgetUsagePercentage} className="h-2" />
+                <p className="text-xs text-muted-foreground mt-1">
+                  {budgetUsagePercentage}% of budget used
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Pending Collection</CardTitle>
+              <Wallet className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">${financeStats.pendingFees.toLocaleString()}</div>
+              <p className="text-xs text-muted-foreground">
+                {Math.round((financeStats.pendingFees / financeStats.totalRevenue) * 100)}% of total revenue
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-7 gap-6">
+          <Card className="lg:col-span-4">
+            <CardHeader>
+              <CardTitle>Recent Transactions</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>ID</TableHead>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Description</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead className="text-right">Amount</TableHead>
+                    <TableHead className="text-right">Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {recentTransactions.map((transaction) => (
+                    <TableRow key={transaction.id}>
+                      <TableCell className="font-medium">{transaction.id}</TableCell>
+                      <TableCell>{transaction.date}</TableCell>
+                      <TableCell>{transaction.description}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className={transaction.type === 'Income' ? 'text-green-500' : 'text-red-500'}>
+                          {transaction.type}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right font-medium">
+                        <span className={transaction.type === 'Income' ? 'text-green-500' : 'text-red-500'}>
+                          {transaction.type === 'Income' ? '+' : '-'}${transaction.amount.toLocaleString()}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Badge variant={transaction.status === 'Completed' ? 'default' : 'secondary'}>
+                          {transaction.status}
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+              <div className="mt-4 flex justify-end">
+                <Button variant="outline" size="sm" onClick={() => navigate("/finance")}>
+                  View All Transactions
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card className="lg:col-span-3">
+            <CardHeader>
+              <CardTitle>Quick Actions</CardTitle>
+              <CardDescription>Finance operations</CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-2">
+              <Button className="justify-start" variant="outline" onClick={() => navigate("/finance/record")}>
+                <CreditCard className="mr-2 h-4 w-4" />
+                Record Payment
+              </Button>
+              <Button className="justify-start" variant="outline" onClick={() => navigate("/finance/reports")}>
+                <FileHeart className="mr-2 h-4 w-4" />
+                Financial Reports
+              </Button>
+              <Button className="justify-start" variant="outline" onClick={() => navigate("/finance/budgets")}>
+                <Calculator className="mr-2 h-4 w-4" />
+                Budget Management
+              </Button>
+              <Button className="justify-start" variant="outline" onClick={() => navigate("/finance")}>
+                <Receipt className="mr-2 h-4 w-4" />
+                View Transactions
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
   
   return (
     <div className="space-y-6">
@@ -458,7 +683,7 @@ export default function Dashboard() {
             <CardTitle>Quick Actions</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {user?.role === 'admin' && (
+            {isAdmin && (
               <>
                 <Button className="w-full" asChild>
                   <a href="/students/new">Add New Student</a>
@@ -475,7 +700,7 @@ export default function Dashboard() {
               </>
             )}
             
-            {user?.role === 'teacher' && (
+            {isTeacher && (
               <>
                 <Button className="w-full" onClick={() => navigate("/take-attendance")}>
                   <Check className="mr-2 h-4 w-4" />
@@ -496,7 +721,7 @@ export default function Dashboard() {
               </>
             )}
             
-            {user?.role === 'student' && (
+            {isStudent && (
               <>
                 <Button className="w-full" onClick={() => navigate("/assignments")}>
                   <FileText className="mr-2 h-4 w-4" />

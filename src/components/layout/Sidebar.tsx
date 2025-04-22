@@ -6,6 +6,9 @@ import { useAuth, UserRole } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 import {
   User,
+  Calculator,
+  Receipt,
+  FileHeart,
   Home,
   Users,
   BookOpen,
@@ -54,6 +57,8 @@ const teacherNavItems: NavItem[] = [
   { label: 'Settings', icon: Settings, href: '/settings', roles: ['teacher'] },
 ];
 
+
+
 // Student navigation items
 const studentNavItems: NavItem[] = [
   { label: 'Dashboard', icon: Home, href: '/dashboard', roles: ['student'] },
@@ -62,6 +67,14 @@ const studentNavItems: NavItem[] = [
   { label: 'Schedule', icon: Calendar, href: '/schedule', roles: ['student'] },
   { label: 'Learning Materials', icon: Download, href: '/materials', roles: ['student'] },
   { label: 'Settings', icon: Settings, href: '/settings', roles: ['student'] },
+];
+
+const financeNavItems: NavItem[] = [
+  { label: 'Dashboard', icon: Home, href: '/dashboard', roles: ['finance'] },
+  { label: 'Transactions', icon: Receipt, href: '/finance', roles: ['finance'] },
+  { label: 'Reports', icon: FileHeart, href: '/finance/reports', roles: ['finance'] },
+  { label: 'Budgets', icon: Calculator, href: '/finance/budgets', roles: ['finance'] },
+  { label: 'Settings', icon: Settings, href: '/settings', roles: ['finance'] },
 ];
 
 export default function Sidebar() {
@@ -77,6 +90,8 @@ export default function Sidebar() {
     navItems = teacherNavItems;
   } else if (user.role === 'student') {
     navItems = studentNavItems;
+  } else if (user.role === 'finance') {
+    navItems = financeNavItems;
   }
   
   const filteredNavItems = navItems.filter(item => 

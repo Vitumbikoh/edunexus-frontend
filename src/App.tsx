@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -20,6 +20,7 @@ import SubjectForm from "./pages/SubjectForm";
 import Schedule from "./pages/Schedule";
 import Finance from "./pages/Finance";
 import PaymentForm from "./pages/PaymentForm";
+import FinanceBudgets from "./pages/FinanceBudgets";
 import Settings from "./pages/Settings";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
@@ -77,6 +78,21 @@ const StudentRoute = ({ children }: { children: React.ReactNode }) => {
   }
   
   if (!user || user.role !== 'student') {
+    return <Navigate to="/dashboard" replace />;
+  }
+  
+  return <>{children}</>;
+};
+
+// Finance route component - only accessible by finance users
+const FinanceRoute = ({ children }: { children: React.ReactNode }) => {
+  const { user, loading } = useAuth();
+  
+  if (loading) {
+    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+  }
+  
+  if (!user || user.role !== 'finance') {
     return <Navigate to="/dashboard" replace />;
   }
   
@@ -174,6 +190,14 @@ const AppRoutes = () => {
             <PaymentForm />
           </Layout>
         </ProtectedRoute>
+      } />
+      
+      <Route path="/finance/budgets" element={
+        <FinanceRoute>
+          <Layout>
+            <FinanceBudgets />
+          </Layout>
+        </FinanceRoute>
       } />
       
       <Route path="/settings" element={
@@ -279,9 +303,7 @@ const AppRoutes = () => {
   );
 };
 
-// Make sure React is properly imported at the top and imported before using hooks
 const App = () => {
-  // Create a new QueryClient instance inside the component using React.useState
   const [queryClient] = React.useState(() => new QueryClient());
 
   return (
