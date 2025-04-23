@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useSidebar } from '@/contexts/SidebarContext';
@@ -22,7 +21,8 @@ import {
   Award,
   Download,
   ChartPie,
-  MessageSquare
+  MessageSquare,
+  CreditCard
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 
@@ -76,24 +76,36 @@ const parentNavItems: NavItem[] = [
   { label: 'Settings', icon: Settings, href: '/settings', roles: ['parent'] },
 ];
 
+// Finance navigation items
+const financeNavItems: NavItem[] = [
+  { label: 'Dashboard', icon: Home, href: '/dashboard', roles: ['finance'] },
+  { label: 'Finance Summary', icon: DollarSign, href: '/finance', roles: ['finance'] },
+  { label: 'Transactions', icon: CreditCard, href: '/finance/transactions', roles: ['finance'] },
+  { label: 'Invoices', icon: FileText, href: '/finance/invoices', roles: ['finance'] },
+  { label: 'Reports', icon: ChartPie, href: '/finance/reports', roles: ['finance'] },
+  { label: 'Settings', icon: Settings, href: '/settings', roles: ['finance'] },
+];
+
 export default function Sidebar() {
   const { isOpen, toggle } = useSidebar();
   const { user, logout } = useAuth();
-  
+
   if (!user) return null;
 
   // Choose navigation items based on user role
   let navItems = adminNavItems;
-  
+
   if (user.role === 'teacher') {
     navItems = teacherNavItems;
   } else if (user.role === 'student') {
     navItems = studentNavItems;
   } else if (user.role === 'parent') {
     navItems = parentNavItems;
+  } else if (user.role === 'finance') {
+    navItems = financeNavItems;
   }
-  
-  const filteredNavItems = navItems.filter(item => 
+
+  const filteredNavItems = navItems.filter(item =>
     item.roles.includes(user.role)
   );
 
@@ -109,16 +121,16 @@ export default function Sidebar() {
           </div>
           {isOpen && <span className="ml-3 font-bold text-lg">SchoolPortal</span>}
         </div>
-        <Button 
-          variant="ghost" 
-          size="icon" 
+        <Button
+          variant="ghost"
+          size="icon"
           onClick={toggle}
           className={cn("p-0", isOpen ? "" : "hidden")}
         >
           <ChevronLeft size={20} />
         </Button>
       </div>
-      
+
       <div className="flex-1 overflow-y-auto py-4">
         <nav className="px-2 space-y-1">
           {filteredNavItems.map((item) => (
@@ -136,9 +148,9 @@ export default function Sidebar() {
           ))}
         </nav>
       </div>
-      
+
       <div className="p-4 border-t border-gray-200">
-        <div 
+        <div
           className={cn(
             "flex items-center cursor-pointer text-sidebar-foreground hover:bg-sidebar-accent p-2 rounded-md",
             isOpen ? "" : "justify-center"
