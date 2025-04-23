@@ -6,9 +6,6 @@ import { useAuth, UserRole } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 import {
   User,
-  Calculator,
-  Receipt,
-  FileHeart,
   Home,
   Users,
   BookOpen,
@@ -24,11 +21,8 @@ import {
   FileText,
   Award,
   Download,
-  FileHeart,
   ChartPie,
-  MessageSquare,
-  Receipt,
-  Calculator
+  MessageSquare
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 
@@ -62,8 +56,6 @@ const teacherNavItems: NavItem[] = [
   { label: 'Settings', icon: Settings, href: '/settings', roles: ['teacher'] },
 ];
 
-
-
 // Student navigation items
 const studentNavItems: NavItem[] = [
   { label: 'Dashboard', icon: Home, href: '/dashboard', roles: ['student'] },
@@ -74,12 +66,14 @@ const studentNavItems: NavItem[] = [
   { label: 'Settings', icon: Settings, href: '/settings', roles: ['student'] },
 ];
 
-const financeNavItems: NavItem[] = [
-  { label: 'Dashboard', icon: Home, href: '/dashboard', roles: ['finance'] },
-  { label: 'Transactions', icon: Receipt, href: '/finance', roles: ['finance'] },
-  { label: 'Reports', icon: FileHeart, href: '/finance/reports', roles: ['finance'] },
-  { label: 'Budgets', icon: Calculator, href: '/finance/budgets', roles: ['finance'] },
-  { label: 'Settings', icon: Settings, href: '/settings', roles: ['finance'] },
+// Parent navigation items
+const parentNavItems: NavItem[] = [
+  { label: 'Dashboard', icon: Home, href: '/dashboard', roles: ['parent'] },
+  { label: "Children's Performance", icon: ChartPie, href: '/children/performance', roles: ['parent'] },
+  { label: 'Attendance', icon: Users, href: '/attendance', roles: ['parent'] },
+  { label: 'Finance', icon: DollarSign, href: '/finance', roles: ['parent'] },
+  { label: 'Messages', icon: MessageSquare, href: '/messages', roles: ['parent'] },
+  { label: 'Settings', icon: Settings, href: '/settings', roles: ['parent'] },
 ];
 
 export default function Sidebar() {
@@ -95,8 +89,8 @@ export default function Sidebar() {
     navItems = teacherNavItems;
   } else if (user.role === 'student') {
     navItems = studentNavItems;
-  } else if (user.role === 'finance') {
-    navItems = financeNavItems;
+  } else if (user.role === 'parent') {
+    navItems = parentNavItems;
   }
   
   const filteredNavItems = navItems.filter(item => 

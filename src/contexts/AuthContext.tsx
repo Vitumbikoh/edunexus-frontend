@@ -35,18 +35,6 @@ export type ChildStudent = {
   };
 };
 
-// Define finance specific data
-export type FinanceData = {
-  department: string;
-  accessLevel: 'junior' | 'senior' | 'manager';
-  permissions: {
-    canCreateInvoices: boolean;
-    canProcessPayments: boolean;
-    canGenerateReports: boolean;
-    canManageRefunds: boolean;
-  };
-};
-
 // Define user type
 export type User = {
   id: string;
@@ -81,8 +69,15 @@ export type User = {
       term: string;
     }[];
   };
-  // Finance specific data
-  financeData?: FinanceData;
+};
+
+// Define AuthContext type
+export type AuthContextType = {
+  user: User | null;
+  isAuthenticated: boolean;
+  login: (userData: User) => void;
+  logout: () => void;
+  loading: boolean;
 };
 
 // Mock user for demonstration
@@ -237,34 +232,6 @@ const mockParent: User = {
   }
 };
 
-// Mock finance user
-const mockFinanceUser: User = {
-  id: '5',
-  name: 'Sarah Wilson',
-  email: 'finance@schoolportal.com',
-  role: 'finance',
-  avatar: 'https://ui-avatars.com/api/?name=Sarah+Wilson&background=F59E0B&color=fff',
-  financeData: {
-    department: 'Accounts',
-    accessLevel: 'manager',
-    permissions: {
-      canCreateInvoices: true,
-      canProcessPayments: true,
-      canGenerateReports: true,
-      canManageRefunds: true
-    }
-  }
-};
-
-// Define AuthContextType
-type AuthContextType = {
-  user: User | null;
-  isAuthenticated: boolean;
-  loading: boolean;
-  login: (userData: User) => void;
-  logout: () => void;
-};
-
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -274,7 +241,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     // Simulating initial auth check
     const checkAuth = () => {
-      setUser(mockFinanceUser); // Using mock finance user for testing
+      setUser(mockParent); // Using mock parent for testing parent functionality
       setLoading(false);
     };
     
