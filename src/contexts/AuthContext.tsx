@@ -1,3 +1,4 @@
+
 import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
 import { authApi } from '@/services/authService';
 
@@ -220,7 +221,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setUser({
               ...response.user,
               role: normalizedRole,
-              name: response.user.username || response.user.email.split('@')[0],
+              name: response.user.email.split('@')[0],
               avatar: `https://ui-avatars.com/api/?name=${response.user.email}&background=0D8ABC&color=fff`
             });
             setToken(storedToken);
@@ -265,7 +266,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const userData: User = {
         ...response.user,
         role: normalizedRole,
-        name: response.user.username || response.user.email.split('@')[0],
+        name: response.user.email.split('@')[0],
         avatar: `https://ui-avatars.com/api/?name=${response.user.email}&background=0D8ABC&color=fff`
       };
       
