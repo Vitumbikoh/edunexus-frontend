@@ -39,6 +39,7 @@ export default function Login() {
 
     setIsLoading(true);
     try {
+      // Try backend login first
       await login(email, password);
       navigate('/dashboard');
       toast({
@@ -46,19 +47,39 @@ export default function Login() {
         description: "Logged in successfully",
       });
     } catch (error) {
-      toast({
-        title: "Login Failed",
-        description: "Invalid email or password",
-        variant: "destructive",
-      });
+      console.error('Backend login failed:', error);
+      
+      // Check if it's a demo credential
+      const demoUser = demoCredentials.find(
+        cred => cred.email === email && cred.password === password
+      );
+      
+      if (demoUser) {
+        // Simulate demo login without backend
+        toast({
+          title: "Demo Login",
+          description: `Logged in as demo ${demoUser.role}. Note: Backend not available.`,
+        });
+        navigate('/dashboard');
+      } else {
+        toast({
+          title: "Login Failed",
+          description: "Invalid email or password. Backend might be unavailable.",
+          variant: "destructive",
+        });
+      }
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleDemoLogin = async (demoEmail: string, demoPassword: string) => {
+    setEmail(demoEmail);
+    setPassword(demoPassword);
+    
     setIsLoading(true);
     try {
+      // Try backend login first
       await login(demoEmail, demoPassword);
       navigate('/dashboard');
       toast({
@@ -66,11 +87,14 @@ export default function Login() {
         description: "Logged in successfully",
       });
     } catch (error) {
+      console.error('Backend demo login failed:', error);
+      
+      // Fallback to demo mode
       toast({
-        title: "Demo Login Failed",
-        description: "Demo credentials not working, please check your backend",
-        variant: "destructive",
+        title: "Demo Mode",
+        description: "Using demo credentials (backend unavailable)",
       });
+      navigate('/dashboard');
     } finally {
       setIsLoading(false);
     }
@@ -140,6 +164,9 @@ export default function Login() {
             </div>
             <div className="mt-6 border rounded-lg p-3 bg-gray-50 overflow-x-auto">
               <h3 className="text-sm font-bold mb-2 text-gray-700">Demo Credentials</h3>
+              <div className="mb-2 text-xs text-blue-600 font-medium">
+                Backend URL: http://localhost:5000/api/v1/auth/login
+              </div>
               <table className="w-full text-xs text-left">
                 <thead>
                   <tr>
@@ -159,7 +186,7 @@ export default function Login() {
                 </tbody>
               </table>
               <div className="mt-2 text-xs text-gray-600">
-                Note: These credentials need to exist in your backend database
+                Note: Will try backend first, fallback to demo mode if unavailable
               </div>
             </div>
           </div>
