@@ -1,64 +1,79 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth, UserRole } from '@/contexts/AuthContext';
+import { useToast } from "@/hooks/use-toast";
 
-// Demo users, now including Finance for strict roles
-const demoUsers = [
-  {
-    id: '1',
-    name: 'Demo Admin',
-    email: 'admin@schoolportal.com',
-    role: 'admin' as UserRole,
-    avatar: 'https://ui-avatars.com/api/?name=Admin+User&background=0D8ABC&color=fff'
-  },
-  {
-    id: '2',
-    name: 'Demo Teacher',
-    email: 'teacher@schoolportal.com',
-    role: 'teacher' as UserRole,
-    avatar: 'https://ui-avatars.com/api/?name=Teacher+User&background=F59E0B&color=fff'
-  },
-  {
-    id: '3',
-    name: 'Demo Student',
-    email: 'student@schoolportal.com',
-    role: 'student' as UserRole,
-    avatar: 'https://ui-avatars.com/api/?name=Student+User&background=10B981&color=fff'
-  },
-  {
-    id: '4',
-    name: 'Demo Parent',
-    email: 'parent@schoolportal.com',
-    role: 'parent' as UserRole,
-    avatar: 'https://ui-avatars.com/api/?name=Parent+User&background=2563EB&color=fff'
-  },
-  {
-    id: '5',
-    name: 'Demo Finance',
-    email: 'finance@schoolportal.com',
-    role: 'finance' as UserRole,
-    avatar: 'https://ui-avatars.com/api/?name=Finance+User&background=EC4899&color=fff'
-  },
+// Demo credentials for testing
+const demoCredentials = [
+  { email: 'admin@schoolportal.com', password: 'admin123', role: 'admin' as UserRole },
+  { email: 'teacher@schoolportal.com', password: 'teacher123', role: 'teacher' as UserRole },
+  { email: 'student@schoolportal.com', password: 'student123', role: 'student' as UserRole },
+  { email: 'parent@schoolportal.com', password: 'parent123', role: 'parent' as UserRole },
+  { email: 'finance@schoolportal.com', password: 'finance123', role: 'finance' as UserRole },
 ];
 
 export default function Login() {
   const { login } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
+  
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    login(demoUsers[0]); // Admin login by default
-    navigate('/dashboard');
+    if (!email || !password) {
+      toast({
+        title: "Error",
+        description: "Please enter both email and password",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      await login(email, password);
+      navigate('/dashboard');
+      toast({
+        title: "Success",
+        description: "Logged in successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Login Failed",
+        description: "Invalid email or password",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleDemoLogin = (userIdx: number) => {
-    login(demoUsers[userIdx]);
-    navigate('/dashboard');
+  const handleDemoLogin = async (demoEmail: string, demoPassword: string) => {
+    setIsLoading(true);
+    try {
+      await login(demoEmail, demoPassword);
+      navigate('/dashboard');
+      toast({
+        title: "Success",
+        description: "Logged in successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Demo Login Failed",
+        description: "Demo credentials not working, please check your backend",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -77,7 +92,14 @@ export default function Login() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" placeholder="admin@schoolportal.com" required />
+              <Input 
+                id="email" 
+                type="email" 
+                placeholder="admin@schoolportal.com" 
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required 
+              />
             </div>
             <div className="space-y-2">
               <div className="flex items-center justify-between">
@@ -86,69 +108,59 @@ export default function Login() {
                   Forgot password?
                 </a>
               </div>
-              <Input id="password" type="password" placeholder="••••••••" required />
+              <Input 
+                id="password" 
+                type="password" 
+                placeholder="••••••••" 
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required 
+              />
             </div>
-            <Button type="submit" className="w-full">Sign In (as Admin)</Button>
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading ? 'Signing In...' : 'Sign In'}
+            </Button>
           </form>
           <div className="mt-6">
             <div className="text-center text-sm text-muted-foreground mb-2">
               Or use demo credentials:
             </div>
             <div className="flex flex-col gap-2">
-              <Button variant="outline" className="w-full" onClick={() => handleDemoLogin(0)}>
-                Log in as Admin
-              </Button>
-              <Button variant="outline" className="w-full" onClick={() => handleDemoLogin(1)}>
-                Log in as Teacher
-              </Button>
-              <Button variant="outline" className="w-full" onClick={() => handleDemoLogin(2)}>
-                Log in as Student
-              </Button>
-              <Button variant="outline" className="w-full" onClick={() => handleDemoLogin(3)}>
-                Log in as Parent
-              </Button>
-              <Button variant="outline" className="w-full" onClick={() => handleDemoLogin(4)}>
-                Log in as Finance
-              </Button>
+              {demoCredentials.map((demo, index) => (
+                <Button 
+                  key={index}
+                  variant="outline" 
+                  className="w-full" 
+                  onClick={() => handleDemoLogin(demo.email, demo.password)}
+                  disabled={isLoading}
+                >
+                  Log in as {demo.role.charAt(0).toUpperCase() + demo.role.slice(1)}
+                </Button>
+              ))}
             </div>
             <div className="mt-6 border rounded-lg p-3 bg-gray-50 overflow-x-auto">
-              <h3 className="text-sm font-bold mb-2 text-gray-700">Demo Credentials & Role Permissions</h3>
+              <h3 className="text-sm font-bold mb-2 text-gray-700">Demo Credentials</h3>
               <table className="w-full text-xs text-left">
                 <thead>
                   <tr>
                     <th className="font-bold py-1 pr-3">Role</th>
                     <th className="font-bold py-1 pr-3">Email</th>
-                    <th className="font-bold py-1 pr-3">Sample Abilities</th>
+                    <th className="font-bold py-1 pr-3">Password</th>
                   </tr>
                 </thead>
                 <tbody>
-                  <tr className="border-t">
-                    <td className="py-1 pr-3 font-semibold text-gray-800">Admin</td>
-                    <td className="py-1 pr-3">admin@schoolportal.com</td>
-                    <td className="py-1 pr-3">All access</td>
-                  </tr>
-                  <tr className="border-t">
-                    <td className="py-1 pr-3 font-semibold text-yellow-600">Teacher</td>
-                    <td className="py-1 pr-3">teacher@schoolportal.com</td>
-                    <td className="py-1 pr-3">View students, subjects, schedules</td>
-                  </tr>
-                  <tr className="border-t">
-                    <td className="py-1 pr-3 font-semibold text-green-600">Student</td>
-                    <td className="py-1 pr-3">student@schoolportal.com</td>
-                    <td className="py-1 pr-3">View students & subjects, edit only own profile</td>
-                  </tr>
-                  <tr className="border-t">
-                    <td className="py-1 pr-3 font-semibold text-blue-600">Parent</td>
-                    <td className="py-1 pr-3">parent@schoolportal.com</td>
-                    <td className="py-1 pr-3">View child grades & attendance, pay fees</td>
-                  </tr>
-                  <tr className="border-t">
-                    <td className="py-1 pr-3 font-semibold text-pink-600">Finance</td>
-                    <td className="py-1 pr-3">finance@schoolportal.com</td>
-                    <td className="py-1 pr-3">View & manage finance only</td>
-                  </tr>
+                  {demoCredentials.map((demo, index) => (
+                    <tr key={index} className="border-t">
+                      <td className="py-1 pr-3 font-semibold">{demo.role}</td>
+                      <td className="py-1 pr-3">{demo.email}</td>
+                      <td className="py-1 pr-3">{demo.password}</td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
+              <div className="mt-2 text-xs text-gray-600">
+                Note: These credentials need to exist in your backend database
+              </div>
             </div>
           </div>
         </CardContent>

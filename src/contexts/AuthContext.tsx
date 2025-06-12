@@ -1,6 +1,8 @@
-import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
 
-// Define user roles
+import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
+import { authApi } from '@/services/authService';
+
+// Define user roles based on your backend enum
 export type UserRole = 'admin' | 'teacher' | 'student' | 'parent' | 'finance';
 
 // Define student type for parent's children
@@ -35,12 +37,19 @@ export type ChildStudent = {
   };
 };
 
-// Define user type
+// Updated User type to match your backend entity
 export type User = {
   id: string;
-  name: string;
+  username?: string;
   email: string;
   role: UserRole;
+  phone?: string;
+  image?: string;
+  isActive?: boolean;
+  createdAt?: Date;
+  updatedAt?: Date;
+  // Frontend specific fields for demo purposes
+  name?: string;
   avatar?: string;
   // Parent specific data
   parentData?: {
@@ -75,161 +84,10 @@ export type User = {
 export type AuthContextType = {
   user: User | null;
   isAuthenticated: boolean;
-  login: (userData: User) => void;
+  login: (email: string, password: string) => Promise<void>;
   logout: () => void;
   loading: boolean;
-};
-
-// Mock user for demonstration
-const mockUser: User = {
-  id: '1',
-  name: 'Demo User',
-  email: 'admin@schoolportal.com',
-  role: 'admin',
-  avatar: 'https://ui-avatars.com/api/?name=Admin+User&background=0D8ABC&color=fff'
-};
-
-// Mock teacher user
-const mockTeacher: User = {
-  id: '2',
-  name: 'John Smith',
-  email: 'teacher@schoolportal.com',
-  role: 'teacher',
-  avatar: 'https://ui-avatars.com/api/?name=John+Smith&background=10B981&color=fff',
-  teacherData: {
-    subjects: ['Mathematics', 'Physics'],
-    classes: ['10A', '11B'],
-    students: ['1', '3', '4', '7'] // IDs of students taught by this teacher
-  }
-};
-
-// Mock student user
-const mockStudent: User = {
-  id: '3',
-  name: 'Emma Johnson',
-  email: 'student@schoolportal.com',
-  role: 'student',
-  avatar: 'https://ui-avatars.com/api/?name=Emma+Johnson&background=7C3AED&color=fff',
-  studentData: {
-    grade: '10A',
-    subjects: ['Mathematics', 'Physics', 'English', 'History', 'Computer Science'],
-    assignments: [
-      {
-        id: '1',
-        title: 'Math Problem Set 3',
-        subject: 'Mathematics',
-        dueDate: '2025-04-25',
-        status: 'pending'
-      },
-      {
-        id: '2',
-        title: 'English Essay',
-        subject: 'English',
-        dueDate: '2025-04-28',
-        status: 'submitted'
-      },
-      {
-        id: '3',
-        title: 'Physics Lab Report',
-        subject: 'Physics',
-        dueDate: '2025-04-22',
-        status: 'graded'
-      }
-    ],
-    grades: [
-      { subject: 'Mathematics', grade: 'A-', term: 'Midterm' },
-      { subject: 'Physics', grade: 'B+', term: 'Midterm' },
-      { subject: 'English', grade: 'A', term: 'Midterm' },
-      { subject: 'History', grade: 'B', term: 'Midterm' },
-      { subject: 'Computer Science', grade: 'A+', term: 'Midterm' }
-    ]
-  }
-};
-
-// Mock parent user
-const mockParent: User = {
-  id: '4',
-  name: 'David Brown',
-  email: 'parent@schoolportal.com',
-  role: 'parent',
-  avatar: 'https://ui-avatars.com/api/?name=David+Brown&background=F59E0B&color=fff',
-  parentData: {
-    children: [
-      {
-        id: '5',
-        name: 'Sarah Brown',
-        grade: '10A',
-        subjects: ['Mathematics', 'Physics', 'English', 'History'],
-        assignments: [
-          {
-            id: '1',
-            title: 'Math Problem Set 3',
-            subject: 'Mathematics',
-            dueDate: '2025-04-25',
-            status: 'pending'
-          },
-          {
-            id: '2',
-            title: 'English Essay',
-            subject: 'English',
-            dueDate: '2025-04-28',
-            status: 'submitted'
-          }
-        ],
-        grades: [
-          { subject: 'Mathematics', grade: 'B+', term: 'Midterm' },
-          { subject: 'Physics', grade: 'A-', term: 'Midterm' },
-          { subject: 'English', grade: 'A', term: 'Midterm' },
-          { subject: 'History', grade: 'B', term: 'Midterm' }
-        ],
-        attendance: {
-          total: 100,
-          present: 92,
-          absent: 5,
-          late: 3
-        },
-        fees: {
-          total: 12000,
-          paid: 8000,
-          pending: 4000,
-          dueDate: '2025-05-15'
-        }
-      },
-      {
-        id: '6',
-        name: 'Tom Brown',
-        grade: '8B',
-        subjects: ['Mathematics', 'Science', 'English', 'Geography'],
-        assignments: [
-          {
-            id: '3',
-            title: 'Science Project',
-            subject: 'Science',
-            dueDate: '2025-04-30',
-            status: 'pending'
-          }
-        ],
-        grades: [
-          { subject: 'Mathematics', grade: 'A', term: 'Midterm' },
-          { subject: 'Science', grade: 'B+', term: 'Midterm' },
-          { subject: 'English', grade: 'A-', term: 'Midterm' },
-          { subject: 'Geography', grade: 'B', term: 'Midterm' }
-        ],
-        attendance: {
-          total: 100,
-          present: 95,
-          absent: 3,
-          late: 2
-        },
-        fees: {
-          total: 12000,
-          paid: 9000,
-          pending: 3000,
-          dueDate: '2025-05-15'
-        }
-      }
-    ]
-  }
+  token: string | null;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -237,23 +95,61 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [token, setToken] = useState<string | null>(null);
   
   useEffect(() => {
-    // Simulating initial auth check
-    const checkAuth = () => {
-      setUser(mockParent); // Using mock parent for testing parent functionality
+    const checkAuth = async () => {
+      const storedToken = localStorage.getItem('access_token');
+      if (storedToken) {
+        try {
+          const response = await authApi.verifyToken(storedToken);
+          if (response.valid && response.user) {
+            setUser({
+              ...response.user,
+              name: response.user.email.split('@')[0], // Fallback name from email
+              avatar: `https://ui-avatars.com/api/?name=${response.user.email}&background=0D8ABC&color=fff`
+            });
+            setToken(storedToken);
+          } else {
+            localStorage.removeItem('access_token');
+          }
+        } catch (error) {
+          console.error('Auth check failed:', error);
+          localStorage.removeItem('access_token');
+        }
+      }
       setLoading(false);
     };
     
     checkAuth();
   }, []);
 
-  const login = (userData: User) => {
-    setUser(userData);
+  const login = async (email: string, password: string) => {
+    try {
+      const response = await authApi.login({ email, password });
+      
+      // Store token
+      localStorage.setItem('access_token', response.access_token);
+      setToken(response.access_token);
+      
+      // Set user with additional frontend fields
+      const userData: User = {
+        ...response.user,
+        name: response.user.email.split('@')[0], // Fallback name from email
+        avatar: `https://ui-avatars.com/api/?name=${response.user.email}&background=0D8ABC&color=fff`
+      };
+      
+      setUser(userData);
+    } catch (error) {
+      console.error('Login failed:', error);
+      throw error;
+    }
   };
 
   const logout = () => {
+    localStorage.removeItem('access_token');
     setUser(null);
+    setToken(null);
   };
 
   return (
@@ -262,7 +158,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isAuthenticated: !!user, 
       login, 
       logout,
-      loading
+      loading,
+      token
     }}>
       {children}
     </AuthContext.Provider>
