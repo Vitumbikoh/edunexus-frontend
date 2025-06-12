@@ -2,9 +2,6 @@
 import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
 import { authApi } from '@/services/authService';
 
-// Define user roles based on your backend enum
-export type UserRole = 'admin' | 'teacher' | 'student' | 'parent' | 'finance';
-
 // Define student type for parent's children
 export type ChildStudent = {
   id: string;
@@ -42,7 +39,7 @@ export type User = {
   id: string;
   username?: string;
   email: string;
-  role: UserRole;
+  role: string; // Use simple string instead of UserRole enum
   phone?: string;
   image?: string;
   isActive?: boolean;
@@ -92,18 +89,8 @@ export type AuthContextType = {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Function to normalize role from backend to UserRole type
-const normalizeRole = (role: string): UserRole => {
-  const roleStr = role.toLowerCase();
-  if (['admin', 'teacher', 'student', 'parent', 'finance'].includes(roleStr)) {
-    return roleStr as UserRole;
-  }
-  // Default fallback
-  return 'student' as UserRole;
-};
-
 // Demo user data
-const createDemoUser = (email: string, role: UserRole): User => {
+const createDemoUser = (email: string, role: string): User => {
   const baseUser: User = {
     id: `demo-${role}-${Date.now()}`,
     email,
@@ -217,15 +204,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // Try backend verification first
           const response = await authApi.verifyToken(storedToken);
           if (response.valid && response.user) {
-            const normalizedRole = normalizeRole(response.user.role);
             setUser({
               ...response.user,
-              role: normalizedRole,
               name: response.user.email.split('@')[0],
               avatar: `https://ui-avatars.com/api/?name=${response.user.email}&background=0D8ABC&color=fff`
             });
             setToken(storedToken);
-            console.log('✅ Backend user authenticated with role:', normalizedRole);
+            console.log('✅ Backend user authenticated with role:', response.user.role);
           } else {
             // Backend verification failed, remove tokens
             localStorage.removeItem('access_token');
@@ -262,27 +247,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       localStorage.setItem('access_token', response.access_token);
       setToken(response.access_token);
       
-      const normalizedRole = normalizeRole(response.user.role);
       const userData: User = {
         ...response.user,
-        role: normalizedRole,
         name: response.user.email.split('@')[0],
         avatar: `https://ui-avatars.com/api/?name=${response.user.email}&background=0D8ABC&color=fff`
       };
       
       setUser(userData);
       localStorage.setItem('demo_user', JSON.stringify(userData));
-      console.log('✅ Backend login successful for role:', normalizedRole);
+      console.log('✅ Backend login successful for role:', response.user.role);
     } catch (error) {
       console.error('Backend login failed, trying demo login:', error);
       
       // Backend failed, try demo credentials
       const demoCredentials = [
-        { email: 'admin@schoolportal.com', password: 'admin123', role: 'admin' as UserRole },
-        { email: 'teacher@schoolportal.com', password: 'teacher123', role: 'teacher' as UserRole },
-        { email: 'student@schoolportal.com', password: 'student123', role: 'student' as UserRole },
-        { email: 'parent@schoolportal.com', password: 'parent123', role: 'parent' as UserRole },
-        { email: 'finance@schoolportal.com', password: 'finance123', role: 'finance' as UserRole },
+        { email: 'admin@schoolportal.com', password: 'admin123', role: 'admin' },
+        { email: 'teacher@schoolportal.com', password: 'teacher123', role: 'teacher' },
+        { email: 'student@schoolportal.com', password: 'student123', role: 'student' },
+        { email: 'parent@schoolportal.com', password: 'parent123', role: 'parent' },
+        { email: 'finance@schoolportal.com', password: 'finance123', role: 'finance' },
       ];
       
       const demoUser = demoCredentials.find(
