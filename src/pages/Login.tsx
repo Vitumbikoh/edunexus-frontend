@@ -39,7 +39,6 @@ export default function Login() {
 
     setIsLoading(true);
     try {
-      // Try backend login first
       await login(email, password);
       navigate('/dashboard');
       toast({
@@ -47,27 +46,12 @@ export default function Login() {
         description: "Logged in successfully",
       });
     } catch (error) {
-      console.error('Backend login failed:', error);
-      
-      // Check if it's a demo credential
-      const demoUser = demoCredentials.find(
-        cred => cred.email === email && cred.password === password
-      );
-      
-      if (demoUser) {
-        // Simulate demo login without backend
-        toast({
-          title: "Demo Login",
-          description: `Logged in as demo ${demoUser.role}. Note: Backend not available.`,
-        });
-        navigate('/dashboard');
-      } else {
-        toast({
-          title: "Login Failed",
-          description: "Invalid email or password. Backend might be unavailable.",
-          variant: "destructive",
-        });
-      }
+      console.error('Login failed:', error);
+      toast({
+        title: "Login Failed",
+        description: "Invalid email or password",
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }
@@ -79,7 +63,6 @@ export default function Login() {
     
     setIsLoading(true);
     try {
-      // Try backend login first
       await login(demoEmail, demoPassword);
       navigate('/dashboard');
       toast({
@@ -87,14 +70,12 @@ export default function Login() {
         description: "Logged in successfully",
       });
     } catch (error) {
-      console.error('Backend demo login failed:', error);
-      
-      // Fallback to demo mode
+      console.error('Demo login failed:', error);
       toast({
-        title: "Demo Mode",
-        description: "Using demo credentials (backend unavailable)",
+        title: "Login Failed",
+        description: "Demo login failed",
+        variant: "destructive",
       });
-      navigate('/dashboard');
     } finally {
       setIsLoading(false);
     }
