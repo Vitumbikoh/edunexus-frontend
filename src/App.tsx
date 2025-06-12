@@ -317,9 +317,7 @@ const AppRoutes = () => {
   );
 };
 
-// Make sure React is properly imported at the top and imported before using hooks
 const App = () => {
-  // Create a new QueryClient instance inside the component using React.useState
   const [queryClient] = React.useState(() => new QueryClient());
 
   return (

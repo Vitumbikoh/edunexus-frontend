@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
 import { authApi } from '@/services/authService';
 
@@ -91,6 +90,16 @@ export type AuthContextType = {
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+// Function to normalize role from backend to UserRole type
+const normalizeRole = (role: string): UserRole => {
+  const roleStr = role.toLowerCase();
+  if (['admin', 'teacher', 'student', 'parent', 'finance'].includes(roleStr)) {
+    return roleStr as UserRole;
+  }
+  // Default fallback
+  return 'student' as UserRole;
+};
 
 // Demo user data
 const createDemoUser = (email: string, role: UserRole): User => {
@@ -207,13 +216,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // Try backend verification first
           const response = await authApi.verifyToken(storedToken);
           if (response.valid && response.user) {
+            const normalizedRole = normalizeRole(response.user.role);
             setUser({
               ...response.user,
-              role: response.user.role as UserRole,
-              name: response.user.email.split('@')[0],
+              role: normalizedRole,
+              name: response.user.username || response.user.email.split('@')[0],
               avatar: `https://ui-avatars.com/api/?name=${response.user.email}&background=0D8ABC&color=fff`
             });
             setToken(storedToken);
+            console.log('✅ Backend user authenticated with role:', normalizedRole);
           } else {
             // Backend verification failed, remove tokens
             localStorage.removeItem('access_token');
@@ -226,6 +237,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             const demoUser = JSON.parse(storedUser);
             setUser(demoUser);
             setToken(storedToken);
+            console.log('✅ Demo user authenticated with role:', demoUser.role);
           } catch (parseError) {
             console.error('Demo user parsing failed:', parseError);
             localStorage.removeItem('access_token');
@@ -249,15 +261,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       localStorage.setItem('access_token', response.access_token);
       setToken(response.access_token);
       
+      const normalizedRole = normalizeRole(response.user.role);
       const userData: User = {
         ...response.user,
-        role: response.user.role as UserRole,
-        name: response.user.email.split('@')[0],
+        role: normalizedRole,
+        name: response.user.username || response.user.email.split('@')[0],
         avatar: `https://ui-avatars.com/api/?name=${response.user.email}&background=0D8ABC&color=fff`
       };
       
       setUser(userData);
       localStorage.setItem('demo_user', JSON.stringify(userData));
+      console.log('✅ Backend login successful for role:', normalizedRole);
     } catch (error) {
       console.error('Backend login failed, trying demo login:', error);
       
