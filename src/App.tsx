@@ -8,6 +8,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { SidebarProvider } from "@/contexts/SidebarContext";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import Layout from "@/components/layout/Layout";
+import RoleBasedDashboard from "@/components/auth/RoleBasedDashboard";
 
 // Pages
 import Login from "./pages/Login";
@@ -104,6 +105,36 @@ const ParentRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
+// Admin route component - only accessible by admins
+const AdminRoute = ({ children }: { children: React.ReactNode }) => {
+  const { user, loading } = useAuth();
+  
+  if (loading) {
+    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+  }
+  
+  if (!user || user.role !== 'admin') {
+    return <Navigate to="/dashboard" replace />;
+  }
+  
+  return <>{children}</>;
+};
+
+// Finance route component - only accessible by finance role
+const FinanceRoute = ({ children }: { children: React.ReactNode }) => {
+  const { user, loading } = useAuth();
+  
+  if (loading) {
+    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+  }
+  
+  if (!user || user.role !== 'finance') {
+    return <Navigate to="/dashboard" replace />;
+  }
+  
+  return <>{children}</>;
+};
+
 const AppRoutes = () => {
   const { user } = useAuth();
   
@@ -116,42 +147,50 @@ const AppRoutes = () => {
       <Route path="/dashboard" element={
         <ProtectedRoute>
           <Layout>
-            <Dashboard />
+            <RoleBasedDashboard />
           </Layout>
         </ProtectedRoute>
       } />
       
-      {/* Student Routes */}
+      {/* Student Routes - Restricted based on role */}
       <Route path="/students" element={
         <ProtectedRoute>
-          <Layout>
-            <Students />
-          </Layout>
+          <AdminRoute>
+            <Layout>
+              <Students />
+            </Layout>
+          </AdminRoute>
         </ProtectedRoute>
       } />
       
       <Route path="/students/new" element={
         <ProtectedRoute>
-          <Layout>
-            <StudentForm />
-          </Layout>
+          <AdminRoute>
+            <Layout>
+              <StudentForm />
+            </Layout>
+          </AdminRoute>
         </ProtectedRoute>
       } />
       
-      {/* Teacher Routes */}
+      {/* Teacher Routes - Restricted to admin only */}
       <Route path="/teachers" element={
         <ProtectedRoute>
-          <Layout>
-            <Teachers />
-          </Layout>
+          <AdminRoute>
+            <Layout>
+              <Teachers />
+            </Layout>
+          </AdminRoute>
         </ProtectedRoute>
       } />
       
       <Route path="/teachers/new" element={
         <ProtectedRoute>
-          <Layout>
-            <TeacherForm />
-          </Layout>
+          <AdminRoute>
+            <Layout>
+              <TeacherForm />
+            </Layout>
+          </AdminRoute>
         </ProtectedRoute>
       } />
       
@@ -166,9 +205,11 @@ const AppRoutes = () => {
       
       <Route path="/subjects/new" element={
         <ProtectedRoute>
-          <Layout>
-            <SubjectForm />
-          </Layout>
+          <AdminRoute>
+            <Layout>
+              <SubjectForm />
+            </Layout>
+          </AdminRoute>
         </ProtectedRoute>
       } />
       
@@ -191,9 +232,11 @@ const AppRoutes = () => {
       
       <Route path="/finance/record" element={
         <ProtectedRoute>
-          <Layout>
-            <PaymentForm />
-          </Layout>
+          <FinanceRoute>
+            <Layout>
+              <PaymentForm />
+            </Layout>
+          </FinanceRoute>
         </ProtectedRoute>
       } />
       
