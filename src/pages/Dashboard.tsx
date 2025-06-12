@@ -2,11 +2,11 @@
 import React from 'react';
 import StatCard from '@/components/dashboard/StatCard';
 import RecentActivitiesCard from '@/components/dashboard/RecentActivitiesCard';
-import { Users, BookOpen, Calendar, DollarSign, ChevronRight, Check, Upload, FileText, Award, Download, ChartPie } from 'lucide-react';
+import { Users, BookOpen, Calendar, DollarSign, ChevronRight, Check, Upload, FileText, Award, Download, ChartPie, MessageSquare, CreditCard, TrendingUp, UserCheck } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge"; // Add missing Badge import
+import { Badge } from "@/components/ui/badge";
 import { useNavigate } from 'react-router-dom';
 import { Progress } from '@/components/ui/progress';
 import { 
@@ -23,7 +23,9 @@ import {
   Pie, 
   Cell, 
   Tooltip,
-  ResponsiveContainer
+  ResponsiveContainer,
+  LineChart,
+  Line
 } from 'recharts';
 
 const mockActivities = [
@@ -65,6 +67,7 @@ const mockActivities = [
   },
 ];
 
+// Sample data for charts
 const attendanceData = [
   { name: 'Class 9A', value: 92 },
   { name: 'Class 9B', value: 88 },
@@ -87,6 +90,15 @@ const feeCollection = [
   { name: 'Pending', value: 25 },
 ];
 
+const financeData = [
+  { month: 'Jan', income: 45000, expenses: 38000 },
+  { month: 'Feb', income: 52000, expenses: 41000 },
+  { month: 'Mar', income: 48000, expenses: 39000 },
+  { month: 'Apr', income: 61000, expenses: 45000 },
+  { month: 'May', income: 55000, expenses: 42000 },
+  { month: 'Jun', income: 67000, expenses: 48000 },
+];
+
 const COLORS = ['#0088FE', '#FFBB28', '#00C49F', '#FF8042', '#8884D8', '#82ca9d'];
 const PIE_COLORS = ['#10B981', '#F97316'];
 
@@ -97,23 +109,56 @@ export default function Dashboard() {
   const isTeacher = user?.role === 'teacher';
   const isStudent = user?.role === 'student';
   const isParent = user?.role === 'parent';
+  const isFinance = user?.role === 'finance';
   
+  // Admin Stats
+  const adminStats = [
+    { 
+      title: "Total Students", 
+      value: "1,235", 
+      icon: <Users size={24} />, 
+      trend: { value: 12, isPositive: true },
+      className: "bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-900/10" 
+    },
+    { 
+      title: "Total Courses", 
+      value: "42", 
+      icon: <BookOpen size={24} />, 
+      trend: { value: 4, isPositive: true },
+      className: "bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-900/10" 
+    },
+    { 
+      title: "Upcoming Events", 
+      value: "8", 
+      icon: <Calendar size={24} />,
+      className: "bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-900/10" 
+    },
+    { 
+      title: "Fee Collection", 
+      value: "$24,500", 
+      icon: <DollarSign size={24} />, 
+      trend: { value: 8, isPositive: false },
+      className: "bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-900/10"
+    },
+  ];
+
+  // Teacher Stats
   const teacherStats = [
     { 
       title: "My Students", 
-      value: isTeacher && user.teacherData ? `${user.teacherData.students.length}` : "0", 
+      value: isTeacher && user.teacherData ? `${user.teacherData.students.length}` : "24", 
       icon: <Users size={24} />, 
       className: "bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-900/10" 
     },
     { 
       title: "My Subjects", 
-      value: isTeacher && user.teacherData ? `${user.teacherData.subjects.length}` : "0", 
+      value: isTeacher && user.teacherData ? `${user.teacherData.subjects.length}` : "3", 
       icon: <BookOpen size={24} />, 
       className: "bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-900/10" 
     },
     { 
       title: "My Classes", 
-      value: isTeacher && user.teacherData ? `${user.teacherData.classes.length}` : "0", 
+      value: isTeacher && user.teacherData ? `${user.teacherData.classes.length}` : "5", 
       icon: <Calendar size={24} />,
       className: "bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-900/10" 
     },
@@ -125,16 +170,17 @@ export default function Dashboard() {
     },
   ];
   
+  // Student Stats
   const studentStats = [
     { 
       title: "My Subjects", 
-      value: isStudent && user.studentData ? `${user.studentData.subjects.length}` : "0", 
+      value: isStudent && user.studentData ? `${user.studentData.subjects.length}` : "6", 
       icon: <BookOpen size={24} />, 
       className: "bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-900/10" 
     },
     { 
       title: "Assignments", 
-      value: isStudent && user.studentData ? `${user.studentData.assignments.length}` : "0", 
+      value: isStudent && user.studentData ? `${user.studentData.assignments.length}` : "8", 
       icon: <FileText size={24} />, 
       className: "bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-900/10" 
     },
@@ -151,48 +197,39 @@ export default function Dashboard() {
       className: "bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-900/10"
     },
   ];
+
+  // Finance Stats
+  const financeStats = [
+    { 
+      title: "Monthly Revenue", 
+      value: "$67,000", 
+      icon: <TrendingUp size={24} />, 
+      trend: { value: 15, isPositive: true },
+      className: "bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-900/10" 
+    },
+    { 
+      title: "Outstanding Fees", 
+      value: "$12,450", 
+      icon: <DollarSign size={24} />, 
+      trend: { value: 8, isPositive: false },
+      className: "bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-900/10" 
+    },
+    { 
+      title: "Payments Today", 
+      value: "23", 
+      icon: <CreditCard size={24} />,
+      className: "bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-900/10" 
+    },
+    { 
+      title: "Collection Rate", 
+      value: "94%", 
+      icon: <UserCheck size={24} />, 
+      trend: { value: 2, isPositive: true },
+      className: "bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-900/10"
+    },
+  ];
   
-  const generateStudentPerformanceData = () => {
-    if (!isStudent || !user?.studentData) return [];
-    
-    return user.studentData.subjects.map(subject => {
-      const grade = user.studentData?.grades.find(g => g.subject === subject)?.grade || '';
-      let score = 0;
-      
-      if (grade.startsWith('A')) score = 90 + Math.floor(Math.random() * 10);
-      else if (grade.startsWith('B')) score = 80 + Math.floor(Math.random() * 10);
-      else if (grade.startsWith('C')) score = 70 + Math.floor(Math.random() * 10);
-      else if (grade.startsWith('D')) score = 60 + Math.floor(Math.random() * 10);
-      else score = 50 + Math.floor(Math.random() * 10);
-      
-      return {
-        name: subject,
-        score: score,
-        average: Math.min(Math.max(score - 5 - Math.floor(Math.random() * 10), 50), 95)
-      };
-    });
-  };
-  
-  const studentPerformanceData = generateStudentPerformanceData();
-  
-  const generateAssignmentStatusData = () => {
-    if (!isStudent || !user?.studentData) return [];
-    
-    const pending = user.studentData.assignments.filter(a => a.status === 'pending').length;
-    const submitted = user.studentData.assignments.filter(a => a.status === 'submitted').length;
-    const graded = user.studentData.assignments.filter(a => a.status === 'graded').length;
-    
-    return [
-      { name: 'Pending', value: pending },
-      { name: 'Submitted', value: submitted },
-      { name: 'Graded', value: graded }
-    ];
-  };
-  
-  const assignmentStatusData = generateAssignmentStatusData();
-  
-  const ASSIGNMENT_COLORS = ['#f97316', '#3b82f6', '#10b981'];
-  
+  // Parent Stats
   const parentStats = user?.parentData?.children.map((child) => [
     { 
       title: `${child.name}'s Attendance`, 
@@ -218,107 +255,152 @@ export default function Dashboard() {
       icon: DollarSign, 
       className: "bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-900/10"
     },
-  ]).flat() || [];
+  ]).flat() || [
+    { 
+      title: "Children Enrolled", 
+      value: "2", 
+      icon: Users, 
+      className: "bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-900/10" 
+    },
+    { 
+      title: "Total Subjects", 
+      value: "12", 
+      icon: BookOpen, 
+      className: "bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-900/10" 
+    },
+    { 
+      title: "Pending Assignments", 
+      value: "5", 
+      icon: FileText,
+      className: "bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-900/10" 
+    },
+    { 
+      title: "Total Fees Due", 
+      value: "$450", 
+      icon: DollarSign, 
+      className: "bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-900/10"
+    },
+  ];
+
+  // Student performance data for student dashboard
+  const generateStudentPerformanceData = () => {
+    if (!isStudent || !user?.studentData) {
+      return [
+        { name: 'Math', score: 85, average: 78 },
+        { name: 'Science', score: 92, average: 82 },
+        { name: 'English', score: 88, average: 85 },
+        { name: 'History', score: 76, average: 75 },
+        { name: 'Computer', score: 94, average: 88 },
+      ];
+    }
+    
+    return user.studentData.subjects.map(subject => {
+      const grade = user.studentData?.grades.find(g => g.subject === subject)?.grade || '';
+      let score = 0;
+      
+      if (grade.startsWith('A')) score = 90 + Math.floor(Math.random() * 10);
+      else if (grade.startsWith('B')) score = 80 + Math.floor(Math.random() * 10);
+      else if (grade.startsWith('C')) score = 70 + Math.floor(Math.random() * 10);
+      else if (grade.startsWith('D')) score = 60 + Math.floor(Math.random() * 10);
+      else score = 50 + Math.floor(Math.random() * 10);
+      
+      return {
+        name: subject,
+        score: score,
+        average: Math.min(Math.max(score - 5 - Math.floor(Math.random() * 10), 50), 95)
+      };
+    });
+  };
+  
+  const studentPerformanceData = generateStudentPerformanceData();
+  
+  // Assignment status data for student dashboard
+  const generateAssignmentStatusData = () => {
+    if (!isStudent || !user?.studentData) {
+      return [
+        { name: 'Pending', value: 3 },
+        { name: 'Submitted', value: 2 },
+        { name: 'Graded', value: 3 }
+      ];
+    }
+    
+    const pending = user.studentData.assignments.filter(a => a.status === 'pending').length;
+    const submitted = user.studentData.assignments.filter(a => a.status === 'submitted').length;
+    const graded = user.studentData.assignments.filter(a => a.status === 'graded').length;
+    
+    return [
+      { name: 'Pending', value: pending },
+      { name: 'Submitted', value: submitted },
+      { name: 'Graded', value: graded }
+    ];
+  };
+  
+  const assignmentStatusData = generateAssignmentStatusData();
+  const ASSIGNMENT_COLORS = ['#f97316', '#3b82f6', '#10b981'];
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Dashboard</h1>
-        <p className="text-muted-foreground">Welcome back, {user?.name}</p>
+        <p className="text-muted-foreground">Welcome back, {user?.name || user?.email?.split('@')[0]}</p>
       </div>
       
+      {/* Role-based Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {isAdmin ? (
-          <>
-            <StatCard 
-              title="Total Students" 
-              value="1,235" 
-              icon={<Users size={24} />} 
-              trend={{ value: 12, isPositive: true }}
-              className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-900/10"
-            />
-            <StatCard 
-              title="Total Courses" 
-              value="42" 
-              icon={<BookOpen size={24} />} 
-              trend={{ value: 4, isPositive: true }}
-              className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-900/10"
-            />
-            <StatCard 
-              title="Upcoming Events" 
-              value="8" 
-              icon={<Calendar size={24} />}
-              className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-900/10" 
-            />
-            <StatCard 
-              title="Fee Collection" 
-              value="$24,500" 
-              icon={<DollarSign size={24} />} 
-              trend={{ value: 8, isPositive: false }}
-              className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-900/10"
-            />
-          </>
-        ) : isTeacher ? (
-          teacherStats.map((stat, index) => (
-            <StatCard
-              key={index}
-              title={stat.title}
-              value={stat.value}
-              icon={stat.icon}
-              className={stat.className}
-            />
-          ))
-        ) : isStudent ? (
-          studentStats.map((stat, index) => (
-            <StatCard
-              key={index}
-              title={stat.title}
-              value={stat.value}
-              icon={stat.icon}
-              className={stat.className}
-            />
-          ))
-        ) : isParent ? (
-          parentStats.map((stat, index) => (
-            <StatCard
-              key={index}
-              title={stat.title}
-              value={stat.value}
-              // Fix the icon prop - pass the component instead of the reference
-              icon={React.createElement(stat.icon, { size: 24 })}
-              className={stat.className}
-            />
-          ))
-        ) : (
-          <>
-            <StatCard 
-              title="Total Students" 
-              value="1,235" 
-              icon={<Users size={24} />} 
-              className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-900/10"
-            />
-            <StatCard 
-              title="Total Courses" 
-              value="42" 
-              icon={<BookOpen size={24} />} 
-              className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-900/10"
-            />
-            <StatCard 
-              title="Upcoming Events" 
-              value="8" 
-              icon={<Calendar size={24} />}
-              className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-900/10" 
-            />
-            <StatCard 
-              title="Fee Collection" 
-              value="$24,500" 
-              icon={<DollarSign size={24} />} 
-              className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-900/10"
-            />
-          </>
-        )}
+        {isAdmin && adminStats.map((stat, index) => (
+          <StatCard
+            key={index}
+            title={stat.title}
+            value={stat.value}
+            icon={stat.icon}
+            trend={stat.trend}
+            className={stat.className}
+          />
+        ))}
+
+        {isTeacher && teacherStats.map((stat, index) => (
+          <StatCard
+            key={index}
+            title={stat.title}
+            value={stat.value}
+            icon={stat.icon}
+            className={stat.className}
+          />
+        ))}
+
+        {isStudent && studentStats.map((stat, index) => (
+          <StatCard
+            key={index}
+            title={stat.title}
+            value={stat.value}
+            icon={stat.icon}
+            className={stat.className}
+          />
+        ))}
+
+        {isFinance && financeStats.map((stat, index) => (
+          <StatCard
+            key={index}
+            title={stat.title}
+            value={stat.value}
+            icon={stat.icon}
+            trend={stat.trend}
+            className={stat.className}
+          />
+        ))}
+
+        {isParent && parentStats.map((stat, index) => (
+          <StatCard
+            key={index}
+            title={stat.title}
+            value={stat.value}
+            icon={React.createElement(stat.icon, { size: 24 })}
+            className={stat.className}
+          />
+        ))}
       </div>
       
+      {/* Admin Dashboard Content */}
       {isAdmin && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Card className="bg-gradient-to-br from-white to-slate-50 dark:from-gray-900 dark:to-gray-900/50">
@@ -340,9 +422,7 @@ export default function Dashboard() {
                   >
                     <XAxis dataKey="name" />
                     <YAxis />
-                    <ChartTooltip
-                      content={<ChartTooltipContent />}
-                    />
+                    <ChartTooltip content={<ChartTooltipContent />} />
                     <Bar dataKey="students" fill="var(--color-students)" name="Students" radius={[4, 4, 0, 0]} />
                     <Bar dataKey="average" fill="var(--color-average)" name="Class Average" radius={[4, 4, 0, 0]} />
                   </BarChart>
@@ -419,7 +499,139 @@ export default function Dashboard() {
           <RecentActivitiesCard activities={mockActivities} />
         </div>
       )}
+
+      {/* Finance Dashboard Content */}
+      {isFinance && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Card className="bg-gradient-to-br from-white to-slate-50 dark:from-gray-900 dark:to-gray-900/50">
+            <CardHeader>
+              <CardTitle>Revenue vs Expenses</CardTitle>
+              <CardDescription>Monthly financial overview</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="h-80">
+                <ChartContainer
+                  config={{
+                    income: { theme: { light: "#10b981", dark: "#10b981" } },
+                    expenses: { theme: { light: "#f97316", dark: "#f97316" } },
+                  }}
+                >
+                  <LineChart data={financeData} margin={{ top: 10, right: 30, left: 0, bottom: 20 }}>
+                    <XAxis dataKey="month" />
+                    <YAxis />
+                    <ChartTooltip content={<ChartTooltipContent />} />
+                    <Line type="monotone" dataKey="income" stroke="var(--color-income)" strokeWidth={3} name="Income" />
+                    <Line type="monotone" dataKey="expenses" stroke="var(--color-expenses)" strokeWidth={3} name="Expenses" />
+                  </LineChart>
+                </ChartContainer>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-white to-slate-50 dark:from-gray-900 dark:to-gray-900/50">
+            <CardHeader>
+              <CardTitle>Payment Status</CardTitle>
+              <CardDescription>Current academic year collection</CardDescription>
+            </CardHeader>
+            <CardContent className="flex justify-center">
+              <div className="h-64 w-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={feeCollection}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={60}
+                      outerRadius={80}
+                      fill="#8884d8"
+                      paddingAngle={5}
+                      dataKey="value"
+                      label={({name, percent}) => `${name} ${(percent * 100).toFixed(0)}%`}
+                    >
+                      {feeCollection.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={PIE_COLORS[index]} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+            <div className="px-6 pb-6">
+              <Button className="w-full" onClick={() => navigate("/finance")}>
+                View Financial Details
+                <ChevronRight className="ml-2 h-4 w-4" />
+              </Button>
+            </div>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-white to-slate-50 dark:from-gray-900 dark:to-gray-900/50">
+            <CardHeader>
+              <CardTitle>Recent Transactions</CardTitle>
+              <CardDescription>Latest payment activities</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex justify-between items-center p-3 rounded-lg bg-background/50">
+                  <div>
+                    <p className="font-medium">John Smith - Grade 10</p>
+                    <p className="text-sm text-muted-foreground">Tuition Fee Payment</p>
+                  </div>
+                  <span className="text-green-600 font-medium">+$1,200</span>
+                </div>
+                <div className="flex justify-between items-center p-3 rounded-lg bg-background/50">
+                  <div>
+                    <p className="font-medium">Sarah Johnson - Grade 8</p>
+                    <p className="text-sm text-muted-foreground">Book Fee Payment</p>
+                  </div>
+                  <span className="text-green-600 font-medium">+$150</span>
+                </div>
+                <div className="flex justify-between items-center p-3 rounded-lg bg-background/50">
+                  <div>
+                    <p className="font-medium">Office Supplies</p>
+                    <p className="text-sm text-muted-foreground">Administrative Expense</p>
+                  </div>
+                  <span className="text-red-600 font-medium">-$450</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-white to-slate-50 dark:from-gray-900 dark:to-gray-900/50">
+            <CardHeader>
+              <CardTitle>Outstanding Payments</CardTitle>
+              <CardDescription>Students with pending fees</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex justify-between items-center p-3 rounded-lg bg-background/50">
+                  <div>
+                    <p className="font-medium">Michael Brown</p>
+                    <p className="text-sm text-muted-foreground">Grade 9 - Due: Dec 15</p>
+                  </div>
+                  <Badge variant="destructive">$800</Badge>
+                </div>
+                <div className="flex justify-between items-center p-3 rounded-lg bg-background/50">
+                  <div>
+                    <p className="font-medium">Emily Davis</p>
+                    <p className="text-sm text-muted-foreground">Grade 11 - Due: Dec 20</p>
+                  </div>
+                  <Badge variant="destructive">$650</Badge>
+                </div>
+                <div className="flex justify-between items-center p-3 rounded-lg bg-background/50">
+                  <div>
+                    <p className="font-medium">Alex Wilson</p>
+                    <p className="text-sm text-muted-foreground">Grade 7 - Due: Dec 25</p>
+                  </div>
+                  <Badge variant="destructive">$450</Badge>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
       
+      {/* Parent Dashboard Content */}
       {isParent && user?.parentData && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {user.parentData.children.map((child) => (
@@ -481,7 +693,8 @@ export default function Dashboard() {
         </div>
       )}
       
-      {isStudent && user?.studentData && (
+      {/* Student Dashboard Content */}
+      {isStudent && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Card className="bg-gradient-to-br from-white to-slate-50 dark:from-gray-900 dark:to-gray-900/50">
             <CardHeader>
@@ -502,9 +715,7 @@ export default function Dashboard() {
                   >
                     <XAxis dataKey="name" />
                     <YAxis />
-                    <ChartTooltip
-                      content={<ChartTooltipContent />}
-                    />
+                    <ChartTooltip content={<ChartTooltipContent />} />
                     <Bar dataKey="score" fill="var(--color-score)" name="Your Score" radius={[4, 4, 0, 0]} />
                     <Bar dataKey="average" fill="var(--color-average)" name="Class Average" radius={[4, 4, 0, 0]} />
                   </BarChart>
@@ -552,15 +763,87 @@ export default function Dashboard() {
         </div>
       )}
       
+      {/* Teacher Dashboard Content */}
+      {isTeacher && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Card className="bg-gradient-to-br from-white to-slate-50 dark:from-gray-900 dark:to-gray-900/50">
+            <CardHeader>
+              <CardTitle>Class Attendance</CardTitle>
+              <CardDescription>Today's attendance overview</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex justify-between items-center p-3 rounded-lg bg-background/50">
+                  <div>
+                    <p className="font-medium">Class 9A - Mathematics</p>
+                    <p className="text-sm text-muted-foreground">24 students enrolled</p>
+                  </div>
+                  <Badge variant="default">22 present</Badge>
+                </div>
+                <div className="flex justify-between items-center p-3 rounded-lg bg-background/50">
+                  <div>
+                    <p className="font-medium">Class 10B - Physics</p>
+                    <p className="text-sm text-muted-foreground">26 students enrolled</p>
+                  </div>
+                  <Badge variant="default">25 present</Badge>
+                </div>
+                <div className="flex justify-between items-center p-3 rounded-lg bg-background/50">
+                  <div>
+                    <p className="font-medium">Class 11A - Chemistry</p>
+                    <p className="text-sm text-muted-foreground">20 students enrolled</p>
+                  </div>
+                  <Badge variant="secondary">18 present</Badge>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-white to-slate-50 dark:from-gray-900 dark:to-gray-900/50">
+            <CardHeader>
+              <CardTitle>Upcoming Classes</CardTitle>
+              <CardDescription>Your schedule for today</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex justify-between items-center p-3 rounded-lg bg-background/50">
+                  <div>
+                    <p className="font-medium">Mathematics</p>
+                    <p className="text-sm text-muted-foreground">Class 9A • Room 201</p>
+                  </div>
+                  <span className="text-sm font-medium">10:00 AM</span>
+                </div>
+                <div className="flex justify-between items-center p-3 rounded-lg bg-background/50">
+                  <div>
+                    <p className="font-medium">Physics</p>
+                    <p className="text-sm text-muted-foreground">Class 10B • Lab 1</p>
+                  </div>
+                  <span className="text-sm font-medium">1:00 PM</span>
+                </div>
+                <div className="flex justify-between items-center p-3 rounded-lg bg-background/50">
+                  <div>
+                    <p className="font-medium">Chemistry</p>
+                    <p className="text-sm text-muted-foreground">Class 11A • Lab 2</p>
+                  </div>
+                  <span className="text-sm font-medium">3:00 PM</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+      
+      {/* Shared Content - Recent Activities and Quick Actions */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Recent Activities for all roles except admin (admin has it above) */}
         {!isAdmin && <RecentActivitiesCard activities={mockActivities} />}
         
+        {/* Quick Actions - Role based */}
         <Card>
           <CardHeader>
             <CardTitle>Quick Actions</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {user?.role === 'parent' && (
+            {isParent && (
               <>
                 <Button className="w-full" onClick={() => navigate("/children/performance")}>
                   <ChartPie className="mr-2 h-4 w-4" />
@@ -575,13 +858,13 @@ export default function Dashboard() {
                   View Attendance
                 </Button>
                 <Button className="w-full" onClick={() => navigate("/messages")}>
-                  <FileText className="mr-2 h-4 w-4" />
+                  <MessageSquare className="mr-2 h-4 w-4" />
                   Contact Teachers
                 </Button>
               </>
             )}
             
-            {user?.role === 'teacher' && (
+            {isTeacher && (
               <>
                 <Button className="w-full" onClick={() => navigate("/take-attendance")}>
                   <Check className="mr-2 h-4 w-4" />
@@ -602,7 +885,7 @@ export default function Dashboard() {
               </>
             )}
             
-            {user?.role === 'student' && (
+            {isStudent && (
               <>
                 <Button className="w-full" onClick={() => navigate("/assignments")}>
                   <FileText className="mr-2 h-4 w-4" />
@@ -619,6 +902,48 @@ export default function Dashboard() {
                 <Button className="w-full" onClick={() => navigate("/materials")}>
                   <Download className="mr-2 h-4 w-4" />
                   Download Learning Materials
+                </Button>
+              </>
+            )}
+
+            {isFinance && (
+              <>
+                <Button className="w-full" onClick={() => navigate("/finance/transactions")}>
+                  <CreditCard className="mr-2 h-4 w-4" />
+                  View Transactions
+                </Button>
+                <Button className="w-full" onClick={() => navigate("/finance/invoices")}>
+                  <FileText className="mr-2 h-4 w-4" />
+                  Manage Invoices
+                </Button>
+                <Button className="w-full" onClick={() => navigate("/finance/reports")}>
+                  <ChartPie className="mr-2 h-4 w-4" />
+                  Generate Reports
+                </Button>
+                <Button className="w-full" onClick={() => navigate("/finance")}>
+                  <DollarSign className="mr-2 h-4 w-4" />
+                  Financial Overview
+                </Button>
+              </>
+            )}
+
+            {isAdmin && (
+              <>
+                <Button className="w-full" onClick={() => navigate("/students")}>
+                  <Users className="mr-2 h-4 w-4" />
+                  Manage Students
+                </Button>
+                <Button className="w-full" onClick={() => navigate("/teachers")}>
+                  <BookOpen className="mr-2 h-4 w-4" />
+                  Manage Teachers
+                </Button>
+                <Button className="w-full" onClick={() => navigate("/finance")}>
+                  <DollarSign className="mr-2 h-4 w-4" />
+                  Financial Reports
+                </Button>
+                <Button className="w-full" onClick={() => navigate("/settings")}>
+                  <FileText className="mr-2 h-4 w-4" />
+                  System Settings
                 </Button>
               </>
             )}
