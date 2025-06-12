@@ -106,6 +106,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (response.valid && response.user) {
             setUser({
               ...response.user,
+              role: response.user.role as UserRole, // Type assertion to ensure proper typing
               name: response.user.email.split('@')[0], // Fallback name from email
               avatar: `https://ui-avatars.com/api/?name=${response.user.email}&background=0D8ABC&color=fff`
             });
@@ -135,6 +136,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Set user with additional frontend fields
       const userData: User = {
         ...response.user,
+        role: response.user.role as UserRole, // Type assertion to ensure proper typing
         name: response.user.email.split('@')[0], // Fallback name from email
         avatar: `https://ui-avatars.com/api/?name=${response.user.email}&background=0D8ABC&color=fff`
       };
