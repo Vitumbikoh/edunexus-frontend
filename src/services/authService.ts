@@ -1,4 +1,3 @@
-
 const API_BASE_URL = 'http://localhost:5000/api/v1';
 
 export interface LoginRequest {
@@ -26,19 +25,40 @@ export interface ValidateTokenResponse {
 
 export const authApi = {
   login: async (credentials: LoginRequest): Promise<LoginResponse> => {
+    console.log('🔐 Attempting login with:', { email: credentials.email, password: '***' });
+    console.log('🌐 Backend URL:', `${API_BASE_URL}/auth/login`);
+    
+    const requestBody = JSON.stringify(credentials);
+    console.log('📤 Request body:', requestBody);
+
     const response = await fetch(`${API_BASE_URL}/auth/login`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(credentials),
+      body: requestBody,
     });
 
+    console.log('📥 Response status:', response.status, response.statusText);
+    console.log('📥 Response headers:', Object.fromEntries(response.headers.entries()));
+
     if (!response.ok) {
-      throw new Error('Invalid credentials');
+      const errorText = await response.text();
+      console.log('❌ Response error body:', errorText);
+      
+      // Try to parse as JSON for more details
+      try {
+        const errorJson = JSON.parse(errorText);
+        console.log('❌ Parsed error:', errorJson);
+        throw new Error(errorJson.message || errorJson.error || 'Invalid credentials');
+      } catch {
+        throw new Error(`HTTP ${response.status}: ${errorText || 'Invalid credentials'}`);
+      }
     }
 
-    return response.json();
+    const responseData = await response.json();
+    console.log('✅ Login successful:', { ...responseData, access_token: '***' });
+    return responseData;
   },
 
   validateToken: async (token: string): Promise<ValidateTokenResponse> => {
