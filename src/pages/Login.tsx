@@ -5,16 +5,16 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth, UserRole } from '@/contexts/AuthContext';
 import { useToast } from "@/hooks/use-toast";
 
 // Demo credentials for testing
 const demoCredentials = [
-  { email: 'admin@schoolportal.com', password: 'admin123', role: 'admin' },
-  { email: 'teacher@schoolportal.com', password: 'teacher123', role: 'teacher' },
-  { email: 'student@schoolportal.com', password: 'student123', role: 'student' },
-  { email: 'parent@schoolportal.com', password: 'parent123', role: 'parent' },
-  { email: 'finance@schoolportal.com', password: 'finance123', role: 'finance' },
+  { email: 'admin@schoolportal.com', password: 'admin123', role: 'admin' as UserRole },
+  { email: 'teacher@schoolportal.com', password: 'teacher123', role: 'teacher' as UserRole },
+  { email: 'student@schoolportal.com', password: 'student123', role: 'student' as UserRole },
+  { email: 'parent@schoolportal.com', password: 'parent123', role: 'parent' as UserRole },
+  { email: 'finance@schoolportal.com', password: 'finance123', role: 'finance' as UserRole },
 ];
 
 export default function Login() {

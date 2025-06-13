@@ -1,8 +1,7 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useSidebar } from '@/contexts/SidebarContext';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth, UserRole } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 import {
   User,
@@ -31,7 +30,7 @@ type NavItem = {
   label: string;
   icon: React.ElementType;
   href: string;
-  roles: string[];
+  roles: UserRole[];
 };
 
 // Admin navigation items
