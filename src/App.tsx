@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -17,8 +16,7 @@ import Students from "./pages/Students";
 import StudentForm from "./pages/StudentForm";
 import Teachers from "./pages/Teachers";
 import TeacherForm from "./pages/TeacherForm";
-import Subjects from "./pages/Subjects";
-import SubjectForm from "./pages/SubjectForm";
+import CourseForm from "./pages/CourseForm";
 import Schedule from "./pages/Schedule";
 import Finance from "./pages/Finance";
 import PaymentForm from "./pages/PaymentForm";
@@ -28,7 +26,6 @@ import NotFound from "./pages/NotFound";
 
 // Teacher specific pages
 import TeacherStudents from "./pages/TeacherStudents";
-import TeacherSubjects from "./pages/TeacherSubjects";
 import TeacherSchedule from "./pages/TeacherSchedule";
 import TeacherAttendance from "./pages/TeacherAttendance";
 import LearningMaterials from "./pages/LearningMaterials";
@@ -44,317 +41,484 @@ import StudentMaterials from "./pages/StudentMaterials";
 import ParentChildrenPerformance from "./pages/ParentChildrenPerformance";
 import ParentAttendance from "./pages/ParentAttendance";
 import ParentMessages from "./pages/ParentMessages";
+import Courses from "./pages/Courses";
+import TeacherCourses from "./pages/TeacherCourses";
+import CourseEnrollments from "./pages/CourseEnrollments";
+import EnrollStudents from "./pages/EnrollStudents";
+import StudentDetails from "./pages/StudentDetails";
 
 // Protected route component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated, loading } = useAuth();
-  
+
   if (loading) {
-    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        Loading...
+      </div>
+    );
   }
-  
+
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
-  
+
   return <>{children}</>;
 };
 
 // Teacher route component - only accessible by teachers
 const TeacherRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
-  
+
   if (loading) {
-    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        Loading...
+      </div>
+    );
   }
-  
-  if (!user || user.role !== 'teacher') {
+
+  if (!user || user.role !== "teacher") {
     return <Navigate to="/dashboard" replace />;
   }
-  
+
   return <>{children}</>;
 };
 
 // Student route component - only accessible by students
 const StudentRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
-  
+
   if (loading) {
-    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        Loading...
+      </div>
+    );
   }
-  
-  if (!user || user.role !== 'student') {
+
+  if (!user || user.role !== "student") {
     return <Navigate to="/dashboard" replace />;
   }
-  
+
   return <>{children}</>;
 };
 
 // Parent route component - only accessible by parents
 const ParentRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
-  
+
   if (loading) {
-    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        Loading...
+      </div>
+    );
   }
-  
-  if (!user || user.role !== 'parent') {
+
+  if (!user || user.role !== "parent") {
     return <Navigate to="/dashboard" replace />;
   }
-  
+
   return <>{children}</>;
 };
 
 // Admin route component - only accessible by admins
 const AdminRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
-  
+
   if (loading) {
-    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        Loading...
+      </div>
+    );
   }
-  
-  if (!user || user.role !== 'admin') {
+
+  if (!user || user.role !== "admin") {
     return <Navigate to="/dashboard" replace />;
   }
-  
+
   return <>{children}</>;
 };
 
 // Finance route component - only accessible by finance role
 const FinanceRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
-  
+
   if (loading) {
-    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        Loading...
+      </div>
+    );
   }
-  
-  if (!user || user.role !== 'finance') {
+
+  if (!user || user.role !== "finance") {
     return <Navigate to="/dashboard" replace />;
   }
-  
+
   return <>{children}</>;
 };
 
 const AppRoutes = () => {
   const { user } = useAuth();
-  
+
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
-      
+
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
-      
-      <Route path="/dashboard" element={
-        <ProtectedRoute>
-          <Layout>
-            <RoleBasedDashboard />
-          </Layout>
-        </ProtectedRoute>
-      } />
-      
+
+      <Route
+        path="/dashboard"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <RoleBasedDashboard />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
       {/* Student Routes - Restricted based on role */}
-      <Route path="/students" element={
-        <ProtectedRoute>
-          <AdminRoute>
-            <Layout>
-              <Students />
-            </Layout>
-          </AdminRoute>
-        </ProtectedRoute>
-      } />
-      
-      <Route path="/students/new" element={
-        <ProtectedRoute>
-          <AdminRoute>
-            <Layout>
-              <StudentForm />
-            </Layout>
-          </AdminRoute>
-        </ProtectedRoute>
-      } />
-      
+      <Route
+        path="/students"
+        element={
+          <ProtectedRoute>
+            <AdminRoute>
+              <Layout>
+                <Students />
+              </Layout>
+            </AdminRoute>
+          </ProtectedRoute>
+        }
+      />
+
+       <Route
+        path="/students/:id"
+        element={
+          <ProtectedRoute>
+            <AdminRoute>
+              <Layout>
+                <StudentDetails  />
+              </Layout>
+            </AdminRoute>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/students/new"
+        element={
+          <ProtectedRoute>
+            <AdminRoute>
+              <Layout>
+                <StudentForm />
+              </Layout>
+            </AdminRoute>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/students/:id/edit"
+        element={
+          <ProtectedRoute>
+            <AdminRoute>
+              <Layout>
+                <StudentForm />
+              </Layout>
+            </AdminRoute>
+          </ProtectedRoute>
+        }
+      />
+
       {/* Teacher Routes - Restricted to admin only */}
-      <Route path="/teachers" element={
-        <ProtectedRoute>
-          <AdminRoute>
+      <Route
+        path="/teachers"
+        element={
+          <ProtectedRoute>
+            <AdminRoute>
+              <Layout>
+                <Teachers />
+              </Layout>
+            </AdminRoute>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/teachers/new"
+        element={
+          <ProtectedRoute>
+            <AdminRoute>
+              <Layout>
+                <TeacherForm />
+              </Layout>
+            </AdminRoute>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Course Routes */}
+      <Route
+        path="/courses"
+        element={
+          <ProtectedRoute>
             <Layout>
-              <Teachers />
+              <Courses />
             </Layout>
-          </AdminRoute>
-        </ProtectedRoute>
-      } />
-      
-      <Route path="/teachers/new" element={
-        <ProtectedRoute>
-          <AdminRoute>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/courses/new"
+        element={
+          <ProtectedRoute>
+            <AdminRoute>
+              <Layout>
+                <CourseForm />
+              </Layout>
+            </AdminRoute>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/courses/:id/edit"
+        element={
+          <ProtectedRoute>
+            <AdminRoute>
+              <Layout>
+                <CourseForm />
+              </Layout>
+            </AdminRoute>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* New Enrollment Management Route */}
+      <Route
+        path="/courses/:id/enrollments"
+        element={
+          <ProtectedRoute>
+            <AdminRoute>
+              <Layout>
+                <CourseEnrollments />
+              </Layout>
+            </AdminRoute>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/courses/:id/enroll"
+        element={
+          <ProtectedRoute>
+            <AdminRoute>
+              <Layout>
+                <EnrollStudents />
+              </Layout>
+            </AdminRoute>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/schedule"
+        element={
+          <ProtectedRoute>
             <Layout>
-              <TeacherForm />
+              {user?.role === "student" ? <StudentSchedule /> : <Schedule />}
             </Layout>
-          </AdminRoute>
-        </ProtectedRoute>
-      } />
-      
-      {/* Subject Routes */}
-      <Route path="/subjects" element={
-        <ProtectedRoute>
-          <Layout>
-            <Subjects />
-          </Layout>
-        </ProtectedRoute>
-      } />
-      
-      <Route path="/subjects/new" element={
-        <ProtectedRoute>
-          <AdminRoute>
-            <Layout>
-              <SubjectForm />
-            </Layout>
-          </AdminRoute>
-        </ProtectedRoute>
-      } />
-      
-      <Route path="/schedule" element={
-        <ProtectedRoute>
-          <Layout>
-            {user?.role === 'student' ? <StudentSchedule /> : <Schedule />}
-          </Layout>
-        </ProtectedRoute>
-      } />
-      
+          </ProtectedRoute>
+        }
+      />
+
       {/* Finance Routes */}
-      <Route path="/finance" element={
-        <ProtectedRoute>
-          <Layout>
-            <Finance />
-          </Layout>
-        </ProtectedRoute>
-      } />
-      
-      <Route path="/finance/record" element={
-        <ProtectedRoute>
-          <FinanceRoute>
+      <Route
+        path="/finance"
+        element={
+          <ProtectedRoute>
             <Layout>
-              <PaymentForm />
+              <Finance />
             </Layout>
-          </FinanceRoute>
-        </ProtectedRoute>
-      } />
-      
-      <Route path="/settings" element={
-        <ProtectedRoute>
-          <Layout>
-            <Settings />
-          </Layout>
-        </ProtectedRoute>
-      } />
-      
-      <Route path="/profile" element={
-        <ProtectedRoute>
-          <Layout>
-            <Profile />
-          </Layout>
-        </ProtectedRoute>
-      } />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/finance/record"
+        element={
+          <ProtectedRoute>
+            <FinanceRoute>
+              <Layout>
+                <PaymentForm />
+              </Layout>
+            </FinanceRoute>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/settings"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <Settings />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/profile"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <Profile />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
 
       {/* Teacher specific routes */}
-      <Route path="/my-students" element={
-        <TeacherRoute>
-          <Layout>
-            <TeacherStudents />
-          </Layout>
-        </TeacherRoute>
-      } />
-      
-      <Route path="/my-subjects" element={
-        <TeacherRoute>
-          <Layout>
-            <TeacherSubjects />
-          </Layout>
-        </TeacherRoute>
-      } />
-      
-      <Route path="/my-schedule" element={
-        <TeacherRoute>
-          <Layout>
-            <TeacherSchedule />
-          </Layout>
-        </TeacherRoute>
-      } />
-      
-      <Route path="/take-attendance" element={
-        <TeacherRoute>
-          <Layout>
-            <TeacherAttendance />
-          </Layout>
-        </TeacherRoute>
-      } />
-      
-      <Route path="/learning-materials" element={
-        <TeacherRoute>
-          <Layout>
-            <LearningMaterials />
-          </Layout>
-        </TeacherRoute>
-      } />
-      
-      <Route path="/submit-grades" element={
-        <TeacherRoute>
-          <Layout>
-            <SubmitGrades />
-          </Layout>
-        </TeacherRoute>
-      } />
-      
+      <Route
+        path="/my-students"
+        element={
+          <TeacherRoute>
+            <Layout>
+              <TeacherStudents />
+            </Layout>
+          </TeacherRoute>
+        }
+      />
+
+      <Route
+        path="/my-courses"
+        element={
+          <TeacherRoute>
+            <Layout>
+              <TeacherCourses />
+            </Layout>
+          </TeacherRoute>
+        }
+      />
+
+      <Route
+        path="/my-schedule"
+        element={
+          <TeacherRoute>
+            <Layout>
+              <TeacherSchedule />
+            </Layout>
+          </TeacherRoute>
+        }
+      />
+
+      <Route
+        path="/take-attendance"
+        element={
+          <TeacherRoute>
+            <Layout>
+              <TeacherAttendance />
+            </Layout>
+          </TeacherRoute>
+        }
+      />
+
+      <Route
+        path="/learning-materials"
+        element={
+          <TeacherRoute>
+            <Layout>
+              <LearningMaterials />
+            </Layout>
+          </TeacherRoute>
+        }
+      />
+
+      <Route
+        path="/submit-grades"
+        element={
+          <TeacherRoute>
+            <Layout>
+              <SubmitGrades />
+            </Layout>
+          </TeacherRoute>
+        }
+      />
+
       {/* Student specific routes */}
-      <Route path="/assignments" element={
-        <StudentRoute>
-          <Layout>
-            <StudentAssignments />
-          </Layout>
-        </StudentRoute>
-      } />
-      
-      <Route path="/grades" element={
-        <StudentRoute>
-          <Layout>
-            <StudentGrades />
-          </Layout>
-        </StudentRoute>
-      } />
-      
-      <Route path="/materials" element={
-        <StudentRoute>
-          <Layout>
-            <StudentMaterials />
-          </Layout>
-        </StudentRoute>
-      } />
-      
+      <Route
+        path="/assignments"
+        element={
+          <StudentRoute>
+            <Layout>
+              <StudentAssignments />
+            </Layout>
+          </StudentRoute>
+        }
+      />
+
+      <Route
+        path="/grades"
+        element={
+          <StudentRoute>
+            <Layout>
+              <StudentGrades />
+            </Layout>
+          </StudentRoute>
+        }
+      />
+
+      <Route
+        path="/materials"
+        element={
+          <StudentRoute>
+            <Layout>
+              <StudentMaterials />
+            </Layout>
+          </StudentRoute>
+        }
+      />
+
       {/* Parent specific routes */}
-      <Route path="/children/performance" element={
-        <ParentRoute>
-          <Layout>
-            <ParentChildrenPerformance />
-          </Layout>
-        </ParentRoute>
-      } />
-      
-      <Route path="/attendance" element={
-        <ParentRoute>
-          <Layout>
-            <ParentAttendance />
-          </Layout>
-        </ParentRoute>
-      } />
-      
-      <Route path="/messages" element={
-        <ParentRoute>
-          <Layout>
-            <ParentMessages />
-          </Layout>
-        </ParentRoute>
-      } />
-      
+      <Route
+        path="/children/performance"
+        element={
+          <ParentRoute>
+            <Layout>
+              <ParentChildrenPerformance />
+            </Layout>
+          </ParentRoute>
+        }
+      />
+
+      <Route
+        path="/attendance"
+        element={
+          <ParentRoute>
+            <Layout>
+              <ParentAttendance />
+            </Layout>
+          </ParentRoute>
+        }
+      />
+
+      <Route
+        path="/messages"
+        element={
+          <ParentRoute>
+            <Layout>
+              <ParentMessages />
+            </Layout>
+          </ParentRoute>
+        }
+      />
+
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

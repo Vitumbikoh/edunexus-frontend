@@ -4,22 +4,22 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar } from "lucide-react";
 
-// Mock student schedule based on subjects they're taking
-const createStudentSchedule = (subjects: string[]) => {
+// Mock student schedule based on courses they're taking
+const createStudentSchedule = (courses: string[]) => {
   const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
   const schedule = [];
   
   for (const day of days) {
     const periods = [];
-    // Create 3-5 periods per day based on subjects
+    // Create 3-5 periods per day based on courses
     const numPeriods = Math.floor(Math.random() * 3) + 3;
-    const shuffledSubjects = [...subjects].sort(() => 0.5 - Math.random());
+    const shuffledCourses = [...courses].sort(() => 0.5 - Math.random());
     
-    for (let i = 0; i < Math.min(numPeriods, subjects.length); i++) {
+    for (let i = 0; i < Math.min(numPeriods, courses.length); i++) {
       periods.push({
         time: `${8 + i}:00 - ${9 + i}:00`,
-        subject: shuffledSubjects[i],
-        teacher: getTeacherForSubject(shuffledSubjects[i]),
+        course: shuffledCourses[i],
+        teacher: getTeacherForCourse(shuffledCourses[i]),
         room: `${Math.floor(Math.random() * 3) + 1}0${Math.floor(Math.random() * 9) + 1}`
       });
     }
@@ -33,8 +33,8 @@ const createStudentSchedule = (subjects: string[]) => {
   return schedule;
 };
 
-// Helper function to get a teacher name for a subject
-const getTeacherForSubject = (subject: string) => {
+// Helper function to get a teacher name for a course
+const getTeacherForCourse = (course: string) => {
   const teacherMap: {[key: string]: string} = {
     'Mathematics': 'Dr. Amanda Lewis',
     'Physics': 'Prof. Richard Thomas',
@@ -46,7 +46,7 @@ const getTeacherForSubject = (subject: string) => {
     'Physical Education': 'Mr. Robert Johnson'
   };
   
-  return teacherMap[subject] || 'Unknown Teacher';
+  return teacherMap[course] || 'Unknown Teacher';
 };
 
 export default function StudentSchedule() {
@@ -62,7 +62,7 @@ export default function StudentSchedule() {
     );
   }
 
-  const studentSchedule = createStudentSchedule(user.studentData.subjects);
+  const studentSchedule = createStudentSchedule(user.studentData.courses);
 
   return (
     <div className="space-y-6">
@@ -83,7 +83,7 @@ export default function StudentSchedule() {
                   <Card key={idx} className="bg-muted/50 hover:shadow-md transition-shadow">
                     <CardContent className="p-4">
                       <div className="text-sm font-semibold">{period.time}</div>
-                      <div className="text-base font-bold mt-1">{period.subject}</div>
+                      <div className="text-base font-bold mt-1">{period.course}</div>
                       <div className="text-sm text-muted-foreground mt-1">{period.teacher}</div>
                       <div className="text-sm text-muted-foreground">Room: {period.room}</div>
                     </CardContent>

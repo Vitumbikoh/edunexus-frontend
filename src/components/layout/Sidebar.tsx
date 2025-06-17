@@ -38,7 +38,7 @@ const adminNavItems: NavItem[] = [
   { label: 'Dashboard', icon: Home, href: '/dashboard', roles: ['admin', 'teacher', 'student', 'parent'] },
   { label: 'Students', icon: Users, href: '/students', roles: ['admin', 'teacher'] },
   { label: 'Teachers', icon: User, href: '/teachers', roles: ['admin'] },
-  { label: 'Subjects', icon: BookOpen, href: '/subjects', roles: ['admin', 'teacher', 'student'] },
+  { label: 'Courses', icon: BookOpen, href: '/courses', roles: ['admin', 'teacher', 'student'] },
   { label: 'Schedule', icon: Calendar, href: '/schedule', roles: ['admin', 'teacher', 'student'] },
   { label: 'Finance', icon: DollarSign, href: '/finance', roles: ['admin', 'parent'] },
   { label: 'Settings', icon: Settings, href: '/settings', roles: ['admin'] },
@@ -48,7 +48,7 @@ const adminNavItems: NavItem[] = [
 const teacherNavItems: NavItem[] = [
   { label: 'Dashboard', icon: Home, href: '/dashboard', roles: ['teacher'] },
   { label: 'My Students', icon: Users, href: '/my-students', roles: ['teacher'] },
-  { label: 'My Subjects', icon: BookOpen, href: '/my-subjects', roles: ['teacher'] },
+  { label: 'My Courses', icon: BookOpen, href: '/my-courses', roles: ['teacher'] },
   { label: 'My Schedule', icon: Calendar, href: '/my-schedule', roles: ['teacher'] },
   { label: 'Take Attendance', icon: Check, href: '/take-attendance', roles: ['teacher'] },
   { label: 'Learning Materials', icon: Upload, href: '/learning-materials', roles: ['teacher'] },

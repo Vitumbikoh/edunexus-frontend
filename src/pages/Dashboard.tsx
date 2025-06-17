@@ -151,8 +151,8 @@ export default function Dashboard() {
       className: "bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-900/10" 
     },
     { 
-      title: "My Subjects", 
-      value: isTeacher && user.teacherData ? `${user.teacherData.subjects.length}` : "3", 
+      title: "My Courses", 
+      value: isTeacher && user.teacherData ? `${user.teacherData.courses.length}` : "3", 
       icon: <BookOpen size={24} />, 
       className: "bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-900/10" 
     },
@@ -173,8 +173,8 @@ export default function Dashboard() {
   // Student Stats
   const studentStats = [
     { 
-      title: "My Subjects", 
-      value: isStudent && user.studentData ? `${user.studentData.subjects.length}` : "6", 
+      title: "My Courses", 
+      value: isStudent && user.studentData ? `${user.studentData.courses.length}` : "6", 
       icon: <BookOpen size={24} />, 
       className: "bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-900/10" 
     },
@@ -239,7 +239,7 @@ export default function Dashboard() {
     },
     { 
       title: `${child.name}'s Classes`, 
-      value: `${child.subjects.length}`, 
+      value: `${child.courses.length}`, 
       icon: BookOpen, 
       className: "bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-900/10" 
     },
@@ -263,7 +263,7 @@ export default function Dashboard() {
       className: "bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-900/10" 
     },
     { 
-      title: "Total Subjects", 
+      title: "Total courses", 
       value: "12", 
       icon: BookOpen, 
       className: "bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-900/10" 
@@ -294,8 +294,8 @@ export default function Dashboard() {
       ];
     }
     
-    return user.studentData.subjects.map(subject => {
-      const grade = user.studentData?.grades.find(g => g.subject === subject)?.grade || '';
+    return user.studentData.courses.map(course => {
+      const grade = user.studentData?.grades.find(g => g.course === course)?.grade || '';
       let score = 0;
       
       if (grade.startsWith('A')) score = 90 + Math.floor(Math.random() * 10);
@@ -305,7 +305,7 @@ export default function Dashboard() {
       else score = 50 + Math.floor(Math.random() * 10);
       
       return {
-        name: subject,
+        name: course,
         score: score,
         average: Math.min(Math.max(score - 5 - Math.floor(Math.random() * 10), 50), 95)
       };
@@ -406,7 +406,7 @@ export default function Dashboard() {
           <Card className="bg-gradient-to-br from-white to-slate-50 dark:from-gray-900 dark:to-gray-900/50">
             <CardHeader>
               <CardTitle>Class Performance</CardTitle>
-              <CardDescription>Average scores by subject</CardDescription>
+              <CardDescription>Average scores by course</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="h-80">
@@ -639,13 +639,13 @@ export default function Dashboard() {
               <Card className="bg-gradient-to-br from-white to-slate-50 dark:from-gray-900 dark:to-gray-900/50">
                 <CardHeader>
                   <CardTitle>{child.name}'s Performance</CardTitle>
-                  <CardDescription>Latest grades in all subjects</CardDescription>
+                  <CardDescription>Latest grades in all courses</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
                     {child.grades.map((grade, index) => (
                       <div key={index} className="flex justify-between items-center p-2 rounded-lg bg-background/50">
-                        <span className="font-medium">{grade.subject}</span>
+                        <span className="font-medium">{grade.course}</span>
                         <Badge variant={
                           grade.grade.startsWith('A') ? 'default' :
                           grade.grade.startsWith('B') ? 'secondary' :
@@ -699,7 +699,7 @@ export default function Dashboard() {
           <Card className="bg-gradient-to-br from-white to-slate-50 dark:from-gray-900 dark:to-gray-900/50">
             <CardHeader>
               <CardTitle>My Performance</CardTitle>
-              <CardDescription>Subject scores compared to class average</CardDescription>
+              <CardDescription>Course scores compared to class average</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="h-80">

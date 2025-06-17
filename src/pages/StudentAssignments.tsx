@@ -12,7 +12,7 @@ import { toast } from "@/hooks/use-toast";
 
 export default function StudentAssignments() {
   const { user } = useAuth();
-  const [selectedSubject, setSelectedSubject] = useState<string>("all");
+  const [selectedCourse, setSelectedCourse] = useState<string>("all");
   
   if (!user || user.role !== 'student' || !user.studentData) {
     return (
@@ -26,9 +26,9 @@ export default function StudentAssignments() {
 
   const { assignments } = user.studentData;
   
-  const filteredAssignments = selectedSubject === "all" 
+  const filteredAssignments = selectedCourse === "all" 
     ? assignments 
-    : assignments.filter(assignment => assignment.subject === selectedSubject);
+    : assignments.filter(assignment => assignment.course === selectedCourse);
   
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -71,14 +71,14 @@ export default function StudentAssignments() {
               <FileText className="mr-2 h-5 w-5" />
               Assignment List
             </CardTitle>
-            <Select value={selectedSubject} onValueChange={setSelectedSubject}>
+            <Select value={selectedCourse} onValueChange={setSelectedCourse}>
               <SelectTrigger className="w-full md:w-[180px]">
-                <SelectValue placeholder="Filter by subject" />
+                <SelectValue placeholder="Filter by course" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Subjects</SelectItem>
-                {user.studentData.subjects.map(subject => (
-                  <SelectItem key={subject} value={subject}>{subject}</SelectItem>
+                <SelectItem value="all">All Courses</SelectItem>
+                {user.studentData.courses.map(course => (
+                  <SelectItem key={course} value={course}>{course}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -90,7 +90,7 @@ export default function StudentAssignments() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Title</TableHead>
-                  <TableHead>Subject</TableHead>
+                  <TableHead>Course</TableHead>
                   <TableHead>Due Date</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
@@ -100,7 +100,7 @@ export default function StudentAssignments() {
                 {filteredAssignments.map((assignment) => (
                   <TableRow key={assignment.id}>
                     <TableCell className="font-medium">{assignment.title}</TableCell>
-                    <TableCell>{assignment.subject}</TableCell>
+                    <TableCell>{assignment.course}</TableCell>
                     <TableCell>{format(new Date(assignment.dueDate), 'MMM dd, yyyy')}</TableCell>
                     <TableCell>{getStatusBadge(assignment.status)}</TableCell>
                     <TableCell className="text-right">
@@ -131,7 +131,7 @@ export default function StudentAssignments() {
             </Table>
           ) : (
             <div className="text-center py-8 text-muted-foreground">
-              No assignments found for the selected subject.
+              No assignments found for the selected course.
             </div>
           )}
         </CardContent>

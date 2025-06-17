@@ -15,7 +15,7 @@ export default function LearningMaterials() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [selectedClass, setSelectedClass] = useState<string>("");
-  const [selectedSubject, setSelectedSubject] = useState<string>("");
+  const [selectedCourse, setSelectedCourse] = useState<string>("");
   const [title, setTitle] = useState<string>("");
   const [description, setDescription] = useState<string>("");
   const [file, setFile] = useState<File | null>(null);
@@ -37,7 +37,7 @@ export default function LearningMaterials() {
   };
 
   const handleSubmit = () => {
-    if (!selectedClass || !selectedSubject || !title) {
+    if (!selectedClass || !selectedCourse || !title) {
       toast({
         variant: "destructive",
         title: "Missing information",
@@ -57,7 +57,7 @@ export default function LearningMaterials() {
 
     console.log("Uploading material:", {
       class: selectedClass,
-      subject: selectedSubject,
+      course: selectedCourse,
       title,
       description,
       file: file.name,
@@ -65,12 +65,12 @@ export default function LearningMaterials() {
 
     toast({
       title: "Material uploaded successfully",
-      description: `"${title}" has been uploaded for ${selectedClass} - ${selectedSubject}`,
+      description: `"${title}" has been uploaded for ${selectedClass} - ${selectedCourse}`,
     });
 
     // Reset form
     setSelectedClass("");
-    setSelectedSubject("");
+    setSelectedCourse("");
     setTitle("");
     setDescription("");
     setFile(null);
@@ -112,14 +112,14 @@ export default function LearningMaterials() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="subject">Subject *</Label>
-                <Select value={selectedSubject} onValueChange={setSelectedSubject}>
-                  <SelectTrigger id="subject">
-                    <SelectValue placeholder="Select a subject" />
+                <Label htmlFor="course">Course *</Label>
+                <Select value={selectedCourse} onValueChange={setSelectedCourse}>
+                  <SelectTrigger id="course">
+                    <SelectValue placeholder="Select a course" />
                   </SelectTrigger>
                   <SelectContent>
-                    {user.teacherData?.subjects?.map((subject) => (
-                      <SelectItem key={subject} value={subject}>{subject}</SelectItem>
+                    {user.teacherData?.courses?.map((course) => (
+                      <SelectItem key={course} value={course}>{course}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>

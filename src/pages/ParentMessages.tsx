@@ -22,7 +22,7 @@ interface InboxMessage {
   id: string;
   from: string;
   to: string;
-  subject: string;
+  course: string;
   date: string;
   read: boolean;
   content: string;
@@ -32,7 +32,7 @@ interface SentMessage {
   id: string;
   from: string;
   to: string;
-  subject: string;
+  course: string;
   date: string;
   content: string;
 }
@@ -65,7 +65,7 @@ export default function ParentMessages() {
       id: '1',
       from: 'Mr. Smith (Math Teacher)',
       to: user.name,
-      subject: 'Math Homework Update',
+      course: 'Math Homework Update',
       date: '2025-04-18',
       read: true,
       content: 'Dear Parent, I wanted to let you know that your child has been doing exceptionally well in math class. The recent homework assignments have been completed with great attention to detail. Please encourage them to keep up the good work!'
@@ -74,7 +74,7 @@ export default function ParentMessages() {
       id: '2',
       from: 'Ms. Johnson (Science Teacher)',
       to: user.name,
-      subject: 'Science Project Reminder',
+      course: 'Science Project Reminder',
       date: '2025-04-20',
       read: false,
       content: 'Dear Parent, This is a friendly reminder that the science project is due next Friday. Your child should be working on collecting data for their experiment. Please ensure they have all the materials needed to complete the project successfully.'
@@ -83,7 +83,7 @@ export default function ParentMessages() {
       id: '3',
       from: 'Principal Davis',
       to: user.name,
-      subject: 'Upcoming Parent-Teacher Conference',
+      course: 'Upcoming Parent-Teacher Conference',
       date: '2025-04-21',
       read: false,
       content: 'Dear Parent, We would like to invite you to our upcoming parent-teacher conference scheduled for next month. This will be a great opportunity to discuss your child\'s progress and any concerns you might have. You can book your preferred time slot through our online portal.'
@@ -95,7 +95,7 @@ export default function ParentMessages() {
       id: '101',
       from: user.name,
       to: 'Ms. Williams (English Teacher)',
-      subject: 'Question about Reading Assignment',
+      course: 'Question about Reading Assignment',
       date: '2025-04-15',
       content: 'Dear Ms. Williams, My child mentioned there was some confusion about the reading assignment for this week. Could you please clarify what chapters need to be completed by Friday? Thank you for your assistance.'
     },
@@ -103,7 +103,7 @@ export default function ParentMessages() {
       id: '102',
       from: user.name,
       to: 'Coach Thompson',
-      subject: 'Sports Day Participation',
+      course: 'Sports Day Participation',
       date: '2025-04-10',
       content: 'Hello Coach Thompson, I would like to confirm that my child will be participating in the upcoming sports day event. Please let me know if there are any specific preparations or equipment needed. Thank you.'
     }
@@ -189,8 +189,8 @@ export default function ParentMessages() {
                   </div>
                   
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">Subject:</label>
-                    <Input placeholder="Subject" />
+                    <label className="text-sm font-medium">Course:</label>
+                    <Input placeholder="Course" />
                   </div>
                   
                   <div className="space-y-2">
@@ -209,7 +209,7 @@ export default function ParentMessages() {
             ) : selectedMessage ? (
               <>
                 <CardHeader>
-                  <CardTitle>{selectedMessage.subject}</CardTitle>
+                  <CardTitle>{selectedMessage.course}</CardTitle>
                   <CardDescription>
                     {activeTab === 'inbox' ? `From: ${selectedMessage.from}` : `To: ${selectedMessage.to}`}
                     <span className="block">Date: {selectedMessage.date}</span>
@@ -240,7 +240,7 @@ export default function ParentMessages() {
                     <TableHeader>
                       <TableRow>
                         <TableHead className="w-[300px]">{activeTab === 'inbox' ? 'From' : 'To'}</TableHead>
-                        <TableHead>Subject</TableHead>
+                        <TableHead>Course</TableHead>
                         <TableHead className="text-right">Date</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -254,7 +254,7 @@ export default function ParentMessages() {
                           >
                             <TableCell>{message.from}</TableCell>
                             <TableCell>
-                              {message.subject}
+                              {message.course}
                               {!message.read && (
                                 <Badge className="ml-2" variant="default">New</Badge>
                               )}
@@ -270,7 +270,7 @@ export default function ParentMessages() {
                             onClick={() => handleOpenMessage(message)}
                           >
                             <TableCell>{message.to}</TableCell>
-                            <TableCell>{message.subject}</TableCell>
+                            <TableCell>{message.course}</TableCell>
                             <TableCell className="text-right">{message.date}</TableCell>
                           </TableRow>
                         ))

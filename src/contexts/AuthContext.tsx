@@ -10,16 +10,16 @@ export type ChildStudent = {
   id: string;
   name: string;
   grade: string;
-  subjects: string[];
+  courses: string[];
   assignments: {
     id: string;
     title: string;
-    subject: string;
+    course: string;
     dueDate: string;
     status: 'pending' | 'submitted' | 'graded';
   }[];
   grades: {
-    subject: string;
+    course: string;
     grade: string;
     term: string;
   }[];
@@ -57,23 +57,23 @@ export type User = {
   };
   // Teacher specific data
   teacherData?: {
-    subjects: string[];
+    courses: string[];
     classes: string[];
     students: string[];
   };
   // Student specific data
   studentData?: {
     grade: string;
-    subjects: string[];
+    courses: string[];
     assignments: {
       id: string;
       title: string;
-      subject: string;
+      course: string;
       dueDate: string;
       status: 'pending' | 'submitted' | 'graded';
     }[];
     grades: {
-      subject: string;
+      course: string;
       grade: string;
       term: string;
     }[];
@@ -123,17 +123,17 @@ const createDemoUser = (email: string, role: UserRole): User => {
               id: 'child-1',
               name: 'Emma Johnson',
               grade: 'Grade 9',
-              subjects: ['Mathematics', 'Science', 'English', 'History'],
+              courses: ['Mathematics', 'Science', 'English', 'History'],
               assignments: [
-                { id: 'a1', title: 'Math Assignment 1', subject: 'Mathematics', dueDate: '2024-01-15', status: 'pending' },
-                { id: 'a2', title: 'Science Project', subject: 'Science', dueDate: '2024-01-20', status: 'submitted' },
-                { id: 'a3', title: 'English Essay', subject: 'English', dueDate: '2024-01-10', status: 'graded' },
+                { id: 'a1', title: 'Math Assignment 1', course: 'Mathematics', dueDate: '2024-01-15', status: 'pending' },
+                { id: 'a2', title: 'Science Project', course: 'Science', dueDate: '2024-01-20', status: 'submitted' },
+                { id: 'a3', title: 'English Essay', course: 'English', dueDate: '2024-01-10', status: 'graded' },
               ],
               grades: [
-                { subject: 'Mathematics', grade: 'A-', term: 'Fall 2023' },
-                { subject: 'Science', grade: 'B+', term: 'Fall 2023' },
-                { subject: 'English', grade: 'A', term: 'Fall 2023' },
-                { subject: 'History', grade: 'B', term: 'Fall 2023' },
+                { course: 'Mathematics', grade: 'A-', term: 'Fall 2023' },
+                { course: 'Science', grade: 'B+', term: 'Fall 2023' },
+                { course: 'English', grade: 'A', term: 'Fall 2023' },
+                { course: 'History', grade: 'B', term: 'Fall 2023' },
               ],
               attendance: { total: 120, present: 88, absent: 8, late: 4 },
               fees: { total: 2500, paid: 2000, pending: 500, dueDate: '2024-01-30' },
@@ -142,16 +142,16 @@ const createDemoUser = (email: string, role: UserRole): User => {
               id: 'child-2',
               name: 'Alex Johnson',
               grade: 'Grade 7',
-              subjects: ['Mathematics', 'Science', 'English', 'Art'],
+              courses: ['Mathematics', 'Science', 'English', 'Art'],
               assignments: [
-                { id: 'a4', title: 'Math Quiz', subject: 'Mathematics', dueDate: '2024-01-18', status: 'pending' },
-                { id: 'a5', title: 'Art Project', subject: 'Art', dueDate: '2024-01-25', status: 'submitted' },
+                { id: 'a4', title: 'Math Quiz', course: 'Mathematics', dueDate: '2024-01-18', status: 'pending' },
+                { id: 'a5', title: 'Art Project', course: 'Art', dueDate: '2024-01-25', status: 'submitted' },
               ],
               grades: [
-                { subject: 'Mathematics', grade: 'B+', term: 'Fall 2023' },
-                { subject: 'Science', grade: 'A-', term: 'Fall 2023' },
-                { subject: 'English', grade: 'B', term: 'Fall 2023' },
-                { subject: 'Art', grade: 'A', term: 'Fall 2023' },
+                { course: 'Mathematics', grade: 'B+', term: 'Fall 2023' },
+                { course: 'Science', grade: 'A-', term: 'Fall 2023' },
+                { course: 'English', grade: 'B', term: 'Fall 2023' },
+                { course: 'Art', grade: 'A', term: 'Fall 2023' },
               ],
               attendance: { total: 110, present: 92, absent: 5, late: 3 },
               fees: { total: 2200, paid: 1800, pending: 400, dueDate: '2024-01-30' },
@@ -164,7 +164,7 @@ const createDemoUser = (email: string, role: UserRole): User => {
       return {
         ...baseUser,
         teacherData: {
-          subjects: ['Mathematics', 'Physics', 'Chemistry'],
+          courses: ['Mathematics', 'Physics', 'Chemistry'],
           classes: ['9A', '10B', '11A', '11B', '12A'],
           students: Array.from({ length: 24 }, (_, i) => `student-${i + 1}`),
         },
@@ -175,24 +175,24 @@ const createDemoUser = (email: string, role: UserRole): User => {
         ...baseUser,
         studentData: {
           grade: 'Grade 10',
-          subjects: ['Mathematics', 'Physics', 'Chemistry', 'English', 'History', 'Computer Science'],
+          courses: ['Mathematics', 'Physics', 'Chemistry', 'English', 'History', 'Computer Science'],
           assignments: [
-            { id: 'as1', title: 'Math Assignment - Calculus', subject: 'Mathematics', dueDate: '2024-01-15', status: 'pending' },
-            { id: 'as2', title: 'Physics Lab Report', subject: 'Physics', dueDate: '2024-01-20', status: 'submitted' },
-            { id: 'as3', title: 'Chemistry Project', subject: 'Chemistry', dueDate: '2024-01-10', status: 'graded' },
-            { id: 'as4', title: 'English Literature Essay', subject: 'English', dueDate: '2024-01-25', status: 'pending' },
-            { id: 'as5', title: 'History Research Paper', subject: 'History', dueDate: '2024-01-18', status: 'submitted' },
-            { id: 'as6', title: 'Computer Programming Task', subject: 'Computer Science', dueDate: '2024-01-22', status: 'pending' },
-            { id: 'as7', title: 'Math Quiz - Trigonometry', subject: 'Mathematics', dueDate: '2024-01-12', status: 'graded' },
-            { id: 'as8', title: 'Physics Experiment Report', subject: 'Physics', dueDate: '2024-01-28', status: 'pending' },
+            { id: 'as1', title: 'Math Assignment - Calculus', course: 'Mathematics', dueDate: '2024-01-15', status: 'pending' },
+            { id: 'as2', title: 'Physics Lab Report', course: 'Physics', dueDate: '2024-01-20', status: 'submitted' },
+            { id: 'as3', title: 'Chemistry Project', course: 'Chemistry', dueDate: '2024-01-10', status: 'graded' },
+            { id: 'as4', title: 'English Literature Essay', course: 'English', dueDate: '2024-01-25', status: 'pending' },
+            { id: 'as5', title: 'History Research Paper', course: 'History', dueDate: '2024-01-18', status: 'submitted' },
+            { id: 'as6', title: 'Computer Programming Task', course: 'Computer Science', dueDate: '2024-01-22', status: 'pending' },
+            { id: 'as7', title: 'Math Quiz - Trigonometry', course: 'Mathematics', dueDate: '2024-01-12', status: 'graded' },
+            { id: 'as8', title: 'Physics Experiment Report', course: 'Physics', dueDate: '2024-01-28', status: 'pending' },
           ],
           grades: [
-            { subject: 'Mathematics', grade: 'A-', term: 'Fall 2023' },
-            { subject: 'Physics', grade: 'B+', term: 'Fall 2023' },
-            { subject: 'Chemistry', grade: 'A', term: 'Fall 2023' },
-            { subject: 'English', grade: 'B+', term: 'Fall 2023' },
-            { subject: 'History', grade: 'B', term: 'Fall 2023' },
-            { subject: 'Computer Science', grade: 'A+', term: 'Fall 2023' },
+            { course: 'Mathematics', grade: 'A-', term: 'Fall 2023' },
+            { course: 'Physics', grade: 'B+', term: 'Fall 2023' },
+            { course: 'Chemistry', grade: 'A', term: 'Fall 2023' },
+            { course: 'English', grade: 'B+', term: 'Fall 2023' },
+            { course: 'History', grade: 'B', term: 'Fall 2023' },
+            { course: 'Computer Science', grade: 'A+', term: 'Fall 2023' },
           ],
         },
       };

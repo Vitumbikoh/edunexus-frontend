@@ -10,34 +10,34 @@ const teacherSchedule = [
   {
     day: "Monday",
     periods: [
-      { time: "08:00 - 09:00", subject: "Mathematics", class: "10A", room: "101" },
-      { time: "11:30 - 12:30", subject: "Physics", class: "11B", room: "Lab 3" },
+      { time: "08:00 - 09:00", course: "Mathematics", class: "10A", room: "101" },
+      { time: "11:30 - 12:30", course: "Physics", class: "11B", room: "Lab 3" },
     ]
   },
   {
     day: "Tuesday",
     periods: [
-      { time: "09:10 - 10:10", subject: "Mathematics", class: "10A", room: "101" },
+      { time: "09:10 - 10:10", course: "Mathematics", class: "10A", room: "101" },
     ]
   },
   {
     day: "Wednesday",
     periods: [
-      { time: "10:20 - 11:20", subject: "Mathematics", class: "10A", room: "101" },
-      { time: "13:30 - 14:30", subject: "Physics", class: "11B", room: "Lab 3" },
+      { time: "10:20 - 11:20", course: "Mathematics", class: "10A", room: "101" },
+      { time: "13:30 - 14:30", course: "Physics", class: "11B", room: "Lab 3" },
     ]
   },
   {
     day: "Thursday",
     periods: [
-      { time: "08:00 - 09:00", subject: "Mathematics", class: "10A", room: "101" },
+      { time: "08:00 - 09:00", course: "Mathematics", class: "10A", room: "101" },
     ]
   },
   {
     day: "Friday",
     periods: [
-      { time: "10:20 - 11:20", subject: "Mathematics", class: "10A", room: "101" },
-      { time: "11:30 - 12:30", subject: "Physics", class: "11B", room: "Lab 3" },
+      { time: "10:20 - 11:20", course: "Mathematics", class: "10A", room: "101" },
+      { time: "11:30 - 12:30", course: "Physics", class: "11B", room: "Lab 3" },
     ]
   },
 ];
@@ -78,7 +78,7 @@ export default function TeacherSchedule() {
                     <Card key={idx} className="bg-muted/50">
                       <CardContent className="p-4">
                         <div className="text-sm font-semibold">{period.time}</div>
-                        <div className="text-base font-bold mt-1">{period.subject}</div>
+                        <div className="text-base font-bold mt-1">{period.course}</div>
                         <div className="mt-2 flex flex-wrap gap-2">
                           <Badge variant="outline">Class {period.class}</Badge>
                           <Badge variant="outline">Room {period.room}</Badge>

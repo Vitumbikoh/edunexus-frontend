@@ -41,16 +41,16 @@ export default function ParentChildrenPerformance() {
           <Card key={child.id}>
             <CardHeader>
               <CardTitle>{child.name}'s Academic Performance</CardTitle>
-              <CardDescription>Subject-wise performance breakdown</CardDescription>
+              <CardDescription>Course-wise performance breakdown</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              {/* Subject-wise grades */}
+              {/* Course-wise grades */}
               <div className="space-y-4">
-                <h3 className="text-lg font-medium">Subject Grades</h3>
+                <h3 className="text-lg font-medium">Course Grades</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {child.grades.map((grade, index) => (
                     <div key={index} className="flex justify-between items-center p-3 rounded-lg bg-background/50 border">
-                      <span className="font-medium">{grade.subject}</span>
+                      <span className="font-medium">{grade.course}</span>
                       <Badge variant={
                         grade.grade.startsWith('A') ? 'default' :
                         grade.grade.startsWith('B') ? 'secondary' :
@@ -84,7 +84,7 @@ export default function ParentChildrenPerformance() {
                           else score = 50 + Math.floor(Math.random() * 10);
                           
                           return {
-                            name: grade.subject,
+                            name: grade.course,
                             score: score,
                             average: Math.min(Math.max(score - 5 - Math.floor(Math.random() * 10), 50), 95)
                           };

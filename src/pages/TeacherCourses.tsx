@@ -8,7 +8,7 @@ import { Upload, BookOpen, FileText } from "lucide-react";
 import { useNavigate } from 'react-router-dom';
 
 // Mock data - filtered for teacher
-const teacherSubjects = [
+const teacherCourses = [
   { 
     id: "1", 
     name: "Mathematics", 
@@ -27,7 +27,7 @@ const teacherSubjects = [
   }
 ];
 
-export default function TeacherSubjects() {
+export default function TeacherCourses() {
   const { user } = useAuth();
   const navigate = useNavigate();
   
@@ -44,17 +44,17 @@ export default function TeacherSubjects() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">My Subjects</h1>
-        <p className="text-muted-foreground">Manage your teaching subjects</p>
+        <h1 className="text-2xl font-bold">My Courses</h1>
+        <p className="text-muted-foreground">Manage your teaching courses</p>
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {teacherSubjects.map((subject) => (
-          <Card key={subject.id}>
+        {teacherCourses.map((course) => (
+          <Card key={course.id}>
             <CardHeader>
               <CardTitle className="flex items-center">
                 <BookOpen className="mr-2 h-5 w-5" />
-                {subject.name}
+                {course.name}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -62,7 +62,7 @@ export default function TeacherSubjects() {
                 <div>
                   <h4 className="text-sm font-medium text-muted-foreground mb-2">Classes</h4>
                   <div className="flex flex-wrap gap-2">
-                    {subject.classes.map((className) => (
+                    {course.classes.map((className) => (
                       <Badge key={className} variant="secondary">Class {className}</Badge>
                     ))}
                   </div>
@@ -70,15 +70,15 @@ export default function TeacherSubjects() {
                 
                 <div>
                   <h4 className="text-sm font-medium text-muted-foreground mb-2">Description</h4>
-                  <p className="text-sm">{subject.description}</p>
+                  <p className="text-sm">{course.description}</p>
                 </div>
                 
                 <div className="flex flex-wrap gap-4">
                   <div className="bg-muted rounded-md px-3 py-2 text-sm">
-                    <span className="font-medium text-muted-foreground">Materials:</span> {subject.materials}
+                    <span className="font-medium text-muted-foreground">Materials:</span> {course.materials}
                   </div>
                   <div className="bg-muted rounded-md px-3 py-2 text-sm">
-                    <span className="font-medium text-muted-foreground">Students:</span> {subject.students}
+                    <span className="font-medium text-muted-foreground">Students:</span> {course.students}
                   </div>
                 </div>
                 

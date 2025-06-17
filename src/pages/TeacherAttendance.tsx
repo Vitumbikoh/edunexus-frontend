@@ -22,7 +22,7 @@ export default function TeacherAttendance() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [selectedClass, setSelectedClass] = useState<string>("");
-  const [selectedSubject, setSelectedSubject] = useState<string>("");
+  const [selectedCourse, setSelectedCourse] = useState<string>("");
   const [students, setStudents] = useState<any[]>([]);
   const [attendanceStatus, setAttendanceStatus] = useState<Record<string, boolean>>({});
   
@@ -54,11 +54,11 @@ export default function TeacherAttendance() {
   };
 
   const handleSubmitAttendance = () => {
-    if (!selectedClass || !selectedSubject) {
+    if (!selectedClass || !selectedCourse) {
       toast({
         variant: "destructive",
         title: "Missing information",
-        description: "Please select both class and subject before submitting attendance.",
+        description: "Please select both class and course before submitting attendance.",
       });
       return;
     }
@@ -74,19 +74,19 @@ export default function TeacherAttendance() {
 
     console.log("Submitting attendance:", { 
       class: selectedClass, 
-      subject: selectedSubject, 
+      course: selectedCourse, 
       date: new Date().toISOString(),
       attendanceStatus 
     });
 
     toast({
       title: "Attendance submitted successfully",
-      description: `Attendance for ${selectedClass} - ${selectedSubject} has been recorded.`,
+      description: `Attendance for ${selectedClass} - ${selectedCourse} has been recorded.`,
     });
 
     // Reset form
     setSelectedClass("");
-    setSelectedSubject("");
+    setSelectedCourse("");
     setStudents([]);
     setAttendanceStatus({});
   };
@@ -107,7 +107,7 @@ export default function TeacherAttendance() {
       <Card>
         <CardHeader>
           <CardTitle>Attendance Sheet</CardTitle>
-          <CardDescription>Select class and subject to take attendance</CardDescription>
+          <CardDescription>Select class and course to take attendance</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
@@ -126,14 +126,14 @@ export default function TeacherAttendance() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium">Subject</label>
-              <Select value={selectedSubject} onValueChange={setSelectedSubject}>
+              <label className="text-sm font-medium">Course</label>
+              <Select value={selectedCourse} onValueChange={setSelectedCourse}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select a subject" />
+                  <SelectValue placeholder="Select a course" />
                 </SelectTrigger>
                 <SelectContent>
-                  {user.teacherData?.subjects?.map((subject) => (
-                    <SelectItem key={subject} value={subject}>{subject}</SelectItem>
+                  {user.teacherData?.courses?.map((course) => (
+                    <SelectItem key={course} value={course}>{course}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -192,7 +192,7 @@ export default function TeacherAttendance() {
         <CardFooter className="flex justify-end">
           <Button 
             onClick={handleSubmitAttendance} 
-            disabled={!selectedClass || !selectedSubject || students.length === 0}
+            disabled={!selectedClass || !selectedCourse || students.length === 0}
             className="gap-2"
           >
             <Check className="h-4 w-4" />

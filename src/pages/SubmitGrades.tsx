@@ -23,7 +23,7 @@ export default function SubmitGrades() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [selectedClass, setSelectedClass] = useState<string>("");
-  const [selectedSubject, setSelectedSubject] = useState<string>("");
+  const [selectedCourse, setSelectedCourse] = useState<string>("");
   const [assessmentTitle, setAssessmentTitle] = useState<string>("");
   const [students, setStudents] = useState<any[]>([]);
   const [grades, setGrades] = useState<Record<string, string>>({});
@@ -56,7 +56,7 @@ export default function SubmitGrades() {
   };
 
   const handleSubmitGrades = () => {
-    if (!selectedClass || !selectedSubject || !assessmentTitle) {
+    if (!selectedClass || !selectedCourse || !assessmentTitle) {
       toast({
         variant: "destructive",
         title: "Missing information",
@@ -76,7 +76,7 @@ export default function SubmitGrades() {
 
     console.log("Submitting grades:", {
       class: selectedClass,
-      subject: selectedSubject,
+      course: selectedCourse,
       assessment: assessmentTitle,
       grades,
     });
@@ -88,7 +88,7 @@ export default function SubmitGrades() {
 
     // Reset form
     setSelectedClass("");
-    setSelectedSubject("");
+    setSelectedCourse("");
     setAssessmentTitle("");
     setStudents([]);
     setGrades({});
@@ -129,14 +129,14 @@ export default function SubmitGrades() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="subject">Subject *</Label>
-              <Select value={selectedSubject} onValueChange={setSelectedSubject}>
-                <SelectTrigger id="subject">
-                  <SelectValue placeholder="Select a subject" />
+              <Label htmlFor="course">Course *</Label>
+              <Select value={selectedCourse} onValueChange={setSelectedCourse}>
+                <SelectTrigger id="course">
+                  <SelectValue placeholder="Select a course" />
                 </SelectTrigger>
                 <SelectContent>
-                  {user.teacherData?.subjects?.map((subject) => (
-                    <SelectItem key={subject} value={subject}>{subject}</SelectItem>
+                  {user.teacherData?.courses?.map((course) => (
+                    <SelectItem key={course} value={course}>{course}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -194,7 +194,7 @@ export default function SubmitGrades() {
         <CardFooter className="flex justify-end">
           <Button 
             onClick={handleSubmitGrades} 
-            disabled={!selectedClass || !selectedSubject || !assessmentTitle || students.length === 0}
+            disabled={!selectedClass || !selectedCourse || !assessmentTitle || students.length === 0}
             className="gap-2"
           >
             <Save className="h-4 w-4" />

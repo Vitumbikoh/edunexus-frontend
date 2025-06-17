@@ -67,7 +67,7 @@ export default function StudentGrades() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Subject</TableHead>
+                  <TableHead>Course</TableHead>
                   <TableHead>Term</TableHead>
                   <TableHead className="text-right">Grade</TableHead>
                 </TableRow>
@@ -75,7 +75,7 @@ export default function StudentGrades() {
               <TableBody>
                 {filteredGrades.map((grade, index) => (
                   <TableRow key={index}>
-                    <TableCell className="font-medium">{grade.subject}</TableCell>
+                    <TableCell className="font-medium">{grade.course}</TableCell>
                     <TableCell>{grade.term}</TableCell>
                     <TableCell className={`text-right font-bold ${getGradeColor(grade.grade)}`}>
                       {grade.grade}
@@ -100,8 +100,8 @@ export default function StudentGrades() {
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="bg-blue-50 rounded-lg p-6 text-center border border-blue-100">
-              <h3 className="text-lg font-medium text-blue-800">Total Subjects</h3>
-              <p className="text-3xl font-bold text-blue-700 mt-2">{user.studentData.subjects.length}</p>
+              <h3 className="text-lg font-medium text-blue-800">Total Courses</h3>
+              <p className="text-3xl font-bold text-blue-700 mt-2">{user.studentData.courses.length}</p>
             </div>
             <div className="bg-green-50 rounded-lg p-6 text-center border border-green-100">
               <h3 className="text-lg font-medium text-green-800">Class Average</h3>

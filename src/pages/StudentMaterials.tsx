@@ -8,19 +8,19 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Download, BookOpen, FileText } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
-// Mock learning materials based on student subjects
-const createLearningMaterials = (subjects: string[]) => {
+// Mock learning materials based on student Courses
+const createLearningMaterials = (courses: string[]) => {
   const materials = [];
   
-  for (const subject of subjects) {
-    // Add 2-4 materials per subject
+  for (const course of courses) {
+    // Add 2-4 materials per course
     const numMaterials = Math.floor(Math.random() * 3) + 2;
     
     for (let i = 0; i < numMaterials; i++) {
       materials.push({
-        id: `${subject.toLowerCase().replace(/\s+/g, '-')}-${i + 1}`,
-        title: getMaterialTitle(subject, i),
-        subject: subject,
+        id: `${course.toLowerCase().replace(/\s+/g, '-')}-${i + 1}`,
+        title: getMaterialTitle(course, i),
+        course: course,
         type: i % 2 === 0 ? 'PDF' : i % 3 === 0 ? 'PPTX' : 'DOCX',
         uploadedOn: new Date(2025, 3, Math.floor(Math.random() * 15) + 1).toISOString(),
         size: `${Math.floor(Math.random() * 10) + 1}.${Math.floor(Math.random() * 9) + 1} MB`
@@ -32,7 +32,7 @@ const createLearningMaterials = (subjects: string[]) => {
 };
 
 // Helper function to generate material titles
-const getMaterialTitle = (subject: string, index: number) => {
+const getMaterialTitle = (course: string, index: number) => {
   const titleMap: {[key: string]: string[]} = {
     'Mathematics': ['Algebra Notes', 'Calculus Formulas', 'Geometry Theorems', 'Statistics Handbook'],
     'Physics': ['Mechanics Lessons', 'Electricity and Magnetism', 'Optics Guide', 'Thermodynamics Review'],
@@ -41,13 +41,13 @@ const getMaterialTitle = (subject: string, index: number) => {
     'Computer Science': ['Programming Basics', 'Data Structures', 'Algorithms Guide', 'Web Development']
   };
   
-  const titles = titleMap[subject] || ['Chapter Notes', 'Study Guide', 'Practice Problems', 'Exam Review'];
+  const titles = titleMap[course] || ['Chapter Notes', 'Study Guide', 'Practice Problems', 'Exam Review'];
   return titles[index % titles.length];
 };
 
 export default function StudentMaterials() {
   const { user } = useAuth();
-  const [selectedSubject, setSelectedSubject] = useState<string>("all");
+  const [selectedCourse, setSelectedCourse] = useState<string>("all");
   const [selectedType, setSelectedType] = useState<string>("all");
   
   if (!user || user.role !== 'student' || !user.studentData) {
@@ -60,12 +60,12 @@ export default function StudentMaterials() {
     );
   }
 
-  const allMaterials = createLearningMaterials(user.studentData.subjects);
+  const allMaterials = createLearningMaterials(user.studentData.courses);
   
   const filteredMaterials = allMaterials.filter(material => {
-    const matchesSubject = selectedSubject === "all" || material.subject === selectedSubject;
+    const matchesCourse = selectedCourse === "all" || material.course === selectedCourse;
     const matchesType = selectedType === "all" || material.type === selectedType;
-    return matchesSubject && matchesType;
+    return matchesCourse && matchesType;
   });
   
   const handleDownload = (materialId: string, title: string) => {
@@ -101,14 +101,14 @@ export default function StudentMaterials() {
               Available Materials
             </CardTitle>
             <div className="flex flex-col sm:flex-row gap-4">
-              <Select value={selectedSubject} onValueChange={setSelectedSubject}>
+              <Select value={selectedCourse} onValueChange={setSelectedCourse}>
                 <SelectTrigger className="w-full md:w-[180px]">
-                  <SelectValue placeholder="Filter by subject" />
+                  <SelectValue placeholder="Filter by course" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Subjects</SelectItem>
-                  {user.studentData.subjects.map(subject => (
-                    <SelectItem key={subject} value={subject}>{subject}</SelectItem>
+                  <SelectItem value="all">All Courses</SelectItem>
+                  {user.studentData.courses.map(course => (
+                    <SelectItem key={course} value={course}>{course}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -133,7 +133,7 @@ export default function StudentMaterials() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Title</TableHead>
-                  <TableHead>Subject</TableHead>
+                  <TableHead>Course</TableHead>
                   <TableHead>Type</TableHead>
                   <TableHead>Upload Date</TableHead>
                   <TableHead>Size</TableHead>
@@ -149,7 +149,7 @@ export default function StudentMaterials() {
                         {material.title}
                       </div>
                     </TableCell>
-                    <TableCell>{material.subject}</TableCell>
+                    <TableCell>{material.course}</TableCell>
                     <TableCell>{material.type}</TableCell>
                     <TableCell>{formatDate(material.uploadedOn)}</TableCell>
                     <TableCell>{material.size}</TableCell>
