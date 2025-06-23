@@ -46,6 +46,8 @@ import TeacherCourses from "./pages/TeacherCourses";
 import CourseEnrollments from "./pages/CourseEnrollments";
 import EnrollStudents from "./pages/EnrollStudents";
 import StudentDetails from "./pages/StudentDetails";
+import FinanceOfficers from "./pages/FinanceOfficers";
+import FinanceForm from "./pages/FinanceForm";
 
 // Protected route component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -344,6 +346,28 @@ const AppRoutes = () => {
           <ProtectedRoute>
             <Layout>
               <Finance />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/finance/officers"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <FinanceOfficers />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/finance/new"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <FinanceForm />
             </Layout>
           </ProtectedRoute>
         }

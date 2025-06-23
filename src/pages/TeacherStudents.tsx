@@ -1,31 +1,110 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Users } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Search, Users, Loader2 } from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
 
-// Mock students with performance data
-const allStudents = [
-  { id: "1", name: "John Doe", grade: "10A", attendance: "95%", performance: "A" },
-  { id: "2", name: "Jane Smith", grade: "9B", attendance: "98%", performance: "A+" },
-  { id: "3", name: "Michael Johnson", grade: "11B", attendance: "90%", performance: "B+" },
-  { id: "4", name: "Emily Davis", grade: "10A", attendance: "92%", performance: "A-" },
-  { id: "5", name: "Robert Wilson", grade: "9B", attendance: "85%", performance: "B" },
-  { id: "6", name: "Sarah Brown", grade: "11C", attendance: "93%", performance: "A" },
-  { id: "7", name: "David Miller", grade: "11B", attendance: "88%", performance: "B+" },
-  { id: "8", name: "Jessica Anderson", grade: "9B", attendance: "97%", performance: "A+" },
-];
+interface Student {
+  id: string;
+  firstName: string;
+  lastName: string;
+  user: {
+    email: string;
+  };
+  class?: {
+    name: string;
+  };
+  attendance?: number;
+  performance?: string;
+}
 
 export default function TeacherStudents() {
-  const { user } = useAuth();
+  const { user, token } = useAuth();
+  const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedClass, setSelectedClass] = useState<string>("");
-  
-  if (!user || user.role !== 'teacher') {
+  const [students, setStudents] = useState<Student[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch students from the API
+  useEffect(() => {
+    const fetchStudents = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+
+        if (!token || !user) {
+          throw new Error("Authentication required");
+        }
+
+        const response = await fetch(
+          "http://localhost:5000/api/v1/teacher/my-students",
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          }
+        );
+
+        if (response.status === 403) {
+          const errorData = await response.json();
+          throw new Error(
+            errorData.message ||
+              "You don't have permission to view these students"
+          );
+        }
+
+        if (!response.ok) {
+          throw new Error(
+            `Failed to fetch students (${response.status}): ${response.statusText}`
+          );
+        }
+
+        const data = await response.json();
+        if (data.success && data.students) {
+          setStudents(data.students);
+        } else {
+          throw new Error(data.message || "Invalid response format");
+        }
+      } catch (err) {
+        const errorMessage =
+          err instanceof Error ? err.message : "Failed to fetch students";
+        setError(errorMessage);
+        toast({
+          title: "Error",
+          description: errorMessage,
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (user?.role === "teacher") {
+      fetchStudents();
+    }
+  }, [token, user, toast]);
+
+  if (!user || user.role !== "teacher") {
     return (
       <div className="flex items-center justify-center h-96">
         <div className="text-center p-8 rounded-lg bg-red-50 border border-red-200 text-red-700 font-semibold">
@@ -35,20 +114,27 @@ export default function TeacherStudents() {
     );
   }
 
-  // Filter students based on teacher data
-  const teacherStudentIds = user.teacherData?.students || [];
-  const teacherClasses = user.teacherData?.classes || [];
-  
-  let filteredStudents = allStudents.filter(student => 
-    teacherStudentIds.includes(student.id) &&
-    (!selectedClass || student.grade === selectedClass)
-  );
-  
-  if (searchQuery) {
-    filteredStudents = filteredStudents.filter(student =>
-      student.name.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-  }
+  // Get unique classes from the students
+  const teacherClasses = Array.from(
+    new Set(students.map((student) => student.class?.name || "Unassigned"))
+  ).filter(Boolean);
+
+  // Filter students based on search and class selection
+  let filteredStudents = students.filter((student) => {
+    const matchesSearch = searchQuery
+      ? `${student.firstName} ${student.lastName}`
+          .toLowerCase()
+          .includes(searchQuery.toLowerCase()) ||
+        student.user.email.toLowerCase().includes(searchQuery.toLowerCase())
+      : true;
+
+    const matchesClass = selectedClass
+      ? student.class?.name === selectedClass ||
+        (selectedClass === "Unassigned" && !student.class)
+      : true;
+
+    return matchesSearch && matchesClass;
+  });
 
   return (
     <div className="space-y-6">
@@ -56,7 +142,7 @@ export default function TeacherStudents() {
         <h1 className="text-2xl font-bold">My Students</h1>
         <p className="text-muted-foreground">View and manage your students</p>
       </div>
-      
+
       <Card>
         <CardHeader className="pb-3">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -80,22 +166,32 @@ export default function TeacherStudents() {
                   <SelectValue placeholder="All Classes" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all_classes">All Classes</SelectItem>
-                  {teacherClasses.map(className => (
-                    <SelectItem key={className} value={className}>{className}</SelectItem>
+                  <SelectItem value="">All Classes</SelectItem>
+                  {teacherClasses.map((className) => (
+                    <SelectItem key={className} value={className}>
+                      {className}
+                    </SelectItem>
                   ))}
+                  <SelectItem value="Unassigned">Unassigned</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </div>
         </CardHeader>
         <CardContent>
-          {filteredStudents.length > 0 ? (
+          {isLoading ? (
+            <div className="flex justify-center items-center h-64">
+              <Loader2 className="h-8 w-8 animate-spin" />
+            </div>
+          ) : error ? (
+            <div className="text-center py-8 text-red-600">{error}</div>
+          ) : filteredStudents.length > 0 ? (
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Name</TableHead>
                   <TableHead>Class</TableHead>
+                  <TableHead>Email</TableHead>
                   <TableHead>Attendance</TableHead>
                   <TableHead>Performance</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
@@ -104,12 +200,19 @@ export default function TeacherStudents() {
               <TableBody>
                 {filteredStudents.map((student) => (
                   <TableRow key={student.id}>
-                    <TableCell className="font-medium">{student.name}</TableCell>
-                    <TableCell>{student.grade}</TableCell>
-                    <TableCell>{student.attendance}</TableCell>
-                    <TableCell>{student.performance}</TableCell>
+                    <TableCell className="font-medium">
+                      {student.firstName} {student.lastName}
+                    </TableCell>
+                    <TableCell>{student.class?.name || "Unassigned"}</TableCell>
+                    <TableCell>{student.user?.email || "-"}</TableCell>
+                    <TableCell>
+                      {student.attendance ? `${student.attendance}%` : "-"}
+                    </TableCell>
+                    <TableCell>{student.performance || "-"}</TableCell>
                     <TableCell className="text-right">
-                      <Button variant="ghost" size="sm">View Details</Button>
+                      <Button variant="ghost" size="sm">
+                        View Details
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -117,7 +220,9 @@ export default function TeacherStudents() {
             </Table>
           ) : (
             <div className="text-center py-8 text-muted-foreground">
-              {searchQuery ? "No students found matching your search." : "You don't have any students assigned."}
+              {searchQuery
+                ? "No students found matching your search."
+                : "You don't have any students assigned."}
             </div>
           )}
         </CardContent>

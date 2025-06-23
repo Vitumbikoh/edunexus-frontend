@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -13,6 +12,7 @@ import {
   CreditCard,
   Receipt,
   Building,
+  Users,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
@@ -168,10 +168,16 @@ export default function Finance() {
         </div>
         
         {isAdmin && (
-          <Button onClick={() => navigate("/finance/record")}>
-            <PlusCircle className="mr-2 h-4 w-4" />
-            Record Payment
-          </Button>
+          <div className="flex space-x-2 mt-4 sm:mt-0">
+            <Button onClick={() => navigate("/finance/record")}>
+              <PlusCircle className="mr-2 h-4 w-4" />
+              Record Payment
+            </Button>
+            <Button variant="outline" onClick={() => navigate("/finance/officers")}>
+              <Users className="mr-2 h-4 w-4" />
+              View Finance Officers
+            </Button>
+          </div>
         )}
       </div>
 
