@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import Dashboard from '@/pages/Dashboard';
+import Dashboard from '@/pages/dashboard/Dashboard';
 
 const RoleBasedDashboard: React.FC = () => {
   const { user } = useAuth();

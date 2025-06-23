@@ -11,7 +11,7 @@ import RoleBasedDashboard from "@/components/auth/RoleBasedDashboard";
 
 // Pages
 import Login from "./pages/Login";
-import Dashboard from "./pages/Dashboard";
+import Dashboard from "./pages/dashboard/Dashboard";
 import Students from "./pages/Students";
 import StudentForm from "./pages/StudentForm";
 import Teachers from "./pages/Teachers";
