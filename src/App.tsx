@@ -14,9 +14,9 @@ import Login from "./pages/Login";
 import Dashboard from "./pages/dashboard/Dashboard";
 import Students from "./pages/Students";
 import StudentForm from "./pages/StudentForm";
-import Teachers from "./pages/Teachers";
-import TeacherForm from "./pages/TeacherForm";
-import CourseForm from "./pages/CourseForm";
+import Teachers from "./pages/teacher/Teachers";
+import TeacherForm from "./pages/teacher/TeacherForm";
+import CourseForm from "./pages/courses/CourseForm";
 import Schedule from "./pages/Schedule";
 import Finance from "./pages/Finance";
 import PaymentForm from "./pages/PaymentForm";
@@ -25,9 +25,9 @@ import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 
 // Teacher specific pages
-import TeacherStudents from "./pages/TeacherStudents";
-import TeacherSchedule from "./pages/TeacherSchedule";
-import TeacherAttendance from "./pages/TeacherAttendance";
+import TeacherStudents from "./pages/teacher/TeacherStudents";
+import TeacherSchedule from "./pages/teacher/TeacherSchedule";
+import TeacherAttendance from "./pages/teacher/TeacherAttendance";
 import LearningMaterials from "./pages/LearningMaterials";
 import SubmitGrades from "./pages/SubmitGrades";
 
@@ -41,13 +41,13 @@ import StudentMaterials from "./pages/StudentMaterials";
 import ParentChildrenPerformance from "./pages/ParentChildrenPerformance";
 import ParentAttendance from "./pages/ParentAttendance";
 import ParentMessages from "./pages/ParentMessages";
-import Courses from "./pages/Courses";
-import TeacherCourses from "./pages/TeacherCourses";
-import CourseEnrollments from "./pages/CourseEnrollments";
-import EnrollStudents from "./pages/EnrollStudents";
+import TeacherCourses from "./pages/teacher/TeacherCourses";
+import CourseEnrollments from "./pages/courses/CourseEnrollments";
 import StudentDetails from "./pages/StudentDetails";
 import FinanceOfficers from "./pages/FinanceOfficers";
 import FinanceForm from "./pages/FinanceForm";
+import Courses from "./pages/courses/Courses";
+import EnrollStudents from "./pages/courses/EnrollStudents";
 
 // Protected route component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {

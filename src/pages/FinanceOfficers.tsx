@@ -195,7 +195,7 @@ export default function FinanceOfficers() {
                     <TableHead>Name</TableHead>
                     <TableHead>Contact</TableHead>
                     <TableHead>Department</TableHead>
-                    <TableHead>Permissions</TableHead>
+                    {/* <TableHead>Permissions</TableHead> */}
                     <TableHead>Status</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
@@ -216,7 +216,7 @@ export default function FinanceOfficers() {
                           )}
                         </TableCell>
                         <TableCell>{officer.department || "-"}</TableCell>
-                        <TableCell>
+                        {/* <TableCell>
                           <div className="flex flex-wrap gap-1">
                             {officer.canApproveBudgets && (
                               <Badge variant="secondary">Budget Approval</Badge>
@@ -233,7 +233,7 @@ export default function FinanceOfficers() {
                                 </span>
                               )}
                           </div>
-                        </TableCell>
+                        </TableCell> */}
                         <TableCell>
                           <Badge
                             variant={
