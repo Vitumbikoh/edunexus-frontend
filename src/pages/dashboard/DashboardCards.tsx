@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ChevronRight } from 'lucide-react';
@@ -14,6 +14,7 @@ import {
   generateStudentPerformanceData
 } from './DashboardCharts';
 import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from "@/components/ui/use-toast";
 import { Badge } from "@/components/ui/badge";
 import RecentActivitiesCard from '@/components/dashboard/RecentActivitiesCard';
 import { Progress } from '@radix-ui/react-progress';
@@ -281,6 +282,93 @@ export const StudentDashboardCards = () => {
 };
 
 export const TeacherDashboardCards = () => {
+  const { user, token } = useAuth();
+  const { toast } = useToast();
+  const navigate = useNavigate();
+  const [classes, setClasses] = useState([]);
+  const [attendance, setAttendance] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchData = async (url: string) => {
+    try {
+      const response = await fetch(`http://localhost:5000/api/v1${url}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.status === 401) {
+        throw new Error("Unauthorized - Please log in again");
+      }
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch data from ${url}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error(`Error fetching ${url}:`, error);
+      throw error;
+    }
+  };
+
+  useEffect(() => {
+    const fetchTeacherData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        if (!token) {
+          throw new Error("Authentication token not found");
+        }
+
+        const [classesData, attendanceData] = await Promise.all([
+          fetchData("/teacher/my-upcoming-classes"),
+          fetchData("/teacher/my-attendance-today"),
+        ]);
+
+        setClasses(classesData.classes || []);
+        setAttendance(attendanceData.attendance || []);
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : "Failed to load teacher dashboard data";
+        setError(errorMessage);
+        toast({
+          title: "Error",
+          description: errorMessage,
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (user?.role === "teacher") {
+      fetchTeacherData();
+    }
+  }, [user, token, toast]);
+
+  if (loading) {
+    return (
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {[...Array(2)].map((_, index) => (
+          <div
+            key={index}
+            className="h-64 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse"
+          />
+        ))}
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-4 mb-4 text-sm text-red-700 bg-red-100 rounded-lg">
+        {error}
+      </div>
+    );
+  }
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       <Card className="bg-gradient-to-br from-white to-slate-50 dark:from-gray-900 dark:to-gray-900/50">
@@ -290,27 +378,17 @@ export const TeacherDashboardCards = () => {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            <div className="flex justify-between items-center p-3 rounded-lg bg-background/50">
-              <div>
-                <p className="font-medium">Class 9A - Mathematics</p>
-                <p className="text-sm text-muted-foreground">24 students enrolled</p>
+            {attendance.map((record, index) => (
+              <div key={index} className="flex justify-between items-center p-3 rounded-lg bg-background/50">
+                <div>
+                  <p className="font-medium">{record.className} - {record.courseName}</p>
+                  <p className="text-sm text-muted-foreground">{record.enrolledStudents} students enrolled</p>
+                </div>
+                <Badge variant={record.presentStudents >= record.enrolledStudents * 0.9 ? 'default' : 'secondary'}>
+                  {record.presentStudents} present
+                </Badge>
               </div>
-              <Badge variant="default">22 present</Badge>
-            </div>
-            <div className="flex justify-between items-center p-3 rounded-lg bg-background/50">
-              <div>
-                <p className="font-medium">Class 10B - Physics</p>
-                <p className="text-sm text-muted-foreground">26 students enrolled</p>
-              </div>
-              <Badge variant="default">25 present</Badge>
-            </div>
-            <div className="flex justify-between items-center p-3 rounded-lg bg-background/50">
-              <div>
-                <p className="font-medium">Class 11A - Chemistry</p>
-                <p className="text-sm text-muted-foreground">20 students enrolled</p>
-              </div>
-              <Badge variant="secondary">18 present</Badge>
-            </div>
+            ))}
           </div>
         </CardContent>
       </Card>
@@ -322,29 +400,23 @@ export const TeacherDashboardCards = () => {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            <div className="flex justify-between items-center p-3 rounded-lg bg-background/50">
-              <div>
-                <p className="font-medium">Mathematics</p>
-                <p className="text-sm text-muted-foreground">Class 9A • Room 201</p>
+            {classes.map((cls) => (
+              <div key={cls.id} className="flex justify-between items-center p-3 rounded-lg bg-background/50">
+                <div>
+                  <p className="font-medium">{cls.courseName}</p>
+                  <p className="text-sm text-muted-foreground">{cls.className} • {cls.room}</p>
+                </div>
+                <span className="text-sm font-medium">{cls.startTime}</span>
               </div>
-              <span className="text-sm font-medium">10:00 AM</span>
-            </div>
-            <div className="flex justify-between items-center p-3 rounded-lg bg-background/50">
-              <div>
-                <p className="font-medium">Physics</p>
-                <p className="text-sm text-muted-foreground">Class 10B • Lab 1</p>
-              </div>
-              <span className="text-sm font-medium">1:00 PM</span>
-            </div>
-            <div className="flex justify-between items-center p-3 rounded-lg bg-background/50">
-              <div>
-                <p className="font-medium">Chemistry</p>
-                <p className="text-sm text-muted-foreground">Class 11A • Lab 2</p>
-              </div>
-              <span className="text-sm font-medium">3:00 PM</span>
-            </div>
+            ))}
           </div>
         </CardContent>
+        <div className="px-6 pb-6">
+          <Button className="w-full" onClick={() => navigate("/teacher/schedules")}>
+            View Full Schedule
+            <ChevronRight className="ml-2 h-4 w-4" />
+          </Button>
+        </div>
       </Card>
     </div>
   );
