@@ -1,16 +1,16 @@
+
 import React, { useEffect, useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { TableCell } from "@/components/ui/table";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useAuth } from "@/contexts/AuthContext";
-import { useToast } from "@/components/ui/use-toast";
-import { Plus, Trash2, Edit, ArrowLeft } from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/components/ui/use-toast';
+import { Plus, Trash2, Edit, ArrowLeft } from 'lucide-react';
 
 interface Class {
   id: string;
@@ -21,6 +21,7 @@ interface Class {
 
 interface Schedule {
   id: string;
+  date: string;
   day: string;
   startTime: string;
   endTime: string;
@@ -91,6 +92,7 @@ export default function ClassScheduleManagement() {
 
   const [scheduleForm, setScheduleForm] = useState({
     classId: '',
+    date: '',
     day: '',
     startTime: '',
     endTime: '',
@@ -144,6 +146,7 @@ export default function ClassScheduleManagement() {
       // Transform schedule data to match our interface
       const transformedSchedules = schedulesData.data?.map((s: any) => ({
         id: s.id,
+        date: s.date,
         day: s.day,
         startTime: s.startTime,
         endTime: s.endTime,
@@ -205,7 +208,8 @@ export default function ClassScheduleManagement() {
     }
 
     try {
-      // Format time to ISO string if it's not already
+      // Format date and time
+      const formattedDate = scheduleForm.date;
       const startTime = scheduleForm.startTime.includes('T') 
         ? scheduleForm.startTime 
         : `1970-01-01T${scheduleForm.startTime}:00Z`;
@@ -214,6 +218,7 @@ export default function ClassScheduleManagement() {
         : `1970-01-01T${scheduleForm.endTime}:00Z`;
 
       const payload = {
+        date: formattedDate,
         day: scheduleForm.day,
         startTime,
         endTime,
@@ -241,8 +246,15 @@ export default function ClassScheduleManagement() {
       const result = await response.json();
       setSchedules([...schedules, result]);
       setScheduleForm({
-        classId: '', day: '', startTime: '', endTime: '', 
-        courseId: '', teacherId: '', classroomId: '', isActive: true
+        classId: '', 
+        date: '',
+        day: '', 
+        startTime: '', 
+        endTime: '', 
+        courseId: '', 
+        teacherId: '', 
+        classroomId: '', 
+        isActive: true
       });
       toast({ title: "Schedule created successfully!" });
       fetchData();
@@ -440,6 +452,19 @@ export default function ClassScheduleManagement() {
                     </Select>
                   </div>
                   <div className="space-y-2">
+                    <Label>Date</Label>
+                    <Input 
+                      type="date"
+                      value={scheduleForm.date}
+                      onChange={(e) => setScheduleForm({...scheduleForm, date: e.target.value})}
+                      required
+                      disabled={!isAdmin}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
                     <Label>Day</Label>
                     <Select
                       value={scheduleForm.day}
@@ -457,9 +482,6 @@ export default function ClassScheduleManagement() {
                       </SelectContent>
                     </Select>
                   </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Start Time</Label>
                     <Input 
@@ -470,6 +492,9 @@ export default function ClassScheduleManagement() {
                       disabled={!isAdmin}
                     />
                   </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>End Time</Label>
                     <Input 
@@ -480,9 +505,6 @@ export default function ClassScheduleManagement() {
                       disabled={!isAdmin}
                     />
                   </div>
-                </div>
-
-                <div className="grid grid-cols-3 gap-4">
                   <div className="space-y-2">
                     <Label>Course</Label>
                     <Select
@@ -503,6 +525,9 @@ export default function ClassScheduleManagement() {
                       </SelectContent>
                     </Select>
                   </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Teacher</Label>
                     <Select
@@ -549,6 +574,7 @@ export default function ClassScheduleManagement() {
                   type="submit" 
                   disabled={!isAdmin || 
                     !scheduleForm.classId || 
+                    !scheduleForm.date ||
                     !scheduleForm.day || 
                     !scheduleForm.startTime || 
                     !scheduleForm.endTime || 
@@ -572,6 +598,7 @@ export default function ClassScheduleManagement() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Class</TableHead>
+                    <TableHead>Date</TableHead>
                     <TableHead>Day</TableHead>
                     <TableHead>Time</TableHead>
                     <TableHead>Course</TableHead>
@@ -588,10 +615,12 @@ export default function ClassScheduleManagement() {
                     const endTime = schedule.endTime.includes('T')
                       ? schedule.endTime.split('T')[1].substring(0, 5)
                       : schedule.endTime;
+                    const date = schedule.date.split('T')[0];
 
                     return (
                       <TableRow key={schedule.id}>
                         <TableCell>{schedule.class?.name || 'N/A'}</TableCell>
+                        <TableCell>{date}</TableCell>
                         <TableCell>{schedule.day}</TableCell>
                         <TableCell>{startTime} - {endTime}</TableCell>
                         <TableCell>
@@ -633,3 +662,4 @@ export default function ClassScheduleManagement() {
     </div>
   );
 }
+

@@ -91,35 +91,41 @@ export const useDashboardStats = () => {
               className: "bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-900/10",
             },
           ]);
+        } else if (role === "teacher") {
+          const [studentsCountData, coursesData] = await Promise.all([
+            fetchData("/teacher/my-students/count"),
+            fetchData("/teacher/my-courses/count"),
+          ]);
+
+          setStats([
+            {
+              title: "My Students",
+              value: studentsCountData.totalStudents?.toLocaleString() || "0",
+              icon: <Users size={24} />,
+              className: "bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-900/10",
+            },
+            {
+              title: "My Courses",
+              value: coursesData.totalCourses?.toString() || "0",
+              icon: <BookOpen size={24} />,
+              className: "bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-900/10",
+            },
+            {
+              title: "My Classes",
+              value: user?.teacherData?.classes?.length?.toString() || "5",
+              icon: <Calendar size={24} />,
+              className: "bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-900/10",
+            },
+            {
+              title: "Today's Classes",
+              value: "3",
+              icon: <Calendar size={24} />,
+              className: "bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-900/10",
+            },
+          ]);
         } else {
-          // Handle other roles (teacher, student, finance, parent)
+          // Handle other roles (student, finance, parent)
           const roleStats = {
-            teacher: [
-              {
-                title: "My Students",
-                value: user?.teacherData?.students?.length?.toString() || "24",
-                icon: <Users size={24} />,
-                className: "bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-900/10",
-              },
-              {
-                title: "My Courses",
-                value: user?.teacherData?.courses?.length?.toString() || "3",
-                icon: <BookOpen size={24} />,
-                className: "bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-900/10",
-              },
-              {
-                title: "My Classes",
-                value: user?.teacherData?.classes?.length?.toString() || "5",
-                icon: <Calendar size={24} />,
-                className: "bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-900/10",
-              },
-              {
-                title: "Today's Classes",
-                value: "3",
-                icon: <Calendar size={24} />,
-                className: "bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-900/10",
-              },
-            ],
             student: [
               {
                 title: "My Courses",
@@ -165,7 +171,7 @@ export const useDashboardStats = () => {
                 title: "Payments Today",
                 value: "23",
                 icon: <CreditCard size={24} />,
-                className: "bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-900/10",
+                className: "bg-gradient-to-br from-green-200 to-green-100 dark:from-green-900/20 dark:to-green-900/10",
               },
               {
                 title: "Collection Rate",
@@ -179,50 +185,50 @@ export const useDashboardStats = () => {
               {
                 title: `${child.name}'s Attendance`,
                 value: `${child.attendance?.present || 0}%`,
-                icon: Users,
+                icon: <Users size={24} />,
                 className: "bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-900/10",
               },
               {
                 title: `${child.name}'s Classes`,
                 value: `${child.courses?.length || 0}`,
-                icon: BookOpen,
+                icon: <BookOpen size={24} />,
                 className: "bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-900/10",
               },
               {
                 title: `${child.name}'s Assignments`,
                 value: `${child.assignments?.length || 0}`,
-                icon: FileText,
+                icon: <FileText size={24} />,
                 className: "bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-900/10",
               },
               {
                 title: `${child.name}'s Fees Due`,
                 value: `$${child.fees?.pending || 0}`,
-                icon: DollarSign,
+                icon: <DollarSign size={24} />,
                 className: "bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-900/10",
               },
             ]) || [
               {
                 title: "Children Enrolled",
                 value: "2",
-                icon: Users,
+                icon: <Users size={24} />,
                 className: "bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-900/10",
               },
               {
                 title: "Total courses",
                 value: "12",
-                icon: BookOpen,
+                icon: <BookOpen size={24} />,
                 className: "bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-900/10",
               },
               {
                 title: "Pending Assignments",
                 value: "5",
-                icon: FileText,
+                icon: <FileText size={24} />,
                 className: "bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-900/10",
               },
               {
                 title: "Total Fees Due",
                 value: "$450",
-                icon: DollarSign,
+                icon: <DollarSign size={24} />,
                 className: "bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-900/10",
               },
             ],

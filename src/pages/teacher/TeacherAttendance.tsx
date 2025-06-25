@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -10,22 +9,18 @@ import { Check, Calendar } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useNavigate } from 'react-router-dom';
 
-// Mock students data
-const mockStudents = [
-  { id: "1", name: "John Doe", grade: "10A", attendance: [] },
-  { id: "3", name: "Michael Johnson", grade: "11B", attendance: [] },
-  { id: "4", name: "Emily Davis", grade: "10A", attendance: [] },
-  { id: "7", name: "David Miller", grade: "11B", attendance: [] },
-];
-
 export default function TeacherAttendance() {
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const navigate = useNavigate();
+  const [classes, setClasses] = useState<any[]>([]);
+  const [courses, setCourses] = useState<any[]>([]);
   const [selectedClass, setSelectedClass] = useState<string>("");
   const [selectedCourse, setSelectedCourse] = useState<string>("");
   const [students, setStudents] = useState<any[]>([]);
   const [attendanceStatus, setAttendanceStatus] = useState<Record<string, boolean>>({});
-  
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
   if (!user || user.role !== 'teacher') {
     return (
       <div className="flex items-center justify-center h-96">
@@ -36,18 +31,156 @@ export default function TeacherAttendance() {
     );
   }
 
+  const fetchClasses = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await fetch('http://localhost:5000/api/v1/teacher/my-classes', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.status === 401) {
+        throw new Error('Unauthorized - Please log in again');
+      }
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch classes');
+      }
+
+      const data = await response.json();
+      if (!data.success) {
+        throw new Error('Failed to fetch classes');
+      }
+
+      setClasses(data.classes);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load classes';
+      setError(errorMessage);
+      toast({
+        title: 'Error',
+        description: errorMessage,
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchCourses = async (classId: string) => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await fetch(`http://localhost:5000/api/v1/teacher/my-courses/by-class/${classId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.status === 401) {
+        throw new Error('Unauthorized - Please log in again');
+      }
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch courses');
+      }
+
+      const data = await response.json();
+      if (!data.success) {
+        throw new Error('Failed to fetch courses');
+      }
+
+      setCourses(data.courses);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load courses';
+      setError(errorMessage);
+      toast({
+        title: 'Error',
+        description: errorMessage,
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchStudents = async (courseId: string) => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await fetch(`http://localhost:5000/api/v1/teacher/my-students/by-course/${courseId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.status === 401) {
+        throw new Error('Unauthorized - Please log in again');
+      }
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch students');
+      }
+
+      const data = await response.json();
+      if (!data.success) {
+        throw new Error('Failed to fetch students');
+      }
+
+      setStudents(
+        data.students.map((student: any) => ({
+          id: student.id,
+          name: `${student.firstName} ${student.lastName}`,
+          grade: student.class?.name || '',
+          attendance: [],
+        })),
+      );
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load students';
+      setError(errorMessage);
+      toast({
+        title: 'Error',
+        description: errorMessage,
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchClasses();
+  }, [token]);
+
+  useEffect(() => {
+    if (selectedClass) {
+      fetchCourses(selectedClass);
+    } else {
+      setCourses([]);
+      setSelectedCourse('');
+      setStudents([]);
+      setAttendanceStatus({});
+    }
+  }, [selectedClass, token]);
+
+  useEffect(() => {
+    if (selectedCourse) {
+      fetchStudents(selectedCourse);
+    } else {
+      setStudents([]);
+      setAttendanceStatus({});
+    }
+  }, [selectedCourse, token]);
+
   const handleClassSelect = (value: string) => {
     setSelectedClass(value);
-    // Filter students based on selected class
-    const filteredStudents = mockStudents.filter(
-      student => student.grade === value && 
-      (user.teacherData?.students?.includes(student.id) || false)
-    );
-    setStudents(filteredStudents);
+    setSelectedCourse(''); // Reset course when class changes
+    setAttendanceStatus({}); // Reset attendance status
   };
 
   const handleAttendanceChange = (studentId: string, isPresent: boolean) => {
-    setAttendanceStatus(prev => ({
+    setAttendanceStatus((prev) => ({
       ...prev,
       [studentId]: isPresent,
     }));
@@ -56,40 +189,73 @@ export default function TeacherAttendance() {
   const handleSubmitAttendance = () => {
     if (!selectedClass || !selectedCourse) {
       toast({
-        variant: "destructive",
-        title: "Missing information",
-        description: "Please select both class and course before submitting attendance.",
+        variant: 'destructive',
+        title: 'Missing information',
+        description: 'Please select both class and course before submitting attendance.',
       });
       return;
     }
 
     if (Object.keys(attendanceStatus).length === 0) {
       toast({
-        variant: "destructive",
-        title: "No attendance marked",
-        description: "Please mark attendance for at least one student.",
+        variant: 'destructive',
+        title: 'No attendance marked',
+        description: 'Please mark attendance for at least one student.',
       });
       return;
     }
 
-    console.log("Submitting attendance:", { 
-      class: selectedClass, 
-      course: selectedCourse, 
+    console.log('Submitting attendance:', {
+      class: selectedClass,
+      course: selectedCourse,
       date: new Date().toISOString(),
-      attendanceStatus 
+      attendanceStatus,
     });
 
     toast({
-      title: "Attendance submitted successfully",
+      title: 'Attendance submitted successfully',
       description: `Attendance for ${selectedClass} - ${selectedCourse} has been recorded.`,
     });
 
     // Reset form
-    setSelectedClass("");
-    setSelectedCourse("");
+    setSelectedClass('');
+    setSelectedCourse('');
     setStudents([]);
     setAttendanceStatus({});
   };
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold">Take Attendance</h1>
+          <p className="text-muted-foreground">Record student attendance for your classes</p>
+        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle className="h-6 bg-gray-200 animate-pulse rounded"></CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="h-10 bg-gray-200 animate-pulse rounded"></div>
+              <div className="h-10 bg-gray-200 animate-pulse rounded"></div>
+              <div className="h-20 bg-gray-200 animate-pulse rounded"></div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="text-center p-8 rounded-lg bg-red-50 border border-red-200 text-red-700 font-semibold">
+          {error}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -118,8 +284,10 @@ export default function TeacherAttendance() {
                   <SelectValue placeholder="Select a class" />
                 </SelectTrigger>
                 <SelectContent>
-                  {user.teacherData?.classes?.map((className) => (
-                    <SelectItem key={className} value={className}>Class {className}</SelectItem>
+                  {classes.map((classItem) => (
+                    <SelectItem key={classItem.id} value={classItem.id}>
+                      Class {classItem.name}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -132,15 +300,17 @@ export default function TeacherAttendance() {
                   <SelectValue placeholder="Select a course" />
                 </SelectTrigger>
                 <SelectContent>
-                  {user.teacherData?.courses?.map((course) => (
-                    <SelectItem key={course} value={course}>{course}</SelectItem>
+                  {courses.map((course) => (
+                    <SelectItem key={course.id} value={course.id}>
+                      {course.name}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
           </div>
 
-          {students.length > 0 ? (
+          {selectedCourse && students.length > 0 ? (
             <Table>
               <TableHeader>
                 <TableRow>
@@ -177,21 +347,23 @@ export default function TeacherAttendance() {
                 ))}
               </TableBody>
             </Table>
+          ) : selectedCourse ? (
+            <div className="text-center py-8 text-muted-foreground">
+              No students found for this course.
+            </div>
+          ) : selectedClass ? (
+            <div className="text-center py-8 text-muted-foreground">
+              Please select a course to view students.
+            </div>
           ) : (
-            selectedClass ? (
-              <div className="text-center py-8 text-muted-foreground">
-                No students found for this class or you don't teach any students in this class.
-              </div>
-            ) : (
-              <div className="text-center py-8 text-muted-foreground">
-                Please select a class to view students.
-              </div>
-            )
+            <div className="text-center py-8 text-muted-foreground">
+              Please select a class to view courses.
+            </div>
           )}
         </CardContent>
         <CardFooter className="flex justify-end">
-          <Button 
-            onClick={handleSubmitAttendance} 
+          <Button
+            onClick={handleSubmitAttendance}
             disabled={!selectedClass || !selectedCourse || students.length === 0}
             className="gap-2"
           >
