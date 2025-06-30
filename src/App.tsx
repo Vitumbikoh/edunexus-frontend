@@ -51,6 +51,9 @@ import EnrollStudents from "./pages/courses/EnrollStudents";
 import ClassManagement from "./pages/Classes";
 import ScheduleManagement from "./pages/schedules";
 
+// Reports page
+import Reports from "./pages/Reports";
+
 // Protected route component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated, loading } = useAuth();
@@ -411,6 +414,20 @@ const AppRoutes = () => {
                 <PaymentForm />
               </Layout>
             </FinanceRoute>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Reports Route - Admin only */}
+      <Route
+        path="/reports"
+        element={
+          <ProtectedRoute>
+            <AdminRoute>
+              <Layout>
+                <Reports />
+              </Layout>
+            </AdminRoute>
           </ProtectedRoute>
         }
       />
