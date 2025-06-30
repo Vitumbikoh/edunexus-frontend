@@ -143,33 +143,7 @@ export default function Login() {
                 </Button>
               ))}
             </div>
-            <div className="mt-6 border rounded-lg p-3 bg-gray-50 overflow-x-auto">
-              <h3 className="text-sm font-bold mb-2 text-gray-700">Demo Credentials</h3>
-              <div className="mb-2 text-xs text-blue-600 font-medium">
-                Backend URL: http://localhost:5000/api/v1/auth/login
-              </div>
-              <table className="w-full text-xs text-left">
-                <thead>
-                  <tr>
-                    <th className="font-bold py-1 pr-3">Role</th>
-                    <th className="font-bold py-1 pr-3">Email</th>
-                    <th className="font-bold py-1 pr-3">Password</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {demoCredentials.map((demo, index) => (
-                    <tr key={index} className="border-t">
-                      <td className="py-1 pr-3 font-semibold">{demo.role}</td>
-                      <td className="py-1 pr-3">{demo.email}</td>
-                      <td className="py-1 pr-3">{demo.password}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              <div className="mt-2 text-xs text-gray-600">
-                Note: Will try backend first, fallback to demo mode if unavailable
-              </div>
-            </div>
+            
           </div>
         </CardContent>
         <CardFooter className="flex flex-col">
