@@ -1,8 +1,8 @@
-
 import React, { useEffect, useState } from 'react';
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
 import { 
   BarChart, 
   Bar, 
@@ -23,11 +23,15 @@ import {
   DollarSign, 
   GraduationCap,
   TrendingUp,
-  FileText
+  FileText,
+  Download,
+  FileSpreadsheet,
+  FileDown
 } from 'lucide-react';
 import { useToast } from "@/components/ui/use-toast";
+import { reportService, ReportData } from "@/services/reportService";
 
-interface ReportData {
+interface ReportDataAPI {
   totalStudents: number;
   totalTeachers: number;
   totalCourses: number;
@@ -51,8 +55,10 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 export default function Reports() {
   const { user, token } = useAuth();
   const { toast } = useToast();
-  const [reportData, setReportData] = useState<ReportData | null>(null);
+  const [reportData, setReportData] = useState<ReportDataAPI | null>(null);
+  const [detailedReportData, setDetailedReportData] = useState<ReportData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const fetchReportData = async () => {
@@ -83,6 +89,152 @@ export default function Reports() {
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const fetchDetailedReportData = async () => {
+    try {
+      setIsGenerating(true);
+      
+      // Fetch detailed data for report generation
+      const [studentsRes, teachersRes, coursesRes, enrollmentsRes, feePaymentsRes] = await Promise.all([
+        fetch('http://localhost:5000/api/v1/students', {
+          headers: { Authorization: `Bearer ${token}` }
+        }),
+        fetch('http://localhost:5000/api/v1/teachers', {
+          headers: { Authorization: `Bearer ${token}` }
+        }),
+        fetch('http://localhost:5000/api/v1/courses', {
+          headers: { Authorization: `Bearer ${token}` }
+        }),
+        fetch('http://localhost:5000/api/v1/enrollments', {
+          headers: { Authorization: `Bearer ${token}` }
+        }),
+        fetch('http://localhost:5000/api/v1/fee-payments', {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+      ]);
+
+      const [students, teachers, courses, enrollments, feePayments] = await Promise.all([
+        studentsRes.json(),
+        teachersRes.json(),
+        coursesRes.json(),
+        enrollmentsRes.json(),
+        feePaymentsRes.json()
+      ]);
+
+      setDetailedReportData({
+        students: students.map((s: any) => ({
+          id: s.id,
+          name: `${s.firstName} ${s.lastName}`,
+          email: s.email,
+          grade: s.grade,
+          enrollmentDate: s.createdAt,
+          status: s.status || 'Active'
+        })),
+        teachers: teachers.map((t: any) => ({
+          id: t.id,
+          name: `${t.firstName} ${t.lastName}`,
+          email: t.email,
+          department: t.department,
+          joinDate: t.createdAt,
+          status: t.status || 'Active'
+        })),
+        courses: courses.map((c: any) => ({
+          id: c.id,
+          name: c.name,
+          code: c.code,
+          department: c.department,
+          credits: c.credits,
+          enrollmentCount: c.enrollmentCount || 0
+        })),
+        enrollments: enrollments.map((e: any) => ({
+          id: e.id,
+          studentName: e.studentName,
+          courseName: e.courseName,
+          enrollmentDate: e.createdAt,
+          status: e.status,
+          grade: e.grade
+        })),
+        feePayments: feePayments.map((f: any) => ({
+          id: f.id,
+          studentName: f.studentName,
+          amount: f.amount,
+          paymentDate: f.paymentDate,
+          paymentMethod: f.paymentMethod,
+          status: f.status
+        }))
+      });
+
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "Failed to fetch detailed report data",
+        variant: "destructive"
+      });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleGenerateReport = async (type: 'excel' | 'pdf', category: 'students' | 'teachers' | 'courses' | 'enrollments' | 'feePayments' | 'comprehensive') => {
+    if (!detailedReportData) {
+      await fetchDetailedReportData();
+      return;
+    }
+
+    try {
+      if (type === 'excel') {
+        switch (category) {
+          case 'students':
+            reportService.generateStudentsExcel(detailedReportData.students);
+            break;
+          case 'teachers':
+            reportService.generateTeachersExcel(detailedReportData.teachers);
+            break;
+          case 'courses':
+            reportService.generateCoursesExcel(detailedReportData.courses);
+            break;
+          case 'enrollments':
+            reportService.generateEnrollmentsExcel(detailedReportData.enrollments);
+            break;
+          case 'feePayments':
+            reportService.generateFeePaymentsExcel(detailedReportData.feePayments);
+            break;
+          case 'comprehensive':
+            reportService.generateComprehensiveExcel(detailedReportData);
+            break;
+        }
+      } else {
+        switch (category) {
+          case 'students':
+            reportService.generateStudentsPDF(detailedReportData.students);
+            break;
+          case 'teachers':
+            reportService.generateTeachersPDF(detailedReportData.teachers);
+            break;
+          case 'courses':
+            reportService.generateCoursesPDF(detailedReportData.courses);
+            break;
+          case 'enrollments':
+            reportService.generateEnrollmentsPDF(detailedReportData.enrollments);
+            break;
+          case 'feePayments':
+            reportService.generateFeePaymentsPDF(detailedReportData.feePayments);
+            break;
+        }
+      }
+
+      toast({
+        title: "Success",
+        description: `${category} report generated successfully`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to generate report",
+        variant: "destructive"
+      });
     }
   };
 
@@ -122,9 +274,21 @@ export default function Reports() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">School Reports</h1>
-        <p className="text-muted-foreground">Comprehensive overview of school data and analytics</p>
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold">School Reports</h1>
+          <p className="text-muted-foreground">Comprehensive overview of school data and analytics</p>
+        </div>
+        <div className="flex gap-2">
+          <Button
+            onClick={() => handleGenerateReport('excel', 'comprehensive')}
+            disabled={isGenerating}
+            className="bg-green-600 hover:bg-green-700"
+          >
+            <FileSpreadsheet className="h-4 w-4 mr-2" />
+            {isGenerating ? 'Generating...' : 'Generate Excel Report'}
+          </Button>
+        </div>
       </div>
 
       {/* Summary Cards */}
@@ -191,6 +355,188 @@ export default function Reports() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Report Generation Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Generate Reports</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Download detailed reports in Excel or PDF format
+          </p>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {/* Students Reports */}
+            <div className="p-4 border rounded-lg">
+              <h3 className="font-semibold mb-2 flex items-center">
+                <Users className="h-4 w-4 mr-2" />
+                Students Report
+              </h3>
+              <p className="text-sm text-muted-foreground mb-3">
+                Detailed list of all students with their information
+              </p>
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  onClick={() => handleGenerateReport('excel', 'students')}
+                  disabled={isGenerating}
+                >
+                  <FileSpreadsheet className="h-3 w-3 mr-1" />
+                  Excel
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleGenerateReport('pdf', 'students')}
+                  disabled={isGenerating}
+                >
+                  <FileDown className="h-3 w-3 mr-1" />
+                  PDF
+                </Button>
+              </div>
+            </div>
+
+            {/* Teachers Reports */}
+            <div className="p-4 border rounded-lg">
+              <h3 className="font-semibold mb-2 flex items-center">
+                <GraduationCap className="h-4 w-4 mr-2" />
+                Teachers Report
+              </h3>
+              <p className="text-sm text-muted-foreground mb-3">
+                Complete list of teachers and their details
+              </p>
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  onClick={() => handleGenerateReport('excel', 'teachers')}
+                  disabled={isGenerating}
+                >
+                  <FileSpreadsheet className="h-3 w-3 mr-1" />
+                  Excel
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleGenerateReport('pdf', 'teachers')}
+                  disabled={isGenerating}
+                >
+                  <FileDown className="h-3 w-3 mr-1" />
+                  PDF
+                </Button>
+              </div>
+            </div>
+
+            {/* Courses Reports */}
+            <div className="p-4 border rounded-lg">
+              <h3 className="font-semibold mb-2 flex items-center">
+                <BookOpen className="h-4 w-4 mr-2" />
+                Courses Report
+              </h3>
+              <p className="text-sm text-muted-foreground mb-3">
+                All courses with enrollment statistics
+              </p>
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  onClick={() => handleGenerateReport('excel', 'courses')}
+                  disabled={isGenerating}
+                >
+                  <FileSpreadsheet className="h-3 w-3 mr-1" />
+                  Excel
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleGenerateReport('pdf', 'courses')}
+                  disabled={isGenerating}
+                >
+                  <FileDown className="h-3 w-3 mr-1" />
+                  PDF
+                </Button>
+              </div>
+            </div>
+
+            {/* Enrollments Reports */}
+            <div className="p-4 border rounded-lg">
+              <h3 className="font-semibold mb-2 flex items-center">
+                <FileText className="h-4 w-4 mr-2" />
+                Enrollments Report
+              </h3>
+              <p className="text-sm text-muted-foreground mb-3">
+                Student course enrollments and grades
+              </p>
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  onClick={() => handleGenerateReport('excel', 'enrollments')}
+                  disabled={isGenerating}
+                >
+                  <FileSpreadsheet className="h-3 w-3 mr-1" />
+                  Excel
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleGenerateReport('pdf', 'enrollments')}
+                  disabled={isGenerating}
+                >
+                  <FileDown className="h-3 w-3 mr-1" />
+                  PDF
+                </Button>
+              </div>
+            </div>
+
+            {/* Fee Payments Reports */}
+            <div className="p-4 border rounded-lg">
+              <h3 className="font-semibold mb-2 flex items-center">
+                <DollarSign className="h-4 w-4 mr-2" />
+                Fee Payments Report
+              </h3>
+              <p className="text-sm text-muted-foreground mb-3">
+                Complete payment history and financial data
+              </p>
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  onClick={() => handleGenerateReport('excel', 'feePayments')}
+                  disabled={isGenerating}
+                >
+                  <FileSpreadsheet className="h-3 w-3 mr-1" />
+                  Excel
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleGenerateReport('pdf', 'feePayments')}
+                  disabled={isGenerating}
+                >
+                  <FileDown className="h-3 w-3 mr-1" />
+                  PDF
+                </Button>
+              </div>
+            </div>
+
+            {/* Comprehensive Report */}
+            <div className="p-4 border rounded-lg bg-blue-50">
+              <h3 className="font-semibold mb-2 flex items-center">
+                <Download className="h-4 w-4 mr-2" />
+                Comprehensive Report
+              </h3>
+              <p className="text-sm text-muted-foreground mb-3">
+                All data in one Excel file with multiple sheets
+              </p>
+              <Button
+                onClick={() => handleGenerateReport('excel', 'comprehensive')}
+                disabled={isGenerating}
+                className="w-full"
+              >
+                <FileSpreadsheet className="h-3 w-3 mr-1" />
+                Generate Full Excel Report
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Charts and Detailed Reports */}
       <Tabs defaultValue="overview" className="space-y-4">
