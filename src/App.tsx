@@ -48,6 +48,8 @@ import FinanceOfficers from "./pages/FinanceOfficers";
 import FinanceForm from "./pages/FinanceForm";
 import Courses from "./pages/courses/Courses";
 import EnrollStudents from "./pages/courses/EnrollStudents";
+import ClassManagement from "./pages/Classes";
+import ScheduleManagement from "./pages/schedules";
 
 // Protected route component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -185,7 +187,7 @@ const AppRoutes = () => {
 
       {/* Student Routes - Restricted based on role */}
       <Route
-        path="/students"
+        path="/students/view"
         element={
           <ProtectedRoute>
             <AdminRoute>
@@ -211,7 +213,7 @@ const AppRoutes = () => {
       />
 
       <Route
-        path="/students/new"
+        path="/students/add"
         element={
           <ProtectedRoute>
             <AdminRoute>
@@ -238,7 +240,7 @@ const AppRoutes = () => {
 
       {/* Teacher Routes - Restricted to admin only */}
       <Route
-        path="/teachers"
+        path="/teachers/view"
         element={
           <ProtectedRoute>
             <AdminRoute>
@@ -251,7 +253,7 @@ const AppRoutes = () => {
       />
 
       <Route
-        path="/teachers/new"
+        path="/teachers/add"
         element={
           <ProtectedRoute>
             <AdminRoute>
@@ -265,7 +267,7 @@ const AppRoutes = () => {
 
       {/* Course Routes */}
       <Route
-        path="/courses"
+        path="/courses/view"
         element={
           <ProtectedRoute>
             <Layout>
@@ -276,7 +278,7 @@ const AppRoutes = () => {
       />
 
       <Route
-        path="/courses/new"
+        path="/courses/add"
         element={
           <ProtectedRoute>
             <AdminRoute>
@@ -328,13 +330,40 @@ const AppRoutes = () => {
         }
       />
 
-      <Route
-        path="/schedule"
+      {/* <Route
+        path="/classes/view"
         element={
           <ProtectedRoute>
             <Layout>
               {user?.role === "student" ? <StudentSchedule /> : <Schedule />}
             </Layout>
+          </ProtectedRoute>
+        }
+      /> */}
+
+      <Route
+        path="/classes/view"
+        element={
+          <ProtectedRoute>
+            <AdminRoute>
+              <Layout>
+                <ClassManagement />
+              </Layout>
+            </AdminRoute>
+          </ProtectedRoute>
+        }
+      />
+
+
+<Route
+        path="/schedules/view"
+        element={
+          <ProtectedRoute>
+            <AdminRoute>
+              <Layout>
+                <ScheduleManagement />
+              </Layout>
+            </AdminRoute>
           </ProtectedRoute>
         }
       />
@@ -352,7 +381,7 @@ const AppRoutes = () => {
       />
 
       <Route
-        path="/finance/officers"
+        path="/finance/officers/view"
         element={
           <ProtectedRoute>
             <Layout>
@@ -363,7 +392,7 @@ const AppRoutes = () => {
       />
 
       <Route
-        path="/finance/new"
+        path="/finance/officers/add"
         element={
           <ProtectedRoute>
             <Layout>
@@ -374,7 +403,7 @@ const AppRoutes = () => {
       />
 
       <Route
-        path="/finance/record"
+        path="/finance/records"
         element={
           <ProtectedRoute>
             <FinanceRoute>

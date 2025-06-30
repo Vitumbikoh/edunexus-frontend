@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useSidebar } from '@/contexts/SidebarContext';
 import { useAuth, UserRole } from '@/contexts/AuthContext';
@@ -11,9 +11,7 @@ import {
   Calendar,
   Settings,
   DollarSign,
-  Bell,
   LogOut,
-  Menu,
   ChevronLeft,
   Check,
   Upload,
@@ -22,33 +20,93 @@ import {
   Download,
   ChartPie,
   MessageSquare,
-  CreditCard
+  CreditCard,
+  ChevronDown,
+  FileText as ReportIcon,
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 
-type NavItem = {
+type SubNavItem = {
   label: string;
-  icon: React.ElementType;
   href: string;
   roles: UserRole[];
 };
 
-// Admin navigation items
+type NavItem = {
+  label: string;
+  icon: React.ElementType;
+  href?: string;
+  roles: UserRole[];
+  subItems?: SubNavItem[];
+};
+
 const adminNavItems: NavItem[] = [
   { label: 'Dashboard', icon: Home, href: '/dashboard', roles: ['admin', 'teacher', 'student', 'parent'] },
-  { label: 'Students', icon: Users, href: '/students', roles: ['admin', 'teacher'] },
-  { label: 'Teachers', icon: User, href: '/teachers', roles: ['admin'] },
-  { label: 'Courses', icon: BookOpen, href: '/courses', roles: ['admin', 'teacher', 'student'] },
-  { label: 'Schedule', icon: Calendar, href: '/schedule', roles: ['admin', 'teacher', 'student'] },
-  { label: 'Finance', icon: DollarSign, href: '/finance', roles: ['admin', 'parent'] },
+  {
+    label: 'Students',
+    icon: Users,
+    roles: ['admin', 'teacher'],
+    subItems: [
+      { label: 'View Students', href: '/students/view', roles: ['admin', 'teacher'] },
+      { label: 'Add Students', href: '/students/add', roles: ['admin'] },
+    ],
+  },
+  {
+    label: 'Teachers',
+    icon: User,
+    roles: ['admin'],
+    subItems: [
+      { label: 'View Teachers', href: '/teachers/view', roles: ['admin'] },
+      { label: 'Add Teachers', href: '/teachers/add', roles: ['admin'] },
+    ],
+  },
+  {
+    label: 'Courses',
+    icon: BookOpen,
+    roles: ['admin', 'teacher', 'student'],
+    subItems: [
+      { label: 'View Courses', href: '/courses/view', roles: ['admin', 'teacher', 'student'] },
+      { label: 'Add Courses', href: '/courses/add', roles: ['admin'] },
+      { label: 'View Exams', href: '/courses/exams', roles: ['admin', 'teacher'] },
+    ],
+  },
+  {
+    label: 'Classes',
+    icon: Calendar,
+    roles: ['admin', 'teacher', 'student'],
+    subItems: [
+      { label: 'View Classes', href: '/classes/view', roles: ['admin', 'teacher', 'student'] },
+      // { label: 'Add Classes', href: '/classes/add', roles: ['admin'] },
+      { label: 'View Schedules', href: '/schedules/view', roles: ['admin', 'teacher', 'student'] },
+      // { label: 'Add Schedules', href: '/schedules/add', roles: ['admin'] },
+    ],
+  },
+  {
+    label: 'Finance',
+    icon: DollarSign,
+    roles: ['admin', 'parent'],
+    subItems: [
+      { label: 'View Financial Records', href: '/finance', roles: ['admin', 'parent'] },
+      { label: 'View Financial Officers', href: '/finance/officers/view', roles: ['admin'] },
+      { label: 'Add Financial Officers', href: '/finance/officers/add', roles: ['admin'] },
+    ],
+  },
+  { label: 'Reports', icon: ReportIcon, href: '/reports', roles: ['admin'] },
   { label: 'Settings', icon: Settings, href: '/settings', roles: ['admin'] },
 ];
 
-// Teacher navigation items
 const teacherNavItems: NavItem[] = [
   { label: 'Dashboard', icon: Home, href: '/dashboard', roles: ['teacher'] },
   { label: 'My Students', icon: Users, href: '/my-students', roles: ['teacher'] },
-  { label: 'My Courses', icon: BookOpen, href: '/my-courses', roles: ['teacher'] },
+  {
+    label: 'My Courses',
+    icon: Users,
+    roles: ['admin', 'teacher'],
+    subItems: [
+      { label: 'View Courses', href: '/my-courses', roles: ['admin', 'teacher'] },
+      { label: 'Create Exams', href: '/my-courses', roles: ['admin', 'teacher'] },
+    ],
+  },
   { label: 'My Schedule', icon: Calendar, href: '/my-schedule', roles: ['teacher'] },
   { label: 'Take Attendance', icon: Check, href: '/take-attendance', roles: ['teacher'] },
   { label: 'Learning Materials', icon: Upload, href: '/learning-materials', roles: ['teacher'] },
@@ -56,7 +114,6 @@ const teacherNavItems: NavItem[] = [
   { label: 'Settings', icon: Settings, href: '/settings', roles: ['teacher'] },
 ];
 
-// Student navigation items
 const studentNavItems: NavItem[] = [
   { label: 'Dashboard', icon: Home, href: '/dashboard', roles: ['student'] },
   { label: 'Assignments', icon: FileText, href: '/assignments', roles: ['student'] },
@@ -66,7 +123,6 @@ const studentNavItems: NavItem[] = [
   { label: 'Settings', icon: Settings, href: '/settings', roles: ['student'] },
 ];
 
-// Parent navigation items
 const parentNavItems: NavItem[] = [
   { label: 'Dashboard', icon: Home, href: '/dashboard', roles: ['parent'] },
   { label: "Children's Performance", icon: ChartPie, href: '/children/performance', roles: ['parent'] },
@@ -76,7 +132,6 @@ const parentNavItems: NavItem[] = [
   { label: 'Settings', icon: Settings, href: '/settings', roles: ['parent'] },
 ];
 
-// Finance navigation items
 const financeNavItems: NavItem[] = [
   { label: 'Dashboard', icon: Home, href: '/dashboard', roles: ['finance'] },
   { label: 'Finance Summary', icon: DollarSign, href: '/finance', roles: ['finance'] },
@@ -89,10 +144,10 @@ const financeNavItems: NavItem[] = [
 export default function Sidebar() {
   const { isOpen, toggle } = useSidebar();
   const { user, logout } = useAuth();
+  const [openDropdowns, setOpenDropdowns] = useState<string[]>([]);
 
   if (!user) return null;
 
-  // Choose navigation items based on user role
   let navItems = adminNavItems;
 
   if (user.role === 'teacher') {
@@ -108,6 +163,14 @@ export default function Sidebar() {
   const filteredNavItems = navItems.filter(item =>
     item.roles.includes(user.role)
   );
+
+  const toggleDropdown = (label: string) => {
+    setOpenDropdowns(prev =>
+      prev.includes(label)
+        ? prev.filter(item => item !== label)
+        : [...prev, label]
+    );
+  };
 
   return (
     <div className={cn(
@@ -134,17 +197,58 @@ export default function Sidebar() {
       <div className="flex-1 overflow-y-auto py-4">
         <nav className="px-2 space-y-1">
           {filteredNavItems.map((item) => (
-            <Link
-              key={item.href}
-              to={item.href}
-              className={cn(
-                "flex items-center px-4 py-3 text-sidebar-foreground rounded-md hover:bg-sidebar-accent group transition-colors",
-                isOpen ? "" : "justify-center"
+            <div key={item.label}>
+              {item.subItems ? (
+                <div>
+                  <div
+                    className={cn(
+                      "flex items-center px-4 py-3 text-sidebar-foreground rounded-md hover:bg-sidebar-accent group transition-colors cursor-pointer",
+                      isOpen ? "" : "justify-center"
+                    )}
+                    onClick={() => isOpen && toggleDropdown(item.label)}
+                  >
+                    <item.icon className="h-5 w-5" />
+                    {isOpen && (
+                      <>
+                        <span className="ml-3 flex-1">{item.label}</span>
+                        <ChevronDown
+                          className={cn(
+                            "h-4 w-4 transition-transform",
+                            openDropdowns.includes(item.label) && "rotate-180"
+                          )}
+                        />
+                      </>
+                    )}
+                  </div>
+                  {isOpen && openDropdowns.includes(item.label) && (
+                    <div className="ml-6 mt-1 space-y-1">
+                      {item.subItems
+                        .filter(subItem => subItem.roles.includes(user.role))
+                        .map((subItem) => (
+                          <Link
+                            key={subItem.href}
+                            to={subItem.href}
+                            className="flex items-center px-4 py-2 text-sm text-sidebar-foreground rounded-md hover:bg-sidebar-accent group transition-colors"
+                          >
+                            <span>{subItem.label}</span>
+                          </Link>
+                        ))}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <Link
+                  to={item.href!}
+                  className={cn(
+                    "flex items-center px-4 py-3 text-sidebar-foreground rounded-md hover:bg-sidebar-accent group transition-colors",
+                    isOpen ? "" : "justify-center"
+                  )}
+                >
+                  <item.icon className="h-5 w-5" />
+                  {isOpen && <span className="ml-3">{item.label}</span>}
+                </Link>
               )}
-            >
-              <item.icon className="h-5 w-5" />
-              {isOpen && <span className="ml-3">{item.label}</span>}
-            </Link>
+            </div>
           ))}
         </nav>
       </div>
