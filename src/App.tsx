@@ -50,6 +50,7 @@ import Courses from "./pages/courses/Courses";
 import EnrollStudents from "./pages/courses/EnrollStudents";
 import ClassManagement from "./pages/Classes";
 import ScheduleManagement from "./pages/schedules";
+import Exams from "./pages/courses/Exams";
 
 // Reports page
 import Reports from "./pages/Reports/Reports";
@@ -329,6 +330,18 @@ const AppRoutes = () => {
                 <EnrollStudents />
               </Layout>
             </AdminRoute>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Exams Route */}
+      <Route
+        path="/courses/exams"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <Exams />
+            </Layout>
           </ProtectedRoute>
         }
       />
