@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
 import { ArrowLeft, Save } from "lucide-react";
+import axios from 'axios';
 
 export default function ExamForm() {
   const { courseId } = useParams<{ courseId: string }>();
@@ -21,7 +22,15 @@ export default function ExamForm() {
     totalMarks: '',
     date: '',
     duration: '',
-    instructions: ''
+    instructions: '',
+    subject: '',
+    class: '',
+    teacher: '',
+    status: 'upcoming' as 'upcoming' | 'administered' | 'graded',
+    studentsEnrolled: 0,
+    studentsCompleted: 0,
+    academicYear: '2024-2025',
+    courseId: courseId || '',
   });
   
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -29,7 +38,9 @@ export default function ExamForm() {
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({
       ...prev,
-      [field]: value
+      [field]: value,
+      // Map examType to subject for backend compatibility
+      ...(field === 'examType' ? { subject: value.charAt(0).toUpperCase() + value.slice(1) } : {}),
     }));
   };
 
@@ -37,7 +48,7 @@ export default function ExamForm() {
     e.preventDefault();
     
     // Validation
-    if (!formData.title || !formData.examType || !formData.totalMarks || !formData.date || !formData.duration) {
+    if (!formData.title || !formData.examType || !formData.totalMarks || !formData.date || !formData.duration || !formData.subject || !formData.class || !formData.teacher || !formData.courseId) {
       toast({
         title: "Error",
         description: "Please fill in all required fields",
@@ -49,23 +60,26 @@ export default function ExamForm() {
     setIsSubmitting(true);
 
     try {
-      // Here you would typically make an API call to save the exam
-      // For now, we'll simulate a successful save
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const payload = {
+        ...formData,
+        totalMarks: parseInt(formData.totalMarks),
+      };
+
+      await axios.post('http://localhost:5000/api/v1/exams', payload);
       
       toast({
         title: "Success",
         description: "Exam created successfully!",
       });
       
-      // Navigate back to courses page
-      navigate('/teacher-courses');
-    } catch (error) {
+      navigate('/my-courses');
+    } catch (error: any) {
       toast({
         title: "Error",
-        description: "Failed to create exam. Please try again.",
+        description: error.response?.data?.message || "Failed to create exam. Please try again.",
         variant: "destructive",
       });
+      console.error('Failed to create exam:', error);
     } finally {
       setIsSubmitting(false);
     }
@@ -78,8 +92,9 @@ export default function ExamForm() {
         <Button 
           variant="ghost" 
           size="sm" 
-          onClick={() => navigate('/teacher-courses')}
+          onClick={() => navigate('/my-courses')}
           className="gap-2"
+          disabled={isSubmitting}
         >
           <ArrowLeft className="h-4 w-4" />
           Back to Courses
@@ -106,13 +121,14 @@ export default function ExamForm() {
                 value={formData.title}
                 onChange={(e) => handleInputChange('title', e.target.value)}
                 required
+                disabled={isSubmitting}
               />
             </div>
 
-            {/* Exam Type */}
+            {/* Exam Type (maps to Subject) */}
             <div className="space-y-2">
               <Label htmlFor="examType">Exam Type *</Label>
-              <Select value={formData.examType} onValueChange={(value) => handleInputChange('examType', value)}>
+              <Select value={formData.examType} onValueChange={(value) => handleInputChange('examType', value)} disabled={isSubmitting}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select exam type" />
                 </SelectTrigger>
@@ -126,6 +142,34 @@ export default function ExamForm() {
               </Select>
             </div>
 
+            {/* Class */}
+            <div className="space-y-2">
+              <Label htmlFor="class">Class *</Label>
+              <Select value={formData.class} onValueChange={(value) => handleInputChange('class', value)} disabled={isSubmitting}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select class" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Grade 10">Grade 10</SelectItem>
+                  <SelectItem value="Grade 11">Grade 11</SelectItem>
+                  <SelectItem value="Grade 12">Grade 12</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Teacher */}
+            <div className="space-y-2">
+              <Label htmlFor="teacher">Teacher *</Label>
+              <Input
+                id="teacher"
+                placeholder="e.g., Dr. Smith"
+                value={formData.teacher}
+                onChange={(e) => handleInputChange('teacher', e.target.value)}
+                required
+                disabled={isSubmitting}
+              />
+            </div>
+
             {/* Total Marks */}
             <div className="space-y-2">
               <Label htmlFor="totalMarks">Total Marks *</Label>
@@ -137,6 +181,7 @@ export default function ExamForm() {
                 value={formData.totalMarks}
                 onChange={(e) => handleInputChange('totalMarks', e.target.value)}
                 required
+                disabled={isSubmitting}
               />
             </div>
 
@@ -150,11 +195,12 @@ export default function ExamForm() {
                   value={formData.date}
                   onChange={(e) => handleInputChange('date', e.target.value)}
                   required
+                  disabled={isSubmitting}
                 />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="duration">Duration *</Label>
-                <Select value={formData.duration} onValueChange={(value) => handleInputChange('duration', value)}>
+                <Select value={formData.duration} onValueChange={(value) => handleInputChange('duration', value)} disabled={isSubmitting}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select duration" />
                   </SelectTrigger>
@@ -179,6 +225,7 @@ export default function ExamForm() {
                 value={formData.description}
                 onChange={(e) => handleInputChange('description', e.target.value)}
                 rows={3}
+                disabled={isSubmitting}
               />
             </div>
 
@@ -191,6 +238,7 @@ export default function ExamForm() {
                 value={formData.instructions}
                 onChange={(e) => handleInputChange('instructions', e.target.value)}
                 rows={4}
+                disabled={isSubmitting}
               />
             </div>
 
@@ -199,7 +247,8 @@ export default function ExamForm() {
               <Button 
                 type="button" 
                 variant="outline" 
-                onClick={() => navigate('/teacher-courses')}
+                onClick={() => navigate('/my-courses')}
+                disabled={isSubmitting}
               >
                 Cancel
               </Button>

@@ -204,13 +204,13 @@ const AppRoutes = () => {
         }
       />
 
-       <Route
+      <Route
         path="/students/:id"
         element={
           <ProtectedRoute>
             <AdminRoute>
               <Layout>
-                <StudentDetails  />
+                <StudentDetails />
               </Layout>
             </AdminRoute>
           </ProtectedRoute>
@@ -370,9 +370,8 @@ const AppRoutes = () => {
           </ProtectedRoute>
         }
       />
-
-
-<Route
+      
+      <Route
         path="/schedules/view"
         element={
           <ProtectedRoute>

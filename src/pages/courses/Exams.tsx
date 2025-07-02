@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, FileText, CheckCircle, Clock, Users, BookOpen, Filter } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,6 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { useToast } from "@/components/ui/use-toast";
+import axios from 'axios';
 
 interface Exam {
   id: string;
@@ -22,106 +24,51 @@ interface Exam {
   academicYear: string;
 }
 
-// Mock data for exams
-const mockExams: Exam[] = [
-  {
-    id: '1',
-    title: 'Mathematics Final Exam',
-    subject: 'Mathematics',
-    class: 'Grade 10',
-    teacher: 'Dr. Smith',
-    date: '2024-01-15',
-    duration: '2 hours',
-    totalMarks: 100,
-    status: 'graded',
-    studentsEnrolled: 28,
-    studentsCompleted: 26,
-    academicYear: '2023-2024'
-  },
-  {
-    id: '2',
-    title: 'English Literature Assessment',
-    subject: 'English',
-    class: 'Grade 11',
-    teacher: 'Ms. Johnson',
-    date: '2024-01-20',
-    duration: '1.5 hours',
-    totalMarks: 80,
-    status: 'administered',
-    studentsEnrolled: 32,
-    studentsCompleted: 30,
-    academicYear: '2023-2024'
-  },
-  {
-    id: '3',
-    title: 'Physics Mid-term',
-    subject: 'Physics',
-    class: 'Grade 12',
-    teacher: 'Prof. Davis',
-    date: '2024-01-25',
-    duration: '2.5 hours',
-    totalMarks: 120,
-    status: 'upcoming',
-    studentsEnrolled: 24,
-    studentsCompleted: 0,
-    academicYear: '2023-2024'
-  },
-  {
-    id: '4',
-    title: 'Chemistry Lab Test',
-    subject: 'Chemistry',
-    class: 'Grade 11',
-    teacher: 'Dr. Wilson',
-    date: '2024-01-18',
-    duration: '1 hour',
-    totalMarks: 50,
-    status: 'graded',
-    studentsEnrolled: 30,
-    studentsCompleted: 28,
-    academicYear: '2024-2025'
-  },
-  {
-    id: '5',
-    title: 'History Essay Exam',
-    subject: 'History',
-    class: 'Grade 10',
-    teacher: 'Mr. Brown',
-    date: '2024-01-22',
-    duration: '2 hours',
-    totalMarks: 90,
-    status: 'administered',
-    studentsEnrolled: 26,
-    studentsCompleted: 24,
-    academicYear: '2024-2025'
-  }
-];
-
 const classes = ['All Classes', 'Grade 10', 'Grade 11', 'Grade 12'];
 const teachers = ['All Teachers', 'Dr. Smith', 'Ms. Johnson', 'Prof. Davis', 'Dr. Wilson', 'Mr. Brown'];
 const academicYears = ['All Years', '2023-2024', '2024-2025'];
 
 export default function Exams() {
+  const [exams, setExams] = useState<Exam[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedClass, setSelectedClass] = useState('All Classes');
   const [selectedTeacher, setSelectedTeacher] = useState('All Teachers');
   const [selectedAcademicYear, setSelectedAcademicYear] = useState('All Years');
+  const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
 
-  // Filter exams based on search and filters
-  const filteredExams = mockExams.filter(exam => {
-    const matchesSearch = exam.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         exam.subject.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesClass = selectedClass === 'All Classes' || exam.class === selectedClass;
-    const matchesTeacher = selectedTeacher === 'All Teachers' || exam.teacher === selectedTeacher;
-    const matchesAcademicYear = selectedAcademicYear === 'All Years' || exam.academicYear === selectedAcademicYear;
-    
-    return matchesSearch && matchesClass && matchesTeacher && matchesAcademicYear;
-  });
+  useEffect(() => {
+    const fetchExams = async () => {
+      setIsLoading(true);
+      try {
+        const response = await axios.get('http://localhost:5000/api/v1/exams', {
+          params: {
+            searchTerm,
+            class: selectedClass,
+            teacher: selectedTeacher,
+            academicYear: selectedAcademicYear,
+          },
+        });
+        setExams(response.data as Exam[]);
+      } catch (error: any) {
+        toast({
+          title: "Error",
+          description: error.response?.data?.message || "Failed to fetch exams. Please try again.",
+          variant: "destructive",
+        });
+        console.error('Failed to fetch exams:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchExams();
+  }, [searchTerm, selectedClass, selectedTeacher, selectedAcademicYear, toast]);
 
   // Calculate statistics
-  const totalExams = filteredExams.length;
-  const administeredExams = filteredExams.filter(exam => exam.status === 'administered').length;
-  const gradedExams = filteredExams.filter(exam => exam.status === 'graded').length;
-  const upcomingExams = filteredExams.filter(exam => exam.status === 'upcoming').length;
+  const totalExams = exams.length;
+  const administeredExams = exams.filter(exam => exam.status === 'administered').length;
+  const gradedExams = exams.filter(exam => exam.status === 'graded').length;
+  const upcomingExams = exams.filter(exam => exam.status === 'upcoming').length;
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -211,10 +158,11 @@ export default function Exams() {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"
+                disabled={isLoading}
               />
             </div>
             
-            <Select value={selectedClass} onValueChange={setSelectedClass}>
+            <Select value={selectedClass} onValueChange={setSelectedClass} disabled={isLoading}>
               <SelectTrigger>
                 <SelectValue placeholder="Select class" />
               </SelectTrigger>
@@ -225,7 +173,7 @@ export default function Exams() {
               </SelectContent>
             </Select>
 
-            <Select value={selectedTeacher} onValueChange={setSelectedTeacher}>
+            <Select value={selectedTeacher} onValueChange={setSelectedTeacher} disabled={isLoading}>
               <SelectTrigger>
                 <SelectValue placeholder="Select teacher" />
               </SelectTrigger>
@@ -236,7 +184,7 @@ export default function Exams() {
               </SelectContent>
             </Select>
 
-            <Select value={selectedAcademicYear} onValueChange={setSelectedAcademicYear}>
+            <Select value={selectedAcademicYear} onValueChange={setSelectedAcademicYear} disabled={isLoading}>
               <SelectTrigger>
                 <SelectValue placeholder="Select academic year" />
               </SelectTrigger>
@@ -247,7 +195,7 @@ export default function Exams() {
               </SelectContent>
             </Select>
 
-            <Button variant="outline" onClick={resetFilters} className="w-full">
+            <Button variant="outline" onClick={resetFilters} className="w-full" disabled={isLoading}>
               Clear Filters
             </Button>
           </div>
@@ -277,14 +225,20 @@ export default function Exams() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredExams.length === 0 ? (
+                {isLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
+                      Loading exams...
+                    </TableCell>
+                  </TableRow>
+                ) : exams.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
                       No exams found matching your criteria
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredExams.map((exam) => (
+                  exams.map((exam) => (
                     <TableRow key={exam.id}>
                       <TableCell className="font-medium">{exam.title}</TableCell>
                       <TableCell>{exam.subject}</TableCell>
