@@ -51,6 +51,7 @@ import EnrollStudents from "./pages/courses/EnrollStudents";
 import ClassManagement from "./pages/Classes";
 import ScheduleManagement from "./pages/schedules";
 import Exams from "./pages/courses/Exams";
+import ExamForm from "./pages/courses/ExamForm";
 
 // Reports page
 import Reports from "./pages/Reports/Reports";
@@ -529,6 +530,18 @@ const AppRoutes = () => {
           <TeacherRoute>
             <Layout>
               <SubmitGrades />
+            </Layout>
+          </TeacherRoute>
+        }
+      />
+
+      {/* Exam Creation Route for Teachers */}
+      <Route
+        path="/courses/:courseId/create-exam"
+        element={
+          <TeacherRoute>
+            <Layout>
+              <ExamForm />
             </Layout>
           </TeacherRoute>
         }

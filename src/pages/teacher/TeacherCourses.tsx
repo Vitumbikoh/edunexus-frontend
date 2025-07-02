@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
-import { Upload, BookOpen, FileText, Search } from "lucide-react";
+import { Upload, BookOpen, FileText, Search, Plus } from "lucide-react";
 import { useNavigate } from 'react-router-dom';
 import { Input } from "@/components/ui/input";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
@@ -208,6 +208,15 @@ export default function TeacherCourses() {
                     >
                       <FileText className="h-4 w-4" />
                       Grade Students
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-2"
+                      onClick={() => navigate(`/courses/${course.id}/create-exam`)}
+                    >
+                      <Plus className="h-4 w-4" />
+                      Create Exams
                     </Button>
                     <Button
                       variant="default"
