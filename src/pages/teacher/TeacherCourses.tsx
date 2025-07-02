@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
-import { Upload, BookOpen, FileText, Search, Plus } from "lucide-react";
+import { Upload, BookOpen, FileText, Search, Plus, Calendar, Clock } from "lucide-react";
 import { useNavigate } from 'react-router-dom';
 import { Input } from "@/components/ui/input";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
@@ -188,7 +188,43 @@ export default function TeacherCourses() {
                     <div className="bg-muted rounded-md px-3 py-2 text-sm">
                       <span className="font-medium text-muted-foreground">Students:</span> {course.totalStudents}
                     </div>
+                    <div className="bg-muted rounded-md px-3 py-2 text-sm">
+                      <span className="font-medium text-muted-foreground">Exams:</span> {course.exams?.length || 0}
+                    </div>
                   </div>
+
+                  {course.exams && course.exams.length > 0 && (
+                    <div>
+                      <h4 className="text-sm font-medium text-muted-foreground mb-2">Recent Exams</h4>
+                      <div className="space-y-2">
+                        {course.exams.slice(0, 3).map((exam: any) => (
+                          <div key={exam.id} className="bg-muted/50 rounded-md p-3 text-sm">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <Calendar className="h-4 w-4 text-muted-foreground" />
+                                <span className="font-medium">{exam.title}</span>
+                                <Badge variant="outline" className="text-xs">
+                                  {exam.examType}
+                                </Badge>
+                              </div>
+                              <div className="flex items-center gap-1 text-muted-foreground">
+                                <Clock className="h-3 w-3" />
+                                <span className="text-xs">{exam.duration}</span>
+                              </div>
+                            </div>
+                            <div className="mt-1 text-xs text-muted-foreground">
+                              {new Date(exam.date).toLocaleDateString()} • {exam.totalMarks} marks
+                            </div>
+                          </div>
+                        ))}
+                        {course.exams.length > 3 && (
+                          <div className="text-xs text-muted-foreground text-center">
+                            +{course.exams.length - 3} more exams
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
 
                   <div className="pt-4 flex flex-wrap gap-2">
                     <Button
