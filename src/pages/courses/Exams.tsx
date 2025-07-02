@@ -19,6 +19,7 @@ interface Exam {
   status: 'upcoming' | 'administered' | 'graded';
   studentsEnrolled: number;
   studentsCompleted: number;
+  academicYear: string;
 }
 
 // Mock data for exams
@@ -34,7 +35,8 @@ const mockExams: Exam[] = [
     totalMarks: 100,
     status: 'graded',
     studentsEnrolled: 28,
-    studentsCompleted: 26
+    studentsCompleted: 26,
+    academicYear: '2023-2024'
   },
   {
     id: '2',
@@ -47,7 +49,8 @@ const mockExams: Exam[] = [
     totalMarks: 80,
     status: 'administered',
     studentsEnrolled: 32,
-    studentsCompleted: 30
+    studentsCompleted: 30,
+    academicYear: '2023-2024'
   },
   {
     id: '3',
@@ -60,7 +63,8 @@ const mockExams: Exam[] = [
     totalMarks: 120,
     status: 'upcoming',
     studentsEnrolled: 24,
-    studentsCompleted: 0
+    studentsCompleted: 0,
+    academicYear: '2023-2024'
   },
   {
     id: '4',
@@ -73,7 +77,8 @@ const mockExams: Exam[] = [
     totalMarks: 50,
     status: 'graded',
     studentsEnrolled: 30,
-    studentsCompleted: 28
+    studentsCompleted: 28,
+    academicYear: '2024-2025'
   },
   {
     id: '5',
@@ -86,17 +91,20 @@ const mockExams: Exam[] = [
     totalMarks: 90,
     status: 'administered',
     studentsEnrolled: 26,
-    studentsCompleted: 24
+    studentsCompleted: 24,
+    academicYear: '2024-2025'
   }
 ];
 
 const classes = ['All Classes', 'Grade 10', 'Grade 11', 'Grade 12'];
 const teachers = ['All Teachers', 'Dr. Smith', 'Ms. Johnson', 'Prof. Davis', 'Dr. Wilson', 'Mr. Brown'];
+const academicYears = ['All Years', '2023-2024', '2024-2025'];
 
 export default function Exams() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedClass, setSelectedClass] = useState('All Classes');
   const [selectedTeacher, setSelectedTeacher] = useState('All Teachers');
+  const [selectedAcademicYear, setSelectedAcademicYear] = useState('All Years');
 
   // Filter exams based on search and filters
   const filteredExams = mockExams.filter(exam => {
@@ -104,8 +112,9 @@ export default function Exams() {
                          exam.subject.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesClass = selectedClass === 'All Classes' || exam.class === selectedClass;
     const matchesTeacher = selectedTeacher === 'All Teachers' || exam.teacher === selectedTeacher;
+    const matchesAcademicYear = selectedAcademicYear === 'All Years' || exam.academicYear === selectedAcademicYear;
     
-    return matchesSearch && matchesClass && matchesTeacher;
+    return matchesSearch && matchesClass && matchesTeacher && matchesAcademicYear;
   });
 
   // Calculate statistics
@@ -131,20 +140,15 @@ export default function Exams() {
     setSearchTerm('');
     setSelectedClass('All Classes');
     setSelectedTeacher('All Teachers');
+    setSelectedAcademicYear('All Years');
   };
 
   return (
     <div className="container mx-auto py-6 space-y-6">
       {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Exam Management</h1>
-          <p className="text-muted-foreground">Manage and monitor all examinations</p>
-        </div>
-        <Button className="w-fit">
-          <FileText className="mr-2 h-4 w-4" />
-          Create New Exam
-        </Button>
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">Exam Management</h1>
+        <p className="text-muted-foreground">Manage and monitor all examinations</p>
       </div>
 
       {/* Statistics Cards */}
@@ -199,7 +203,7 @@ export default function Exams() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-4 md:grid-cols-4">
+          <div className="grid gap-4 md:grid-cols-5">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
               <Input
@@ -228,6 +232,17 @@ export default function Exams() {
               <SelectContent>
                 {teachers.map((teacher) => (
                   <SelectItem key={teacher} value={teacher}>{teacher}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={selectedAcademicYear} onValueChange={setSelectedAcademicYear}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select academic year" />
+              </SelectTrigger>
+              <SelectContent>
+                {academicYears.map((year) => (
+                  <SelectItem key={year} value={year}>{year}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
