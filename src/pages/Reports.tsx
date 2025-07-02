@@ -56,7 +56,7 @@ export default function Reports() {
   const { user, token } = useAuth();
   const { toast } = useToast();
   const [reportData, setReportData] = useState<ReportDataAPI | null>(null);
-  const [detailedReportData, setDetailedReportData] = useState<ReportData | null>(null);
+  const [detailedReportData, setDetailedReportData] = useState<Partial<ReportData> | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -69,12 +69,12 @@ export default function Reports() {
       const response = await fetch('http://localhost:5000/api/v1/admin/reports', {
         headers: {
           Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
+          'Content-Type': 'application/json',
+        },
       });
 
       if (!response.ok) {
-        throw new Error('Failed to fetch report data');
+        throw new Error(`Failed to fetch report data: ${response.statusText}`);
       }
 
       const data = await response.json();
@@ -85,158 +85,275 @@ export default function Reports() {
       toast({
         title: "Error",
         description: errorMessage,
-        variant: "destructive"
+        variant: "destructive",
       });
     } finally {
       setIsLoading(false);
     }
   };
 
-  const fetchDetailedReportData = async () => {
+  const fetchDetailedReportData = async (category: 'students' | 'teachers' | 'courses' | 'enrollments' | 'feePayments' | 'comprehensive') => {
     try {
       setIsGenerating(true);
-      
-      // Fetch detailed data for report generation
-      const [studentsRes, teachersRes, coursesRes, enrollmentsRes, feePaymentsRes] = await Promise.all([
-        fetch('http://localhost:5000/api/v1/students', {
-          headers: { Authorization: `Bearer ${token}` }
-        }),
-        fetch('http://localhost:5000/api/v1/teachers', {
-          headers: { Authorization: `Bearer ${token}` }
-        }),
-        fetch('http://localhost:5000/api/v1/courses', {
-          headers: { Authorization: `Bearer ${token}` }
-        }),
-        fetch('http://localhost:5000/api/v1/enrollments', {
-          headers: { Authorization: `Bearer ${token}` }
-        }),
-        fetch('http://localhost:5000/api/v1/fee-payments', {
-          headers: { Authorization: `Bearer ${token}` }
-        })
-      ]);
 
-      const [students, teachers, courses, enrollments, feePayments] = await Promise.all([
-        studentsRes.json(),
-        teachersRes.json(),
-        coursesRes.json(),
-        enrollmentsRes.json(),
-        feePaymentsRes.json()
-      ]);
+      const endpoints = {
+        students: 'http://localhost:5000/api/v1/student/students',
+        teachers: 'http://localhost:5000/api/v1/teacher/teachers',
+        courses: 'http://localhost:5000/api/v1/course',
+        enrollments: 'http://localhost:5000/api/v1/enrollments',
+        feePayments: 'http://localhost:5000/api/v1/finance/fee-payments',
+      };
 
-      setDetailedReportData({
-        students: students.map((s: any) => ({
-          id: s.id,
-          name: `${s.firstName} ${s.lastName}`,
-          email: s.email,
-          grade: s.grade,
-          enrollmentDate: s.createdAt,
-          status: s.status || 'Active'
-        })),
-        teachers: teachers.map((t: any) => ({
-          id: t.id,
-          name: `${t.firstName} ${t.lastName}`,
-          email: t.email,
-          department: t.department,
-          joinDate: t.createdAt,
-          status: t.status || 'Active'
-        })),
-        courses: courses.map((c: any) => ({
-          id: c.id,
-          name: c.name,
-          code: c.code,
-          department: c.department,
-          credits: c.credits,
-          enrollmentCount: c.enrollmentCount || 0
-        })),
-        enrollments: enrollments.map((e: any) => ({
-          id: e.id,
-          studentName: e.studentName,
-          courseName: e.courseName,
-          enrollmentDate: e.createdAt,
-          status: e.status,
-          grade: e.grade
-        })),
-        feePayments: feePayments.map((f: any) => ({
-          id: f.id,
-          studentName: f.studentName,
-          amount: f.amount,
-          paymentDate: f.paymentDate,
-          paymentMethod: f.paymentMethod,
-          status: f.status
-        }))
-      });
+      // For comprehensive report, fetch all endpoints
+      if (category === 'comprehensive') {
+        const [studentsRes, teachersRes, coursesRes, enrollmentsRes, feePaymentsRes] = await Promise.all([
+          fetch(endpoints.students, {
+            headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+          }),
+          fetch(endpoints.teachers, {
+            headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+          }),
+          fetch(endpoints.courses, {
+            headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+          }),
+          fetch(endpoints.enrollments, {
+            headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+          }),
+          fetch(endpoints.feePayments, {
+            headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+          }),
+        ]);
 
+        const responses = [studentsRes, teachersRes, coursesRes, enrollmentsRes, feePaymentsRes];
+        for (const res of responses) {
+          if (!res.ok) {
+            throw new Error(`Failed to fetch data from ${res.url}: ${res.statusText}`);
+          }
+        }
+
+        const [studentsData, teachersData, coursesData, enrollmentsData, feePaymentsData] = await Promise.all([
+          studentsRes.json(),
+          teachersRes.json(),
+          coursesRes.json(),
+          enrollmentsRes.json(),
+          feePaymentsRes.json(),
+        ]);
+
+        setDetailedReportData({
+          students: studentsData.students.map((s: any) => ({
+            id: s.id,
+            name: `${s.firstName} ${s.lastName}`,
+            email: s.user?.email || s.email,
+            grade: s.gradeLevel, // Adjusted to match backend field
+            enrollmentDate: s.createdAt,
+            status: s.status || 'Active',
+          })),
+          teachers: teachersData.teachers.map((t: any) => ({
+            id: t.id,
+            name: `${t.firstName} ${t.lastName}`,
+            email: t.user?.email || t.email,
+            department: t.subjectSpecialization || 'Unknown', // Adjusted to match backend field
+            joinDate: t.hireDate || t.createdAt,
+            status: t.status || 'Active',
+          })),
+          courses: coursesData.courses.map((c: any) => ({
+            id: c.id,
+            name: c.name,
+            code: c.code,
+            department: c.department || 'Unknown', // Fallback if department is not provided
+            credits: c.credits || 0, // Fallback if credits is not provided
+            enrollmentCount: c.enrollmentCount || 0,
+          })),
+          enrollments: enrollmentsData.enrollments.map((e: any) => ({
+            id: e.id,
+            studentName: e.studentName || `${e.student?.firstName} ${e.student?.lastName}`,
+            courseName: e.courseName || e.course?.name,
+            enrollmentDate: e.enrollmentDate || e.createdAt,
+            status: e.status || 'Active',
+            grade: e.grade || 'N/A',
+          })),
+          feePayments: feePaymentsData.payments.map((f: any) => ({
+            id: f.id,
+            studentName: f.studentName || `${f.student?.firstName} ${f.student?.lastName}`,
+            amount: f.amount,
+            paymentDate: f.processedAt || f.createdAt,
+            paymentMethod: f.paymentMethod || 'Unknown',
+            status: f.status || 'Pending',
+          })),
+        });
+      } else {
+        // Fetch only the data for the selected category
+        const response = await fetch(endpoints[category], {
+          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        });
+
+        if (!response.ok) {
+          throw new Error(`Failed to fetch ${category} data: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        const newData = {
+          [category]: data[category === 'feePayments' ? 'payments' : category].map((item: any) => {
+            if (category === 'students') {
+              return {
+                id: item.id,
+                name: `${item.firstName} ${item.lastName}`,
+                email: item.user?.email || item.email,
+                grade: item.gradeLevel, // Adjusted to match backend field
+                enrollmentDate: item.createdAt,
+                status: item.status || 'Active',
+              };
+            } else if (category === 'teachers') {
+              return {
+                id: item.id,
+                name: `${item.firstName} ${item.lastName}`,
+                email: item.user?.email || item.email,
+                department: item.subjectSpecialization || 'Unknown', // Adjusted to match backend field
+                joinDate: item.hireDate || item.createdAt,
+                status: item.status || 'Active',
+              };
+            } else if (category === 'courses') {
+              return {
+                id: item.id,
+                name: item.name,
+                code: item.code,
+                department: item.department || 'Unknown', // Fallback if department is not provided
+                credits: item.credits || 0, // Fallback if credits is not provided
+                enrollmentCount: item.enrollmentCount || 0,
+              };
+            } else if (category === 'enrollments') {
+              return {
+                id: item.id,
+                studentName: item.studentName || `${item.student?.firstName} ${item.student?.lastName}`,
+                courseName: item.courseName || item.course?.name,
+                enrollmentDate: item.enrollmentDate || item.createdAt,
+                status: item.status || 'Active',
+                grade: item.grade || 'N/A',
+              };
+            } else if (category === 'feePayments') {
+              return {
+                id: item.id,
+                studentName: item.studentName || `${item.student?.firstName} ${item.student?.lastName}`,
+                amount: item.amount,
+                paymentDate: item.processedAt || item.createdAt,
+                paymentMethod: item.paymentMethod || 'Unknown',
+                status: item.status || 'Pending',
+              };
+            }
+          }),
+        };
+
+        setDetailedReportData((prev) => ({
+          ...prev,
+          ...newData,
+        }));
+      }
     } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : `Failed to fetch ${category} report data`;
       toast({
         title: "Error",
-        description: "Failed to fetch detailed report data",
-        variant: "destructive"
+        description: errorMessage,
+        variant: "destructive",
       });
     } finally {
       setIsGenerating(false);
     }
   };
 
-  const handleGenerateReport = async (type: 'excel' | 'pdf', category: 'students' | 'teachers' | 'courses' | 'enrollments' | 'feePayments' | 'comprehensive') => {
-    if (!detailedReportData) {
-      await fetchDetailedReportData();
-      return;
+ const handleGenerateReport = async (
+  type: 'excel' | 'pdf',
+  category: 'students' | 'teachers' | 'courses' | 'enrollments' | 'feePayments' | 'comprehensive',
+) => {
+  try {
+    setIsGenerating(true); // Set loading state
+
+    // Fetch data if not already loaded for the category or comprehensive report
+    if (!detailedReportData || !detailedReportData[category] || category === 'comprehensive') {
+      await fetchDetailedReportData(category);
     }
 
-    try {
-      if (type === 'excel') {
-        switch (category) {
-          case 'students':
-            reportService.generateStudentsExcel(detailedReportData.students);
-            break;
-          case 'teachers':
-            reportService.generateTeachersExcel(detailedReportData.teachers);
-            break;
-          case 'courses':
-            reportService.generateCoursesExcel(detailedReportData.courses);
-            break;
-          case 'enrollments':
-            reportService.generateEnrollmentsExcel(detailedReportData.enrollments);
-            break;
-          case 'feePayments':
-            reportService.generateFeePaymentsExcel(detailedReportData.feePayments);
-            break;
-          case 'comprehensive':
-            reportService.generateComprehensiveExcel(detailedReportData);
-            break;
-        }
-      } else {
-        switch (category) {
-          case 'students':
-            reportService.generateStudentsPDF(detailedReportData.students);
-            break;
-          case 'teachers':
-            reportService.generateTeachersPDF(detailedReportData.teachers);
-            break;
-          case 'courses':
-            reportService.generateCoursesPDF(detailedReportData.courses);
-            break;
-          case 'enrollments':
-            reportService.generateEnrollmentsPDF(detailedReportData.enrollments);
-            break;
-          case 'feePayments':
-            reportService.generateFeePaymentsPDF(detailedReportData.feePayments);
-            break;
-        }
+    // Wait briefly to ensure state is updated (workaround for React state update timing)
+    await new Promise(resolve => setTimeout(resolve, 0));
+
+    // Re-check detailedReportData after awaiting fetch
+    if (!detailedReportData || (!detailedReportData[category] && category !== 'comprehensive')) {
+      throw new Error(`No ${category} data available for report generation`);
+    }
+
+    if (type === 'excel') {
+      switch (category) {
+        case 'students':
+          reportService.generateStudentsExcel(detailedReportData!.students!);
+          break;
+        case 'teachers':
+          reportService.generateTeachersExcel(detailedReportData!.teachers!);
+          break;
+        case 'courses':
+          reportService.generateCoursesExcel(detailedReportData!.courses!);
+          break;
+        case 'enrollments':
+          reportService.generateEnrollmentsExcel(detailedReportData!.enrollments!);
+          break;
+        case 'feePayments':
+          reportService.generateFeePaymentsExcel(detailedReportData!.feePayments!);
+          break;
+        case 'comprehensive':
+          if (
+            !detailedReportData ||
+            !detailedReportData.students ||
+            !detailedReportData.teachers ||
+            !detailedReportData.courses ||
+            !detailedReportData.enrollments ||
+            !detailedReportData.feePayments
+          ) {
+            throw new Error('Comprehensive report data is incomplete');
+          }
+          reportService.generateComprehensiveExcel({
+            students: detailedReportData.students,
+            teachers: detailedReportData.teachers,
+            courses: detailedReportData.courses,
+            enrollments: detailedReportData.enrollments,
+            feePayments: detailedReportData.feePayments,
+          });
+          break;
       }
-
-      toast({
-        title: "Success",
-        description: `${category} report generated successfully`,
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to generate report",
-        variant: "destructive"
-      });
+    } else {
+      switch (category) {
+        case 'students':
+          reportService.generateStudentsExcel(detailedReportData!.students!); // Use generateStudentsExcel for PDF
+          break;
+        case 'teachers':
+          reportService.generateTeachersExcel(detailedReportData!.teachers!); // Use generateTeachersExcel for PDF
+          break;
+        case 'courses':
+          reportService.generateCoursesExcel(detailedReportData!.courses!); // Use generateCoursesExcel for PDF
+          break;
+        case 'enrollments':
+          reportService.generateEnrollmentsExcel(detailedReportData!.enrollments!); // Use generateEnrollmentsExcel for PDF
+          break;
+        case 'feePayments':
+          reportService.generateFeePaymentsExcel(detailedReportData!.feePayments!); // Use generateFeePaymentsExcel for PDF
+          break;
+        case 'comprehensive':
+          throw new Error('Comprehensive PDF report is not supported');
+      }
     }
-  };
+
+    toast({
+      title: 'Success',
+      description: `${category.charAt(0).toUpperCase() + category.slice(1)} report generated successfully`,
+    });
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : `Failed to generate ${category} report`;
+    toast({
+      title: 'Error',
+      description: errorMessage,
+      variant: 'destructive',
+    });
+  } finally {
+    setIsGenerating(false);
+  }
+};
 
   useEffect(() => {
     if (token && user?.role === 'admin') {
@@ -366,7 +483,6 @@ export default function Reports() {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {/* Students Reports */}
             <div className="p-4 border rounded-lg">
               <h3 className="font-semibold mb-2 flex items-center">
                 <Users className="h-4 w-4 mr-2" />
@@ -396,7 +512,6 @@ export default function Reports() {
               </div>
             </div>
 
-            {/* Teachers Reports */}
             <div className="p-4 border rounded-lg">
               <h3 className="font-semibold mb-2 flex items-center">
                 <GraduationCap className="h-4 w-4 mr-2" />
@@ -426,7 +541,6 @@ export default function Reports() {
               </div>
             </div>
 
-            {/* Courses Reports */}
             <div className="p-4 border rounded-lg">
               <h3 className="font-semibold mb-2 flex items-center">
                 <BookOpen className="h-4 w-4 mr-2" />
@@ -456,7 +570,6 @@ export default function Reports() {
               </div>
             </div>
 
-            {/* Enrollments Reports */}
             <div className="p-4 border rounded-lg">
               <h3 className="font-semibold mb-2 flex items-center">
                 <FileText className="h-4 w-4 mr-2" />
@@ -486,7 +599,6 @@ export default function Reports() {
               </div>
             </div>
 
-            {/* Fee Payments Reports */}
             <div className="p-4 border rounded-lg">
               <h3 className="font-semibold mb-2 flex items-center">
                 <DollarSign className="h-4 w-4 mr-2" />
@@ -516,7 +628,6 @@ export default function Reports() {
               </div>
             </div>
 
-            {/* Comprehensive Report */}
             <div className="p-4 border rounded-lg bg-blue-50">
               <h3 className="font-semibold mb-2 flex items-center">
                 <Download className="h-4 w-4 mr-2" />
@@ -538,7 +649,6 @@ export default function Reports() {
         </CardContent>
       </Card>
 
-      {/* Charts and Detailed Reports */}
       <Tabs defaultValue="overview" className="space-y-4">
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
@@ -628,8 +738,8 @@ export default function Reports() {
                   <Tooltip />
                   <Bar dataKey="enrollments" fill="#00C49F" />
                 </BarChart>
-              </ResponsiveContainer>
-            </CardContent>
+                </ResponsiveContainer>
+              </CardContent>
           </Card>
         </TabsContent>
 
@@ -644,7 +754,7 @@ export default function Reports() {
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="month" />
                   <YAxis />
-                  <Tooltip formatter={(value) => [`$${value.toLocaleString()}`, 'Amount']} />
+                  <Tooltip formatter={(value: number) => [`$${value.toLocaleString()}`, 'Amount']} />
                   <Bar dataKey="amount" fill="#FF8042" />
                 </BarChart>
               </ResponsiveContainer>
@@ -653,7 +763,6 @@ export default function Reports() {
         </TabsContent>
       </Tabs>
 
-      {/* Recent Activities */}
       <Card>
         <CardHeader>
           <CardTitle>Recent Activities</CardTitle>
