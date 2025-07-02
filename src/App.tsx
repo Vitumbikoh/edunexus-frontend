@@ -52,7 +52,7 @@ import ClassManagement from "./pages/Classes";
 import ScheduleManagement from "./pages/schedules";
 
 // Reports page
-import Reports from "./pages/Reports";
+import Reports from "./pages/Reports/Reports";
 
 // Protected route component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
