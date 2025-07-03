@@ -84,7 +84,7 @@ export default function TeacherCourses() {
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearch(e.target.value);
-    setPage(1); // Reset to first page on new search
+    setPage(1);
   };
 
   const handlePageChange = (newPage: number) => {
@@ -249,7 +249,14 @@ export default function TeacherCourses() {
                       variant="outline"
                       size="sm"
                       className="gap-2"
-                      onClick={() => navigate(`/courses/${course.id}/create-exam`)}
+                      onClick={() => navigate(`/courses/${course.id}/create-exam`, {
+                        state: { course: { 
+                          id: course.id,
+                          class: course.class,
+                          teacher: { name: user?.name || 'Unknown Teacher' },
+                          name: course.name
+                        } }
+                      })}
                     >
                       <Plus className="h-4 w-4" />
                       Create Exams

@@ -55,6 +55,7 @@ import ExamForm from "./pages/courses/ExamForm";
 
 // Reports page
 import Reports from "./pages/Reports/Reports";
+import ExamDetails from "./pages/courses/ExamDetails";
 
 // Protected route component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -342,6 +343,17 @@ const AppRoutes = () => {
           <ProtectedRoute>
             <Layout>
               <Exams />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/exams/:examId"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <ExamDetails />
             </Layout>
           </ProtectedRoute>
         }

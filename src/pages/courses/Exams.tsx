@@ -1,20 +1,30 @@
 import React, { useState, useEffect } from 'react';
 import { Search, FileText, CheckCircle, Clock, Users, BookOpen, Filter } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/components/ui/use-toast";
-import axios from 'axios';
+import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 interface Exam {
   id: string;
   title: string;
   subject: string;
-  class: string;
-  teacher: string;
+  classId: string;
+  class: {
+    id: string;
+    name: string;
+  };
+  teacher: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    userId: string;
+  };
   date: string;
   duration: string;
   totalMarks: number;
@@ -24,45 +34,147 @@ interface Exam {
   academicYear: string;
 }
 
-const classes = ['All Classes', 'Grade 10', 'Grade 11', 'Grade 12'];
-const teachers = ['All Teachers', 'Dr. Smith', 'Ms. Johnson', 'Prof. Davis', 'Dr. Wilson', 'Mr. Brown'];
+interface Class {
+  id: string;
+  name: string;
+}
+
+interface Teacher {
+  id: string;
+  userId: string;
+  firstName: string;
+  lastName: string;
+}
+
 const academicYears = ['All Years', '2023-2024', '2024-2025'];
 
 export default function Exams() {
+  const { token } = useAuth();
   const [exams, setExams] = useState<Exam[]>([]);
+  const [classes, setClasses] = useState<Class[]>([]);
+  const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedClass, setSelectedClass] = useState('All Classes');
   const [selectedTeacher, setSelectedTeacher] = useState('All Teachers');
   const [selectedAcademicYear, setSelectedAcademicYear] = useState('All Years');
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  const navigate = useNavigate();
+
+  const fetchWithAuth = async (url: string, params?: Record<string, string>) => {
+    const queryString = params
+      ? `?${Object.entries(params)
+          .filter(([_, value]) => value !== undefined)
+          .map(([key, value]) => `${key}=${encodeURIComponent(value)}`)
+          .join('&')}`
+      : '';
+    const response = await fetch(`${url}${queryString}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        throw new Error('Unauthorized - Please log in again');
+      }
+      if (response.status === 403) {
+        throw new Error('Access Denied - Insufficient permissions');
+      }
+      throw new Error(`Request failed: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data;
+  };
 
   useEffect(() => {
-    const fetchExams = async () => {
-      setIsLoading(true);
+    const fetchInitialData = async () => {
       try {
-        const response = await axios.get('http://localhost:5000/api/v1/exams', {
-          params: {
-            searchTerm,
-            class: selectedClass,
-            teacher: selectedTeacher,
-            academicYear: selectedAcademicYear,
-          },
-        });
-        setExams(response.data as Exam[]);
+        setIsLoading(true);
+
+        // Fetch classes for filter dropdown
+        const classesData = await fetchWithAuth('http://localhost:5000/api/v1/classes');
+        const classData: Class[] = classesData as Class[];
+        console.log('Classes fetched:', classData);
+        setClasses([{ id: 'all', name: 'All Classes' }, ...classData]);
+
+        // Fetch teachers
+        try {
+          const teachersData = await fetchWithAuth('http://localhost:5000/api/v1/teacher/teachers');
+          const teacherData = teachersData.teachers.map((teacher: any) => ({
+            id: teacher.id,
+            userId: teacher.userId,
+            firstName: teacher.firstName,
+            lastName: teacher.lastName,
+          }));
+          console.log('Teachers fetched:', teacherData);
+          setTeachers([{ id: 'all', userId: 'all', firstName: 'All', lastName: 'Teachers' }, ...teacherData]);
+        } catch (error: any) {
+          console.warn('Failed to fetch teachers, proceeding with empty teacher list:', error);
+          setTeachers([{ id: 'all', userId: 'all', firstName: 'All', lastName: 'Teachers' }]);
+        }
+
+        // Fetch exams
+        const examsData = await fetchWithAuth('http://localhost:5000/api/v1/exams');
+        console.log('Exams API response:', examsData);
+        setExams(examsData);
       } catch (error: any) {
+        const errorMessage = error.message || 'Failed to fetch data';
         toast({
-          title: "Error",
-          description: error.response?.data?.message || "Failed to fetch exams. Please try again.",
-          variant: "destructive",
+          title: 'Error',
+          description: errorMessage,
+          variant: 'destructive',
         });
-        console.error('Failed to fetch exams:', error);
+        if (errorMessage.includes('Unauthorized')) {
+          window.location.href = '/login';
+        }
       } finally {
         setIsLoading(false);
       }
     };
-    fetchExams();
-  }, [searchTerm, selectedClass, selectedTeacher, selectedAcademicYear, toast]);
+
+    if (token) {
+      fetchInitialData();
+    } else {
+      toast({
+        title: 'Authentication Required',
+        description: 'Please log in to access this page.',
+        variant: 'destructive',
+      });
+      window.location.href = '/login';
+    }
+  }, [toast, token]);
+
+  useEffect(() => {
+    const fetchFilteredExams = async () => {
+      if (!token) return;
+      try {
+        setIsLoading(true);
+        const className = selectedClass === 'All Classes' ? undefined : selectedClass;
+        const teacherId = selectedTeacher === 'All Teachers' ? undefined : teachers.find((t) => `${t.firstName} ${t.lastName}` === selectedTeacher)?.userId;
+        const params: Record<string, string> = {
+          searchTerm,
+          class: className,
+          teacherId,
+          academicYear: selectedAcademicYear === 'All Years' ? undefined : selectedAcademicYear,
+        };
+        console.log('Filter params:', params);
+        const examsData = await fetchWithAuth('http://localhost:5000/api/v1/exams', params);
+        console.log('Filtered exams API response:', examsData);
+        setExams(examsData);
+      } catch (error: any) {
+        const errorMessage = error.message || 'Failed to fetch exams';
+        toast({
+          title: 'Error',
+          description: errorMessage,
+          variant: 'destructive',
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchFilteredExams();
+  }, [searchTerm, selectedClass, selectedTeacher, selectedAcademicYear, toast, token, teachers]);
 
   // Calculate statistics
   const totalExams = exams.length;
@@ -88,6 +200,10 @@ export default function Exams() {
     setSelectedClass('All Classes');
     setSelectedTeacher('All Teachers');
     setSelectedAcademicYear('All Years');
+  };
+
+  const handleViewDetails = (examId: string) => {
+    navigate(`/exams/${examId}`);
   };
 
   return (
@@ -168,7 +284,7 @@ export default function Exams() {
               </SelectTrigger>
               <SelectContent>
                 {classes.map((cls) => (
-                  <SelectItem key={cls} value={cls}>{cls}</SelectItem>
+                  <SelectItem key={cls.id} value={cls.name}>{cls.name}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -179,7 +295,9 @@ export default function Exams() {
               </SelectTrigger>
               <SelectContent>
                 {teachers.map((teacher) => (
-                  <SelectItem key={teacher} value={teacher}>{teacher}</SelectItem>
+                  <SelectItem key={teacher.userId} value={`${teacher.firstName} ${teacher.lastName}`}>
+                    {teacher.firstName} {teacher.lastName}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -242,8 +360,8 @@ export default function Exams() {
                     <TableRow key={exam.id}>
                       <TableCell className="font-medium">{exam.title}</TableCell>
                       <TableCell>{exam.subject}</TableCell>
-                      <TableCell>{exam.class}</TableCell>
-                      <TableCell>{exam.teacher}</TableCell>
+                      <TableCell>{exam.class?.name || 'Unknown Class'}</TableCell>
+                      <TableCell>{`${exam.teacher.firstName} ${exam.teacher.lastName}`}</TableCell>
                       <TableCell>{new Date(exam.date).toLocaleDateString()}</TableCell>
                       <TableCell>{exam.duration}</TableCell>
                       <TableCell>{exam.totalMarks}</TableCell>
@@ -257,7 +375,11 @@ export default function Exams() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Button variant="ghost" size="sm">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleViewDetails(exam.id)}
+                        >
                           View Details
                         </Button>
                       </TableCell>
