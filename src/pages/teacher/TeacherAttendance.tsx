@@ -175,8 +175,8 @@ export default function TeacherAttendance() {
 
   const handleClassSelect = (value: string) => {
     setSelectedClass(value);
-    setSelectedCourse(''); // Reset course when class changes
-    setAttendanceStatus({}); // Reset attendance status
+    setSelectedCourse('');
+    setAttendanceStatus({});
   };
 
   const handleAttendanceChange = (studentId: string, isPresent: boolean) => {
@@ -186,7 +186,7 @@ export default function TeacherAttendance() {
     }));
   };
 
-  const handleSubmitAttendance = () => {
+  const handleSubmitAttendance = async () => {
     if (!selectedClass || !selectedCourse) {
       toast({
         variant: 'destructive',
@@ -205,23 +205,59 @@ export default function TeacherAttendance() {
       return;
     }
 
-    console.log('Submitting attendance:', {
-      class: selectedClass,
-      course: selectedCourse,
+    const payload = {
+      classId: selectedClass,
+      courseId: selectedCourse,
       date: new Date().toISOString(),
       attendanceStatus,
-    });
+    };
 
-    toast({
-      title: 'Attendance submitted successfully',
-      description: `Attendance for ${selectedClass} - ${selectedCourse} has been recorded.`,
-    });
+    // Log payload for debugging
+    console.log('Sending attendance payload:', payload);
 
-    // Reset form
-    setSelectedClass('');
-    setSelectedCourse('');
-    setStudents([]);
-    setAttendanceStatus({});
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await fetch('http://localhost:5000/api/v1/teacher/attendance', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (response.status === 401) {
+        throw new Error('Unauthorized - Please log in again');
+      }
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to submit attendance');
+      }
+
+      const data = await response.json();
+      toast({
+        title: 'Attendance submitted successfully',
+        description: `Attendance for ${selectedClass} - ${selectedCourse} has been recorded.`,
+      });
+
+      // Reset form
+      setSelectedClass('');
+      setSelectedCourse('');
+      setStudents([]);
+      setAttendanceStatus({});
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to submit attendance';
+      setError(errorMessage);
+      toast({
+        title: 'Error',
+        description: errorMessage,
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (loading) {
