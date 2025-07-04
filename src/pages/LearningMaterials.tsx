@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -11,15 +10,92 @@ import { Upload, FileType, BookOpen } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useNavigate } from 'react-router-dom';
 
+interface Class {
+  id: string;
+  name: string;
+}
+
+interface Course {
+  id: string;
+  name: string;
+}
+
 export default function LearningMaterials() {
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const navigate = useNavigate();
+  const [classes, setClasses] = useState<Class[]>([]);
+  const [courses, setCourses] = useState<Course[]>([]);
   const [selectedClass, setSelectedClass] = useState<string>("");
   const [selectedCourse, setSelectedCourse] = useState<string>("");
   const [title, setTitle] = useState<string>("");
   const [description, setDescription] = useState<string>("");
   const [file, setFile] = useState<File | null>(null);
-  
+
+  useEffect(() => {
+    if (user && user.role === 'teacher' && token) {
+      // Fetch classes from TeacherController
+      fetch('http://localhost:5000/api/v1/teacher/my-classes', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error('Failed to fetch classes');
+          }
+          return response.json();
+        })
+        .then((data) => {
+          if (data.success) {
+            setClasses(data.classes);
+          } else {
+            throw new Error('Failed to fetch classes');
+          }
+        })
+        .catch((error) => {
+          console.error('Error fetching classes:', error);
+          toast({
+            variant: "destructive",
+            title: "Error",
+            description: "Failed to fetch classes",
+          });
+        });
+    }
+  }, [user, token]);
+
+  useEffect(() => {
+    if (selectedClass && user && user.role === 'teacher' && token) {
+      // Fetch courses from TeacherController
+      fetch(`http://localhost:5000/api/v1/teacher/my-courses/by-class/${selectedClass}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error('Failed to fetch courses');
+          }
+          return response.json();
+        })
+        .then((data) => {
+          if (data.success) {
+            setCourses(data.courses);
+            setSelectedCourse(""); // Reset course selection when class changes
+          } else {
+            throw new Error('Failed to fetch courses');
+          }
+        })
+        .catch((error) => {
+          console.error('Error fetching courses:', error);
+          toast({
+            variant: "destructive",
+            title: "Error",
+            description: "Failed to fetch courses",
+          });
+        });
+    }
+  }, [selectedClass, user, token]);
+
   if (!user || user.role !== 'teacher') {
     return (
       <div className="flex items-center justify-center h-96">
@@ -36,7 +112,7 @@ export default function LearningMaterials() {
     }
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!selectedClass || !selectedCourse || !title) {
       toast({
         variant: "destructive",
@@ -55,25 +131,60 @@ export default function LearningMaterials() {
       return;
     }
 
-    console.log("Uploading material:", {
-      class: selectedClass,
-      course: selectedCourse,
-      title,
-      description,
-      file: file.name,
-    });
+    if (!token) {
+      toast({
+        variant: "destructive",
+        title: "Authentication error",
+        description: "No authentication token found. Please log in again.",
+      });
+      return;
+    }
 
-    toast({
-      title: "Material uploaded successfully",
-      description: `"${title}" has been uploaded for ${selectedClass} - ${selectedCourse}`,
-    });
+    const formData = new FormData();
+    formData.append('classId', selectedClass);
+    formData.append('courseId', selectedCourse);
+    formData.append('title', title);
+    formData.append('description', description || '');
+    formData.append('file', file);
 
-    // Reset form
-    setSelectedClass("");
-    setSelectedCourse("");
-    setTitle("");
-    setDescription("");
-    setFile(null);
+    try {
+      const response = await fetch('http://localhost:5000/api/v1/learning-materials', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to upload material');
+      }
+
+      const data = await response.json();
+      if (data.success) {
+        console.log('Uploaded material:', data.material);
+        toast({
+          title: "Material uploaded successfully",
+          description: `"${title}" has been uploaded for ${classes.find(c => c.id === selectedClass)?.name} - ${courses.find(c => c.id === selectedCourse)?.name}`,
+        });
+
+        // Reset form
+        setSelectedClass("");
+        setSelectedCourse("");
+        setTitle("");
+        setDescription("");
+        setFile(null);
+      } else {
+        throw new Error('Failed to upload material');
+      }
+    } catch (error) {
+      console.error('Error uploading material:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to upload material",
+      });
+    }
   };
 
   return (
@@ -81,7 +192,6 @@ export default function LearningMaterials() {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold">Upload Learning Materials</h1>
-          <p className="text-muted-foreground">Share resources with your students</p>
         </div>
         <Button variant="outline" onClick={() => navigate(-1)} className="gap-2">
           <BookOpen className="h-4 w-4" />
@@ -104,8 +214,10 @@ export default function LearningMaterials() {
                     <SelectValue placeholder="Select a class" />
                   </SelectTrigger>
                   <SelectContent>
-                    {user.teacherData?.classes?.map((className) => (
-                      <SelectItem key={className} value={className}>Class {className}</SelectItem>
+                    {classes.map((classItem) => (
+                      <SelectItem key={classItem.id} value={classItem.id}>
+                        {classItem.name}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -118,8 +230,10 @@ export default function LearningMaterials() {
                     <SelectValue placeholder="Select a course" />
                   </SelectTrigger>
                   <SelectContent>
-                    {user.teacherData?.courses?.map((course) => (
-                      <SelectItem key={course} value={course}>{course}</SelectItem>
+                    {courses.map((course) => (
+                      <SelectItem key={course.id} value={course.id}>
+                        {course.name}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
