@@ -82,8 +82,8 @@ export default function ParentAttendance() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="bg-background p-4 rounded-lg border">
                   <div className="text-sm text-muted-foreground">Present</div>
-                  <div className="text-2xl font-bold text-green-600">{child.attendance.present}%</div>
-                  <Progress value={child.attendance.present} className="h-2 mt-2" />
+                  <div className="text-2xl font-bold text-green-600">{Math.round((child.attendance.present / child.attendance.total) * 100)}%</div>
+                  <Progress value={Math.round((child.attendance.present / child.attendance.total) * 100)} className="h-2 mt-2" />
                 </div>
                 
                 <div className="bg-background p-4 rounded-lg border">

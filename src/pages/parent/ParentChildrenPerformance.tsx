@@ -115,9 +115,29 @@ export default function ParentChildrenPerformance() {
                 <div className="space-y-2">
                   <div className="flex justify-between items-center">
                     <span>Academic Performance</span>
-                    <span className="font-medium">{Math.floor(80 + Math.random() * 15)}%</span>
+                    <span className="font-medium">
+                      {Math.round(
+                        child.grades.reduce((sum, grade) => {
+                          let points = 0;
+                          if (grade.grade.startsWith('A')) points = 95;
+                          else if (grade.grade.startsWith('B')) points = 85;
+                          else if (grade.grade.startsWith('C')) points = 75;
+                          else points = 65;
+                          return sum + points;
+                        }, 0) / child.grades.length
+                      )}%
+                    </span>
                   </div>
-                  <Progress value={Math.floor(80 + Math.random() * 15)} className="h-2" />
+                  <Progress value={Math.round(
+                    child.grades.reduce((sum, grade) => {
+                      let points = 0;
+                      if (grade.grade.startsWith('A')) points = 95;
+                      else if (grade.grade.startsWith('B')) points = 85;
+                      else if (grade.grade.startsWith('C')) points = 75;
+                      else points = 65;
+                      return sum + points;
+                    }, 0) / child.grades.length
+                  )} className="h-2" />
                 </div>
               </div>
             </CardContent>

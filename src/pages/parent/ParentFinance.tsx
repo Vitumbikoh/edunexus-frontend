@@ -1,287 +1,200 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Progress } from '@/components/ui/progress';
-import { DollarSign, CreditCard, AlertCircle, Download, Eye } from 'lucide-react';
-
-// Mock finance data for parent view
-const mockFinanceData = {
-  overview: {
-    totalFees: 5000,
-    totalPaid: 3500,
-    totalOutstanding: 1500,
-    nextPaymentDue: '2024-02-15'
-  },
-  transactions: [
-    {
-      id: '1',
-      studentName: 'John Doe',
-      description: 'Tuition Fee - Fall Semester',
-      amount: 2500,
-      dueDate: '2024-01-31',
-      paidDate: '2024-01-15',
-      status: 'Paid',
-      type: 'Tuition'
-    },
-    {
-      id: '2',
-      studentName: 'Jane Doe',
-      description: 'Library Fee',
-      amount: 150,
-      dueDate: '2024-02-15',
-      paidDate: null,
-      status: 'Pending',
-      type: 'Fee'
-    },
-    {
-      id: '3',
-      studentName: 'John Doe',
-      description: 'Laboratory Fee',
-      amount: 300,
-      dueDate: '2024-02-20',
-      paidDate: null,
-      status: 'Overdue',
-      type: 'Fee'
-    },
-    {
-      id: '4',
-      studentName: 'Jane Doe',
-      description: 'Sports Activity Fee',
-      amount: 200,
-      dueDate: '2024-03-01',
-      paidDate: null,
-      status: 'Upcoming',
-      type: 'Activity'
-    }
-  ]
-};
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { 
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { DollarSign, CreditCard, Calendar, AlertTriangle } from "lucide-react";
 
 export default function ParentFinance() {
   const { user } = useAuth();
-  const [selectedStudent, setSelectedStudent] = useState('all');
-  const [statusFilter, setStatusFilter] = useState('all');
-
+  
   if (!user?.parentData) {
     return (
       <div className="flex items-center justify-center h-full">
-        <p>No finance data available.</p>
+        <p>No children data available.</p>
       </div>
     );
   }
 
-  const filteredTransactions = mockFinanceData.transactions.filter(transaction => {
-    const matchesStudent = selectedStudent === 'all' || transaction.studentName.toLowerCase().includes(selectedStudent.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || transaction.status.toLowerCase() === statusFilter;
-    return matchesStudent && matchesStatus;
-  });
+  // Calculate total finances across all children
+  const totalFees = user.parentData.children.reduce((sum, child) => sum + child.fees.total, 0);
+  const totalPaid = user.parentData.children.reduce((sum, child) => sum + child.fees.paid, 0);
+  const totalPending = user.parentData.children.reduce((sum, child) => sum + child.fees.pending, 0);
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'Paid': return 'bg-green-100 text-green-800 border-green-200';
-      case 'Pending': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'Overdue': return 'bg-red-100 text-red-800 border-red-200';
-      case 'Upcoming': return 'bg-blue-100 text-blue-800 border-blue-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
-    }
-  };
-
-  const paymentProgress = (mockFinanceData.overview.totalPaid / mockFinanceData.overview.totalFees) * 100;
+  // Mock payment history
+  const paymentHistory = [
+    { id: '1', child: 'Emma Johnson', amount: 800, date: '2024-01-15', type: 'Tuition Fee', status: 'Paid' },
+    { id: '2', child: 'Alex Johnson', amount: 600, date: '2024-01-15', type: 'Tuition Fee', status: 'Paid' },
+    { id: '3', child: 'Emma Johnson', amount: 200, date: '2024-01-10', type: 'Activity Fee', status: 'Paid' },
+    { id: '4', child: 'Alex Johnson', amount: 150, date: '2024-01-10', type: 'Lab Fee', status: 'Paid' },
+    { id: '5', child: 'Emma Johnson', amount: 300, date: '2023-12-20', type: 'Book Fee', status: 'Paid' },
+  ];
 
   return (
     <div className="space-y-6 p-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Finance Overview</h1>
-          <p className="text-muted-foreground mt-2">Track fees, payments, and financial obligations for your children</p>
+          <h1 className="text-3xl font-bold tracking-tight">Financial Overview</h1>
+          <p className="text-muted-foreground mt-2">Manage your children's fees and payment history</p>
         </div>
         <div className="flex items-center space-x-2">
-          <Button variant="outline">
-            <Download className="h-4 w-4 mr-2" />
-            Export Statement
-          </Button>
+          <Badge variant={totalPending > 0 ? "destructive" : "default"} className="text-sm">
+            {totalPending > 0 ? `$${totalPending} pending` : 'All paid'}
+          </Badge>
         </div>
       </div>
 
-      {/* Financial Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card className="border-l-4 border-l-primary">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center">
-              <DollarSign className="h-4 w-4 mr-2 text-primary" />
-              Total Fees
-            </CardTitle>
+      {/* Overall Financial Summary */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Fees</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${mockFinanceData.overview.totalFees.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground mt-1">Academic year 2024</p>
+            <div className="text-2xl font-bold">${totalFees.toLocaleString()}</div>
+            <p className="text-xs text-muted-foreground">
+              Academic year 2023-2024
+            </p>
           </CardContent>
         </Card>
 
-        <Card className="border-l-4 border-l-green-500">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center">
-              <CreditCard className="h-4 w-4 mr-2 text-green-600" />
-              Amount Paid
-            </CardTitle>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Amount Paid</CardTitle>
+            <CreditCard className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">${mockFinanceData.overview.totalPaid.toLocaleString()}</div>
-            <Progress value={paymentProgress} className="h-2 mt-2" />
-            <p className="text-xs text-muted-foreground mt-1">{paymentProgress.toFixed(0)}% of total fees</p>
+            <div className="text-2xl font-bold text-green-600">${totalPaid.toLocaleString()}</div>
+            <p className="text-xs text-muted-foreground">
+              {Math.round((totalPaid / totalFees) * 100)}% of total fees
+            </p>
           </CardContent>
         </Card>
 
-        <Card className="border-l-4 border-l-red-500">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center">
-              <AlertCircle className="h-4 w-4 mr-2 text-red-600" />
-              Outstanding
-            </CardTitle>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Pending Amount</CardTitle>
+            <AlertTriangle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">${mockFinanceData.overview.totalOutstanding.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground mt-1">Due by {mockFinanceData.overview.nextPaymentDue}</p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-l-4 border-l-blue-500">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Payment Status</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-blue-600">
-              {filteredTransactions.filter(t => t.status === 'Paid').length}
+            <div className={`text-2xl font-bold ${totalPending > 0 ? 'text-red-500' : 'text-green-600'}`}>
+              ${totalPending.toLocaleString()}
             </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              of {filteredTransactions.length} payments completed
+            <p className="text-xs text-muted-foreground">
+              Due by January 30, 2024
             </p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Student-wise Financial Overview */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Individual Child Finances */}
+      <div className="grid grid-cols-1 gap-6">
         {user.parentData.children.map((child) => (
-          <Card key={child.id} className="shadow-md">
+          <Card key={child.id}>
             <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <span>{child.name}'s Finances</span>
-                <Badge variant="outline">{child.grade}</Badge>
-              </CardTitle>
-              <CardDescription>Financial summary for current academic year</CardDescription>
+              <CardTitle>{child.name} - Financial Details</CardTitle>
+              <CardDescription>Grade: {child.grade}</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-background p-3 rounded-lg border">
-                  <div className="text-sm text-muted-foreground">Total Paid</div>
-                  <div className="text-xl font-bold text-green-600">
-                    ${filteredTransactions
-                      .filter(t => t.studentName === child.name && t.status === 'Paid')
-                      .reduce((sum, t) => sum + t.amount, 0)
-                      .toLocaleString()}
+            <CardContent className="space-y-6">
+              {/* Fee Breakdown */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-background p-4 rounded-lg border">
+                  <div className="text-sm text-muted-foreground">Total Fees</div>
+                  <div className="text-2xl font-bold">${child.fees.total}</div>
+                  <div className="text-sm text-muted-foreground mt-2">Academic year</div>
+                </div>
+                
+                <div className="bg-background p-4 rounded-lg border">
+                  <div className="text-sm text-muted-foreground">Amount Paid</div>
+                  <div className="text-2xl font-bold text-green-600">${child.fees.paid}</div>
+                  <div className="text-sm text-muted-foreground mt-2">
+                    {Math.round((child.fees.paid / child.fees.total) * 100)}% completed
                   </div>
                 </div>
-                <div className="bg-background p-3 rounded-lg border">
-                  <div className="text-sm text-muted-foreground">Outstanding</div>
-                  <div className="text-xl font-bold text-red-600">
-                    ${filteredTransactions
-                      .filter(t => t.studentName === child.name && t.status !== 'Paid')
-                      .reduce((sum, t) => sum + t.amount, 0)
-                      .toLocaleString()}
+                
+                <div className="bg-background p-4 rounded-lg border">
+                  <div className="text-sm text-muted-foreground">Pending</div>
+                  <div className={`text-2xl font-bold ${child.fees.pending > 0 ? 'text-red-500' : 'text-green-600'}`}>
+                    ${child.fees.pending}
                   </div>
+                  <div className="text-sm text-muted-foreground mt-2">Due: {child.fees.dueDate}</div>
                 </div>
               </div>
+
+              {/* Payment Progress */}
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium">Payment Progress</span>
+                  <span className="text-sm text-muted-foreground">
+                    ${child.fees.paid} / ${child.fees.total}
+                  </span>
+                </div>
+                <Progress value={Math.round((child.fees.paid / child.fees.total) * 100)} className="h-2" />
+              </div>
+
+              {/* Action Buttons */}
+              {child.fees.pending > 0 && (
+                <div className="flex space-x-2">
+                  <Button>
+                    <CreditCard className="mr-2 h-4 w-4" />
+                    Pay Now (${child.fees.pending})
+                  </Button>
+                  <Button variant="outline">
+                    <Calendar className="mr-2 h-4 w-4" />
+                    Set up Payment Plan
+                  </Button>
+                </div>
+              )}
             </CardContent>
           </Card>
         ))}
       </div>
 
-      {/* Transactions Table */}
+      {/* Payment History */}
       <Card>
         <CardHeader>
-          <CardTitle>Payment History & Upcoming Fees</CardTitle>
-          <CardDescription>Detailed view of all fees and payments</CardDescription>
+          <CardTitle>Recent Payment History</CardTitle>
+          <CardDescription>Your recent fee payments and transactions</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-col sm:flex-row gap-4 mb-6">
-            <Select value={selectedStudent} onValueChange={setSelectedStudent}>
-              <SelectTrigger className="w-full sm:w-48">
-                <SelectValue placeholder="Select student" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Students</SelectItem>
-                {user.parentData.children.map((child) => (
-                  <SelectItem key={child.id} value={child.name.toLowerCase()}>
-                    {child.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-full sm:w-40">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="paid">Paid</SelectItem>
-                <SelectItem value="pending">Pending</SelectItem>
-                <SelectItem value="overdue">Overdue</SelectItem>
-                <SelectItem value="upcoming">Upcoming</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Student</TableHead>
-                  <TableHead>Description</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Due Date</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Amount</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+          <Table>
+            <TableCaption>Recent payment transactions</TableCaption>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Date</TableHead>
+                <TableHead>Child</TableHead>
+                <TableHead>Description</TableHead>
+                <TableHead className="text-right">Amount</TableHead>
+                <TableHead className="text-right">Status</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {paymentHistory.map((payment) => (
+                <TableRow key={payment.id}>
+                  <TableCell>{payment.date}</TableCell>
+                  <TableCell className="font-medium">{payment.child}</TableCell>
+                  <TableCell>{payment.type}</TableCell>
+                  <TableCell className="text-right">${payment.amount}</TableCell>
+                  <TableCell className="text-right">
+                    <Badge variant="default" className="text-green-700 bg-green-100">
+                      {payment.status}
+                    </Badge>
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredTransactions.map((transaction) => (
-                  <TableRow key={transaction.id}>
-                    <TableCell className="font-medium">{transaction.studentName}</TableCell>
-                    <TableCell>{transaction.description}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline">{transaction.type}</Badge>
-                    </TableCell>
-                    <TableCell>{new Date(transaction.dueDate).toLocaleDateString()}</TableCell>
-                    <TableCell>
-                      <Badge className={getStatusColor(transaction.status)}>
-                        {transaction.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right font-medium">
-                      ${transaction.amount.toLocaleString()}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button variant="ghost" size="sm">
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-
-          {filteredTransactions.length === 0 && (
-            <div className="text-center py-8 text-muted-foreground">
-              No financial records found matching your criteria.
-            </div>
-          )}
+              ))}
+            </TableBody>
+          </Table>
         </CardContent>
       </Card>
     </div>

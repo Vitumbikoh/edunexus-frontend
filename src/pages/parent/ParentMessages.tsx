@@ -51,10 +51,10 @@ export default function ParentMessages() {
   const [composing, setComposing] = useState(false);
   const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
   
-  if (!user?.parentData) {
+  if (!user) {
     return (
       <div className="flex items-center justify-center h-full">
-        <p>No data available.</p>
+        <p>Please log in to view messages.</p>
       </div>
     );
   }
