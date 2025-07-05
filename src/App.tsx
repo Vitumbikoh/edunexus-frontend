@@ -12,8 +12,8 @@ import RoleBasedDashboard from "@/components/auth/RoleBasedDashboard";
 // Pages
 import Login from "./pages/Login";
 import Dashboard from "./pages/dashboard/Dashboard";
-import Students from "./pages/Students";
-import StudentForm from "./pages/StudentForm";
+import Students from "./pages/student/Students";
+import StudentForm from "./pages/student/StudentForm";
 import Teachers from "./pages/teacher/Teachers";
 import TeacherForm from "./pages/teacher/TeacherForm";
 import TeacherDetails from "./pages/teacher/TeacherDetails";
@@ -33,18 +33,18 @@ import LearningMaterials from "./pages/LearningMaterials";
 import SubmitGrades from "./pages/SubmitGrades";
 
 // Student specific pages
-import StudentAssignments from "./pages/StudentAssignments";
-import StudentGrades from "./pages/StudentGrades";
-import StudentSchedule from "./pages/StudentSchedule";
-import StudentMaterials from "./pages/StudentMaterials";
+import StudentAssignments from "./pages/student/StudentAssignments";
+import StudentGrades from "./pages/student/StudentGrades";
+import StudentSchedule from "./pages/student/StudentSchedule";
+import StudentMaterials from "./pages/student/StudentMaterials";
 
 // Parent specific pages
-import ParentChildrenPerformance from "./pages/ParentChildrenPerformance";
-import ParentAttendance from "./pages/ParentAttendance";
-import ParentMessages from "./pages/ParentMessages";
+import ParentChildrenPerformance from "./pages/parent/ParentChildrenPerformance";
+import ParentAttendance from "./pages/parent/ParentAttendance";
+import ParentMessages from "./pages/parent/ParentMessages";
 import TeacherCourses from "./pages/teacher/TeacherCourses";
 import CourseEnrollments from "./pages/courses/CourseEnrollments";
-import StudentDetails from "./pages/StudentDetails";
+import StudentDetails from "./pages/student/StudentDetails";
 import FinanceOfficers from "./pages/finance/FinanceOfficers";
 import FinanceForm from "./pages/finance/FinanceForm";
 import Courses from "./pages/courses/Courses";
