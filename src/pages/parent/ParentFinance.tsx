@@ -18,18 +18,18 @@ import { DollarSign, CreditCard, Calendar, AlertTriangle } from "lucide-react";
 export default function ParentFinance() {
   const { user } = useAuth();
   
-  if (!user?.parentData) {
+  if (!user) {
     return (
       <div className="flex items-center justify-center h-full">
-        <p>No children data available.</p>
+        <p>Please log in to view financial data.</p>
       </div>
     );
   }
 
   // Calculate total finances across all children
-  const totalFees = user.parentData.children.reduce((sum, child) => sum + child.fees.total, 0);
-  const totalPaid = user.parentData.children.reduce((sum, child) => sum + child.fees.paid, 0);
-  const totalPending = user.parentData.children.reduce((sum, child) => sum + child.fees.pending, 0);
+  const totalFees = user.parentData?.children?.reduce((sum, child) => sum + child.fees.total, 0) || 0;
+  const totalPaid = user.parentData?.children?.reduce((sum, child) => sum + child.fees.paid, 0) || 0;
+  const totalPending = user.parentData?.children?.reduce((sum, child) => sum + child.fees.pending, 0) || 0;
 
   // Mock payment history
   const paymentHistory = [
@@ -100,7 +100,7 @@ export default function ParentFinance() {
 
       {/* Individual Child Finances */}
       <div className="grid grid-cols-1 gap-6">
-        {user.parentData.children.map((child) => (
+        {user.parentData?.children?.map((child) => (
           <Card key={child.id}>
             <CardHeader>
               <CardTitle>{child.name} - Financial Details</CardTitle>

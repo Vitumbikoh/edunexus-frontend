@@ -21,10 +21,10 @@ import {
 export default function ParentChildrenPerformance() {
   const { user } = useAuth();
   
-  if (!user?.parentData) {
+  if (!user) {
     return (
       <div className="flex items-center justify-center h-full">
-        <p>No children data available.</p>
+        <p>Please log in to view performance data.</p>
       </div>
     );
   }
@@ -38,13 +38,13 @@ export default function ParentChildrenPerformance() {
         </div>
         <div className="flex items-center space-x-2">
           <Badge variant="secondary" className="text-sm">
-            {user.parentData.children.length} {user.parentData.children.length === 1 ? 'child' : 'children'}
+            {user.parentData?.children?.length} {user.parentData?.children?.length === 1 ? 'child' : 'children'}
           </Badge>
         </div>
       </div>
       
       <div className="grid grid-cols-1 gap-6">
-        {user.parentData.children.map((child) => (
+        {user.parentData?.children?.map((child) => (
           <Card key={child.id}>
             <CardHeader>
               <CardTitle>{child.name}'s Academic Performance</CardTitle>
