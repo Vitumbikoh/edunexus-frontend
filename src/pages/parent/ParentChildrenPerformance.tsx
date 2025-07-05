@@ -30,10 +30,17 @@ export default function ParentChildrenPerformance() {
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Children's Performance</h1>
-        <p className="text-muted-foreground">Monitor your children's academic progress</p>
+    <div className="space-y-6 p-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Academic Performance</h1>
+          <p className="text-muted-foreground mt-2">Monitor your children's academic progress and achievements</p>
+        </div>
+        <div className="flex items-center space-x-2">
+          <Badge variant="secondary" className="text-sm">
+            {user.parentData.children.length} {user.parentData.children.length === 1 ? 'child' : 'children'}
+          </Badge>
+        </div>
       </div>
       
       <div className="grid grid-cols-1 gap-6">

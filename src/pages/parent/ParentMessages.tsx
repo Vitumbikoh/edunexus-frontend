@@ -132,10 +132,17 @@ export default function ParentMessages() {
   };
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Messages</h1>
-        <p className="text-muted-foreground">Communicate with your child's teachers</p>
+    <div className="space-y-6 p-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Messages</h1>
+          <p className="text-muted-foreground mt-2">Communicate with your child's teachers and school staff</p>
+        </div>
+        <div className="flex items-center space-x-2">
+          <Badge variant="outline" className="text-sm">
+            {mockMessages.filter(m => !m.read).length} unread
+          </Badge>
+        </div>
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

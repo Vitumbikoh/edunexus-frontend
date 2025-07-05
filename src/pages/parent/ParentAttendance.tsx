@@ -57,10 +57,17 @@ export default function ParentAttendance() {
   };
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Attendance Records</h1>
-        <p className="text-muted-foreground">Track your children's attendance</p>
+    <div className="space-y-6 p-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Attendance Records</h1>
+          <p className="text-muted-foreground mt-2">Track your children's daily attendance and punctuality</p>
+        </div>
+        <div className="flex items-center space-x-2">
+          <Badge variant="secondary" className="text-sm">
+            Current semester
+          </Badge>
+        </div>
       </div>
       
       <div className="grid grid-cols-1 gap-6">
