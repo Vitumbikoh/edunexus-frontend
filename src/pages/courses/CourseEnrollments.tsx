@@ -2,7 +2,14 @@ import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
 import {
@@ -43,7 +50,7 @@ export default function CourseEnrollments() {
 
       // Fetch course details
       const courseResponse = await fetch(
-        `http://localhost:5000/api/v1/course/courses/${courseId}`,
+        `http://localhost:5000/api/v1/course/${courseId}`, // Removed extra "courses"
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -60,13 +67,13 @@ export default function CourseEnrollments() {
 
       // Fetch enrollments
       const enrollmentsResponse = await fetch(
-        `http://localhost:5000/api/v1/course/courses/${courseId}/enrollments?page=${currentPage}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+  `http://localhost:5000/api/v1/course/${courseId}/enrollments?page=${currentPage}`,  // Removed extra "courses"
+  {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  }
+);
 
       if (!enrollmentsResponse.ok) {
         throw new Error("Failed to fetch enrollments");
@@ -76,7 +83,8 @@ export default function CourseEnrollments() {
       setEnrollments(enrollmentsData.enrollments);
       setTotalPages(enrollmentsData.pagination?.totalPages || 1);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Failed to fetch data";
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to fetch data";
       setApiError(errorMessage);
       toast({
         title: "Error",
@@ -91,7 +99,7 @@ export default function CourseEnrollments() {
   const handleUnenroll = async (enrollmentId: string) => {
     try {
       const response = await fetch(
-        `http://localhost:5000/api/v1/course/courses/${courseId}/enrollments/${enrollmentId}`,
+      `http://localhost:5000/api/v1/course/${courseId}/enrollments/${enrollmentId}`,
         {
           method: "DELETE",
           headers: {
@@ -112,7 +120,8 @@ export default function CourseEnrollments() {
 
       fetchData(); // Refresh the list
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Failed to unenroll student";
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to unenroll student";
       toast({
         title: "Error",
         description: errorMessage,
@@ -219,7 +228,8 @@ export default function CourseEnrollments() {
               <PaginationItem>
                 <PaginationNext
                   onClick={() => {
-                    if (currentPage < totalPages) setCurrentPage(currentPage + 1);
+                    if (currentPage < totalPages)
+                      setCurrentPage(currentPage + 1);
                   }}
                 />
               </PaginationItem>

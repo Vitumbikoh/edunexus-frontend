@@ -2,7 +2,14 @@ import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
 import { Check } from "lucide-react";
@@ -12,7 +19,14 @@ interface Student {
   firstName: string;
   lastName: string;
   email: string;
-  classId: string;
+  className: string; // Use className instead of classId
+}
+
+interface Course {
+  id: string;
+  name: string;
+  code: string;
+  class: { id: string; name: string } | null; // Update to reflect class object
 }
 
 export default function EnrollStudents() {
@@ -21,7 +35,7 @@ export default function EnrollStudents() {
   const { user, token } = useAuth();
   const { toast } = useToast();
   const [students, setStudents] = useState<Student[]>([]);
-  const [course, setCourse] = useState<any>(null);
+  const [course, setCourse] = useState<Course | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [apiError, setApiError] = useState<string | null>(null);
 
@@ -32,7 +46,7 @@ export default function EnrollStudents() {
 
       // Fetch course details
       const courseResponse = await fetch(
-        `http://localhost:5000/api/v1/course/courses/${courseId}`,
+        `http://localhost:5000/api/v1/course/${courseId}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -49,7 +63,7 @@ export default function EnrollStudents() {
 
       // Fetch students in the same class but not enrolled
       const studentsResponse = await fetch(
-        `http://localhost:5000/api/v1/course/courses/${courseId}/enrollable-students`,
+        `http://localhost:5000/api/v1/course/${courseId}/enrollable-students`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -64,7 +78,8 @@ export default function EnrollStudents() {
       const studentsData = await studentsResponse.json();
       setStudents(studentsData.students || []);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Failed to fetch data";
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to fetch data";
       setApiError(errorMessage);
       toast({
         title: "Error",
@@ -79,7 +94,7 @@ export default function EnrollStudents() {
   const handleEnroll = async (studentId: string) => {
     try {
       const response = await fetch(
-        `http://localhost:5000/api/v1/course/courses/${courseId}/enroll/${studentId}`,
+        `http://localhost:5000/api/v1/enrollments/${courseId}/enroll/${studentId}`,
         {
           method: "POST",
           headers: {
@@ -100,7 +115,8 @@ export default function EnrollStudents() {
 
       fetchData(); // Refresh the list
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Failed to enroll student";
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to enroll student";
       toast({
         title: "Error",
         description: errorMessage,
@@ -134,7 +150,7 @@ export default function EnrollStudents() {
             Enroll Students - {course?.name || "Course"}
           </h1>
           <p className="text-muted-foreground">
-            {course?.code || ""} - Class: {course?.className || "Not assigned"}
+            {course?.code || ""} - Class: {course?.class?.name || "Not assigned"}
           </p>
         </div>
       </div>
@@ -166,9 +182,7 @@ export default function EnrollStudents() {
                     {student.firstName} {student.lastName}
                   </TableCell>
                   <TableCell>{student.email}</TableCell>
-                  <TableCell>
-                    {student.classId || "Not assigned"}
-                  </TableCell>
+                  <TableCell>{student.className || "Not assigned"}</TableCell>
                   <TableCell className="text-right">
                     <Button
                       variant="default"
