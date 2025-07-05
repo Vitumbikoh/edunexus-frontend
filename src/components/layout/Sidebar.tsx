@@ -127,7 +127,7 @@ const parentNavItems: NavItem[] = [
   { label: 'Dashboard', icon: Home, href: '/dashboard', roles: ['parent'] },
   { label: "Children's Performance", icon: ChartPie, href: '/children/performance', roles: ['parent'] },
   { label: 'Attendance', icon: Users, href: '/attendance', roles: ['parent'] },
-  { label: 'Finance', icon: DollarSign, href: '/finance', roles: ['parent'] },
+  { label: 'Finance', icon: DollarSign, href: '/parent/finance', roles: ['parent'] },
   { label: 'Messages', icon: MessageSquare, href: '/messages', roles: ['parent'] },
   { label: 'Settings', icon: Settings, href: '/settings', roles: ['parent'] },
 ];
