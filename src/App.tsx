@@ -471,6 +471,17 @@ const AppRoutes = () => {
       />
 
       <Route
+        path="/finance/record"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <PaymentForm />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
         path="/finance/records"
         element={
           <ProtectedRoute>
