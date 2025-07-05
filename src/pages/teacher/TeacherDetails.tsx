@@ -1,9 +1,16 @@
-import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import React, { useEffect, useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Mail, Phone, Calendar, GraduationCap, Briefcase } from 'lucide-react';
+import {
+  ArrowLeft,
+  Mail,
+  Phone,
+  Calendar,
+  GraduationCap,
+  Briefcase,
+} from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
 
@@ -36,27 +43,36 @@ export default function TeacherDetails() {
         setIsLoading(true);
         setError(null);
 
-        const response = await fetch(`http://localhost:5000/api/v1/teacher/teachers/${id}`, {
-          headers: {
-            "Authorization": `Bearer ${token}`,
-          },
-        });
+        const response = await fetch(
+          `http://localhost:5000/api/v1/teacher/teachers/${id}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
 
         if (response.status === 401) {
           localStorage.removeItem("token");
-          navigate('/login');
+          navigate("/login");
           return;
         }
 
         if (!response.ok) {
           const errorData = await response.json();
-          throw new Error(errorData.message || "Failed to fetch teacher details");
+          throw new Error(
+            errorData.message || "Failed to fetch teacher details"
+          );
         }
 
         const result = await response.json();
-        setTeacher(result.teacher);
+        // Update this line to use result directly instead of result.teacher
+        setTeacher(result);
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : "Failed to fetch teacher details";
+        const errorMessage =
+          error instanceof Error
+            ? error.message
+            : "Failed to fetch teacher details";
         setError(errorMessage);
         toast({
           title: "Error",
@@ -83,7 +99,7 @@ export default function TeacherDetails() {
     return (
       <div className="space-y-6">
         <div className="flex items-center space-x-4">
-          <Button variant="outline" onClick={() => navigate('/teachers/view')}>
+          <Button variant="outline" onClick={() => navigate("/teachers/view")}>
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Teachers
           </Button>
@@ -98,7 +114,7 @@ export default function TeacherDetails() {
   return (
     <div className="space-y-6">
       <div className="flex items-center space-x-4">
-        <Button variant="outline" onClick={() => navigate('/teachers/view')}>
+        <Button variant="outline" onClick={() => navigate("/teachers/view")}>
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back to Teachers
         </Button>
@@ -114,11 +130,17 @@ export default function TeacherDetails() {
                   {teacher.firstName} {teacher.lastName}
                 </CardTitle>
                 <div className="mt-2">
-                  <Badge 
-                    variant={teacher.status === 'active' ? 'default' : 
-                            teacher.status === 'on-leave' ? 'secondary' : 'destructive'}
+                  <Badge
+                    variant={
+                      teacher.status === "active"
+                        ? "default"
+                        : teacher.status === "on-leave"
+                        ? "secondary"
+                        : "destructive"
+                    }
                   >
-                    {teacher.status.charAt(0).toUpperCase() + teacher.status.slice(1)}
+                    {teacher.status.charAt(0).toUpperCase() +
+                      teacher.status.slice(1)}
                   </Badge>
                 </div>
               </div>
@@ -145,7 +167,9 @@ export default function TeacherDetails() {
 
               {/* Professional Information */}
               <div className="space-y-4">
-                <h3 className="font-semibold text-lg">Professional Information</h3>
+                <h3 className="font-semibold text-lg">
+                  Professional Information
+                </h3>
                 <div className="space-y-3">
                   {teacher.courseSpecialization && (
                     <div className="flex items-center space-x-3">
@@ -159,7 +183,9 @@ export default function TeacherDetails() {
                   </div>
                   <div className="flex items-center space-x-3">
                     <Calendar className="h-4 w-4 text-muted-foreground" />
-                    <span>Hired: {new Date(teacher.hireDate).toLocaleDateString()}</span>
+                    <span>
+                      Hired: {new Date(teacher.hireDate).toLocaleDateString()}
+                    </span>
                   </div>
                 </div>
               </div>
