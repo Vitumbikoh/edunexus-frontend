@@ -20,7 +20,7 @@ import TeacherDetails from "./pages/teacher/TeacherDetails";
 import CourseForm from "./pages/courses/CourseForm";
 import Schedule from "./pages/Schedule";
 import Finance from "./pages/finance/Finance";
-import PaymentForm from "./pages/PaymentForm";
+import PaymentForm from "./pages/finance/PaymentForm";
 import Settings from "./pages/Settings";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";

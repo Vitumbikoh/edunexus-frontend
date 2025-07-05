@@ -1,8 +1,9 @@
-import React, { useState } from "react";
+// src/finance/Finance.tsx
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   PlusCircle,
   Download,
@@ -11,8 +12,6 @@ import {
   DollarSign,
   CreditCard,
   Receipt,
-  Building,
-  Users,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
@@ -26,136 +25,158 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/components/ui/use-toast";
 
-// Mock data
-const feePayments = [
-  {
-    id: "INV-001",
-    date: "2025-04-01",
-    description: "Tuition Fee - Term 1",
-    amount: 1500,
-    status: "paid",
-    studentName: "Emma Thompson",
-    paymentDate: "2025-03-28",
-  },
-  {
-    id: "INV-002",
-    date: "2025-04-01",
-    description: "Examination Fee",
-    amount: 350,
-    status: "pending",
-    studentName: "Emma Thompson",
-    paymentDate: null,
-  },
-  {
-    id: "INV-003",
-    date: "2025-04-01",
-    description: "Sports Activities",
-    amount: 220,
-    status: "overdue",
-    studentName: "Emma Thompson",
-    paymentDate: null,
-  },
-  {
-    id: "INV-004",
-    date: "2025-04-01",
-    description: "Library Fee",
-    amount: 100,
-    status: "paid",
-    studentName: "James Thompson",
-    paymentDate: "2025-03-30",
-  },
-  {
-    id: "INV-005",
-    date: "2025-04-01",
-    description: "Laboratory Fee",
-    amount: 180,
-    status: "pending",
-    studentName: "James Thompson",
-    paymentDate: null,
-  },
-];
+interface FeePayment {
+  id: string;
+  studentName: string;
+  amount: number;
+  paymentDate: string | null;
+  paymentType: string;
+  paymentMethod: string;
+  receiptNumber: string | null;
+  status: 'paid' | 'pending' | 'overdue';
+  notes: string | null;
+}
 
-// Transaction history
-const transactions = [
-  {
-    id: "TRX-001",
-    date: "2025-03-28",
-    description: "Tuition Fee - Term 1",
-    amount: 1500,
-    method: "Credit Card",
-    studentName: "Emma Thompson",
-  },
-  {
-    id: "TRX-002",
-    date: "2025-03-30",
-    description: "Library Fee",
-    amount: 100,
-    method: "Bank Transfer",
-    studentName: "James Thompson",
-  },
-  {
-    id: "TRX-003",
-    date: "2025-02-15",
-    description: "Tuition Fee - Term 1 Installment",
-    amount: 500,
-    method: "Credit Card",
-    studentName: "Emma Thompson",
-  },
-  {
-    id: "TRX-004",
-    date: "2025-01-30",
-    description: "Tuition Fee - Term 1 Installment",
-    amount: 500,
-    method: "Cash",
-    studentName: "Emma Thompson",
-  },
-  {
-    id: "TRX-005",
-    date: "2025-01-15",
-    description: "Tuition Fee - Term 1 Installment",
-    amount: 500,
-    method: "Bank Transfer",
-    studentName: "James Thompson",
-  },
-];
+interface Transaction {
+  id: string;
+  studentName: string;
+  amount: number;
+  paymentDate: string;
+  paymentType: string;
+  paymentMethod: string;
+  receiptNumber: string | null;
+  processedByName: string;
+}
 
 export default function Finance() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, token } = useAuth();
+  const { toast } = useToast();
   const isParent = user?.role === 'parent';
-  const isAdmin = user?.role === 'admin';
-  
+  const isAdmin = user?.role === 'admin' || user?.role === 'finance';
   const [searchQuery, setSearchQuery] = useState("");
-  
-  const filteredInvoices = isParent && user?.parentData 
-    ? feePayments.filter(payment => 
-        user.parentData.children.some(child => 
-          payment.studentName.includes(child.name)
-        )
-      ) 
-    : feePayments;
-  
-  const filteredTransactions = isParent && user?.parentData
-    ? transactions.filter(transaction => 
-        user.parentData.children.some(child => 
-          transaction.studentName.includes(child.name)
-        )
-      )
-    : transactions;
-  
-  const totalFeesAmount = filteredInvoices.reduce((sum, invoice) => sum + invoice.amount, 0);
-  const paidAmount = filteredInvoices
+  const [feePayments, setFeePayments] = useState<FeePayment[]>([]);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [apiError, setApiError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setIsLoading(true);
+        setApiError(null);
+
+        if (!token) {
+          throw new Error("Authentication token not found. Please log in again.");
+        }
+
+        const paymentsEndpoint = isParent
+          ? 'http://localhost:5000/api/v1/finance/parent-payments'
+          : 'http://localhost:5000/api/v1/finance/fee-payments';
+
+        const [paymentsResponse, transactionsResponse] = await Promise.all([
+          fetch(`${paymentsEndpoint}?page=1&limit=100&search=${encodeURIComponent(searchQuery)}`, {
+            headers: {
+              "Authorization": `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          }),
+          fetch(`http://localhost:5000/api/v1/finance/transactions?page=1&limit=100&search=${encodeURIComponent(searchQuery)}`, {
+            headers: {
+              "Authorization": `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          }),
+        ]);
+
+        if (paymentsResponse.status === 401 || transactionsResponse.status === 401) {
+          throw new Error("Session expired. Please log in again.");
+        }
+
+        if (!paymentsResponse.ok) {
+          const errorData = await paymentsResponse.json();
+          throw new Error(errorData.message || "Failed to fetch fee payments");
+        }
+
+        if (!transactionsResponse.ok) {
+          const errorData = await transactionsResponse.json();
+          throw new Error(errorData.message || "Failed to fetch transactions");
+        }
+
+        const paymentsData = await paymentsResponse.json();
+        const transactionsData = await transactionsResponse.json();
+
+        const mappedPayments: FeePayment[] = paymentsData.payments.map((p: any) => ({
+          id: p.id,
+          studentName: p.studentName,
+          amount: Number(p.amount),
+          paymentDate: p.paymentDate,
+          paymentType: p.paymentType,
+          paymentMethod: p.paymentMethod,
+          receiptNumber: p.receiptNumber,
+          status: p.status,
+          notes: p.notes,
+        }));
+
+        const mappedTransactions: Transaction[] = transactionsData.transactions.map((t: any) => ({
+          id: t.id,
+          studentName: t.studentName,
+          amount: Number(t.amount),
+          paymentDate: t.paymentDate,
+          paymentType: t.paymentType,
+          paymentMethod: t.paymentMethod,
+          receiptNumber: t.receiptNumber,
+          processedByName: t.processedByName,
+        }));
+
+        setFeePayments(mappedPayments);
+        setTransactions(mappedTransactions);
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : "Failed to fetch data";
+        setApiError(errorMessage);
+        toast({
+          title: "Error",
+          description: errorMessage,
+          variant: "destructive",
+        });
+        if (errorMessage.includes("Session expired")) {
+          localStorage.removeItem("token");
+          navigate('/login');
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [token, navigate, toast, searchQuery, isParent]);
+
+  const totalFeesAmount = feePayments.reduce((sum, invoice) => sum + invoice.amount, 0);
+  const paidAmount = feePayments
     .filter(invoice => invoice.status === "paid")
     .reduce((sum, invoice) => sum + invoice.amount, 0);
-  const pendingAmount = filteredInvoices
+  const pendingAmount = feePayments
     .filter(invoice => invoice.status === "pending")
     .reduce((sum, invoice) => sum + invoice.amount, 0);
-  const overdueAmount = filteredInvoices
+  const overdueAmount = feePayments
     .filter(invoice => invoice.status === "overdue")
     .reduce((sum, invoice) => sum + invoice.amount, 0);
 
-  const paidPercentage = Math.round((paidAmount / totalFeesAmount) * 100);
+  const paidPercentage = totalFeesAmount > 0 ? Math.round((paidAmount / totalFeesAmount) * 100) : 0;
+
+  const filteredInvoices = feePayments.filter(payment =>
+    payment.studentName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    payment.paymentType.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    payment.receiptNumber?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const filteredTransactions = transactions.filter(transaction =>
+    transaction.studentName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    transaction.paymentType.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    transaction.receiptNumber?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
     <div className="space-y-6">
@@ -173,203 +194,216 @@ export default function Finance() {
               <PlusCircle className="mr-2 h-4 w-4" />
               Record Payment
             </Button>
-            
           </div>
         )}
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Fees</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">${totalFeesAmount}</div>
-            <p className="text-xs text-muted-foreground">
-              For {isParent ? "all children" : "all students"}
-            </p>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Paid</CardTitle>
-            <Receipt className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">${paidAmount}</div>
-            <div className="mt-2">
-              <Progress value={paidPercentage} className="h-2" />
-              <p className="text-xs text-muted-foreground mt-1">
-                {paidPercentage}% of total fees
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending</CardTitle>
-            <CreditCard className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">${pendingAmount}</div>
-            <p className="text-xs text-muted-foreground">
-              Due in the next 30 days
-            </p>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Overdue</CardTitle>
-            <ArrowUpRight className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">${overdueAmount}</div>
-            <p className="text-xs text-muted-foreground">
-              Past due payments
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+      {apiError && (
+        <div className="p-4 mb-4 text-sm text-red-700 bg-red-100 rounded-lg">
+          {apiError}
+        </div>
+      )}
 
-      <Tabs defaultValue="invoices">
-        <TabsList>
-          <TabsTrigger value="invoices">Fee Invoices</TabsTrigger>
-          <TabsTrigger value="transactions">Transaction History</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="invoices" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle>Fee Invoices</CardTitle>
-                
-                <div className="flex items-center space-x-2">
-                  <div className="relative">
-                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      type="search"
-                      placeholder="Search invoices..."
-                      className="pl-8 w-[200px] md:w-[300px]"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                    />
-                  </div>
-                  
-                  {isAdmin && (
-                    <Button variant="outline" size="sm">
-                      <Download className="mr-2 h-4 w-4" />
-                      Export
-                    </Button>
-                  )}
-                </div>
-              </div>
-            </CardHeader>
+      {isLoading ? (
+        <div>Loading...</div>
+      ) : (
+        <>
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Fees</CardTitle>
+                <DollarSign className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">${totalFeesAmount.toFixed(2)}</div>
+                <p className="text-xs text-muted-foreground">
+                  For {isParent ? "all children" : "all students"}
+                </p>
+              </CardContent>
+            </Card>
             
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Invoice ID</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead>{isParent ? "Child" : "Student"}</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead className="text-right">Amount</TableHead>
-                    <TableHead className="text-right">Status</TableHead>
-                    {isParent && <TableHead className="text-right">Action</TableHead>}
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredInvoices.map((invoice) => (
-                    <TableRow key={invoice.id}>
-                      <TableCell className="font-medium">{invoice.id}</TableCell>
-                      <TableCell>{invoice.date}</TableCell>
-                      <TableCell>{invoice.studentName}</TableCell>
-                      <TableCell>{invoice.description}</TableCell>
-                      <TableCell className="text-right">${invoice.amount}</TableCell>
-                      <TableCell className="text-right">
-                        <Badge variant={
-                          invoice.status === "paid" ? "default" :
-                          invoice.status === "pending" ? "outline" : "destructive"
-                        } className="capitalize">
-                          {invoice.status}
-                        </Badge>
-                      </TableCell>
-                      {isParent && (
-                        <TableCell className="text-right">
-                          {invoice.status !== "paid" && (
-                            <Button size="sm" variant="outline">
-                              Pay Now
-                            </Button>
-                          )}
-                        </TableCell>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Paid</CardTitle>
+                <Receipt className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">${paidAmount.toFixed(2)}</div>
+                <div className="mt-2">
+                  <Progress value={paidPercentage} className="h-2" />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {paidPercentage}% of total fees
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Pending</CardTitle>
+                <CreditCard className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">${pendingAmount.toFixed(2)}</div>
+                <p className="text-xs text-muted-foreground">
+                  Due in the next 30 days
+                </p>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Overdue</CardTitle>
+                <ArrowUpRight className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">${overdueAmount.toFixed(2)}</div>
+                <p className="text-xs text-muted-foreground">
+                  Past due payments
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+
+          <Tabs defaultValue="invoices">
+            <TabsList>
+              <TabsTrigger value="invoices">Fee Invoices</TabsTrigger>
+              <TabsTrigger value="transactions">Transaction History</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="invoices" className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <CardTitle>Fee Invoices</CardTitle>
+                    
+                    <div className="flex items-center space-x-2">
+                      <div className="relative">
+                        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          type="search"
+                          placeholder="Search invoices..."
+                          className="pl-8 w-[200px] md:w-[300px]"
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                        />
+                      </div>
+                      
+                      {isAdmin && (
+                        <Button variant="outline" size="sm">
+                          <Download className="mr-2 h-4 w-4" />
+                          Export
+                        </Button>
                       )}
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
-        <TabsContent value="transactions" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle>Transaction History</CardTitle>
-                
-                <div className="flex items-center space-x-2">
-                  <div className="relative">
-                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      type="search"
-                      placeholder="Search transactions..."
-                      className="pl-8 w-[200px] md:w-[300px]"
-                    />
+                    </div>
                   </div>
-                  
-                  {isAdmin && (
-                    <Button variant="outline" size="sm">
-                      <Download className="mr-2 h-4 w-4" />
-                      Export
-                    </Button>
-                  )}
-                </div>
-              </div>
-            </CardHeader>
+                </CardHeader>
+                
+                <CardContent>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Invoice ID</TableHead>
+                        <TableHead>Date</TableHead>
+                        <TableHead>{isParent ? "Child" : "Student"}</TableHead>
+                        <TableHead>Description</TableHead>
+                        <TableHead className="text-right">Amount</TableHead>
+                        <TableHead className="text-right">Status</TableHead>
+                        {isParent && <TableHead className="text-right">Action</TableHead>}
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredInvoices.map((invoice) => (
+                        <TableRow key={invoice.id}>
+                          <TableCell className="font-medium">{invoice.id}</TableCell>
+                          <TableCell>{invoice.paymentDate || 'N/A'}</TableCell>
+                          <TableCell>{invoice.studentName}</TableCell>
+                          <TableCell>{invoice.paymentType}</TableCell>
+                          <TableCell className="text-right">${invoice.amount.toFixed(2)}</TableCell>
+                          <TableCell className="text-right">
+                            <Badge variant={
+                              invoice.status === "paid" ? "default" :
+                              invoice.status === "pending" ? "outline" : "destructive"
+                            } className="capitalize">
+                              {invoice.status}
+                            </Badge>
+                          </TableCell>
+                          {isParent && (
+                            <TableCell className="text-right">
+                              {invoice.status !== "paid" && (
+                                <Button size="sm" variant="outline" onClick={() => navigate('/finance/record')}>
+                                  Pay Now
+                                </Button>
+                              )}
+                            </TableCell>
+                          )}
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            </TabsContent>
             
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Transaction ID</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead>{isParent ? "Child" : "Student"}</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead className="text-right">Amount</TableHead>
-                    <TableHead className="text-right">Method</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredTransactions.map((transaction) => (
-                    <TableRow key={transaction.id}>
-                      <TableCell className="font-medium">{transaction.id}</TableCell>
-                      <TableCell>{transaction.date}</TableCell>
-                      <TableCell>{transaction.studentName}</TableCell>
-                      <TableCell>{transaction.description}</TableCell>
-                      <TableCell className="text-right">${transaction.amount}</TableCell>
-                      <TableCell className="text-right">{transaction.method}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+            <TabsContent value="transactions" className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <CardTitle>Transaction History</CardTitle>
+                    
+                    <div className="flex items-center space-x-2">
+                      <div className="relative">
+                        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          type="search"
+                          placeholder="Search transactions..."
+                          className="pl-8 w-[200px] md:w-[300px]"
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                        />
+                      </div>
+                      
+                      {isAdmin && (
+                        <Button variant="outline" size="sm">
+                          <Download className="mr-2 h-4 w-4" />
+                          Export
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </CardHeader>
+                
+                <CardContent>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Transaction ID</TableHead>
+                        <TableHead>Date</TableHead>
+                        <TableHead>{isParent ? "Child" : "Student"}</TableHead>
+                        <TableHead>Description</TableHead>
+                        <TableHead className="text-right">Amount</TableHead>
+                        <TableHead className="text-right">Method</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredTransactions.map((transaction) => (
+                        <TableRow key={transaction.id}>
+                          <TableCell className="font-medium">{transaction.id}</TableCell>
+                          <TableCell>{transaction.paymentDate}</TableCell>
+                          <TableCell>{transaction.studentName}</TableCell>
+                          <TableCell>{transaction.paymentType}</TableCell>
+                          <TableCell className="text-right">${transaction.amount.toFixed(2)}</TableCell>
+                          <TableCell className="text-right">{transaction.paymentMethod}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
+        </>
+      )}
     </div>
   );
 }
