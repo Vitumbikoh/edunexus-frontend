@@ -16,6 +16,7 @@ import Students from "./pages/Students";
 import StudentForm from "./pages/StudentForm";
 import Teachers from "./pages/teacher/Teachers";
 import TeacherForm from "./pages/teacher/TeacherForm";
+import TeacherDetails from "./pages/teacher/TeacherDetails";
 import CourseForm from "./pages/courses/CourseForm";
 import Schedule from "./pages/Schedule";
 import Finance from "./pages/Finance";
@@ -266,6 +267,19 @@ const AppRoutes = () => {
             <AdminRoute>
               <Layout>
                 <TeacherForm />
+              </Layout>
+            </AdminRoute>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/teachers/:id"
+        element={
+          <ProtectedRoute>
+            <AdminRoute>
+              <Layout>
+                <TeacherDetails />
               </Layout>
             </AdminRoute>
           </ProtectedRoute>
