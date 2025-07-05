@@ -47,6 +47,9 @@ import CourseEnrollments from "./pages/courses/CourseEnrollments";
 import StudentDetails from "./pages/student/StudentDetails";
 import FinanceOfficers from "./pages/finance/FinanceOfficers";
 import FinanceForm from "./pages/finance/FinanceForm";
+import Transactions from "./pages/finance/Transactions";
+import Invoices from "./pages/finance/Invoices";
+import FinanceReports from "./pages/finance/FinanceReports";
 import Courses from "./pages/courses/Courses";
 import EnrollStudents from "./pages/courses/EnrollStudents";
 import ClassManagement from "./pages/Classes";
@@ -488,6 +491,46 @@ const AppRoutes = () => {
             <FinanceRoute>
               <Layout>
                 <PaymentForm />
+              </Layout>
+            </FinanceRoute>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Finance Role Specific Routes */}
+      <Route
+        path="/finance/transactions"
+        element={
+          <ProtectedRoute>
+            <FinanceRoute>
+              <Layout>
+                <Transactions />
+              </Layout>
+            </FinanceRoute>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/finance/invoices"
+        element={
+          <ProtectedRoute>
+            <FinanceRoute>
+              <Layout>
+                <Invoices />
+              </Layout>
+            </FinanceRoute>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/finance/reports"
+        element={
+          <ProtectedRoute>
+            <FinanceRoute>
+              <Layout>
+                <FinanceReports />
               </Layout>
             </FinanceRoute>
           </ProtectedRoute>
