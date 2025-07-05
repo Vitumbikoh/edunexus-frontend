@@ -19,7 +19,7 @@ import TeacherForm from "./pages/teacher/TeacherForm";
 import TeacherDetails from "./pages/teacher/TeacherDetails";
 import CourseForm from "./pages/courses/CourseForm";
 import Schedule from "./pages/Schedule";
-import Finance from "./pages/Finance";
+import Finance from "./pages/finance/Finance";
 import PaymentForm from "./pages/PaymentForm";
 import Settings from "./pages/Settings";
 import Profile from "./pages/Profile";
@@ -45,8 +45,8 @@ import ParentMessages from "./pages/ParentMessages";
 import TeacherCourses from "./pages/teacher/TeacherCourses";
 import CourseEnrollments from "./pages/courses/CourseEnrollments";
 import StudentDetails from "./pages/StudentDetails";
-import FinanceOfficers from "./pages/FinanceOfficers";
-import FinanceForm from "./pages/FinanceForm";
+import FinanceOfficers from "./pages/finance/FinanceOfficers";
+import FinanceForm from "./pages/finance/FinanceForm";
 import Courses from "./pages/courses/Courses";
 import EnrollStudents from "./pages/courses/EnrollStudents";
 import ClassManagement from "./pages/Classes";
@@ -262,6 +262,19 @@ const AppRoutes = () => {
 
       <Route
         path="/teachers/add"
+        element={
+          <ProtectedRoute>
+            <AdminRoute>
+              <Layout>
+                <TeacherForm />
+              </Layout>
+            </AdminRoute>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/teachers/:id/edit"
         element={
           <ProtectedRoute>
             <AdminRoute>

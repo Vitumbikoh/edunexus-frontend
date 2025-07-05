@@ -21,12 +21,21 @@ interface Teacher {
   id: string;
   firstName: string;
   lastName: string;
-  email: string;
   phoneNumber?: string;
-  courseSpecialization?: string;
+  address?: string;
+  qualification?: string;
+  subjectSpecialization?: string;
+  dateOfBirth?: string;
+  gender?: string;
+  hireDate?: string;
   yearsOfExperience: number;
   status: string;
-  hireDate: string;
+  user: {
+    id: string;
+    username: string;
+    email: string;
+    role: string;
+  };
 }
 
 interface PaginatedData {
@@ -76,7 +85,6 @@ export default function Teachers() {
       );
 
       if (response.status === 401) {
-        // Token is invalid or expired
         localStorage.removeItem("token");
         navigate('/login');
         throw new Error("Session expired. Please log in again.");
@@ -143,11 +151,11 @@ export default function Teachers() {
             Showing {paginatedData.teachers.length} of {paginatedData.totalItems} teachers
           </p>
         </div>
-        {/* {canAdd && (
+        {canAdd && (
           <Button asChild>
-            <Link to="/teachers/new">Add New Teacher</Link>
+            <Link to="/teachers/add">Add New Teacher</Link>
           </Button>
-        )} */}
+        )}
       </div>
 
       {apiError && (
@@ -198,16 +206,16 @@ export default function Teachers() {
                           {teacher.firstName} {teacher.lastName}
                         </TableCell>
                         <TableCell>
-                          <div className="text-sm text-muted-foreground">{teacher.email}</div>
+                          <div className="text-sm text-muted-foreground">{teacher.user.email}</div>
                           {teacher.phoneNumber && (
                             <div className="text-sm">{teacher.phoneNumber}</div>
                           )}
                         </TableCell>
-                        <TableCell>{teacher.courseSpecialization || '-'}</TableCell>
+                        <TableCell>{teacher.subjectSpecialization || '-'}</TableCell>
                         <TableCell>
                           {teacher.yearsOfExperience} years
                           <div className="text-sm text-muted-foreground">
-                            Hired: {new Date(teacher.hireDate).toLocaleDateString()}
+                            Hired: {new Date(teacher.hireDate || '').toLocaleDateString()}
                           </div>
                         </TableCell>
                         <TableCell>
@@ -230,7 +238,7 @@ export default function Teachers() {
                                 <Pencil className="h-4 w-4" />
                               </Link>
                             </Button>
-                          )}
+                          )} 
                           {canEdit && (
                             <Button variant="ghost" size="sm">
                               <Trash2 className="h-4 w-4 text-destructive" />

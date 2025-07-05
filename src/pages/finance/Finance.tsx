@@ -173,10 +173,7 @@ export default function Finance() {
               <PlusCircle className="mr-2 h-4 w-4" />
               Record Payment
             </Button>
-            <Button variant="outline" onClick={() => navigate("/finance/officers")}>
-              <Users className="mr-2 h-4 w-4" />
-              View Finance Officers
-            </Button>
+            
           </div>
         )}
       </div>

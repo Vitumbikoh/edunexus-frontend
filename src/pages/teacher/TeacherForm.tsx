@@ -1,5 +1,5 @@
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,19 +10,41 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
 import { ArrowLeft, Save } from "lucide-react";
 
+interface Teacher {
+  id: string;
+  firstName: string;
+  lastName: string;
+  phoneNumber?: string;
+  address?: string;
+  qualification?: string;
+  subjectSpecialization?: string;
+  dateOfBirth?: string;
+  gender?: string;
+  hireDate?: string;
+  yearsOfExperience: number;
+  status: string;
+  user: {
+    id: string;
+    username: string;
+    email: string;
+    role: string;
+  };
+}
+
 export default function TeacherForm() {
   const navigate = useNavigate();
+  const { id } = useParams<{ id?: string }>();
   const { user, token } = useAuth();
   const { toast } = useToast();
-  const [isSubmitting, setIsSubmitting] = React.useState(false);
-  const [apiError, setApiError] = React.useState<string | null>(null);
-  const [formData, setFormData] = React.useState({
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [apiError, setApiError] = useState<string | null>(null);
+  const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
     phoneNumber: '',
     address: '',
     qualification: '',
-    courseSpecialization: '',
+    subjectSpecialization: '',
     dateOfBirth: '',
     gender: '',
     hireDate: '',
@@ -31,29 +53,90 @@ export default function TeacherForm() {
     username: '',
     email: '',
     password: '',
-    role: 'TEACHER'
+    role: 'TEACHER',
   });
+  const isEditMode = !!id;
 
   // Check permissions
-  const canAddTeacher = user?.role === "admin";
+  const canAddOrEdit = user?.role === "admin";
   
-  if (!canAddTeacher) {
+  if (!canAddOrEdit) {
     navigate('/teachers');
     return null;
   }
+
+  // Fetch teacher data in edit mode
+  useEffect(() => {
+    if (isEditMode && id && token) {
+      const fetchTeacher = async () => {
+        try {
+          setIsSubmitting(true);
+          setApiError(null);
+
+          const response = await fetch(`http://localhost:5000/api/v1/teacher/teachers/${id}`, {
+            headers: {
+              "Authorization": `Bearer ${token}`,
+            },
+          });
+
+          if (response.status === 401) {
+            localStorage.removeItem("token");
+            navigate('/login');
+            return;
+          }
+
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || "Failed to fetch teacher details");
+          }
+
+          const result: Teacher = await response.json();
+          setFormData({
+            firstName: result.firstName || '',
+            lastName: result.lastName || '',
+            phoneNumber: result.phoneNumber || '',
+            address: result.address || '',
+            qualification: result.qualification || '',
+            subjectSpecialization: result.subjectSpecialization || '',
+            dateOfBirth: result.dateOfBirth ? result.dateOfBirth.split('T')[0] : '',
+            gender: result.gender || '',
+            hireDate: result.hireDate ? result.hireDate.split('T')[0] : '',
+            yearsOfExperience: result.yearsOfExperience || 0,
+            status: result.status || 'active',
+            username: result.user?.username || '',
+            email: result.user?.email || '',
+            password: '', // Do not pre-fill password
+            role: result.user?.role || 'TEACHER',
+          });
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : "Failed to fetch teacher details";
+          setApiError(errorMessage);
+          toast({
+            title: "Error",
+            description: errorMessage,
+            variant: "destructive",
+          });
+        } finally {
+          setIsSubmitting(false);
+        }
+      };
+
+      fetchTeacher();
+    }
+  }, [id, token, navigate, toast]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { id, value } = e.target;
     setFormData(prev => ({
       ...prev,
-      [id]: id === 'yearsOfExperience' ? Number(value) : value
+      [id]: id === 'yearsOfExperience' ? Number(value) : value,
     }));
   };
 
   const handleSelectChange = (id: string, value: string) => {
     setFormData(prev => ({
       ...prev,
-      [id]: value
+      [id]: value,
     }));
   };
 
@@ -63,37 +146,39 @@ export default function TeacherForm() {
     setApiError(null);
 
     try {
-      // Verify we have a token
       if (!token) {
         throw new Error("Authentication token not found. Please log in again.");
       }
 
-      // Prepare the request body with proper type conversions
       const requestBody = {
         firstName: formData.firstName,
         lastName: formData.lastName,
         email: formData.email,
-        password: formData.password,
+        password: formData.password || undefined, // Only include password if provided
         username: formData.username,
         phoneNumber: formData.phoneNumber || null,
         address: formData.address || null,
         qualification: formData.qualification || null,
-        courseSpecialization: formData.courseSpecialization || null,
+        subjectSpecialization: formData.subjectSpecialization || null,
         dateOfBirth: formData.dateOfBirth || null,
         gender: formData.gender || null,
         hireDate: formData.hireDate || null,
-        yearsOfExperience: Number(formData.yearsOfExperience) || 0, // Ensure this is a number
+        yearsOfExperience: Number(formData.yearsOfExperience) || 0,
         status: formData.status,
-        role: formData.role
+        role: formData.role,
       };
 
-      // Validate yearsOfExperience is a valid number
       if (isNaN(requestBody.yearsOfExperience)) {
         throw new Error("Years of experience must be a valid number");
       }
 
-      const response = await fetch("http://localhost:5000/api/v1/teacher/teachers", {
-        method: "POST",
+      const url = isEditMode
+        ? `http://localhost:5000/api/v1/teacher/teachers/${id}`
+        : `http://localhost:5000/api/v1/teacher/teachers`;
+      const method = isEditMode ? 'PUT' : 'POST';
+
+      const response = await fetch(url, {
+        method,
         headers: {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${token}`,
@@ -103,29 +188,25 @@ export default function TeacherForm() {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to add teacher");
+        throw new Error(errorData.message || `Failed to ${isEditMode ? 'update' : 'add'} teacher`);
       }
 
-      const result = await response.json();
-      
       toast({
-        title: "Teacher Added",
-        description: "New teacher has been successfully added.",
+        title: isEditMode ? "Teacher Updated" : "Teacher Added",
+        description: `Teacher has been successfully ${isEditMode ? 'updated' : 'added'}.`,
         variant: "default",
       });
-      
-      // Navigate back to teachers list
+
       navigate('/teachers');
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "Failed to add teacher";
+      const errorMessage = err instanceof Error ? err.message : `Failed to ${isEditMode ? 'update' : 'add'} teacher`;
       setApiError(errorMessage);
       toast({
         title: "Error",
         description: errorMessage,
         variant: "destructive",
       });
-      
-      // If token is invalid, redirect to login
+
       if (errorMessage.includes("Unauthorized") || errorMessage.includes("token")) {
         navigate('/login');
       }
@@ -137,13 +218,15 @@ export default function TeacherForm() {
   return (
     <div className="space-y-6">
       <div className="flex items-center">
-        <Button variant="ghost" onClick={() => navigate('/teachers')} className="mr-4">
+        <Button variant="ghost" onClick={() => navigate('/teachers/view')} className="mr-4">
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back to Teachers
         </Button>
         <div>
-          <h1 className="text-2xl font-bold">Add New Teacher</h1>
-          <p className="text-muted-foreground">Create a new teacher account</p>
+          <h1 className="text-2xl font-bold">{isEditMode ? 'Edit Teacher' : 'Add New Teacher'}</h1>
+          <p className="text-muted-foreground">
+            {isEditMode ? 'Update teacher information' : 'Create a new teacher account'}
+          </p>
         </div>
       </div>
 
@@ -158,7 +241,7 @@ export default function TeacherForm() {
           <CardHeader>
             <CardTitle>Teacher Information</CardTitle>
             <CardDescription>
-              Enter the information for the new teacher.
+              {isEditMode ? 'Update the information for the teacher.' : 'Enter the information for the new teacher.'}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -211,14 +294,14 @@ export default function TeacherForm() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <Label htmlFor="password">Password *</Label>
+                <Label htmlFor="password">{isEditMode ? 'New Password (optional)' : 'Password *'}</Label>
                 <Input 
                   id="password" 
                   type="password" 
                   value={formData.password}
                   onChange={handleChange}
                   placeholder="••••••••" 
-                  required 
+                  required={!isEditMode}
                 />
               </div>
               <div className="space-y-2">
@@ -268,7 +351,7 @@ export default function TeacherForm() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className=" clutch grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <Label htmlFor="dateOfBirth">Date of Birth</Label>
                 <Input 
@@ -303,10 +386,10 @@ export default function TeacherForm() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="courseSpecialization">Course Specialization</Label>
+                <Label htmlFor="subjectSpecialization">Subject Specialization</Label>
                 <Input 
-                  id="courseSpecialization" 
-                  value={formData.courseSpecialization}
+                  id="subjectSpecialization" 
+                  value={formData.subjectSpecialization}
                   onChange={handleChange}
                   placeholder="e.g., Mathematics, Physics" 
                 />
@@ -336,7 +419,7 @@ export default function TeacherForm() {
           <CardFooter className="flex justify-end">
             <Button type="submit" disabled={isSubmitting}>
               <Save className="mr-2 h-4 w-4" />
-              {isSubmitting ? "Saving..." : "Save Teacher"}
+              {isSubmitting ? (isEditMode ? 'Updating...' : 'Saving...') : (isEditMode ? 'Update Teacher' : 'Save Teacher')}
             </Button>
           </CardFooter>
         </form>
