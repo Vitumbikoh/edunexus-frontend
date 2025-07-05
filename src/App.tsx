@@ -56,6 +56,7 @@ import ExamForm from "./pages/courses/ExamForm";
 // Reports page
 import Reports from "./pages/Reports/Reports";
 import ExamDetails from "./pages/courses/ExamDetails";
+import CourseView from "./pages/courses/CourseView";
 
 // Protected route component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -305,6 +306,18 @@ const AppRoutes = () => {
                 <CourseForm />
               </Layout>
             </AdminRoute>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Course View Route */}
+      <Route
+        path="/courses/:id"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <CourseView />
+            </Layout>
           </ProtectedRoute>
         }
       />
