@@ -71,7 +71,7 @@ export default function ParentAttendance() {
       </div>
       
       <div className="grid grid-cols-1 gap-6">
-        {user.parentData?.children?.map((child) => (
+        {user.parentData?.children ? user.parentData.children.map((child) => (
           <Card key={child.id}>
             <CardHeader>
               <CardTitle>{child.name}'s Attendance</CardTitle>
@@ -131,7 +131,11 @@ export default function ParentAttendance() {
               </div>
             </CardContent>
           </Card>
-        ))}
+        )) : (
+          <div className="flex items-center justify-center h-32">
+            <p className="text-muted-foreground">No children data available.</p>
+          </div>
+        )}
       </div>
     </div>
   );
