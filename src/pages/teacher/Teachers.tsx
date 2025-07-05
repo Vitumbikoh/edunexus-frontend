@@ -10,7 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Search, Eye, Pencil } from 'lucide-react';
+import { Search, Eye, Pencil, Trash2 } from 'lucide-react';
 import { useAuth } from "@/contexts/AuthContext";
 import { Link, useNavigate } from 'react-router-dom';
 import { Badge } from "@/components/ui/badge";
@@ -221,16 +221,19 @@ export default function Teachers() {
                         <TableCell className="text-right space-x-2">
                           <Button variant="ghost" size="sm" asChild>
                             <Link to={`/teachers/${teacher.id}`}>
-                              <Eye className="h-4 w-4 mr-1" />
-                              View
+                              <Eye className="h-4 w-4" />
                             </Link>
                           </Button>
                           {canEdit && (
                             <Button variant="ghost" size="sm" asChild>
                               <Link to={`/teachers/${teacher.id}/edit`}>
-                                <Pencil className="h-4 w-4 mr-1" />
-                                Edit
+                                <Pencil className="h-4 w-4" />
                               </Link>
+                            </Button>
+                          )}
+                          {canEdit && (
+                            <Button variant="ghost" size="sm">
+                              <Trash2 className="h-4 w-4 text-destructive" />
                             </Button>
                           )}
                         </TableCell>
