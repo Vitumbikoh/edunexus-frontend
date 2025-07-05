@@ -143,11 +143,11 @@ export default function Teachers() {
             Showing {paginatedData.teachers.length} of {paginatedData.totalItems} teachers
           </p>
         </div>
-        {canAdd && (
+        {/* {canAdd && (
           <Button asChild>
             <Link to="/teachers/new">Add New Teacher</Link>
           </Button>
-        )}
+        )} */}
       </div>
 
       {apiError && (
