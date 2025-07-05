@@ -74,7 +74,7 @@ export default function CourseForm() {
   const canEditCourse = user?.role === "admin";
 
   if ((isEditMode && !canEditCourse) || (!isEditMode && !canAddCourse)) {
-    navigate("/courses");
+    navigate("/courses/view");
     return null;
   }
 
@@ -86,7 +86,7 @@ export default function CourseForm() {
       try {
         setIsLoading(true);
         const response = await fetch(
-          `http://localhost:5000/api/v1/course/courses/${id}`,
+          `http://localhost:5000/api/v1/course/${id}`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -173,14 +173,11 @@ export default function CourseForm() {
     const fetchClasses = async () => {
       try {
         setIsLoadingClasses(true);
-        const response = await fetch(
-          "http://localhost:5000/api/v1/classes",
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
+        const response = await fetch("http://localhost:5000/api/v1/classes", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
 
         if (!response.ok) {
           throw new Error("Failed to fetch classes");
@@ -229,7 +226,7 @@ export default function CourseForm() {
   const handleAssignTeacher = async (courseId: string, teacherId: string) => {
     try {
       const response = await fetch(
-        `http://localhost:5000/api/v1/course/courses/${courseId}/assign-teacher`,
+        `http://localhost:5000/api/v1/course/${courseId}/assign-teacher`, // Fixed endpoint
         {
           method: "POST",
           headers: {
@@ -278,7 +275,7 @@ export default function CourseForm() {
       if (isEditMode && id) {
         // Update existing course
         const updateResponse = await fetch(
-          `http://localhost:5000/api/v1/course/courses/${id}`,
+          `http://localhost:5000/api/v1/course/${id}`,
           {
             method: "PUT",
             headers: {
@@ -326,7 +323,7 @@ export default function CourseForm() {
       } else {
         // Create new course
         const createCourseResponse = await fetch(
-          "http://localhost:5000/api/v1/course/courses",
+          "http://localhost:5000/api/v1/course",
           {
             method: "POST",
             headers: {
@@ -379,7 +376,7 @@ export default function CourseForm() {
         });
       }
 
-      navigate("/courses");
+      navigate("/courses/view");
     } catch (err) {
       const errorMessage =
         err instanceof Error
@@ -411,10 +408,12 @@ export default function CourseForm() {
       <div className="flex items-center">
         <Button
           variant="ghost"
-          onClick={() => navigate("/courses")}
-          className="mr-4"
+          size="sm"
+          onClick={() => navigate("/courses/view")}
+          className="gap-2"
+          disabled={isSubmitting}
         >
-          <ArrowLeft className="mr-2 h-4 w-4" />
+          <ArrowLeft className="h-4 w-4" />
           Back to Courses
         </Button>
         <div>
@@ -535,9 +534,7 @@ export default function CourseForm() {
                   <SelectTrigger id="classId">
                     <SelectValue
                       placeholder={
-                        isLoadingClasses
-                          ? "Loading classes..."
-                          : "Select class"
+                        isLoadingClasses ? "Loading classes..." : "Select class"
                       }
                     />
                   </SelectTrigger>

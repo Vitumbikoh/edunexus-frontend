@@ -1,3 +1,4 @@
+// src/pages/Courses.tsx
 import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -27,17 +28,11 @@ interface Course {
   description: string;
   status: string;
   classId?: string;
-  className?: string;
+  className?: string; // Ensure className is part of the response
   teacher?: {
     firstName: string;
     lastName: string;
   };
-  enrollments?: {
-    student: {
-      firstName: string;
-      lastName: string;
-    };
-  }[];
   teacherName?: string;
   studentsCount?: number;
 }
@@ -98,19 +93,10 @@ export default function Courses() {
 
       if (!response.ok) {
         const errorData = await response.json();
-        console.error("Failed to fetch classes:", errorData);
         throw new Error(errorData.message || "Failed to fetch classes");
       }
 
       const result = await response.json();
-
-      console.log("Classes API response:", result); // Debugging log
-
-      if (!Array.isArray(result)) {
-        console.error("Unexpected response format - expected array:", result);
-        throw new Error("Invalid data format received from server");
-      }
-
       setClasses((prev) => [
         { id: "all", name: "All Classes" },
         ...result.map((cls) => ({
@@ -168,30 +154,18 @@ export default function Courses() {
       }
 
       const result = await response.json();
-
       const courses = Array.isArray(result?.courses) ? result.courses : [];
 
-      // Fetch additional details for each course
+      // Fetch enrollments for student count
       const enrichedCourses = await Promise.all(
         courses.map(async (course: Course) => {
-          // Get teacher name if available
-          const teacherName = course.teacher
-            ? `${course.teacher.firstName} ${course.teacher.lastName}`
-            : "Not assigned";
-
-          // Get class name
-          const className = course.classId
-            ? classes.find((c) => c.id === course.classId)?.name ||
-              course.classId
-            : "Not assigned";
-
-          // Get enrolled students count
           const enrollments = await fetchEnrollments(course.id);
-
           return {
             ...course,
-            teacherName,
-            className,
+            teacherName: course.teacher
+              ? `${course.teacher.firstName} ${course.teacher.lastName}`
+              : "Not assigned",
+            className: course.className || "Not assigned", // Use className from backend
             studentsCount: enrollments?.length || 0,
           };
         })
@@ -307,16 +281,16 @@ export default function Courses() {
               ))}
             </SelectContent>
           </Select>
-          {canAdd && (
+          {/* {canAdd && (
             <Button onClick={() => navigate("/courses/new")}>
               Add New Course
             </Button>
-          )}
+          )} */}
         </div>
       </div>
 
       {apiError && (
-        <div className="p-4 text-sm text-red-700 bg-red-100 rounded-lg">
+        <div className="p-4 text-sm text-red-700adzie bg-red-100 rounded-lg">
           {apiError}
         </div>
       )}
@@ -364,7 +338,7 @@ export default function Courses() {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
+                  <div className="space兵器space-y-4">
                     <div>
                       <h4 className="text-sm font-medium text-muted-foreground mb-2">
                         Teacher
