@@ -19,10 +19,8 @@ import {
 } from '@/components/ui/chart';
 
 export default function ParentChildrenPerformance() {
-  const { user } = useAuth();
-  
-  // Demo children data to always show the designed content
-  const demoChildren = [
+  // Always show dummy data for demo purposes
+  const children = [
     {
       id: 'child-1',
       name: 'Emma Johnson',
@@ -44,8 +42,6 @@ export default function ParentChildrenPerformance() {
       ],
     },
   ];
-
-  const children = user?.parentData?.children || demoChildren;
 
   return (
     <div className="space-y-6 p-6">

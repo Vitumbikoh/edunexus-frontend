@@ -16,10 +16,8 @@ import { Badge } from "@/components/ui/badge";
 import { Calendar } from "lucide-react";
 
 export default function ParentAttendance() {
-  const { user } = useAuth();
-  
-  // Demo children data to always show the designed content
-  const demoChildren = [
+  // Always show dummy data for demo purposes
+  const children = [
     {
       id: 'child-1',
       name: 'Emma Johnson',
@@ -33,8 +31,6 @@ export default function ParentAttendance() {
       attendance: { total: 110, present: 92, absent: 5, late: 3 },
     },
   ];
-
-  const children = user?.parentData?.children || demoChildren;
 
   // Generate mock attendance data for the last 30 days
   const generateAttendanceData = (child) => {
