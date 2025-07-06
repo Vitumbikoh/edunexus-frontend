@@ -1,15 +1,19 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Award } from "lucide-react";
+import { toast } from "@/hooks/use-toast";
 
 export default function StudentGrades() {
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const [selectedTerm, setSelectedTerm] = useState<string>("all");
-  
+  const [grades, setGrades] = useState([]);
+  const [courses, setCourses] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
   if (!user || user.role !== 'student') {
     return (
       <div className="flex items-center justify-center h-96">
@@ -20,21 +24,52 @@ export default function StudentGrades() {
     );
   }
 
-  // Use studentData if available, otherwise create fallback data
-  const fallbackGrades = [
-    { course: 'Mathematics', grade: 'A-', term: 'Midterm' },
-    { course: 'Physics', grade: 'B+', term: 'Midterm' },
-    { course: 'Chemistry', grade: 'A', term: 'Midterm' },
-    { course: 'English', grade: 'B+', term: 'Final' },
-    { course: 'History', grade: 'B', term: 'Final' },
-    { course: 'Computer Science', grade: 'A+', term: 'Final' },
-  ];
-  
-  const fallbackCourses = ['Mathematics', 'Physics', 'Chemistry', 'English', 'History', 'Computer Science'];
-  
-  const grades = user.studentData?.grades || fallbackGrades;
-  const courses = user.studentData?.courses || fallbackCourses;
-  
+  useEffect(() => {
+    const fetchGrades = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+        const response = await fetch('http://localhost:5000/api/v1/grades/students', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch grades');
+        }
+
+        const data = await response.json();
+        if (!data.success || !data.grades) {
+          throw new Error('No grades data available');
+        }
+
+        // Transform backend data to match the expected structure
+        const transformedGrades = data.grades.map(grade => ({
+          course: grade.course.name || grade.course,
+          grade: grade.grade,
+          term: grade.assessmentType === 'midterm' ? 'Midterm' : 'Final', // Map assessmentType to term
+        }));
+        const uniqueCourses = [...new Set(transformedGrades.map(g => g.course))];
+
+        setGrades(transformedGrades);
+        setCourses(uniqueCourses);
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : 'Failed to load grades';
+        setError(errorMessage);
+        toast({
+          title: 'Error',
+          description: errorMessage,
+          variant: 'destructive',
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchGrades();
+  }, [token]);
+
   const terms = ["Midterm", "Final"];
   const filteredGrades = selectedTerm === "all" 
     ? grades 
@@ -47,6 +82,38 @@ export default function StudentGrades() {
     if (grade.startsWith('D')) return "text-orange-600";
     return "text-red-600";
   };
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold">My Grades</h1>
+          <p className="text-muted-foreground">View your academic performance</p>
+        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle className="h-6 bg-gray-200 animate-pulse rounded"></CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="h-10 bg-gray-200 animate-pulse rounded"></div>
+              <div className="h-20 bg-gray-200 animate-pulse rounded"></div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="text-center p-8 rounded-lg bg-red-50 border border-red-200 text-red-700 font-semibold">
+          {error}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
