@@ -8,7 +8,7 @@ import { BookOpen, Clock, Users, Award, Calendar } from "lucide-react";
 export default function StudentCourses() {
   const { user } = useAuth();
   
-  if (!user || user.role !== 'student' || !user.studentData) {
+  if (!user || user.role !== 'student') {
     return (
       <div className="flex items-center justify-center h-96">
         <div className="text-center p-8 rounded-lg bg-red-50 border border-red-200 text-red-700 font-semibold">
@@ -18,8 +18,12 @@ export default function StudentCourses() {
     );
   }
 
+  // Use studentData if available, otherwise create fallback data
+  const fallbackCourses = ['Mathematics', 'Physics', 'Chemistry', 'English', 'History', 'Computer Science'];
+  const courses = user.studentData?.courses || fallbackCourses;
+  
   // Mock course details with progress and additional information
-  const coursesWithDetails = user.studentData.courses.map((courseName, index) => ({
+  const coursesWithDetails = courses.map((courseName, index) => ({
     id: `course-${index + 1}`,
     name: courseName,
     code: `${courseName.substring(0, 3).toUpperCase()}${101 + index}`,

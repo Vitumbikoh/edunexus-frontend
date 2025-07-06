@@ -50,7 +50,7 @@ export default function StudentMaterials() {
   const [selectedCourse, setSelectedCourse] = useState<string>("all");
   const [selectedType, setSelectedType] = useState<string>("all");
   
-  if (!user || user.role !== 'student' || !user.studentData) {
+  if (!user || user.role !== 'student') {
     return (
       <div className="flex items-center justify-center h-96">
         <div className="text-center p-8 rounded-lg bg-red-50 border border-red-200 text-red-700 font-semibold">
@@ -60,7 +60,10 @@ export default function StudentMaterials() {
     );
   }
 
-  const allMaterials = createLearningMaterials(user.studentData.courses);
+  // Use studentData if available, otherwise create fallback data
+  const fallbackCourses = ['Mathematics', 'Physics', 'Chemistry', 'English', 'History', 'Computer Science'];
+  const courses = user.studentData?.courses || fallbackCourses;
+  const allMaterials = createLearningMaterials(courses);
   
   const filteredMaterials = allMaterials.filter(material => {
     const matchesCourse = selectedCourse === "all" || material.course === selectedCourse;
@@ -107,7 +110,7 @@ export default function StudentMaterials() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Courses</SelectItem>
-                  {user.studentData.courses.map(course => (
+                  {courses.map(course => (
                     <SelectItem key={course} value={course}>{course}</SelectItem>
                   ))}
                 </SelectContent>

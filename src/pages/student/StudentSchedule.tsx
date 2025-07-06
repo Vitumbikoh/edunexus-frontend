@@ -154,7 +154,7 @@ export default function StudentSchedule() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">My Schedule</h1>
-        <p className="text-muted-foreground">Class {studentData.grade} schedule for the week</p>
+        <p className="text-muted-foreground">Class {studentData?.grade || 'N/A'} schedule for the week</p>
       </div>
       
       <div className="space-y-6">
