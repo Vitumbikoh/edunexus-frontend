@@ -37,6 +37,7 @@ import StudentAssignments from "./pages/student/StudentAssignments";
 import StudentGrades from "./pages/student/StudentGrades";
 import StudentSchedule from "./pages/student/StudentSchedule";
 import StudentMaterials from "./pages/student/StudentMaterials";
+import StudentCourses from "./pages/student/StudentCourses";
 
 // Parent specific pages
 import ParentChildrenPerformance from "./pages/parent/ParentChildrenPerformance";
@@ -682,6 +683,28 @@ const AppRoutes = () => {
           <StudentRoute>
             <Layout>
               <StudentMaterials />
+            </Layout>
+          </StudentRoute>
+        }
+      />
+
+      <Route
+        path="/schedule"
+        element={
+          <StudentRoute>
+            <Layout>
+              <StudentSchedule />
+            </Layout>
+          </StudentRoute>
+        }
+      />
+
+      <Route
+        path="/my-courses"
+        element={
+          <StudentRoute>
+            <Layout>
+              <StudentCourses />
             </Layout>
           </StudentRoute>
         }
