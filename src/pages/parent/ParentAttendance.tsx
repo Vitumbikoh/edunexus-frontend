@@ -18,18 +18,23 @@ import { Calendar } from "lucide-react";
 export default function ParentAttendance() {
   const { user } = useAuth();
   
-  if (!user) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <p>Please log in to view attendance records.</p>
-      </div>
-    );
-  }
+  // Demo children data to always show the designed content
+  const demoChildren = [
+    {
+      id: 'child-1',
+      name: 'Emma Johnson',
+      grade: 'Grade 9',
+      attendance: { total: 120, present: 88, absent: 8, late: 4 },
+    },
+    {
+      id: 'child-2',
+      name: 'Alex Johnson',
+      grade: 'Grade 7',
+      attendance: { total: 110, present: 92, absent: 5, late: 3 },
+    },
+  ];
 
-  // Debug: Log user data
-  console.log('User:', user);
-  console.log('User role:', user.role);
-  console.log('Parent data:', user.parentData);
+  const children = user?.parentData?.children || demoChildren;
 
   // Generate mock attendance data for the last 30 days
   const generateAttendanceData = (child) => {
@@ -76,7 +81,7 @@ export default function ParentAttendance() {
       </div>
       
       <div className="grid grid-cols-1 gap-6">
-        {user.parentData?.children ? user.parentData.children.map((child) => (
+        {children.map((child) => (
           <Card key={child.id}>
             <CardHeader>
               <CardTitle>{child.name}'s Attendance</CardTitle>
@@ -136,11 +141,7 @@ export default function ParentAttendance() {
               </div>
             </CardContent>
           </Card>
-        )) : (
-          <div className="flex items-center justify-center h-32">
-            <p className="text-muted-foreground">No children data available.</p>
-          </div>
-        )}
+        ))}
       </div>
     </div>
   );
