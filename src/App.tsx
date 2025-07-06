@@ -700,7 +700,7 @@ const AppRoutes = () => {
       />
 
       <Route
-        path="/my-courses"
+        path="/courses"
         element={
           <StudentRoute>
             <Layout>

@@ -116,7 +116,7 @@ const teacherNavItems: NavItem[] = [
 
 const studentNavItems: NavItem[] = [
   { label: 'Dashboard', icon: Home, href: '/dashboard', roles: ['student'] },
-  { label: 'My Courses', icon: BookOpen, href: '/my-courses', roles: ['student'] },
+  { label: 'My Courses', icon: BookOpen, href: '/courses', roles: ['student'] },
   { label: 'Assignments', icon: FileText, href: '/assignments', roles: ['student'] },
   { label: 'Grades', icon: Award, href: '/grades', roles: ['student'] },
   { label: 'Schedule', icon: Calendar, href: '/schedule', roles: ['student'] },
