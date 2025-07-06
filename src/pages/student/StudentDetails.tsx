@@ -45,7 +45,7 @@ export default function StudentDetails() {
   return (
     <div className="space-y-6">
       <div className="flex items-center">
-        <Button variant="ghost" onClick={() => navigate('/students')} className="mr-4">
+        <Button variant="ghost" onClick={() => navigate('/students/view')} className="mr-4">
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back to Students
         </Button>

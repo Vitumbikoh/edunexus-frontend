@@ -73,7 +73,7 @@ export default function StudentForm() {
   
   React.useEffect(() => {
     if (!canAddStudent) {
-      navigate('/students');
+      navigate('/students/view');
       return;
     }
 
@@ -275,7 +275,7 @@ export default function StudentForm() {
         variant: "default",
       });
       
-      navigate('/students');
+      navigate('/students/view');
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : `Failed to ${id ? 'update' : 'add'} student`;
       setApiError(errorMessage);
@@ -300,7 +300,7 @@ export default function StudentForm() {
   return (
     <div className="space-y-6">
       <div className="flex items-center">
-        <Button variant="ghost" onClick={() => navigate('/students')} className="mr-4">
+        <Button variant="ghost" onClick={() => navigate('/students/view')} className="mr-4">
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back to Students
         </Button>

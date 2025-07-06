@@ -1,93 +1,199 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from "@/contexts/AuthContext";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
+import { useNavigate } from "react-router-dom";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Download, BookOpen, FileText } from "lucide-react";
-import { toast } from "@/hooks/use-toast";
-
-// Mock learning materials based on student Courses
-const createLearningMaterials = (courses: string[]) => {
-  const materials = [];
-  
-  for (const course of courses) {
-    // Add 2-4 materials per course
-    const numMaterials = Math.floor(Math.random() * 3) + 2;
-    
-    for (let i = 0; i < numMaterials; i++) {
-      materials.push({
-        id: `${course.toLowerCase().replace(/\s+/g, '-')}-${i + 1}`,
-        title: getMaterialTitle(course, i),
-        course: course,
-        type: i % 2 === 0 ? 'PDF' : i % 3 === 0 ? 'PPTX' : 'DOCX',
-        uploadedOn: new Date(2025, 3, Math.floor(Math.random() * 15) + 1).toISOString(),
-        size: `${Math.floor(Math.random() * 10) + 1}.${Math.floor(Math.random() * 9) + 1} MB`
-      });
-    }
-  }
-  
-  return materials.sort((a, b) => new Date(b.uploadedOn).getTime() - new Date(a.uploadedOn).getTime());
-};
-
-// Helper function to generate material titles
-const getMaterialTitle = (course: string, index: number) => {
-  const titleMap: {[key: string]: string[]} = {
-    'Mathematics': ['Algebra Notes', 'Calculus Formulas', 'Geometry Theorems', 'Statistics Handbook'],
-    'Physics': ['Mechanics Lessons', 'Electricity and Magnetism', 'Optics Guide', 'Thermodynamics Review'],
-    'English': ['Grammar Rules', 'Literature Analysis', 'Essay Writing Guide', 'Vocabulary List'],
-    'History': ['World War II Overview', 'Ancient Civilizations', 'Industrial Revolution', 'Cold War Timeline'],
-    'Computer Science': ['Programming Basics', 'Data Structures', 'Algorithms Guide', 'Web Development']
-  };
-  
-  const titles = titleMap[course] || ['Chapter Notes', 'Study Guide', 'Practice Problems', 'Exam Review'];
-  return titles[index % titles.length];
-};
+import { useToast } from "@/components/ui/use-toast";
 
 export default function StudentMaterials() {
-  const { user } = useAuth();
-  const [selectedCourse, setSelectedCourse] = useState<string>("all");
-  const [selectedType, setSelectedType] = useState<string>("all");
-  
-  if (!user || user.role !== 'student') {
-    return (
-      <div className="flex items-center justify-center h-96">
-        <div className="text-center p-8 rounded-lg bg-red-50 border border-red-200 text-red-700 font-semibold">
-          You do not have permission to access this page.
-        </div>
-      </div>
-    );
-  }
+  const { user, token } = useAuth();
+  const { toast } = useToast();
+  const navigate = useNavigate();
+  const [courses, setCourses] = useState([]);
+  const [materials, setMaterials] = useState([]);
+  const [selectedCourse, setSelectedCourse] = useState("all");
+  const [selectedType, setSelectedType] = useState("all");
+  const [loading, setLoading] = useState(true);
+  const [apiError, setApiError] = useState(null);
 
-  // Use studentData if available, otherwise create fallback data
-  const fallbackCourses = ['Mathematics', 'Physics', 'Chemistry', 'English', 'History', 'Computer Science'];
-  const courses = user.studentData?.courses || fallbackCourses;
-  const allMaterials = createLearningMaterials(courses);
-  
-  const filteredMaterials = allMaterials.filter(material => {
-    const matchesCourse = selectedCourse === "all" || material.course === selectedCourse;
-    const matchesType = selectedType === "all" || material.type === selectedType;
-    return matchesCourse && matchesType;
-  });
-  
-  const handleDownload = (materialId: string, title: string) => {
-    toast({
-      title: "Material downloaded",
-      description: `${title} has been downloaded to your device.`,
-    });
+
+  useEffect(() => {
+    const fetchCourses = async () => {
+      try {
+        if (!token) {
+          throw new Error("Authentication token not found. Please log in again.");
+        }
+        if (!user.id) {
+          throw new Error("User ID not found. Please log in again.");
+        }
+
+        const response = await fetch(`http://localhost:5000/api/v1/student/${user.id}/courses`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        });
+
+        if (response.status === 401) {
+          localStorage.removeItem("token");
+          navigate("/login");
+          throw new Error("Session expired. Please log in again.");
+        }
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || "Failed to fetch courses");
+        }
+
+        const result = await response.json();
+        if (result.success) {
+          const allCourses = [
+            ...result.courses.active,
+            ...result.courses.upcoming,
+            ...result.courses.completed,
+          ];
+          setCourses(allCourses);
+        } else {
+          throw new Error("Failed to fetch courses");
+        }
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : "Failed to fetch courses";
+        setApiError(errorMessage);
+        toast({
+          title: "Error",
+          description: errorMessage,
+          variant: "destructive",
+        });
+      }
+    };
+
+    const fetchMaterials = async () => {
+      try {
+        setLoading(true);
+        setApiError(null);
+
+        if (!token) {
+          throw new Error("Authentication token not found. Please log in again.");
+        }
+        if (!user.id) {
+          throw new Error("User ID not found. Please log in again.");
+        }
+
+        const url = selectedCourse === "all"
+          ? `http://localhost:5000/api/v1/student/${user.id}/materials`
+          : `http://localhost:5000/api/v1/student/${user.id}/materials?courseId=${selectedCourse}`;
+
+        const response = await fetch(url, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        });
+
+        if (response.status === 401) {
+          localStorage.removeItem("token");
+          navigate("/login");
+          throw new Error("Session expired. Please log in again.");
+        }
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || "Failed to fetch materials");
+        }
+
+        const result = await response.json();
+        if (result.success) {
+          setMaterials(result.materials);
+        } else {
+          throw new Error("Failed to fetch materials");
+        }
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : "Failed to fetch materials";
+        setApiError(errorMessage);
+        toast({
+          title: "Error",
+          description: errorMessage,
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCourses();
+    fetchMaterials();
+  }, [user.id, token, selectedCourse, navigate, toast]);
+
+  const filteredMaterials = materials.filter((material: any) =>
+    selectedType === "all" || material.type === selectedType
+  );
+
+  const handleDownload = async (material: { id: string; title: string; filePath: string; type: string }) => {
+    try {
+      const response = await fetch(`http://localhost:5000${material.filePath}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to download file");
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${material.title}.${material.type.toLowerCase()}`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      toast({
+        title: "Material downloaded",
+        description: `${material.title} has been downloaded to your device.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to download material",
+        variant: "destructive",
+      });
+    }
   };
-  
-  const fileTypeIcons: {[key: string]: React.ReactNode} = {
+
+  const fileTypeIcons = {
     'PDF': <FileText className="h-4 w-4 text-red-500" />,
     'DOCX': <FileText className="h-4 w-4 text-blue-500" />,
-    'PPTX': <FileText className="h-4 w-4 text-orange-500" />
+    'PPTX': <FileText className="h-4 w-4 text-orange-500" />,
   };
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
   };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (apiError) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="text-center p-8 rounded-lg bg-red-50 border border-red-200 text-red-700">
+          {apiError}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -110,8 +216,8 @@ export default function StudentMaterials() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Courses</SelectItem>
-                  {courses.map(course => (
-                    <SelectItem key={course} value={course}>{course}</SelectItem>
+                  {courses.map((course: any) => (
+                    <SelectItem key={course.id} value={course.id}>{course.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -144,7 +250,7 @@ export default function StudentMaterials() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredMaterials.map((material) => (
+                {filteredMaterials.map((material: any) => (
                   <TableRow key={material.id}>
                     <TableCell className="font-medium">
                       <div className="flex items-center gap-2">
@@ -160,7 +266,7 @@ export default function StudentMaterials() {
                       <Button 
                         variant="outline" 
                         size="sm" 
-                        onClick={() => handleDownload(material.id, material.title)}
+                        onClick={() => handleDownload(material)}
                       >
                         <Download className="h-4 w-4 mr-1" />
                         Download

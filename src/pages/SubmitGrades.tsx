@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, ChangeEvent } from 'react';
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -9,11 +9,22 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Save, BookOpen, Upload } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useNavigate } from 'react-router-dom';
+import * as XLSX from 'xlsx';
 
 interface ClassInfo {
   id: string;
   name: string;
-  courses: string[];
+}
+
+interface CourseInfo {
+  id: string;
+  name: string;
+}
+
+interface StudentInfo {
+  id: string;
+  studentId: string;
+  name: string;
 }
 
 const assessmentTypes = [
@@ -25,47 +36,19 @@ const assessmentTypes = [
 ];
 
 export default function SubmitGrades() {
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const navigate = useNavigate();
   const [classes, setClasses] = useState<ClassInfo[]>([]);
+  const [courses, setCourses] = useState<CourseInfo[]>([]);
   const [selectedClass, setSelectedClass] = useState<string>("");
   const [selectedCourse, setSelectedCourse] = useState<string>("");
   const [assessmentType, setAssessmentType] = useState<string>("");
-  const [students, setStudents] = useState<any[]>([]);
+  const [students, setStudents] = useState<StudentInfo[]>([]);
   const [grades, setGrades] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
-  
-  // Fetch teacher's classes from backend
-  useEffect(() => {
-    if (user?.role === 'teacher') {
-      const fetchClasses = async () => {
-        try {
-          setIsLoading(true);
-          // Replace with actual API call
-          // const response = await fetch('/api/teacher/classes');
-          // const data = await response.json();
-          
-          // Mock data - replace with actual API call
-          const mockClasses: ClassInfo[] = [
-            { id: "1", name: "10A", courses: ["Mathematics", "Physics"] },
-            { id: "2", name: "11B", courses: ["Mathematics", "Chemistry"] },
-          ];
-          setClasses(mockClasses);
-        } catch (error) {
-          toast({
-            variant: "destructive",
-            title: "Error loading classes",
-            description: "Could not fetch your classes. Please try again.",
-          });
-        } finally {
-          setIsLoading(false);
-        }
-      };
-      
-      fetchClasses();
-    }
-  }, [user]);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   if (!user || user.role !== 'teacher') {
     return (
@@ -77,58 +60,281 @@ export default function SubmitGrades() {
     );
   }
 
-  const handleClassSelect = async (value: string) => {
-    setSelectedClass(value);
-    setSelectedCourse("");
-    setAssessmentType("");
-    setStudents([]);
-    setGrades({});
-    setFile(null);
-    
+  const fetchClasses = async () => {
     try {
       setIsLoading(true);
-      // Replace with actual API call to fetch students for the selected class
-      // const response = await fetch(`/api/class/${value}/students`);
-      // const data = await response.json();
-      
-      // Mock data - replace with actual API call
-      const mockStudents = [
-        { id: "1", name: "John Doe", currentGrade: "" },
-        { id: "2", name: "Jane Smith", currentGrade: "" },
-        { id: "3", name: "Michael Johnson", currentGrade: "" },
-      ];
-      
-      setStudents(mockStudents);
-    } catch (error) {
+      setError(null);
+      const response = await fetch('http://localhost:5000/api/v1/teacher/my-classes', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.status === 401) {
+        throw new Error('Unauthorized - Please log in again');
+      }
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch classes');
+      }
+
+      const data = await response.json();
+      if (!data.success) {
+        throw new Error('Failed to fetch classes');
+      }
+
+      setClasses(data.classes);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load classes';
+      setError(errorMessage);
       toast({
-        variant: "destructive",
-        title: "Error loading students",
-        description: "Could not fetch students for this class. Please try again.",
+        title: 'Error',
+        description: errorMessage,
+        variant: 'destructive',
       });
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      const uploadedFile = e.target.files[0];
-      setFile(uploadedFile);
-      
-      // Here you would parse the Excel file and extract grades
-      // For now, we'll just show a success message
-      toast({
-        title: "File uploaded successfully",
-        description: `File "${uploadedFile.name}" is ready for processing.`,
+  const fetchCourses = async (classId: string) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const response = await fetch(`http://localhost:5000/api/v1/teacher/my-courses/by-class/${classId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       });
+
+      if (response.status === 401) {
+        throw new Error('Unauthorized - Please log in again');
+      }
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch courses');
+      }
+
+      const data = await response.json();
+      if (!data.success) {
+        throw new Error('Failed to fetch courses');
+      }
+
+      setCourses(data.courses);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load courses';
+      setError(errorMessage);
+      toast({
+        title: 'Error',
+        description: errorMessage,
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const fetchStudents = async (courseId: string) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const response = await fetch(`http://localhost:5000/api/v1/teacher/my-students/by-course/${courseId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.status === 401) {
+        throw new Error('Unauthorized - Please log in again');
+      }
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch students');
+      }
+
+      const data = await response.json();
+      if (!data.success) {
+        throw new Error('Failed to fetch students');
+      }
+
+      setStudents(
+        data.students.map((student: any) => ({
+          id: student.id,
+          studentId: student.studentId,
+          name: `${student.firstName} ${student.lastName}`,
+        }))
+      );
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load students';
+      setError(errorMessage);
+      toast({
+        title: 'Error',
+        description: errorMessage,
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (user?.role === 'teacher') {
+      fetchClasses();
+    }
+  }, [user, token]);
+
+  useEffect(() => {
+    if (selectedClass) {
+      fetchCourses(selectedClass);
+    } else {
+      setCourses([]);
+      setSelectedCourse('');
+      setStudents([]);
+      setGrades({});
+      setFile(null);
+    }
+  }, [selectedClass, token]);
+
+  useEffect(() => {
+    if (selectedCourse) {
+      fetchStudents(selectedCourse);
+    } else {
+      setStudents([]);
+      setGrades({});
+      setFile(null);
+    }
+  }, [selectedCourse, token]);
+
+ const handleFileUpload = (e: ChangeEvent<HTMLInputElement>) => {
+  if (!e.target.files?.[0]) return;
+
+  const uploadedFile = e.target.files[0];
+  setFile(uploadedFile);
+
+  const reader = new FileReader();
+  reader.onload = async (event) => {
+    try {
+      const data = new Uint8Array(event.target?.result as ArrayBuffer);
+      const workbook = XLSX.read(data, { type: 'array' });
       
-      // Mock parsing - replace with actual Excel parsing logic
-      const mockParsedGrades = {
-        "1": "A",
-        "2": "B+",
-        "3": "C"
-      };
-      setGrades(mockParsedGrades);
+      // 1. Get first sheet (simplified since we know the structure)
+      const sheetName = workbook.SheetNames[0];
+      const sheet = workbook.Sheets[sheetName];
+      
+      // 2. Convert to array of objects with original headers
+      const jsonData = XLSX.utils.sheet_to_json(sheet);
+      console.log('Raw parsed data:', jsonData); // Critical for debugging
+
+      if (!jsonData || jsonData.length === 0) {
+        throw new Error('File is empty or contains no data');
+      }
+
+      // 3. Find studentId and grade columns (case insensitive)
+      const firstRow = jsonData[0];
+      const studentIdKey = Object.keys(firstRow).find(
+        key => key.toLowerCase().replace(/\s/g, '') === 'studentid'
+      );
+      const gradeKey = Object.keys(firstRow).find(
+        key => key.toLowerCase().replace(/\s/g, '') === 'grade'
+      );
+
+      if (!studentIdKey || !gradeKey) {
+        throw new Error(
+          `Required columns not found. Found: ${Object.keys(firstRow).join(', ')}. ` +
+          `Looking for 'studentId' and 'grade' (case insensitive)`
+        );
+      }
+
+      // 4. Process all rows
+      const parsedGrades: Record<string, string> = {};
+      let validCount = 0;
+      let invalidCount = 0;
+      const missingStudents: string[] = [];
+
+      jsonData.forEach((row: any) => {
+        try {
+          const studentId = String(row[studentIdKey]).trim();
+          let grade = row[gradeKey];
+          
+          // Convert grade to string, handling numbers
+          grade = typeof grade === 'number' ? grade.toString() : String(grade).trim();
+
+          // Validate required fields
+          if (!studentId || !grade) {
+            invalidCount++;
+            return;
+          }
+
+          // Check student exists
+          const studentExists = students.some(s => s.studentId === studentId);
+          if (!studentExists) {
+            missingStudents.push(studentId);
+            invalidCount++;
+            return;
+          }
+
+          // Validate grade format (0-100 or 0.0-1.0)
+          const gradeNum = parseFloat(grade);
+          if (isNaN(gradeNum) || (gradeNum < 0 || gradeNum > 100 && (gradeNum < 0 || gradeNum > 1))) {
+            invalidCount++;
+            return;
+          }
+
+          // Store valid grade
+          parsedGrades[studentId] = grade;
+          validCount++;
+          
+        } catch (err) {
+          console.error('Error processing row:', row, err);
+          invalidCount++;
+        }
+      });
+
+      // 5. Final validation
+      if (validCount === 0) {
+        let errorMsg = 'No valid grades found. Reasons:\n';
+        if (missingStudents.length > 0) {
+          errorMsg += `- ${missingStudents.length} student IDs not found in class (e.g. ${missingStudents.slice(0, 3).join(', ')}${missingStudents.length > 3 ? '...' : ''}\n`;
+        }
+        if (invalidCount > 0) {
+          errorMsg += `- ${invalidCount} rows had invalid data\n`;
+        }
+        throw new Error(errorMsg);
+      }
+
+      setGrades(parsedGrades);
+      toast({
+        title: "Success!",
+        description: `Loaded grades for ${validCount} students${invalidCount > 0 ? ` (${invalidCount} issues detected)` : ''}`,
+      });
+
+    } catch (err) {
+      console.error('Full error details:', err);
+      toast({
+        variant: "destructive",
+        title: "Cannot process file",
+        description: err instanceof Error ? err.message : 'Invalid file format',
+      });
+      setFile(null);
+      setGrades({});
+    }
+  };
+  
+  reader.onerror = () => {
+    toast({
+      variant: "destructive",
+      title: "File read error",
+      description: "Could not read the file. Please try again.",
+    });
+    setFile(null);
+    setGrades({});
+  };
+  
+  reader.readAsArrayBuffer(uploadedFile);
+};
+  const handleFileButtonClick = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
     }
   };
 
@@ -142,41 +348,44 @@ export default function SubmitGrades() {
       return;
     }
 
-    if (!file) {
+    if (!file || Object.keys(grades).length === 0) {
       toast({
         variant: "destructive",
-        title: "No file uploaded",
-        description: "Please upload an Excel file with grades.",
+        title: "No grades provided",
+        description: "Please upload an Excel file with valid grades.",
       });
       return;
     }
 
+    const payload = {
+      classId: selectedClass,
+      courseId: selectedCourse,
+      assessmentType,
+      grades,
+    };
+
     try {
       setIsLoading(true);
-      // Replace with actual API call to submit grades
-      // const response = await fetch('/api/grades/submit', {
-      //   method: 'POST',
-      //   body: JSON.stringify({
-      //     classId: selectedClass,
-      //     course: selectedCourse,
-      //     assessmentType,
-      //     grades,
-      //   }),
-      //   headers: {
-      //     'Content-Type': 'application/json',
-      //   },
-      // });
-      
-      // if (!response.ok) throw new Error('Submission failed');
-      
-      // Mock submission
-      console.log("Submitting grades:", {
-        class: selectedClass,
-        course: selectedCourse,
-        assessmentType,
-        grades,
+      setError(null);
+      const response = await fetch('http://localhost:5000/api/v1/teacher/grades', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
       });
 
+      if (response.status === 401) {
+        throw new Error('Unauthorized - Please log in again');
+      }
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to submit grades');
+      }
+
+      const data = await response.json();
       toast({
         title: "Grades submitted successfully",
         description: `Grades for ${assessmentTypes.find(a => a.value === assessmentType)?.label} have been recorded.`,
@@ -189,21 +398,55 @@ export default function SubmitGrades() {
       setStudents([]);
       setGrades({});
       setFile(null);
-    } catch (error) {
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to submit grades';
+      setError(errorMessage);
       toast({
-        variant: "destructive",
-        title: "Submission failed",
-        description: "There was an error submitting grades. Please try again.",
+        title: 'Error',
+        description: errorMessage,
+        variant: 'destructive',
       });
     } finally {
       setIsLoading(false);
     }
   };
 
-  const getSelectedClassCourses = () => {
-    const selected = classes.find(cls => cls.name === selectedClass);
-    return selected?.courses || [];
-  };
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold">Submit Grades</h1>
+          <p className="text-muted-foreground">Record student assessment results</p>
+        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle className="h-6 bg-gray-200 animate-pulse rounded"></CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="h-10 bg-gray-200 animate-pulse rounded"></div>
+              <div className="h-10 bg-gray-200 animate-pulse rounded"></div>
+              <div className="h-10 bg-gray-200 animate-pulse rounded"></div>
+              <div className="h-20 bg-gray-200 animate-pulse rounded"></div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="text-center p-8 rounded-lg bg-red-50 border border-red-200 text-red-700 font-semibold">
+          {error}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -229,7 +472,7 @@ export default function SubmitGrades() {
               <Label htmlFor="class">Class *</Label>
               <Select 
                 value={selectedClass} 
-                onValueChange={handleClassSelect}
+                onValueChange={setSelectedClass}
                 disabled={isLoading}
               >
                 <SelectTrigger id="class">
@@ -237,7 +480,7 @@ export default function SubmitGrades() {
                 </SelectTrigger>
                 <SelectContent>
                   {classes.map((cls) => (
-                    <SelectItem key={cls.id} value={cls.name}>
+                    <SelectItem key={cls.id} value={cls.id}>
                       Class {cls.name}
                     </SelectItem>
                   ))}
@@ -256,9 +499,9 @@ export default function SubmitGrades() {
                   <SelectValue placeholder="Select a course" />
                 </SelectTrigger>
                 <SelectContent>
-                  {getSelectedClassCourses().map((course) => (
-                    <SelectItem key={course} value={course}>
-                      {course}
+                  {courses.map((course) => (
+                    <SelectItem key={course.id} value={course.id}>
+                      {course.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -290,20 +533,24 @@ export default function SubmitGrades() {
             <div className="mb-6">
               <Label>Upload Grades (Excel File)</Label>
               <div className="flex items-center gap-4 mt-2">
-                <Label htmlFor="file-upload" className="cursor-pointer">
-                  <Button variant="outline" className="gap-2">
-                    <Upload className="h-4 w-4" />
-                    {file ? file.name : "Choose File"}
-                  </Button>
-                  <Input 
-                    id="file-upload" 
-                    type="file" 
-                    accept=".xlsx,.xls" 
-                    className="hidden" 
-                    onChange={handleFileUpload}
-                    disabled={isLoading}
-                  />
-                </Label>
+                <Button 
+                  variant="outline" 
+                  className="gap-2" 
+                  onClick={handleFileButtonClick}
+                  disabled={isLoading}
+                >
+                  <Upload className="h-4 w-4" />
+                  {file ? file.name : "Choose File"}
+                </Button>
+                <Input 
+                  id="file-upload" 
+                  type="file" 
+                  accept=".xlsx,.xls" 
+                  className="hidden" 
+                  ref={fileInputRef}
+                  onChange={handleFileUpload}
+                  disabled={isLoading}
+                />
                 {file && (
                   <span className="text-sm text-muted-foreground">
                     File ready for submission
@@ -328,9 +575,9 @@ export default function SubmitGrades() {
                   <TableBody>
                     {students.map((student) => (
                       <TableRow key={student.id}>
-                        <TableCell>{student.id}</TableCell>
+                        <TableCell>{student.studentId}</TableCell>
                         <TableCell className="font-medium">{student.name}</TableCell>
-                        <TableCell>{grades[student.id] || "Not graded"}</TableCell>
+                        <TableCell>{grades[student.studentId] || "Not graded"}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>

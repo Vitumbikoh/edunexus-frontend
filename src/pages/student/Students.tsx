@@ -156,11 +156,7 @@ export default function Students() {
             Showing {paginatedData.students.length} of {paginatedData.totalItems} students
           </p>
         </div>
-        {canAddStudent && (
-          <Button asChild>
-            <Link to="/students/new">Add New Student</Link>
-          </Button>
-        )}
+        
       </div>
 
       {apiError && (
