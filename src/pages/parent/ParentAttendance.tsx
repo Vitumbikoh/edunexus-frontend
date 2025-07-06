@@ -26,6 +26,11 @@ export default function ParentAttendance() {
     );
   }
 
+  // Debug: Log user data
+  console.log('User:', user);
+  console.log('User role:', user.role);
+  console.log('Parent data:', user.parentData);
+
   // Generate mock attendance data for the last 30 days
   const generateAttendanceData = (child) => {
     const today = new Date();

@@ -29,6 +29,11 @@ export default function ParentChildrenPerformance() {
     );
   }
 
+  // Debug: Log user data
+  console.log('User:', user);
+  console.log('User role:', user.role);
+  console.log('Parent data:', user.parentData);
+
   return (
     <div className="space-y-6 p-6">
       <div className="flex items-center justify-between">
