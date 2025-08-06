@@ -6,8 +6,9 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { useAuth } from '@/contexts/AuthContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import { useToast } from "@/components/ui/use-toast";
-import { Loader2, Eye, EyeOff } from "lucide-react";
+import { Loader2, Eye, EyeOff, Monitor, Sun, Moon } from "lucide-react";
 
 interface UserSettings {
   username: string;
@@ -34,6 +35,7 @@ interface SchoolSettings {
 
 export default function Settings() {
   const { user, token } = useAuth();
+  const { theme, setTheme } = useTheme();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(true);
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
@@ -237,6 +239,7 @@ export default function Settings() {
         <TabsList className="mb-4">
           <TabsTrigger value="account">Account</TabsTrigger>
           <TabsTrigger value="notifications">Notifications</TabsTrigger>
+          <TabsTrigger value="appearance">Appearance</TabsTrigger>
           <TabsTrigger value="security">Security</TabsTrigger>
           {user?.role.toUpperCase() === 'ADMIN' && <TabsTrigger value="school">School Settings</TabsTrigger>}
         </TabsList>
@@ -347,6 +350,68 @@ export default function Settings() {
 
               <div className="flex justify-end">
                 <Button onClick={() => handleSubmit('notifications')}>Save Preferences</Button>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="appearance">
+          <Card>
+            <CardHeader>
+              <CardTitle>Appearance Settings</CardTitle>
+              <CardDescription>Choose your preferred theme</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-4">
+                <div>
+                  <h4 className="font-medium mb-3">Theme Mode</h4>
+                  <div className="grid grid-cols-3 gap-3">
+                    <button
+                      onClick={() => setTheme('light')}
+                      className={`flex flex-col items-center gap-2 p-4 rounded-lg border-2 transition-colors ${
+                        theme === 'light'
+                          ? 'border-primary bg-primary/5'
+                          : 'border-border hover:border-primary/50'
+                      }`}
+                    >
+                      <Sun className="h-6 w-6" />
+                      <span className="text-sm font-medium">Light</span>
+                    </button>
+                    
+                    <button
+                      onClick={() => setTheme('dark')}
+                      className={`flex flex-col items-center gap-2 p-4 rounded-lg border-2 transition-colors ${
+                        theme === 'dark'
+                          ? 'border-primary bg-primary/5'
+                          : 'border-border hover:border-primary/50'
+                      }`}
+                    >
+                      <Moon className="h-6 w-6" />
+                      <span className="text-sm font-medium">Dark</span>
+                    </button>
+                    
+                    <button
+                      onClick={() => setTheme('system')}
+                      className={`flex flex-col items-center gap-2 p-4 rounded-lg border-2 transition-colors ${
+                        theme === 'system'
+                          ? 'border-primary bg-primary/5'
+                          : 'border-border hover:border-primary/50'
+                      }`}
+                    >
+                      <Monitor className="h-6 w-6" />
+                      <span className="text-sm font-medium">System</span>
+                    </button>
+                  </div>
+                </div>
+                
+                <div className="pt-4 border-t">
+                  <p className="text-sm text-muted-foreground">
+                    {theme === 'system' 
+                      ? 'The system theme will automatically adjust based on your device settings.'
+                      : `The ${theme} theme will be applied across the entire system for your account.`
+                    }
+                  </p>
+                </div>
               </div>
             </CardContent>
           </Card>
