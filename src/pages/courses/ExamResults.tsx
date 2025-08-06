@@ -13,12 +13,6 @@ interface Class {
   name: string;
 }
 
-interface Course {
-  id: string;
-  name: string;
-  code: string;
-}
-
 interface Student {
   id: string;
   firstName: string;
@@ -45,21 +39,30 @@ interface StudentResults {
   totalExams: number;
 }
 
+interface AllStudentsResults {
+  classInfo: Class;
+  students: (Student & {
+    results: ExamResult[];
+    overallGPA: number;
+    averageScore: number;
+    remarks: string;
+  })[];
+}
+
 const ExamResults = () => {
   const { token } = useAuth();
   const { toast } = useToast();
   
   const [classes, setClasses] = useState<Class[]>([]);
-  const [courses, setCourses] = useState<Course[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   
   const [selectedClass, setSelectedClass] = useState<string>('');
-  const [selectedCourse, setSelectedCourse] = useState<string>('');
   const [selectedYear, setSelectedYear] = useState<string>('');
   const [selectedTerm, setSelectedTerm] = useState<string>('');
   const [selectedStudent, setSelectedStudent] = useState<string>('');
   
   const [studentResults, setStudentResults] = useState<StudentResults | null>(null);
+  const [allStudentsResults, setAllStudentsResults] = useState<AllStudentsResults | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   const academicYears = ['2023-2024', '2024-2025', '2025-2026'];
@@ -76,26 +79,75 @@ const ExamResults = () => {
   }, []);
 
   useEffect(() => {
-    if (selectedClass) {
-      // Mock courses based on class
-      setCourses([
-        { id: '1', name: 'Mathematics', code: 'MATH101' },
-        { id: '2', name: 'English Literature', code: 'ENG101' },
-        { id: '3', name: 'Science', code: 'SCI101' },
-      ]);
-    }
-  }, [selectedClass]);
-
-  useEffect(() => {
-    if (selectedClass && selectedCourse && selectedYear && selectedTerm) {
-      // Mock students
+    if (selectedClass && selectedYear && selectedTerm) {
+      // Mock students based on class, year, and term
       setStudents([
         { id: '1', firstName: 'John', lastName: 'Doe', studentId: 'STU001' },
         { id: '2', firstName: 'Jane', lastName: 'Smith', studentId: 'STU002' },
         { id: '3', firstName: 'Mike', lastName: 'Johnson', studentId: 'STU003' },
+        { id: '4', firstName: 'Sarah', lastName: 'Wilson', studentId: 'STU004' },
+        { id: '5', firstName: 'David', lastName: 'Brown', studentId: 'STU005' },
       ]);
     }
-  }, [selectedClass, selectedCourse, selectedYear, selectedTerm]);
+  }, [selectedClass, selectedYear, selectedTerm]);
+
+  const fetchAllStudentsResults = async () => {
+    if (!selectedClass || !selectedYear || !selectedTerm) return;
+
+    setIsLoading(true);
+    try {
+      // Mock all students results
+      const mockAllResults: AllStudentsResults = {
+        classInfo: classes.find(c => c.id === selectedClass)!,
+        students: students.map(student => ({
+          ...student,
+          results: [
+            {
+              id: `${student.id}-1`,
+              examTitle: 'Midterm Examination',
+              subject: 'Mathematics',
+              marksObtained: Math.floor(Math.random() * 40) + 60,
+              totalMarks: 100,
+              percentage: Math.floor(Math.random() * 40) + 60,
+              grade: ['A+', 'A', 'B+', 'B', 'C+'][Math.floor(Math.random() * 5)],
+              date: '2024-03-15',
+              examType: 'Midterm'
+            },
+            {
+              id: `${student.id}-2`,
+              examTitle: 'Final Examination',
+              subject: 'English',
+              marksObtained: Math.floor(Math.random() * 40) + 60,
+              totalMarks: 100,
+              percentage: Math.floor(Math.random() * 40) + 60,
+              grade: ['A+', 'A', 'B+', 'B', 'C+'][Math.floor(Math.random() * 5)],
+              date: '2024-04-10',
+              examType: 'Final'
+            }
+          ],
+          overallGPA: Math.random() * 2 + 2.5,
+          averageScore: Math.floor(Math.random() * 30) + 70,
+          remarks: ['Excellent performance', 'Good work', 'Needs improvement', 'Outstanding'][Math.floor(Math.random() * 4)]
+        }))
+      };
+      
+      setAllStudentsResults(mockAllResults);
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to fetch students results',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (selectedClass && selectedYear && selectedTerm && !selectedStudent) {
+      fetchAllStudentsResults();
+    }
+  }, [selectedClass, selectedYear, selectedTerm, students]);
 
   const fetchStudentResults = async () => {
     if (!selectedStudent) return;
@@ -479,26 +531,6 @@ const ExamResults = () => {
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium">Course</label>
-              <Select 
-                value={selectedCourse} 
-                onValueChange={setSelectedCourse}
-                disabled={!selectedClass}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a course" />
-                </SelectTrigger>
-                <SelectContent>
-                  {courses.map((course) => (
-                    <SelectItem key={course.id} value={course.id}>
-                      {course.name} ({course.code})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
               <label className="text-sm font-medium">Academic Year</label>
               <Select value={selectedYear} onValueChange={setSelectedYear}>
                 <SelectTrigger>
@@ -532,10 +564,10 @@ const ExamResults = () => {
 
             <div className="space-y-2">
               <label className="text-sm font-medium">Student</label>
-              <Select 
+               <Select 
                 value={selectedStudent} 
                 onValueChange={setSelectedStudent}
-                disabled={!selectedClass || !selectedCourse || !selectedYear || !selectedTerm}
+                disabled={!selectedClass || !selectedYear || !selectedTerm}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select a student" />
@@ -627,11 +659,58 @@ const ExamResults = () => {
         </Card>
       )}
 
-      {selectedClass && selectedCourse && selectedYear && selectedTerm && !selectedStudent && (
+      {allStudentsResults && !selectedStudent && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Eye className="h-5 w-5" />
+              All Students' Exam Results - {allStudentsResults.classInfo.name}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse border border-border">
+                <thead>
+                  <tr className="bg-muted">
+                    <th className="border border-border p-3 text-left">Student ID</th>
+                    <th className="border border-border p-3 text-left">Student Name</th>
+                    <th className="border border-border p-3 text-left">Average Score</th>
+                    <th className="border border-border p-3 text-left">Overall GPA</th>
+                    <th className="border border-border p-3 text-left">Total Exams</th>
+                    <th className="border border-border p-3 text-left">Remarks</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {allStudentsResults.students.map((student) => (
+                    <tr key={student.id} className="hover:bg-muted/50">
+                      <td className="border border-border p-3 font-medium">{student.studentId}</td>
+                      <td className="border border-border p-3">
+                        {student.firstName} {student.lastName}
+                      </td>
+                      <td className="border border-border p-3">
+                        <Badge variant="secondary">{student.averageScore}%</Badge>
+                      </td>
+                      <td className="border border-border p-3">
+                        <Badge variant="outline">{student.overallGPA.toFixed(1)}</Badge>
+                      </td>
+                      <td className="border border-border p-3">{student.results.length}</td>
+                      <td className="border border-border p-3 text-muted-foreground">
+                        {student.remarks}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {selectedClass && selectedYear && selectedTerm && !selectedStudent && !allStudentsResults && (
         <Card>
           <CardContent className="py-8">
             <div className="text-center text-muted-foreground">
-              Please select a student to view their exam results.
+              {isLoading ? 'Loading students results...' : 'Select a student to view individual results or view all students above.'}
             </div>
           </CardContent>
         </Card>
