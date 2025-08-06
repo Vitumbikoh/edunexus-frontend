@@ -43,12 +43,16 @@ export default function SubmitGrades() {
   const [selectedClass, setSelectedClass] = useState<string>("");
   const [selectedCourse, setSelectedCourse] = useState<string>("");
   const [assessmentType, setAssessmentType] = useState<string>("");
+  const [examTitle, setExamTitle] = useState<string>("");
   const [students, setStudents] = useState<StudentInfo[]>([]);
-  const [grades, setGrades] = useState<Record<string, string>>({});
+  const [grades, setGrades] = useState<Record<string, number>>({});
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const [totalMarks, setTotalMarks] = useState<number>(100);
+  const [academicYear] = useState<string>("2024-2025");
+  const [term] = useState<string>("First Term");
 
   if (!user || user.role !== 'teacher') {
     return (
@@ -157,13 +161,21 @@ export default function SubmitGrades() {
         throw new Error('Failed to fetch students');
       }
 
-      setStudents(
-        data.students.map((student: any) => ({
-          id: student.id,
-          studentId: student.studentId,
-          name: `${student.firstName} ${student.lastName}`,
-        }))
-      );
+      const fetchedStudents = data.students.map((student: any) => ({
+        id: student.id,
+        studentId: student.studentId,
+        name: `${student.firstName} ${student.lastName}`,
+      }));
+
+      console.log('Fetched students:', fetchedStudents);
+      setStudents(fetchedStudents);
+
+      // Initialize grades with 0 for each student
+      const initialGrades = fetchedStudents.reduce((acc: Record<string, number>, student: StudentInfo) => {
+        acc[student.studentId] = 0;
+        return acc;
+      }, {});
+      setGrades(initialGrades);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to load students';
       setError(errorMessage);
@@ -192,6 +204,7 @@ export default function SubmitGrades() {
       setStudents([]);
       setGrades({});
       setFile(null);
+      setExamTitle('');
     }
   }, [selectedClass, token]);
 
@@ -202,144 +215,150 @@ export default function SubmitGrades() {
       setStudents([]);
       setGrades({});
       setFile(null);
+      setExamTitle('');
     }
   }, [selectedCourse, token]);
 
- const handleFileUpload = (e: ChangeEvent<HTMLInputElement>) => {
-  if (!e.target.files?.[0]) return;
+  const handleFileUpload = (e: ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files?.[0]) return;
 
-  const uploadedFile = e.target.files[0];
-  setFile(uploadedFile);
+    const uploadedFile = e.target.files[0];
+    setFile(uploadedFile);
 
-  const reader = new FileReader();
-  reader.onload = async (event) => {
-    try {
-      const data = new Uint8Array(event.target?.result as ArrayBuffer);
-      const workbook = XLSX.read(data, { type: 'array' });
-      
-      // 1. Get first sheet (simplified since we know the structure)
-      const sheetName = workbook.SheetNames[0];
-      const sheet = workbook.Sheets[sheetName];
-      
-      // 2. Convert to array of objects with original headers
-      const jsonData = XLSX.utils.sheet_to_json(sheet);
-      console.log('Raw parsed data:', jsonData); // Critical for debugging
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      try {
+        const data = new Uint8Array(event.target?.result as ArrayBuffer);
+        const workbook = XLSX.read(data, { type: 'array' });
 
-      if (!jsonData || jsonData.length === 0) {
-        throw new Error('File is empty or contains no data');
-      }
+        const sheetName = workbook.SheetNames[0];
+        const sheet = workbook.Sheets[sheetName];
 
-      // 3. Find studentId and grade columns (case insensitive)
-      const firstRow = jsonData[0];
-      const studentIdKey = Object.keys(firstRow).find(
-        key => key.toLowerCase().replace(/\s/g, '') === 'studentid'
-      );
-      const gradeKey = Object.keys(firstRow).find(
-        key => key.toLowerCase().replace(/\s/g, '') === 'grade'
-      );
+        const jsonData = XLSX.utils.sheet_to_json(sheet);
+        console.log('Parsed Excel data:', jsonData);
 
-      if (!studentIdKey || !gradeKey) {
-        throw new Error(
-          `Required columns not found. Found: ${Object.keys(firstRow).join(', ')}. ` +
-          `Looking for 'studentId' and 'grade' (case insensitive)`
+        if (!jsonData || jsonData.length === 0) {
+          throw new Error('File is empty or contains no data');
+        }
+
+        const firstRow = jsonData[0];
+        const studentIdKey = Object.keys(firstRow).find(
+          key => key.toLowerCase().replace(/\s/g, '') === 'studentid'
         );
+        const gradeKey = Object.keys(firstRow).find(
+          key => key.toLowerCase().replace(/\s/g, '') === 'grade' || key.toLowerCase().replace(/\s/g, '') === 'marksobtained'
+        );
+
+        if (!studentIdKey || !gradeKey) {
+          throw new Error(
+            `Required columns not found. Found: ${Object.keys(firstRow).join(', ')}. ` +
+            `Expected: studentId, grade or marksObtained (case insensitive)`
+          );
+        }
+
+        const parsedGrades: Record<string, number> = {};
+        let validCount = 0;
+        let invalidCount = 0;
+        const missingStudents: string[] = [];
+        const invalidGrades: string[] = [];
+
+        jsonData.forEach((row: any, index: number) => {
+          try {
+            const studentId = String(row[studentIdKey]).trim();
+            let marks = row[gradeKey];
+
+            marks = typeof marks === 'string' ? parseFloat(marks.replace('%', '')) : Number(marks);
+
+            if (!studentId || isNaN(marks)) {
+              console.warn(`Invalid data in row ${index + 2}: studentId=${studentId}, marks=${marks}`);
+              invalidCount++;
+              return;
+            }
+
+            const studentExists = students.some(s => s.studentId === studentId);
+            if (!studentExists) {
+              missingStudents.push(studentId);
+              invalidCount++;
+              return;
+            }
+
+            if (marks < 0 || marks > totalMarks) {
+              invalidGrades.push(`Row ${index + 2}: ${marks} (must be 0-${totalMarks})`);
+              invalidCount++;
+              return;
+            }
+
+            parsedGrades[studentId] = marks;
+            validCount++;
+          } catch (err) {
+            console.error(`Error processing row ${index + 2}:`, row, err);
+            invalidCount++;
+          }
+        });
+
+        if (validCount === 0) {
+          let errorMsg = 'No valid grades found. Reasons:\n';
+          if (missingStudents.length > 0) {
+            errorMsg += `- ${missingStudents.length} student IDs not found in class (e.g. ${missingStudents.slice(0, 3).join(', ')}${missingStudents.length > 3 ? '...' : ''})\n`;
+          }
+          if (invalidGrades.length > 0) {
+            errorMsg += `- ${invalidGrades.length} invalid grades (e.g. ${invalidGrades.slice(0, 3).join(', ')}${invalidGrades.length > 3 ? '...' : ''})\n`;
+          }
+          throw new Error(errorMsg);
+        }
+
+        setGrades({ ...grades, ...parsedGrades });
+        console.log('Parsed grades:', parsedGrades);
+        toast({
+          title: "Success",
+          description: `Loaded grades for ${validCount} students${invalidCount > 0 ? ` (${invalidCount} issues detected)` : ''}`,
+        });
+      } catch (err) {
+        console.error('File processing error:', err);
+        toast({
+          variant: "destructive",
+          title: "Cannot process file",
+          description: err instanceof Error ? err.message : 'Invalid file format',
+        });
+        setFile(null);
+        setGrades({ ...grades });
       }
+    };
 
-      // 4. Process all rows
-      const parsedGrades: Record<string, string> = {};
-      let validCount = 0;
-      let invalidCount = 0;
-      const missingStudents: string[] = [];
-
-      jsonData.forEach((row: any) => {
-        try {
-          const studentId = String(row[studentIdKey]).trim();
-          let grade = row[gradeKey];
-          
-          // Convert grade to string, handling numbers
-          grade = typeof grade === 'number' ? grade.toString() : String(grade).trim();
-
-          // Validate required fields
-          if (!studentId || !grade) {
-            invalidCount++;
-            return;
-          }
-
-          // Check student exists
-          const studentExists = students.some(s => s.studentId === studentId);
-          if (!studentExists) {
-            missingStudents.push(studentId);
-            invalidCount++;
-            return;
-          }
-
-          // Validate grade format (0-100 or 0.0-1.0)
-          const gradeNum = parseFloat(grade);
-          if (isNaN(gradeNum) || (gradeNum < 0 || gradeNum > 100 && (gradeNum < 0 || gradeNum > 1))) {
-            invalidCount++;
-            return;
-          }
-
-          // Store valid grade
-          parsedGrades[studentId] = grade;
-          validCount++;
-          
-        } catch (err) {
-          console.error('Error processing row:', row, err);
-          invalidCount++;
-        }
-      });
-
-      // 5. Final validation
-      if (validCount === 0) {
-        let errorMsg = 'No valid grades found. Reasons:\n';
-        if (missingStudents.length > 0) {
-          errorMsg += `- ${missingStudents.length} student IDs not found in class (e.g. ${missingStudents.slice(0, 3).join(', ')}${missingStudents.length > 3 ? '...' : ''}\n`;
-        }
-        if (invalidCount > 0) {
-          errorMsg += `- ${invalidCount} rows had invalid data\n`;
-        }
-        throw new Error(errorMsg);
-      }
-
-      setGrades(parsedGrades);
-      toast({
-        title: "Success!",
-        description: `Loaded grades for ${validCount} students${invalidCount > 0 ? ` (${invalidCount} issues detected)` : ''}`,
-      });
-
-    } catch (err) {
-      console.error('Full error details:', err);
+    reader.onerror = () => {
       toast({
         variant: "destructive",
-        title: "Cannot process file",
-        description: err instanceof Error ? err.message : 'Invalid file format',
+        title: "File read error",
+        description: "Could not read the file. Please try again.",
       });
       setFile(null);
-      setGrades({});
-    }
+      setGrades({ ...grades });
+    };
+
+    reader.readAsArrayBuffer(uploadedFile);
   };
-  
-  reader.onerror = () => {
-    toast({
-      variant: "destructive",
-      title: "File read error",
-      description: "Could not read the file. Please try again.",
-    });
-    setFile(null);
-    setGrades({});
-  };
-  
-  reader.readAsArrayBuffer(uploadedFile);
-};
+
   const handleFileButtonClick = () => {
     if (fileInputRef.current) {
       fileInputRef.current.click();
     }
   };
 
+  const handleGradeChange = (studentId: string, value: string) => {
+    const marks = parseFloat(value);
+    if (isNaN(marks) || marks < 0 || marks > totalMarks) {
+      toast({
+        variant: "destructive",
+        title: "Invalid grade",
+        description: `Marks for ${studentId} must be between 0 and ${totalMarks}`,
+      });
+      return;
+    }
+    setGrades(prev => ({ ...prev, [studentId]: marks }));
+  };
+
   const handleSubmitGrades = async () => {
-    if (!selectedClass || !selectedCourse || !assessmentType) {
+    if (!selectedClass || !selectedCourse || !assessmentType || !examTitle) {
       toast({
         variant: "destructive",
         title: "Missing information",
@@ -348,11 +367,11 @@ export default function SubmitGrades() {
       return;
     }
 
-    if (!file || Object.keys(grades).length === 0) {
+    if (Object.keys(grades).length === 0) {
       toast({
         variant: "destructive",
         title: "No grades provided",
-        description: "Please upload an Excel file with valid grades.",
+        description: "Please upload an Excel file or enter grades manually.",
       });
       return;
     }
@@ -361,8 +380,14 @@ export default function SubmitGrades() {
       classId: selectedClass,
       courseId: selectedCourse,
       assessmentType,
+      examTitle,
+      totalMarks,
+      academicYear,
+      term,
       grades,
     };
+
+    console.log('Submitting grades payload:', payload);
 
     try {
       setIsLoading(true);
@@ -385,16 +410,15 @@ export default function SubmitGrades() {
         throw new Error(errorData.message || 'Failed to submit grades');
       }
 
-      const data = await response.json();
       toast({
         title: "Grades submitted successfully",
-        description: `Grades for ${assessmentTypes.find(a => a.value === assessmentType)?.label} have been recorded.`,
+        description: `Grades for ${examTitle} have been recorded.`,
       });
 
-      // Reset form
       setSelectedClass("");
       setSelectedCourse("");
       setAssessmentType("");
+      setExamTitle("");
       setStudents([]);
       setGrades({});
       setFile(null);
@@ -527,6 +551,29 @@ export default function SubmitGrades() {
                 </SelectContent>
               </Select>
             </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="examTitle">Exam Title *</Label>
+              <Input
+                id="examTitle"
+                value={examTitle}
+                onChange={(e) => setExamTitle(e.target.value)}
+                placeholder="Enter exam title (e.g., Introduction To Physical Science)"
+                disabled={!selectedCourse || isLoading}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="totalMarks">Total Marks *</Label>
+              <Input
+                id="totalMarks"
+                type="number"
+                value={totalMarks}
+                onChange={(e) => setTotalMarks(parseInt(e.target.value) || 100)}
+                placeholder="Enter total marks"
+                disabled={!selectedCourse || isLoading}
+              />
+            </div>
           </div>
 
           {selectedClass && selectedCourse && assessmentType && (
@@ -560,6 +607,40 @@ export default function SubmitGrades() {
             </div>
           )}
 
+          {students.length > 0 && (
+            <div className="mb-6">
+              <h3 className="font-medium mb-4">Manual Grade Entry (Optional)</h3>
+              <div className="border rounded-lg">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Student ID</TableHead>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Marks Obtained</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {students.map((student) => (
+                      <TableRow key={student.id}>
+                        <TableCell>{student.studentId}</TableCell>
+                        <TableCell className="font-medium">{student.name}</TableCell>
+                        <TableCell>
+                          <Input
+                            type="number"
+                            value={grades[student.studentId] || ''}
+                            onChange={(e) => handleGradeChange(student.studentId, e.target.value)}
+                            placeholder="Enter marks"
+                            className="w-24"
+                          />
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+          )}
+
           {students.length > 0 && Object.keys(grades).length > 0 && (
             <div>
               <h3 className="font-medium mb-4">Grade Preview</h3>
@@ -569,7 +650,7 @@ export default function SubmitGrades() {
                     <TableRow>
                       <TableHead>Student ID</TableHead>
                       <TableHead>Name</TableHead>
-                      <TableHead>Grade</TableHead>
+                      <TableHead>Marks Obtained</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -577,11 +658,17 @@ export default function SubmitGrades() {
                       <TableRow key={student.id}>
                         <TableCell>{student.studentId}</TableCell>
                         <TableCell className="font-medium">{student.name}</TableCell>
-                        <TableCell>{grades[student.studentId] || "Not graded"}</TableCell>
+                        <TableCell>{grades[student.studentId] !== undefined ? grades[student.studentId] : "Not graded"}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
                 </Table>
+              </div>
+              <div className="mt-4 space-y-2">
+                <p><strong>Exam Title:</strong> {examTitle || "Not set"}</p>
+                <p><strong>Total Marks:</strong> {totalMarks}</p>
+                <p><strong>Academic Year:</strong> {academicYear}</p>
+                <p><strong>Term:</strong> {term}</p>
               </div>
             </div>
           )}
@@ -589,7 +676,7 @@ export default function SubmitGrades() {
         <CardFooter className="flex justify-end">
           <Button 
             onClick={handleSubmitGrades} 
-            disabled={!selectedClass || !selectedCourse || !assessmentType || !file || isLoading}
+            disabled={!selectedClass || !selectedCourse || !assessmentType || !examTitle || Object.keys(grades).length === 0 || isLoading}
             className="gap-2"
           >
             <Save className="h-4 w-4" />

@@ -31,7 +31,7 @@ import TeacherStudents from "./pages/teacher/TeacherStudents";
 import TeacherSchedule from "./pages/teacher/TeacherSchedule";
 import TeacherAttendance from "./pages/teacher/TeacherAttendance";
 import LearningMaterials from "./pages/LearningMaterials";
-import SubmitGrades from "./pages/SubmitGrades";
+import SubmitGrades from "./pages/teacher/SubmitGrades";
 
 // Student specific pages
 import StudentAssignments from "./pages/student/StudentAssignments";

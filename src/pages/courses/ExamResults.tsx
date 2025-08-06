@@ -57,9 +57,9 @@ const ExamResults = () => {
   const [students, setStudents] = useState<Student[]>([]);
   
   const [selectedClass, setSelectedClass] = useState<string>('');
-  const [selectedYear, setSelectedYear] = useState<string>('');
-  const [selectedTerm, setSelectedTerm] = useState<string>('');
-  const [selectedStudent, setSelectedStudent] = useState<string>('');
+  const [selectedYear, setSelectedYear] = useState<string>('2024-2025');
+  const [selectedTerm, setSelectedTerm] = useState<string>('First Term');
+  const [selectedStudentId, setSelectedStudentId] = useState<string>('');
   
   const [studentResults, setStudentResults] = useState<StudentResults | null>(null);
   const [allStudentsResults, setAllStudentsResults] = useState<AllStudentsResults | null>(null);
@@ -68,70 +68,79 @@ const ExamResults = () => {
   const academicYears = ['2023-2024', '2024-2025', '2025-2026'];
   const terms = ['First Term', 'Second Term', 'Third Term'];
 
-  // Mock data - replace with actual API calls
   useEffect(() => {
-    // Mock classes
-    setClasses([
-      { id: '1', name: 'Class 1A' },
-      { id: '2', name: 'Class 2B' },
-      { id: '3', name: 'Class 3C' },
-    ]);
-  }, []);
+    const fetchClasses = async () => {
+      try {
+        const response = await fetch('http://localhost:5000/api/v1/classes', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!response.ok) throw new Error('Failed to fetch classes');
+        const data = await response.json();
+        setClasses(data);
+      } catch (error) {
+        toast({
+          title: 'Error',
+          description: 'Failed to fetch classes',
+          variant: 'destructive',
+        });
+      }
+    };
+    fetchClasses();
+  }, [token, toast]);
 
   useEffect(() => {
     if (selectedClass && selectedYear && selectedTerm) {
-      // Mock students based on class, year, and term
-      setStudents([
-        { id: '1', firstName: 'John', lastName: 'Doe', studentId: 'STU001' },
-        { id: '2', firstName: 'Jane', lastName: 'Smith', studentId: 'STU002' },
-        { id: '3', firstName: 'Mike', lastName: 'Johnson', studentId: 'STU003' },
-        { id: '4', firstName: 'Sarah', lastName: 'Wilson', studentId: 'STU004' },
-        { id: '5', firstName: 'David', lastName: 'Brown', studentId: 'STU005' },
-      ]);
+      const fetchStudents = async () => {
+        try {
+          const response = await fetch(
+            `http://localhost:5000/api/v1/classes/${selectedClass}/students?academicYear=${encodeURIComponent(selectedYear)}&term=${encodeURIComponent(selectedTerm)}`,
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+          if (!response.ok) throw new Error('Failed to fetch students');
+          const data = await response.json();
+          console.log('Fetched students:', data);
+          setStudents(data);
+          if (data.length === 0) {
+            toast({
+              title: 'No Students',
+              description: 'No students are enrolled in this class.',
+              variant: 'default',
+            });
+            setSelectedStudentId('');
+          }
+        } catch (error) {
+          toast({
+            title: 'Error',
+            description: 'Failed to fetch students',
+            variant: 'destructive',
+          });
+          setStudents([]);
+        }
+      };
+      fetchStudents();
     }
-  }, [selectedClass, selectedYear, selectedTerm]);
+  }, [selectedClass, selectedYear, selectedTerm, token, toast]);
 
   const fetchAllStudentsResults = async () => {
     if (!selectedClass || !selectedYear || !selectedTerm) return;
 
     setIsLoading(true);
     try {
-      // Mock all students results
-      const mockAllResults: AllStudentsResults = {
-        classInfo: classes.find(c => c.id === selectedClass)!,
-        students: students.map(student => ({
-          ...student,
-          results: [
-            {
-              id: `${student.id}-1`,
-              examTitle: 'Midterm Examination',
-              subject: 'Mathematics',
-              marksObtained: Math.floor(Math.random() * 40) + 60,
-              totalMarks: 100,
-              percentage: Math.floor(Math.random() * 40) + 60,
-              grade: ['A+', 'A', 'B+', 'B', 'C+'][Math.floor(Math.random() * 5)],
-              date: '2024-03-15',
-              examType: 'Midterm'
-            },
-            {
-              id: `${student.id}-2`,
-              examTitle: 'Final Examination',
-              subject: 'English',
-              marksObtained: Math.floor(Math.random() * 40) + 60,
-              totalMarks: 100,
-              percentage: Math.floor(Math.random() * 40) + 60,
-              grade: ['A+', 'A', 'B+', 'B', 'C+'][Math.floor(Math.random() * 5)],
-              date: '2024-04-10',
-              examType: 'Final'
-            }
-          ],
-          overallGPA: Math.random() * 2 + 2.5,
-          averageScore: Math.floor(Math.random() * 30) + 70,
-          remarks: ['Excellent performance', 'Good work', 'Needs improvement', 'Outstanding'][Math.floor(Math.random() * 4)]
-        }))
-      };
-      
-      setAllStudentsResults(mockAllResults);
+      const response = await fetch(
+        `http://localhost:5000/api/v1/grades/class/${selectedClass}?academicYear=${encodeURIComponent(selectedYear)}&term=${encodeURIComponent(selectedTerm)}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (!response.ok) throw new Error('Failed to fetch students results');
+      const data = await response.json();
+      console.log('All students results:', data);
+      setAllStudentsResults(data);
+      if (data.students.length === 0) {
+        toast({
+          title: 'No Results',
+          description: 'No grades recorded for this class and term.',
+          variant: 'default',
+        });
+      }
     } catch (error) {
       toast({
         title: 'Error',
@@ -144,63 +153,35 @@ const ExamResults = () => {
   };
 
   useEffect(() => {
-    if (selectedClass && selectedYear && selectedTerm && !selectedStudent) {
+    if (selectedClass && selectedYear && selectedTerm && !selectedStudentId) {
       fetchAllStudentsResults();
     }
   }, [selectedClass, selectedYear, selectedTerm, students]);
 
   const fetchStudentResults = async () => {
-    if (!selectedStudent) return;
+    if (!selectedStudentId || !selectedClass) return;
 
     setIsLoading(true);
     try {
-      // Mock student results - replace with actual API call
-      const mockResults: StudentResults = {
-        student: students.find(s => s.id === selectedStudent)!,
-        results: [
-          {
-            id: '1',
-            examTitle: 'Midterm Examination',
-            subject: 'Mathematics',
-            marksObtained: 85,
-            totalMarks: 100,
-            percentage: 85,
-            grade: 'A',
-            date: '2024-03-15',
-            examType: 'Midterm'
-          },
-          {
-            id: '2',
-            examTitle: 'Quiz 1',
-            subject: 'Mathematics',
-            marksObtained: 78,
-            totalMarks: 100,
-            percentage: 78,
-            grade: 'B+',
-            date: '2024-02-20',
-            examType: 'Quiz'
-          },
-          {
-            id: '3',
-            examTitle: 'Final Examination',
-            subject: 'Mathematics',
-            marksObtained: 92,
-            totalMarks: 100,
-            percentage: 92,
-            grade: 'A+',
-            date: '2024-04-10',
-            examType: 'Final'
-          }
-        ],
-        overallGPA: 3.8,
-        totalExams: 3
-      };
-      
-      setStudentResults(mockResults);
+      const response = await fetch(
+        `http://localhost:5000/api/v1/grades/student/${selectedStudentId}?classId=${selectedClass}&academicYear=${encodeURIComponent(selectedYear)}&term=${encodeURIComponent(selectedTerm)}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (!response.ok) throw new Error('Failed to fetch student results');
+      const data = await response.json();
+      console.log('Student results:', data);
+      setStudentResults(data);
+      if (data.results.length === 0) {
+        toast({
+          title: 'No Results',
+          description: 'No grades recorded for this student in the selected class and term.',
+          variant: 'default',
+        });
+      }
     } catch (error) {
       toast({
         title: 'Error',
-        description: 'Failed to fetch student results',
+        description: 'Failed to fetch student results. Ensure the student is enrolled in the class.',
         variant: 'destructive',
       });
     } finally {
@@ -209,10 +190,10 @@ const ExamResults = () => {
   };
 
   useEffect(() => {
-    if (selectedStudent) {
+    if (selectedStudentId) {
       fetchStudentResults();
     }
-  }, [selectedStudent]);
+  }, [selectedStudentId]);
 
   const getGradeColor = (grade: string) => {
     switch (grade) {
@@ -235,7 +216,14 @@ const ExamResults = () => {
   };
 
   const generateReportCard = () => {
-    if (!studentResults) return;
+    if (!studentResults || !studentResults.results.length) {
+      toast({
+        title: 'No Results',
+        description: 'No results available to generate a report card.',
+        variant: 'destructive',
+      });
+      return;
+    }
 
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
@@ -404,11 +392,11 @@ const ExamResults = () => {
               <div class="info-grid">
                 <div class="info-item">
                   <span class="info-label">Student Name:</span>
-                  <span>${studentResults.student.firstName} ${studentResults.student.lastName}</span>
+                  <span>${studentResults?.student.firstName} ${studentResults?.student.lastName}</span>
                 </div>
                 <div class="info-item">
                   <span class="info-label">Student ID:</span>
-                  <span>${studentResults.student.studentId}</span>
+                  <span>${studentResults?.student.studentId}</span>
                 </div>
                 <div class="info-item">
                   <span class="info-label">Class:</span>
@@ -444,7 +432,7 @@ const ExamResults = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  ${studentResults.results.map(result => `
+                  ${studentResults?.results.map(result => `
                     <tr>
                       <td>${result.examTitle}</td>
                       <td>${result.subject}</td>
@@ -454,22 +442,22 @@ const ExamResults = () => {
                       <td>${result.percentage}%</td>
                       <td><span class="grade-badge grade-${result.grade.toLowerCase().replace('+', '')}">${result.grade}</span></td>
                     </tr>
-                  `).join('')}
+                  `).join('') || ''}
                 </tbody>
               </table>
               
               <div class="summary">
                 <div class="summary-grid">
                   <div class="summary-item">
-                    <div class="summary-value">${studentResults.overallGPA.toFixed(1)}</div>
+                    <div class="summary-value">${studentResults?.overallGPA.toFixed(1) || '0.0'}</div>
                     <div class="summary-label">Overall GPA</div>
                   </div>
                   <div class="summary-item">
-                    <div class="summary-value">${studentResults.totalExams}</div>
+                    <div class="summary-value">${studentResults?.totalExams || 0}</div>
                     <div class="summary-label">Total Exams</div>
                   </div>
                   <div class="summary-item">
-                    <div class="summary-value">${Math.round(studentResults.results.reduce((sum, r) => sum + r.percentage, 0) / studentResults.results.length)}%</div>
+                    <div class="summary-value">${studentResults?.results.length ? Math.round(studentResults.results.reduce((sum, r) => sum + r.percentage, 0) / studentResults.results.length) : 0}%</div>
                     <div class="summary-label">Average Score</div>
                   </div>
                 </div>
@@ -564,17 +552,17 @@ const ExamResults = () => {
 
             <div className="space-y-2">
               <label className="text-sm font-medium">Student</label>
-               <Select 
-                value={selectedStudent} 
-                onValueChange={setSelectedStudent}
-                disabled={!selectedClass || !selectedYear || !selectedTerm}
+              <Select 
+                value={selectedStudentId} 
+                onValueChange={setSelectedStudentId}
+                disabled={!selectedClass || !selectedYear || !selectedTerm || students.length === 0}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select a student" />
+                  <SelectValue placeholder={students.length === 0 ? "No students available" : "Select a student"} />
                 </SelectTrigger>
                 <SelectContent>
                   {students.map((student) => (
-                    <SelectItem key={student.id} value={student.id}>
+                    <SelectItem key={student.studentId} value={student.studentId}>
                       {student.firstName} {student.lastName} ({student.studentId})
                     </SelectItem>
                   ))}
@@ -612,7 +600,7 @@ const ExamResults = () => {
                 </div>
                 <div className="text-center p-4 bg-muted rounded-lg">
                   <div className="text-2xl font-bold text-primary">
-                    {Math.round(studentResults.results.reduce((sum, r) => sum + r.percentage, 0) / studentResults.results.length)}%
+                    {studentResults.results.length ? Math.round(studentResults.results.reduce((sum, r) => sum + r.percentage, 0) / studentResults.results.length) : 0}%
                   </div>
                   <div className="text-sm text-muted-foreground">Average Score</div>
                 </div>
@@ -632,25 +620,33 @@ const ExamResults = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {studentResults.results.map((result) => (
-                      <tr key={result.id} className="hover:bg-muted/50">
-                        <td className="border border-border p-3">{result.examTitle}</td>
-                        <td className="border border-border p-3">{result.subject}</td>
-                        <td className="border border-border p-3">{result.examType}</td>
-                        <td className="border border-border p-3">
-                          {new Date(result.date).toLocaleDateString()}
-                        </td>
-                        <td className="border border-border p-3">
-                          {result.marksObtained}/{result.totalMarks}
-                        </td>
-                        <td className="border border-border p-3">{result.percentage}%</td>
-                        <td className="border border-border p-3">
-                          <Badge className={cn("text-xs", getGradeColor(result.grade))}>
-                            {result.grade}
-                          </Badge>
+                    {studentResults.results.length ? (
+                      studentResults.results.map((result) => (
+                        <tr key={result.id} className="hover:bg-muted/50">
+                          <td className="border border-border p-3">{result.examTitle}</td>
+                          <td className="border border-border p-3">{result.subject}</td>
+                          <td className="border border-border p-3">{result.examType}</td>
+                          <td className="border border-border p-3">
+                            {new Date(result.date).toLocaleDateString()}
+                          </td>
+                          <td className="border border-border p-3">
+                            {result.marksObtained}/{result.totalMarks}
+                          </td>
+                          <td className="border border-border p-3">{result.percentage}%</td>
+                          <td className="border border-border p-3">
+                            <Badge className={cn("text-xs", getGradeColor(result.grade))}>
+                              {result.grade}
+                            </Badge>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={7} className="border border-border p-3 text-center text-muted-foreground">
+                          No results available for this student.
                         </td>
                       </tr>
-                    ))}
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -659,7 +655,7 @@ const ExamResults = () => {
         </Card>
       )}
 
-      {allStudentsResults && !selectedStudent && (
+      {allStudentsResults && !selectedStudentId && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -681,24 +677,32 @@ const ExamResults = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {allStudentsResults.students.map((student) => (
-                    <tr key={student.id} className="hover:bg-muted/50">
-                      <td className="border border-border p-3 font-medium">{student.studentId}</td>
-                      <td className="border border-border p-3">
-                        {student.firstName} {student.lastName}
-                      </td>
-                      <td className="border border-border p-3">
-                        <Badge variant="secondary">{student.averageScore}%</Badge>
-                      </td>
-                      <td className="border border-border p-3">
-                        <Badge variant="outline">{student.overallGPA.toFixed(1)}</Badge>
-                      </td>
-                      <td className="border border-border p-3">{student.results.length}</td>
-                      <td className="border border-border p-3 text-muted-foreground">
-                        {student.remarks}
+                  {allStudentsResults.students.length ? (
+                    allStudentsResults.students.map((student) => (
+                      <tr key={student.id} className="hover:bg-muted/50">
+                        <td className="border border-border p-3 font-medium">{student.studentId}</td>
+                        <td className="border border-border p-3">
+                          {student.firstName} {student.lastName}
+                        </td>
+                        <td className="border border-border p-3">
+                          <Badge variant="secondary">{Math.round(student.averageScore)}%</Badge>
+                        </td>
+                        <td className="border border-border p-3">
+                          <Badge variant="outline">{student.overallGPA.toFixed(1)}</Badge>
+                        </td>
+                        <td className="border border-border p-3">{student.results.length}</td>
+                        <td className="border border-border p-3 text-muted-foreground">
+                          {student.remarks}
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={6} className="border border-border p-3 text-center text-muted-foreground">
+                        No students enrolled or no grades recorded for this class.
                       </td>
                     </tr>
-                  ))}
+                  )}
                 </tbody>
               </table>
             </div>
@@ -706,11 +710,11 @@ const ExamResults = () => {
         </Card>
       )}
 
-      {selectedClass && selectedYear && selectedTerm && !selectedStudent && !allStudentsResults && (
+      {selectedClass && selectedYear && selectedTerm && !selectedStudentId && !allStudentsResults && (
         <Card>
           <CardContent className="py-8">
             <div className="text-center text-muted-foreground">
-              {isLoading ? 'Loading students results...' : 'Select a student to view individual results or view all students above.'}
+              {isLoading ? 'Loading students results...' : 'No results available for this class. Select a student to view individual results.'}
             </div>
           </CardContent>
         </Card>
