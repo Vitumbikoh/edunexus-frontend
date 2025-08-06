@@ -68,6 +68,7 @@ const adminNavItems: NavItem[] = [
       { label: 'View Courses', href: '/courses/view', roles: ['admin', 'teacher', 'student'] },
       { label: 'Add Courses', href: '/courses/add', roles: ['admin'] },
       { label: 'View Exams', href: '/courses/exams', roles: ['admin', 'teacher'] },
+      { label: 'View Exam Results', href: '/courses/exam-results', roles: ['admin'] },
     ],
   },
   {

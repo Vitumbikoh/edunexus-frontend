@@ -63,6 +63,7 @@ import ExamForm from "./pages/courses/ExamForm";
 import Reports from "./pages/Reports/Reports";
 import ExamDetails from "./pages/courses/ExamDetails";
 import CourseView from "./pages/courses/CourseView";
+import ExamResults from "./pages/courses/ExamResults";
 
 // Protected route component - immediately redirects if not authenticated
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -432,6 +433,19 @@ const AppRoutes = () => {
             <Layout>
               <ExamDetails />
             </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/courses/exam-results"
+        element={
+          <ProtectedRoute>
+            <AdminRoute>
+              <Layout>
+                <ExamResults />
+              </Layout>
+            </AdminRoute>
           </ProtectedRoute>
         }
       />
