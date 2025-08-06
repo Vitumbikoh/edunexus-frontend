@@ -64,20 +64,22 @@ import Reports from "./pages/Reports/Reports";
 import ExamDetails from "./pages/courses/ExamDetails";
 import CourseView from "./pages/courses/CourseView";
 
-// Protected route component
+// Protected route component - immediately redirects if not authenticated
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated, loading } = useAuth();
 
+  // Immediately redirect if not authenticated (no loading screen)
+  if (!loading && !isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  // Show loading only if we're still checking auth status
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        Loading...
+        <div className="text-lg">Verifying authentication...</div>
       </div>
     );
-  }
-
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
   }
 
   return <>{children}</>;
@@ -85,18 +87,24 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
 // Teacher route component - only accessible by teachers
 const TeacherRoute = ({ children }: { children: React.ReactNode }) => {
-  const { user, loading } = useAuth();
+  const { user, loading, isAuthenticated } = useAuth();
+
+  // Immediately redirect if not authenticated
+  if (!loading && !isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  // Immediately redirect if authenticated but wrong role
+  if (!loading && user && user.role !== "teacher") {
+    return <Navigate to="/dashboard" replace />;
+  }
 
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        Loading...
+        <div className="text-lg">Verifying permissions...</div>
       </div>
     );
-  }
-
-  if (!user || user.role !== "teacher") {
-    return <Navigate to="/dashboard" replace />;
   }
 
   return <>{children}</>;
@@ -104,18 +112,24 @@ const TeacherRoute = ({ children }: { children: React.ReactNode }) => {
 
 // Student route component - only accessible by students
 const StudentRoute = ({ children }: { children: React.ReactNode }) => {
-  const { user, loading } = useAuth();
+  const { user, loading, isAuthenticated } = useAuth();
+
+  // Immediately redirect if not authenticated
+  if (!loading && !isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  // Immediately redirect if authenticated but wrong role
+  if (!loading && user && user.role !== "student") {
+    return <Navigate to="/dashboard" replace />;
+  }
 
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        Loading...
+        <div className="text-lg">Verifying permissions...</div>
       </div>
     );
-  }
-
-  if (!user || user.role !== "student") {
-    return <Navigate to="/dashboard" replace />;
   }
 
   return <>{children}</>;
@@ -123,18 +137,24 @@ const StudentRoute = ({ children }: { children: React.ReactNode }) => {
 
 // Parent route component - only accessible by parents
 const ParentRoute = ({ children }: { children: React.ReactNode }) => {
-  const { user, loading } = useAuth();
+  const { user, loading, isAuthenticated } = useAuth();
+
+  // Immediately redirect if not authenticated
+  if (!loading && !isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  // Immediately redirect if authenticated but wrong role
+  if (!loading && user && user.role !== "parent") {
+    return <Navigate to="/dashboard" replace />;
+  }
 
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        Loading...
+        <div className="text-lg">Verifying permissions...</div>
       </div>
     );
-  }
-
-  if (!user || user.role !== "parent") {
-    return <Navigate to="/dashboard" replace />;
   }
 
   return <>{children}</>;
@@ -142,18 +162,24 @@ const ParentRoute = ({ children }: { children: React.ReactNode }) => {
 
 // Admin route component - only accessible by admins
 const AdminRoute = ({ children }: { children: React.ReactNode }) => {
-  const { user, loading } = useAuth();
+  const { user, loading, isAuthenticated } = useAuth();
+
+  // Immediately redirect if not authenticated
+  if (!loading && !isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  // Immediately redirect if authenticated but wrong role
+  if (!loading && user && user.role !== "admin") {
+    return <Navigate to="/dashboard" replace />;
+  }
 
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        Loading...
+        <div className="text-lg">Verifying permissions...</div>
       </div>
     );
-  }
-
-  if (!user || user.role !== "admin") {
-    return <Navigate to="/dashboard" replace />;
   }
 
   return <>{children}</>;
@@ -161,18 +187,24 @@ const AdminRoute = ({ children }: { children: React.ReactNode }) => {
 
 // Finance route component - only accessible by finance role
 const FinanceRoute = ({ children }: { children: React.ReactNode }) => {
-  const { user, loading } = useAuth();
+  const { user, loading, isAuthenticated } = useAuth();
+
+  // Immediately redirect if not authenticated
+  if (!loading && !isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  // Immediately redirect if authenticated but wrong role
+  if (!loading && user && user.role !== "finance") {
+    return <Navigate to="/dashboard" replace />;
+  }
 
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        Loading...
+        <div className="text-lg">Verifying permissions...</div>
       </div>
     );
-  }
-
-  if (!user || user.role !== "finance") {
-    return <Navigate to="/dashboard" replace />;
   }
 
   return <>{children}</>;
