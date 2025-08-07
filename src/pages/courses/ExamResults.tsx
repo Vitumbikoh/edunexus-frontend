@@ -1,12 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { PrinterIcon, Eye, GraduationCap, Calendar } from 'lucide-react';
+import { PrinterIcon, Eye, GraduationCap, Calendar } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
-import { useAuth } from '@/contexts/AuthContext';
-import { cn } from '@/lib/utils';
+import { useAuth } from "@/contexts/AuthContext";
+import { cn } from "@/lib/utils";
 
 interface Class {
   id: string;
@@ -32,56 +38,72 @@ interface ExamResult {
   examType: string;
 }
 
-interface StudentResults {
-  student: Student;
+interface StudentResult {
+  student: {
+    id: string;
+    studentId: string;
+    firstName: string;
+    lastName: string;
+  };
   results: ExamResult[];
+  totalMarks: number;
+  totalPossible: number;
+  averageScore: number;
   overallGPA: number;
   totalExams: number;
+  remarks: string;
 }
 
 interface AllStudentsResults {
   classInfo: Class;
-  students: (Student & {
-    results: ExamResult[];
-    overallGPA: number;
-    averageScore: number;
-    remarks: string;
-  })[];
+  students: StudentResult[];
+}
+
+interface AllStudentsResults {
+  classInfo: Class;
+  students: StudentResult[];
 }
 
 const ExamResults = () => {
   const { token } = useAuth();
   const { toast } = useToast();
-  
+
   const [classes, setClasses] = useState<Class[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
-  
-  const [selectedClass, setSelectedClass] = useState<string>('');
-  const [selectedYear, setSelectedYear] = useState<string>('2024-2025');
-  const [selectedTerm, setSelectedTerm] = useState<string>('First Term');
-  const [selectedStudentId, setSelectedStudentId] = useState<string>('');
-  
-  const [studentResults, setStudentResults] = useState<StudentResults | null>(null);
-  const [allStudentsResults, setAllStudentsResults] = useState<AllStudentsResults | null>(null);
+
+  const [selectedClass, setSelectedClass] = useState<string>("");
+  const [selectedYear, setSelectedYear] = useState<string>("2024-2025");
+  const [selectedTerm, setSelectedTerm] = useState<string>("First Term");
+  const [selectedStudentId, setSelectedStudentId] = useState<string>("");
+
+  const [studentResults, setStudentResults] = useState<StudentResult | null>(
+    null
+  );
+  const [allStudentsResults, setAllStudentsResults] =
+    useState<AllStudentsResults | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const academicYears = ['2023-2024', '2024-2025', '2025-2026'];
-  const terms = ['First Term', 'Second Term', 'Third Term'];
+  const academicYears = ["2023-2024", "2024-2025", "2025-2026"];
+  const terms = ["First Term", "Second Term", "Third Term"];
 
   useEffect(() => {
     const fetchClasses = async () => {
       try {
-        const response = await fetch('http://localhost:5000/api/v1/classes', {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (!response.ok) throw new Error('Failed to fetch classes');
+        // Fetch classes
+        const response = await fetch(
+          "http://localhost:5000/api/v1/grades/classes",
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+        if (!response.ok) throw new Error("Failed to fetch classes");
         const data = await response.json();
         setClasses(data);
       } catch (error) {
         toast({
-          title: 'Error',
-          description: 'Failed to fetch classes',
-          variant: 'destructive',
+          title: "Error",
+          description: "Failed to fetch classes",
+          variant: "destructive",
         });
       }
     };
@@ -92,27 +114,28 @@ const ExamResults = () => {
     if (selectedClass && selectedYear && selectedTerm) {
       const fetchStudents = async () => {
         try {
+          // Fetch students
           const response = await fetch(
-            `http://localhost:5000/api/v1/classes/${selectedClass}/students?academicYear=${encodeURIComponent(selectedYear)}&term=${encodeURIComponent(selectedTerm)}`,
+            `http://localhost:5000/api/v1/grades/classes/${selectedClass}/students`,
             { headers: { Authorization: `Bearer ${token}` } }
           );
-          if (!response.ok) throw new Error('Failed to fetch students');
+          if (!response.ok) throw new Error("Failed to fetch students");
           const data = await response.json();
-          console.log('Fetched students:', data);
+          console.log("Fetched students:", data);
           setStudents(data);
           if (data.length === 0) {
             toast({
-              title: 'No Students',
-              description: 'No students are enrolled in this class.',
-              variant: 'default',
+              title: "No Students",
+              description: "No students are enrolled in this class.",
+              variant: "default",
             });
-            setSelectedStudentId('');
+            setSelectedStudentId("");
           }
         } catch (error) {
           toast({
-            title: 'Error',
-            description: 'Failed to fetch students',
-            variant: 'destructive',
+            title: "Error",
+            description: "Failed to fetch students",
+            variant: "destructive",
           });
           setStudents([]);
         }
@@ -126,26 +149,27 @@ const ExamResults = () => {
 
     setIsLoading(true);
     try {
+      // Fetch all students results
       const response = await fetch(
-        `http://localhost:5000/api/v1/grades/class/${selectedClass}?academicYear=${encodeURIComponent(selectedYear)}&term=${encodeURIComponent(selectedTerm)}`,
+        `http://localhost:5000/api/v1/grades/class/${selectedClass}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      if (!response.ok) throw new Error('Failed to fetch students results');
+      if (!response.ok) throw new Error("Failed to fetch students results");
       const data = await response.json();
-      console.log('All students results:', data);
+      console.log("All students results:", data);
       setAllStudentsResults(data);
       if (data.students.length === 0) {
         toast({
-          title: 'No Results',
-          description: 'No grades recorded for this class and term.',
-          variant: 'default',
+          title: "No Results",
+          description: "No grades recorded for this class and term.",
+          variant: "default",
         });
       }
     } catch (error) {
       toast({
-        title: 'Error',
-        description: 'Failed to fetch students results',
-        variant: 'destructive',
+        title: "Error",
+        description: "Failed to fetch students results",
+        variant: "destructive",
       });
     } finally {
       setIsLoading(false);
@@ -163,26 +187,35 @@ const ExamResults = () => {
 
     setIsLoading(true);
     try {
+      // First get the student details to ensure we have the correct studentId
+      const student = students.find((s) => s.id === selectedStudentId);
+      if (!student) {
+        throw new Error("Student not found");
+      }
+
+      // Use the numeric studentId in the request
       const response = await fetch(
-        `http://localhost:5000/api/v1/grades/student/${selectedStudentId}?classId=${selectedClass}&academicYear=${encodeURIComponent(selectedYear)}&term=${encodeURIComponent(selectedTerm)}`,
+        `http://localhost:5000/api/v1/grades/student/${selectedStudentId}?classId=${selectedClass}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      if (!response.ok) throw new Error('Failed to fetch student results');
+
+      if (!response.ok) throw new Error("Failed to fetch student results");
       const data = await response.json();
-      console.log('Student results:', data);
       setStudentResults(data);
       if (data.results.length === 0) {
         toast({
-          title: 'No Results',
-          description: 'No grades recorded for this student in the selected class and term.',
-          variant: 'default',
+          title: "No Results",
+          description:
+            "No grades recorded for this student in the selected class and term.",
+          variant: "default",
         });
       }
     } catch (error) {
       toast({
-        title: 'Error',
-        description: 'Failed to fetch student results. Ensure the student is enrolled in the class.',
-        variant: 'destructive',
+        title: "Error",
+        description:
+          "Failed to fetch student results. Ensure the student is enrolled in the class and grades are recorded.",
+        variant: "destructive",
       });
     } finally {
       setIsLoading(false);
@@ -197,35 +230,35 @@ const ExamResults = () => {
 
   const getGradeColor = (grade: string) => {
     switch (grade) {
-      case 'A+':
-      case 'A':
-        return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
-      case 'B+':
-      case 'B':
-        return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300';
-      case 'C+':
-      case 'C':
-        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300';
-      case 'D':
-        return 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300';
-      case 'F':
-        return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300';
+      case "A+":
+      case "A":
+        return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300";
+      case "B+":
+      case "B":
+        return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300";
+      case "C+":
+      case "C":
+        return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300";
+      case "D":
+        return "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300";
+      case "F":
+        return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300";
       default:
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300';
+        return "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300";
     }
   };
 
   const generateReportCard = () => {
     if (!studentResults || !studentResults.results.length) {
       toast({
-        title: 'No Results',
-        description: 'No results available to generate a report card.',
-        variant: 'destructive',
+        title: "No Results",
+        description: "No results available to generate a report card.",
+        variant: "destructive",
       });
       return;
     }
 
-    const printWindow = window.open('', '_blank');
+    const printWindow = window.open("", "_blank");
     if (!printWindow) return;
 
     const reportHTML = `
@@ -392,7 +425,9 @@ const ExamResults = () => {
               <div class="info-grid">
                 <div class="info-item">
                   <span class="info-label">Student Name:</span>
-                  <span>${studentResults?.student.firstName} ${studentResults?.student.lastName}</span>
+                  <span>${studentResults?.student.firstName} ${
+      studentResults?.student.lastName
+    }</span>
                 </div>
                 <div class="info-item">
                   <span class="info-label">Student ID:</span>
@@ -400,7 +435,9 @@ const ExamResults = () => {
                 </div>
                 <div class="info-item">
                   <span class="info-label">Class:</span>
-                  <span>${classes.find(c => c.id === selectedClass)?.name || 'N/A'}</span>
+                  <span>${
+                    classes.find((c) => c.id === selectedClass)?.name || "N/A"
+                  }</span>
                 </div>
                 <div class="info-item">
                   <span class="info-label">Academic Year:</span>
@@ -432,7 +469,10 @@ const ExamResults = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  ${studentResults?.results.map(result => `
+                  ${
+                    studentResults?.results
+                      .map(
+                        (result) => `
                     <tr>
                       <td>${result.examTitle}</td>
                       <td>${result.subject}</td>
@@ -440,24 +480,42 @@ const ExamResults = () => {
                       <td>${new Date(result.date).toLocaleDateString()}</td>
                       <td>${result.marksObtained}/${result.totalMarks}</td>
                       <td>${result.percentage}%</td>
-                      <td><span class="grade-badge grade-${result.grade.toLowerCase().replace('+', '')}">${result.grade}</span></td>
+                      <td><span class="grade-badge grade-${result.grade
+                        .toLowerCase()
+                        .replace("+", "")}">${result.grade}</span></td>
                     </tr>
-                  `).join('') || ''}
+                  `
+                      )
+                      .join("") || ""
+                  }
                 </tbody>
               </table>
               
               <div class="summary">
                 <div class="summary-grid">
                   <div class="summary-item">
-                    <div class="summary-value">${studentResults?.overallGPA.toFixed(1) || '0.0'}</div>
+                    <div class="summary-value">${
+                      studentResults?.overallGPA.toFixed(1) || "0.0"
+                    }</div>
                     <div class="summary-label">Overall GPA</div>
                   </div>
                   <div class="summary-item">
-                    <div class="summary-value">${studentResults?.totalExams || 0}</div>
+                    <div class="summary-value">${
+                      studentResults?.totalExams || 0
+                    }</div>
                     <div class="summary-label">Total Exams</div>
                   </div>
                   <div class="summary-item">
-                    <div class="summary-value">${studentResults?.results.length ? Math.round(studentResults.results.reduce((sum, r) => sum + r.percentage, 0) / studentResults.results.length) : 0}%</div>
+                    <div class="summary-value">${
+                      studentResults?.results.length
+                        ? Math.round(
+                            studentResults.results.reduce(
+                              (sum, r) => sum + r.percentage,
+                              0
+                            ) / studentResults.results.length
+                          )
+                        : 0
+                    }%</div>
                     <div class="summary-label">Average Score</div>
                   </div>
                 </div>
@@ -488,8 +546,12 @@ const ExamResults = () => {
       <div className="flex items-center gap-4">
         <GraduationCap className="h-8 w-8 text-primary" />
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">View Exam Results</h1>
-          <p className="text-muted-foreground">Select filters to view student examination results</p>
+          <h1 className="text-3xl font-bold tracking-tight">
+            View Exam Results
+          </h1>
+          <p className="text-muted-foreground">
+            Select filters to view student examination results
+          </p>
         </div>
       </div>
 
@@ -552,18 +614,33 @@ const ExamResults = () => {
 
             <div className="space-y-2">
               <label className="text-sm font-medium">Student</label>
-              <Select 
-                value={selectedStudentId} 
+              <Select
+                value={selectedStudentId}
                 onValueChange={setSelectedStudentId}
-                disabled={!selectedClass || !selectedYear || !selectedTerm || students.length === 0}
+                disabled={
+                  !selectedClass ||
+                  !selectedYear ||
+                  !selectedTerm ||
+                  students.length === 0
+                }
               >
                 <SelectTrigger>
-                  <SelectValue placeholder={students.length === 0 ? "No students available" : "Select a student"} />
+                  <SelectValue
+                    placeholder={
+                      students.length === 0
+                        ? "No students available"
+                        : "Select a student"
+                    }
+                  />
                 </SelectTrigger>
                 <SelectContent>
                   {students.map((student) => (
-                    <SelectItem key={student.studentId} value={student.studentId}>
-                      {student.firstName} {student.lastName} ({student.studentId})
+                    <SelectItem
+                      key={student.id} // Use UUID as key
+                      value={student.id} // Store UUID as value
+                    >
+                      {student.firstName} {student.lastName} (
+                      {student.studentId})
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -579,7 +656,8 @@ const ExamResults = () => {
             <div className="flex items-center justify-between">
               <CardTitle className="flex items-center gap-2">
                 <Eye className="h-5 w-5" />
-                Exam Results for {studentResults.student.firstName} {studentResults.student.lastName}
+                Exam Results for {studentResults.student.firstName}{" "}
+                {studentResults.student.lastName}
               </CardTitle>
               <Button onClick={generateReportCard} className="gap-2">
                 <PrinterIcon className="h-4 w-4" />
@@ -591,18 +669,36 @@ const ExamResults = () => {
             <div className="space-y-6">
               <div className="grid gap-4 md:grid-cols-3">
                 <div className="text-center p-4 bg-muted rounded-lg">
-                  <div className="text-2xl font-bold text-primary">{studentResults.overallGPA.toFixed(1)}</div>
-                  <div className="text-sm text-muted-foreground">Overall GPA</div>
-                </div>
-                <div className="text-center p-4 bg-muted rounded-lg">
-                  <div className="text-2xl font-bold text-primary">{studentResults.totalExams}</div>
-                  <div className="text-sm text-muted-foreground">Total Exams</div>
+                  <div className="text-2xl font-bold text-primary">
+                    {studentResults.overallGPA.toFixed(1)}
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    Overall GPA
+                  </div>
                 </div>
                 <div className="text-center p-4 bg-muted rounded-lg">
                   <div className="text-2xl font-bold text-primary">
-                    {studentResults.results.length ? Math.round(studentResults.results.reduce((sum, r) => sum + r.percentage, 0) / studentResults.results.length) : 0}%
+                    {studentResults.totalExams}
                   </div>
-                  <div className="text-sm text-muted-foreground">Average Score</div>
+                  <div className="text-sm text-muted-foreground">
+                    Total Exams
+                  </div>
+                </div>
+                <div className="text-center p-4 bg-muted rounded-lg">
+                  <div className="text-2xl font-bold text-primary">
+                    {studentResults.results.length
+                      ? Math.round(
+                          studentResults.results.reduce(
+                            (sum, r) => sum + r.percentage,
+                            0
+                          ) / studentResults.results.length
+                        )
+                      : 0}
+                    %
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    Average Score
+                  </div>
                 </div>
               </div>
 
@@ -610,31 +706,58 @@ const ExamResults = () => {
                 <table className="w-full border-collapse border border-border">
                   <thead>
                     <tr className="bg-muted">
-                      <th className="border border-border p-3 text-left">Exam Title</th>
-                      <th className="border border-border p-3 text-left">Subject</th>
-                      <th className="border border-border p-3 text-left">Type</th>
-                      <th className="border border-border p-3 text-left">Date</th>
-                      <th className="border border-border p-3 text-left">Marks</th>
-                      <th className="border border-border p-3 text-left">Percentage</th>
-                      <th className="border border-border p-3 text-left">Grade</th>
+                      <th className="border border-border p-3 text-left">
+                        Exam Title
+                      </th>
+                      <th className="border border-border p-3 text-left">
+                        Subject
+                      </th>
+                      <th className="border border-border p-3 text-left">
+                        Type
+                      </th>
+                      <th className="border border-border p-3 text-left">
+                        Date
+                      </th>
+                      <th className="border border-border p-3 text-left">
+                        Marks
+                      </th>
+                      <th className="border border-border p-3 text-left">
+                        Percentage
+                      </th>
+                      <th className="border border-border p-3 text-left">
+                        Grade
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
                     {studentResults.results.length ? (
                       studentResults.results.map((result) => (
                         <tr key={result.id} className="hover:bg-muted/50">
-                          <td className="border border-border p-3">{result.examTitle}</td>
-                          <td className="border border-border p-3">{result.subject}</td>
-                          <td className="border border-border p-3">{result.examType}</td>
+                          <td className="border border-border p-3">
+                            {result.examTitle}
+                          </td>
+                          <td className="border border-border p-3">
+                            {result.subject}
+                          </td>
+                          <td className="border border-border p-3">
+                            {result.examType}
+                          </td>
                           <td className="border border-border p-3">
                             {new Date(result.date).toLocaleDateString()}
                           </td>
                           <td className="border border-border p-3">
                             {result.marksObtained}/{result.totalMarks}
                           </td>
-                          <td className="border border-border p-3">{result.percentage}%</td>
                           <td className="border border-border p-3">
-                            <Badge className={cn("text-xs", getGradeColor(result.grade))}>
+                            {result.percentage}%
+                          </td>
+                          <td className="border border-border p-3">
+                            <Badge
+                              className={cn(
+                                "text-xs",
+                                getGradeColor(result.grade)
+                              )}
+                            >
                               {result.grade}
                             </Badge>
                           </td>
@@ -642,7 +765,10 @@ const ExamResults = () => {
                       ))
                     ) : (
                       <tr>
-                        <td colSpan={7} className="border border-border p-3 text-center text-muted-foreground">
+                        <td
+                          colSpan={7}
+                          className="border border-border p-3 text-center text-muted-foreground"
+                        >
                           No results available for this student.
                         </td>
                       </tr>
@@ -668,38 +794,66 @@ const ExamResults = () => {
               <table className="w-full border-collapse border border-border">
                 <thead>
                   <tr className="bg-muted">
-                    <th className="border border-border p-3 text-left">Student ID</th>
-                    <th className="border border-border p-3 text-left">Student Name</th>
-                    <th className="border border-border p-3 text-left">Average Score</th>
-                    <th className="border border-border p-3 text-left">Overall GPA</th>
-                    <th className="border border-border p-3 text-left">Total Exams</th>
-                    <th className="border border-border p-3 text-left">Remarks</th>
+                    <th className="border border-border p-3 text-left">
+                      Student ID
+                    </th>
+                    <th className="border border-border p-3 text-left">
+                      Student Name
+                    </th>
+                    <th className="border border-border p-3 text-left">
+                      Average Score
+                    </th>
+                    <th className="border border-border p-3 text-left">
+                      Overall GPA
+                    </th>
+                    <th className="border border-border p-3 text-left">
+                      Total Exams
+                    </th>
+                    <th className="border border-border p-3 text-left">
+                      Remarks
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
                   {allStudentsResults.students.length ? (
-                    allStudentsResults.students.map((student) => (
-                      <tr key={student.id} className="hover:bg-muted/50">
-                        <td className="border border-border p-3 font-medium">{student.studentId}</td>
-                        <td className="border border-border p-3">
-                          {student.firstName} {student.lastName}
+                    allStudentsResults.students.map((studentResult) => (
+                      <tr
+                        key={studentResult.student.id}
+                        className="hover:bg-muted/50"
+                      >
+                        <td className="border border-border p-3 font-medium">
+                          {studentResult.student.studentId}
                         </td>
                         <td className="border border-border p-3">
-                          <Badge variant="secondary">{Math.round(student.averageScore)}%</Badge>
+                          {studentResult.student.firstName}{" "}
+                          {studentResult.student.lastName}
                         </td>
                         <td className="border border-border p-3">
-                          <Badge variant="outline">{student.overallGPA.toFixed(1)}</Badge>
+                          <Badge variant="secondary">
+                            {Math.round(studentResult.averageScore)}%
+                          </Badge>
                         </td>
-                        <td className="border border-border p-3">{student.results.length}</td>
+                        <td className="border border-border p-3">
+                          <Badge variant="outline">
+                            {studentResult.overallGPA.toFixed(1)}
+                          </Badge>
+                        </td>
+                        <td className="border border-border p-3">
+                          {studentResult.results.length}
+                        </td>
                         <td className="border border-border p-3 text-muted-foreground">
-                          {student.remarks}
+                          {studentResult.remarks}
                         </td>
                       </tr>
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={6} className="border border-border p-3 text-center text-muted-foreground">
-                        No students enrolled or no grades recorded for this class.
+                      <td
+                        colSpan={6}
+                        className="border border-border p-3 text-center text-muted-foreground"
+                      >
+                        No students enrolled or no grades recorded for this
+                        class.
                       </td>
                     </tr>
                   )}
@@ -710,15 +864,21 @@ const ExamResults = () => {
         </Card>
       )}
 
-      {selectedClass && selectedYear && selectedTerm && !selectedStudentId && !allStudentsResults && (
-        <Card>
-          <CardContent className="py-8">
-            <div className="text-center text-muted-foreground">
-              {isLoading ? 'Loading students results...' : 'No results available for this class. Select a student to view individual results.'}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      {selectedClass &&
+        selectedYear &&
+        selectedTerm &&
+        !selectedStudentId &&
+        !allStudentsResults && (
+          <Card>
+            <CardContent className="py-8">
+              <div className="text-center text-muted-foreground">
+                {isLoading
+                  ? "Loading students results..."
+                  : "No results available for this class. Select a student to view individual results."}
+              </div>
+            </CardContent>
+          </Card>
+        )}
     </div>
   );
 };
