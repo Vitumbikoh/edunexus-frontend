@@ -13,6 +13,7 @@ import { PrinterIcon, Eye, GraduationCap, Calendar } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
+import ReportCard from "@/components/reports/ReportCard";
 
 interface Class {
   id: string;
@@ -651,134 +652,53 @@ const ExamResults = () => {
       </Card>
 
       {studentResults && (
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2">
-                <Eye className="h-5 w-5" />
-                Exam Results for {studentResults.student.firstName}{" "}
-                {studentResults.student.lastName}
-              </CardTitle>
-              <Button onClick={generateReportCard} className="gap-2">
-                <PrinterIcon className="h-4 w-4" />
-                Print Report Card
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-6">
-              <div className="grid gap-4 md:grid-cols-3">
-                <div className="text-center p-4 bg-muted rounded-lg">
-                  <div className="text-2xl font-bold text-primary">
-                    {studentResults.overallGPA.toFixed(1)}
-                  </div>
-                  <div className="text-sm text-muted-foreground">
-                    Overall GPA
-                  </div>
-                </div>
-                <div className="text-center p-4 bg-muted rounded-lg">
-                  <div className="text-2xl font-bold text-primary">
-                    {studentResults.totalExams}
-                  </div>
-                  <div className="text-sm text-muted-foreground">
-                    Total Exams
-                  </div>
-                </div>
-                <div className="text-center p-4 bg-muted rounded-lg">
-                  <div className="text-2xl font-bold text-primary">
-                    {studentResults.results.length
-                      ? Math.round(
-                          studentResults.results.reduce(
-                            (sum, r) => sum + r.percentage,
-                            0
-                          ) / studentResults.results.length
-                        )
-                      : 0}
-                    %
-                  </div>
-                  <div className="text-sm text-muted-foreground">
-                    Average Score
-                  </div>
-                </div>
-              </div>
-
-              <div className="overflow-x-auto">
-                <table className="w-full border-collapse border border-border">
-                  <thead>
-                    <tr className="bg-muted">
-                      <th className="border border-border p-3 text-left">
-                        Exam Title
-                      </th>
-                      <th className="border border-border p-3 text-left">
-                        Subject
-                      </th>
-                      <th className="border border-border p-3 text-left">
-                        Type
-                      </th>
-                      <th className="border border-border p-3 text-left">
-                        Date
-                      </th>
-                      <th className="border border-border p-3 text-left">
-                        Marks
-                      </th>
-                      <th className="border border-border p-3 text-left">
-                        Percentage
-                      </th>
-                      <th className="border border-border p-3 text-left">
-                        Grade
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {studentResults.results.length ? (
-                      studentResults.results.map((result) => (
-                        <tr key={result.id} className="hover:bg-muted/50">
-                          <td className="border border-border p-3">
-                            {result.examTitle}
-                          </td>
-                          <td className="border border-border p-3">
-                            {result.subject}
-                          </td>
-                          <td className="border border-border p-3">
-                            {result.examType}
-                          </td>
-                          <td className="border border-border p-3">
-                            {new Date(result.date).toLocaleDateString()}
-                          </td>
-                          <td className="border border-border p-3">
-                            {result.marksObtained}/{result.totalMarks}
-                          </td>
-                          <td className="border border-border p-3">
-                            {result.percentage}%
-                          </td>
-                          <td className="border border-border p-3">
-                            <Badge
-                              className={cn(
-                                "text-xs",
-                                getGradeColor(result.grade)
-                              )}
-                            >
-                              {result.grade}
-                            </Badge>
-                          </td>
-                        </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td
-                          colSpan={7}
-                          className="border border-border p-3 text-center text-muted-foreground"
-                        >
-                          No results available for this student.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <ReportCard
+          title={`Exam Results for ${studentResults.student.firstName} ${studentResults.student.lastName}`}
+          action={
+            <Button onClick={generateReportCard} className="gap-2">
+              <PrinterIcon className="h-4 w-4" />
+              Print Report Card
+            </Button>
+          }
+          summary={[
+            { label: "Overall GPA", value: studentResults.overallGPA.toFixed(1) },
+            { label: "Total Exams", value: studentResults.totalExams },
+            {
+              label: "Average Score",
+              value: `${studentResults.results.length ? Math.round(studentResults.results.reduce((sum, r) => sum + r.percentage, 0) / studentResults.results.length) : 0}%`,
+            },
+          ]}
+          columns={[
+            "Exam Title",
+            "Subject",
+            "Type",
+            "Date",
+            "Marks",
+            "Percentage",
+            "Grade",
+          ]}
+          rows={
+            studentResults.results.length
+              ? studentResults.results.map((result) => ({
+                  key: result.id,
+                  cells: [
+                    result.examTitle,
+                    result.subject,
+                    result.examType,
+                    new Date(result.date).toLocaleDateString(),
+                    `${result.marksObtained}/${result.totalMarks}`,
+                    `${result.percentage}%`,
+                    (
+                      <Badge className={cn("text-xs", getGradeColor(result.grade))}>
+                        {result.grade}
+                      </Badge>
+                    ),
+                  ],
+                }))
+              : []
+          }
+          emptyMessage="No results available for this student."
+        />
       )}
 
       {allStudentsResults && !selectedStudentId && (

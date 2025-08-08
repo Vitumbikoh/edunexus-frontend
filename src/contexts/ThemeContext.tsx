@@ -25,8 +25,19 @@ interface ThemeProviderProps {
 
 export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   const { user, token } = useAuth();
-  const [theme, setThemeState] = useState<Theme>('system');
-  const [actualTheme, setActualTheme] = useState<'light' | 'dark'>('light');
+  const [theme, setThemeState] = useState<Theme>(() => {
+    if (typeof window === 'undefined') return 'system';
+    try {
+      const stored = localStorage.getItem('theme') as Theme | null;
+      return stored || 'system';
+    } catch {
+      return 'system';
+    }
+  });
+  const [actualTheme, setActualTheme] = useState<'light' | 'dark'>(() => {
+    if (typeof window === 'undefined') return 'light';
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  });
 
   // Get system theme preference
   const getSystemTheme = (): 'light' | 'dark' => {
@@ -45,10 +56,11 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   useEffect(() => {
     const loadThemePreference = async () => {
       if (!user || !token) {
-        // If no user, use system theme
-        const systemTheme = getSystemTheme();
-        setThemeState('system');
-        setActualTheme(systemTheme);
+        // If no user or unauthenticated, use stored preference or system
+        const storedTheme = (localStorage.getItem('theme') as Theme) || 'system';
+        const resolved = calculateActualTheme(storedTheme);
+        setThemeState(storedTheme);
+        setActualTheme(resolved);
         return;
       }
 
@@ -90,6 +102,8 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     const root = document.documentElement;
     root.classList.remove('light', 'dark');
     root.classList.add(actualTheme);
+    // Help the browser render native UI correctly in dark mode
+    root.style.colorScheme = actualTheme;
   }, [actualTheme]);
 
   // Listen for system theme changes
@@ -110,10 +124,17 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     const newActualTheme = calculateActualTheme(newTheme);
     setActualTheme(newActualTheme);
 
+    // Always persist a generic theme preference
+    try {
+      localStorage.setItem('theme', newTheme);
+    } catch {}
+
     if (user) {
-      // Store in localStorage as backup
+      // Store per-user preference as backup
       const storageKey = `theme-${user.id}`;
-      localStorage.setItem(storageKey, newTheme);
+      try {
+        localStorage.setItem(storageKey, newTheme);
+      } catch {}
 
       // Try to save to backend
       if (token) {

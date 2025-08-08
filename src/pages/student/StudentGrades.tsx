@@ -5,6 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Award } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import ReportCard from "@/components/reports/ReportCard";
 
 export default function StudentGrades() {
   const { user, token } = useAuth();
@@ -171,6 +172,25 @@ export default function StudentGrades() {
           )}
         </CardContent>
       </Card>
+      
+      <ReportCard
+        title="My Report Card"
+        summary={[
+          { label: 'Total Courses', value: courses.length },
+          { label: 'Selected Term', value: selectedTerm === 'all' ? 'All Terms' : selectedTerm },
+          { label: 'Report Date', value: new Date().toLocaleDateString() },
+        ]}
+        columns={["Course", "Term", "Grade"]}
+        rows={filteredGrades.map((g, index) => ({
+          key: String(index),
+          cells: [
+            g.course,
+            g.term,
+            <span className={`font-bold ${getGradeColor(g.grade)}`}>{g.grade}</span>,
+          ],
+        }))}
+        emptyMessage="No grades found for the selected term."
+      />
       
       <Card>
         <CardHeader>
