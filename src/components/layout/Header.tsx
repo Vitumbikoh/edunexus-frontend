@@ -59,14 +59,14 @@ export default function Header() {
   const isAdmin = user.role === "admin";
 
   return (
-    <header className="h-16 flex items-center justify-between px-4 border-b border-gray-200 bg-white">
+    <header className="h-16 flex items-center justify-between px-4 border-b border-border bg-background">
       <div className="flex items-center">
         {!isOpen && (
           <Button variant="ghost" size="icon" onClick={toggle} className="mr-4">
             <Menu className="h-5 w-5" />
           </Button>
         )}
-        <h1 className="text-xl font-bold text-gray-800">School Management Portal</h1>
+        <h1 className="text-xl font-bold text-foreground">School Management Portal</h1>
       </div>
       
       <div className="flex items-center space-x-4">
@@ -89,14 +89,14 @@ export default function Header() {
               <DropdownMenuSeparator />
               {notifications.length === 0 ? (
                 <DropdownMenuItem>
-                  <span className="text-sm text-gray-500">No new notifications</span>
+                  <span className="text-sm text-muted-foreground">No new notifications</span>
                 </DropdownMenuItem>
               ) : (
                 notifications.map((note) => (
-                  <DropdownMenuItem key={note.id} className="flex flex-col items-start py-3 hover:bg-gray-100 cursor-pointer transition-all">
-                    <span className="font-medium text-gray-900">{note.title}</span>
-                    <span className="text-xs text-gray-500">{note.description}</span>
-                    <span className="text-[10px] text-gray-400 mt-1">{note.time}</span>
+                  <DropdownMenuItem key={note.id} className="flex flex-col items-start py-3 hover:bg-accent cursor-pointer transition-all">
+                    <span className="font-medium text-foreground">{note.title}</span>
+                    <span className="text-xs text-muted-foreground">{note.description}</span>
+                    <span className="text-[10px] text-muted-foreground mt-1">{note.time}</span>
                   </DropdownMenuItem>
                 ))
               )}

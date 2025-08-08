@@ -179,7 +179,7 @@ export default function Sidebar() {
       "h-screen bg-sidebar flex flex-col fixed left-0 top-0 z-40 transition-all duration-300",
       isOpen ? "w-64" : "w-20"
     )}>
-      <div className="flex items-center justify-between p-4 border-b border-gray-200">
+      <div className="flex items-center justify-between p-4 border-b border-sidebar-border">
         <div className={cn("flex items-center", isOpen ? "justify-start" : "justify-center w-full")}>
           <div className="rounded-full bg-sms-primary w-10 h-10 flex items-center justify-center">
             <span className="text-white font-bold">SM</span>
@@ -255,7 +255,7 @@ export default function Sidebar() {
         </nav>
       </div>
 
-      <div className="p-4 border-t border-gray-200">
+      <div className="p-4 border-t border-sidebar-border">
         <div
           className={cn(
             "flex items-center cursor-pointer text-sidebar-foreground hover:bg-sidebar-accent p-2 rounded-md",

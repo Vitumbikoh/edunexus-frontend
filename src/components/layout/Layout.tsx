@@ -13,7 +13,7 @@ export default function Layout({ children }: LayoutProps) {
   const { isOpen } = useSidebar();
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex h-screen bg-background">
       <Sidebar />
       <div className={cn(
         "flex-1 flex flex-col transition-all duration-300",

@@ -29,10 +29,10 @@ const ReportCard: React.FC<ReportCardProps> = ({
   action,
 }) => {
   return (
-    <Card>
-      <CardHeader>
+    <Card className="overflow-hidden border border-border shadow-sm">
+      <CardHeader className="border-b border-border bg-muted/40">
         <div className="flex items-center justify-between gap-2">
-          <CardTitle>{title}</CardTitle>
+          <CardTitle className="tracking-wide text-foreground">{title}</CardTitle>
           {action ? <div className="shrink-0">{action}</div> : null}
         </div>
       </CardHeader>
@@ -41,20 +41,20 @@ const ReportCard: React.FC<ReportCardProps> = ({
           {summary?.length ? (
             <div className="grid gap-4 md:grid-cols-3">
               {summary.map((item, idx) => (
-                <div key={idx} className="text-center p-4 bg-muted rounded-lg">
+                <div key={idx} className="text-center p-4 bg-muted rounded-lg border border-border shadow-sm">
                   <div className="text-2xl font-bold text-primary">{item.value}</div>
-                  <div className="text-sm text-muted-foreground">{item.label}</div>
+                  <div className="text-sm text-muted-foreground uppercase tracking-wide">{item.label}</div>
                 </div>
               ))}
             </div>
           ) : null}
 
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse border border-border">
+          <div className="overflow-x-auto rounded-md border border-border">
+            <table className="w-full border-collapse">
               <thead>
-                <tr className="bg-muted">
+                <tr className="bg-muted/60">
                   {columns.map((col, i) => (
-                    <th key={i} className="border border-border p-3 text-left">
+                    <th key={i} className="p-3 text-left text-foreground">
                       {col}
                     </th>
                   ))}
@@ -63,9 +63,9 @@ const ReportCard: React.FC<ReportCardProps> = ({
               <tbody>
                 {rows.length ? (
                   rows.map((row, rIdx) => (
-                    <tr key={row.key ?? rIdx} className="hover:bg-muted/50">
+                    <tr key={row.key ?? rIdx} className="hover:bg-muted/50 border-t border-border">
                       {row.cells.map((cell, cIdx) => (
-                        <td key={cIdx} className="border border-border p-3">
+                        <td key={cIdx} className="p-3 align-top text-foreground">
                           {cell}
                         </td>
                       ))}
@@ -75,7 +75,7 @@ const ReportCard: React.FC<ReportCardProps> = ({
                   <tr>
                     <td
                       colSpan={columns.length}
-                      className="border border-border p-3 text-center text-muted-foreground"
+                      className="p-3 text-center text-muted-foreground"
                     >
                       {emptyMessage}
                     </td>
