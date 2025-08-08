@@ -153,7 +153,7 @@ const handlePrint = () => {
       <body>
         <div class="card">
           <div class="hdr">
-            <div class="school">SchoolPortal Academy</div>
+            <div class="school">Schomas Academy</div>
             <div class="subtitle">Report Card</div>
           </div>
           <div class="info">

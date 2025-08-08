@@ -418,7 +418,7 @@ const ExamResults = () => {
         <body>
           <div class="report-card">
             <div class="header">
-              <div class="school-name">SchoolPortal Academy</div>
+              <div class="school-name">Schomas Academy</div>
               <div class="report-title">Student Academic Report Card</div>
             </div>
             
@@ -524,7 +524,7 @@ const ExamResults = () => {
             </div>
             
             <div class="footer">
-              This report card was generated electronically by SchoolPortal Academy Management System.<br>
+              This report card was generated electronically by Schomas Academy Management System.<br>
               For any inquiries, please contact the academic office.
             </div>
           </div>

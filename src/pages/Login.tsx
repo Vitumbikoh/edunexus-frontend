@@ -88,7 +88,7 @@ export default function Login() {
           <div className="mx-auto mb-4 rounded-full bg-sms-primary w-12 h-12 flex items-center justify-center">
             <span className="text-white font-bold">SM</span>
           </div>
-          <CardTitle className="text-2xl font-bold">School Portal</CardTitle>
+          <CardTitle className="text-2xl font-bold">Schomas Academy</CardTitle>
           <CardDescription>
             Enter your credentials to access your account
           </CardDescription>

@@ -184,7 +184,7 @@ export default function Sidebar() {
           <div className="rounded-full bg-sms-primary w-10 h-10 flex items-center justify-center">
             <span className="text-white font-bold">SM</span>
           </div>
-          {isOpen && <span className="ml-3 font-bold text-lg">SchoolPortal</span>}
+          {isOpen && <span className="ml-3 font-bold text-lg">Schomas Academy</span>}
         </div>
         <Button
           variant="ghost"
