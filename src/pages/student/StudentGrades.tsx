@@ -27,46 +27,51 @@ export default function StudentGrades() {
 
   useEffect(() => {
     const fetchGrades = async () => {
-      try {
-        setIsLoading(true);
-        setError(null);
-        const response = await fetch('http://localhost:5000/api/v1/grades/students', {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+  try {
+    setIsLoading(true);
+    setError(null);
+    const response = await fetch('http://localhost:5000/api/v1/grades/students', {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
 
-        if (!response.ok) {
-          throw new Error('Failed to fetch grades');
-        }
+    if (!response.ok) {
+      throw new Error('Failed to fetch grades');
+    }
 
-        const data = await response.json();
-        if (!data.success || !data.grades) {
-          throw new Error('No grades data available');
-        }
+    const data = await response.json();
+    
+    // Check for results instead of grades
+    if (!data.results) {
+      throw new Error('No grades data available');
+    }
 
-        // Transform backend data to match the expected structure
-        const transformedGrades = data.grades.map(grade => ({
-          course: grade.course.name || grade.course,
-          grade: grade.grade,
-          term: grade.assessmentType === 'midterm' ? 'Midterm' : 'Final', // Map assessmentType to term
-        }));
-        const uniqueCourses = [...new Set(transformedGrades.map(g => g.course))];
+    // Transform backend data to match the expected structure
+    const transformedGrades = data.results.map(grade => ({
+      course: grade.subject || grade.examTitle, // Use subject or examTitle
+      grade: grade.grade,
+      term: grade.examType === 'midterm' ? 'Midterm' : 
+            grade.examType === 'endterm' ? 'Final' : 
+            grade.examType.charAt(0).toUpperCase() + grade.examType.slice(1),
+    }));
+    
+    const uniqueCourses = [...new Set(transformedGrades.map(g => g.course))];
 
-        setGrades(transformedGrades);
-        setCourses(uniqueCourses);
-      } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : 'Failed to load grades';
-        setError(errorMessage);
-        toast({
-          title: 'Error',
-          description: errorMessage,
-          variant: 'destructive',
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
+    setGrades(transformedGrades);
+    setCourses(uniqueCourses);
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : 'Failed to load grades';
+    setError(errorMessage);
+    toast({
+      title: 'Error',
+      description: errorMessage,
+      variant: 'destructive',
+    });
+  } finally {
+    setIsLoading(false);
+  }
+};
 
     fetchGrades();
   }, [token]);
