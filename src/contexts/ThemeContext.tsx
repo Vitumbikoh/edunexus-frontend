@@ -25,19 +25,18 @@ interface ThemeProviderProps {
 
 export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   const { user, token } = useAuth();
-  const [theme, setThemeState] = useState<Theme>(() => {
-    if (typeof window === 'undefined') return 'system';
-    try {
-      const stored = localStorage.getItem('theme') as Theme | null;
-      return stored || 'system';
-    } catch {
-      return 'system';
-    }
-  });
-  const [actualTheme, setActualTheme] = useState<'light' | 'dark'>(() => {
-    if (typeof window === 'undefined') return 'light';
-    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-  });
+const [theme, setThemeState] = useState<Theme>(() => {
+  if (typeof window === 'undefined') return 'light';
+  try {
+    const stored = localStorage.getItem('theme') as Theme | null;
+    return stored || 'light';
+  } catch {
+    return 'light';
+  }
+});
+const [actualTheme, setActualTheme] = useState<'light' | 'dark'>(() => {
+  return 'light';
+});
 
   // Get system theme preference
   const getSystemTheme = (): 'light' | 'dark' => {
@@ -57,10 +56,10 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     const loadThemePreference = async () => {
       if (!user || !token) {
         // If no user or unauthenticated, use stored preference or system
-        const storedTheme = (localStorage.getItem('theme') as Theme) || 'system';
-        const resolved = calculateActualTheme(storedTheme);
-        setThemeState(storedTheme);
-        setActualTheme(resolved);
+const storedTheme = (localStorage.getItem('theme') as Theme) || 'light';
+const resolved = calculateActualTheme(storedTheme);
+setThemeState(storedTheme);
+setActualTheme(resolved);
         return;
       }
 
@@ -80,17 +79,17 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
           setActualTheme(calculateActualTheme(userTheme));
         } else {
           // Fallback to localStorage for this user
-          const storageKey = `theme-${user.id}`;
-          const storedTheme = localStorage.getItem(storageKey) as Theme || 'system';
-          setThemeState(storedTheme);
-          setActualTheme(calculateActualTheme(storedTheme));
+const storageKey = `theme-${user.id}`;
+const storedTheme = localStorage.getItem(storageKey) as Theme || 'light';
+setThemeState(storedTheme);
+setActualTheme(calculateActualTheme(storedTheme));
         }
       } catch (error) {
         // Fallback to localStorage for this user
-        const storageKey = `theme-${user.id}`;
-        const storedTheme = localStorage.getItem(storageKey) as Theme || 'system';
-        setThemeState(storedTheme);
-        setActualTheme(calculateActualTheme(storedTheme));
+const storageKey = `theme-${user.id}`;
+const storedTheme = localStorage.getItem(storageKey) as Theme || 'light';
+setThemeState(storedTheme);
+setActualTheme(calculateActualTheme(storedTheme));
       }
     };
 
