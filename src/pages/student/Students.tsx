@@ -151,7 +151,7 @@ export default function Students() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold">Students</h1>
+          <h1 className="text-2xl font-bold text-foreground">Students</h1>
           <p className="text-muted-foreground">
             Showing {paginatedData.students.length} of {paginatedData.totalItems} students
           </p>

@@ -18,7 +18,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { Badge } from "@/components/ui/badge";
 import RecentActivitiesCard from '@/components/dashboard/RecentActivitiesCard';
 import { Progress } from '@radix-ui/react-progress';
-import { mockActivities } from './mockData';
+
 
 export const AdminDashboardCards = () => {
   const navigate = useNavigate();
@@ -65,7 +65,7 @@ export const AdminDashboardCards = () => {
         </div>
       </Card>
       
-      <RecentActivitiesCard activities={mockActivities} />
+      <RecentActivitiesCard />
     </div>
   );
 };

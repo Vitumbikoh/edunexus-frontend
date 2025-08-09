@@ -6,7 +6,7 @@ import { AdminDashboardCards, TeacherDashboardCards } from './DashboardCards';
 import { useAuth } from '@/contexts/AuthContext';
 import RecentActivitiesCard from '@/components/dashboard/RecentActivitiesCard';
 import { QuickActions } from './DashboardQuickActions';
-import { mockActivities } from './mockData';
+
 
 export const DashboardContent = () => {
   const { user } = useAuth();
@@ -30,7 +30,7 @@ export const DashboardContent = () => {
       {/* ... other role content */}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {!isAdmin && <RecentActivitiesCard activities={mockActivities} />}
+        {!isAdmin && <RecentActivitiesCard />}
         <Card>
           <CardHeader>
             <CardTitle>Quick Actions</CardTitle>
