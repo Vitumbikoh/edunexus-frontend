@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Menu, Bell } from 'lucide-react';
 import { useSidebar } from '@/contexts/SidebarContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -14,41 +13,92 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Link } from 'react-router-dom';
+import { useToast } from "@/components/ui/use-toast";
 
-const mockNotifications = [
-  {
-    id: 1,
-    title: "New Student Registered",
-    description: "Sarah Connor has joined Class 9A",
-    time: "2 mins ago"
-  },
-  {
-    id: 2,
-    title: "Fee Payment Received",
-    description: "Payment from Michael Grant",
-    time: "30 mins ago"
-  },
-  {
-    id: 3,
-    title: "Event Reminder",
-    description: "PTA Meeting tomorrow at 4pm",
-    time: "1 hour ago"
-  },
-  {
-    id: 4,
-    title: "Schedule Updated",
-    description: "Class 10B timetable changed",
-    time: "Yesterday"
-  }
-];
+interface Notification {
+  id: string;
+  title: string;
+  description: string;
+  time: string;
+}
 
 export default function Header() {
   const { toggle, isOpen } = useSidebar();
-  const { user, logout } = useAuth();
-  const [notifications] = useState(mockNotifications);
+  const { user, logout, token } = useAuth();
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [loading, setLoading] = useState(false);
+  const { toast } = useToast();
 
-  if (!user) return null;
-  
+  useEffect(() => {
+    if (user?.role === "admin") {
+      fetchNotifications();
+    }
+  }, [user]);
+
+  const fetchNotifications = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('http://localhost:5000/api/v1/activities/recent', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!response.ok) throw new Error('Failed to fetch notifications');
+      
+      const data = await response.json();
+      setNotifications(transformActivitiesToNotifications(data));
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : 'Failed to fetch notifications',
+        variant: "destructive",
+      });
+      setNotifications([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const transformActivitiesToNotifications = (activities: any[]): Notification[] => {
+    return activities.map(activity => ({
+      id: activity.id,
+      title: getNotificationTitle(activity.action),
+      description: getNotificationDescription(activity),
+      time: formatTime(activity.timestamp || activity.date),
+    }));
+  };
+
+  const getNotificationTitle = (action: string): string => {
+    switch(action) {
+      case 'CREATE_STUDENT':
+        return 'New Student Registration';
+      case 'ENROLL_STUDENT':
+        return 'Student Enrollment';
+      default:
+        return 'System Activity';
+    }
+  };
+
+  const getNotificationDescription = (activity: any): string => {
+    if (activity.studentCreated) {
+      return `Student: ${activity.studentCreated.fullName}`;
+    }
+    return `Action performed by ${activity.performedBy?.email || 'system'}`;
+  };
+
+  const formatTime = (timestamp: string): string => {
+    const now = new Date();
+    const activityTime = new Date(timestamp);
+    const diffInMinutes = Math.floor((now.getTime() - activityTime.getTime()) / (1000 * 60));
+    
+    if (diffInMinutes < 1) return 'Just now';
+    if (diffInMinutes < 60) return `${diffInMinutes} mins ago`;
+    if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)} hours ago`;
+    return `${Math.floor(diffInMinutes / 1440)} days ago`;
+  };
+
   const getInitials = (name: string) => {
     return name.split(' ')
       .map(n => n[0])
@@ -56,6 +106,8 @@ export default function Header() {
       .toUpperCase();
   };
 
+  if (!user) return null;
+  
   const isAdmin = user.role === "admin";
 
   return (
@@ -84,12 +136,16 @@ export default function Header() {
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-80 max-w-sm" align="end" forceMount>
               <DropdownMenuLabel>
-                Notifications
+                Recent Activities
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              {notifications.length === 0 ? (
+              {loading ? (
                 <DropdownMenuItem>
-                  <span className="text-sm text-muted-foreground">No new notifications</span>
+                  <span className="text-sm text-muted-foreground">Loading...</span>
+                </DropdownMenuItem>
+              ) : notifications.length === 0 ? (
+                <DropdownMenuItem>
+                  <span className="text-sm text-muted-foreground">No recent activities</span>
                 </DropdownMenuItem>
               ) : (
                 notifications.map((note) => (

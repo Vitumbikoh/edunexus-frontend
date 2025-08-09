@@ -9,6 +9,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useToast } from "@/components/ui/use-toast";
 import { Loader2, Eye, EyeOff, Monitor, Sun, Moon } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface UserSettings {
   username: string;
@@ -33,6 +34,19 @@ interface SchoolSettings {
   schoolAbout: string;
 }
 
+interface AcademicCalendar {
+  academicYear: string;
+  startDate?: string;
+  endDate?: string;
+}
+
+interface Term {
+  termName: string;
+  startDate?: string;
+  endDate?: string;
+  isCurrent: boolean;
+}
+
 export default function Settings() {
   const { user, token } = useAuth();
   const { theme, setTheme } = useTheme();
@@ -41,6 +55,8 @@ export default function Settings() {
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  
+  // Main form data state
   const [formData, setFormData] = useState({
     username: user?.name || '',
     email: user?.email || '',
@@ -66,38 +82,80 @@ export default function Settings() {
     confirmPassword: '',
   });
 
+  // Academic calendar state
+  const [academicCalendar, setAcademicCalendar] = useState<AcademicCalendar>({
+    academicYear: '',
+  });
+
+  // Term state
+  const [currentTerm, setCurrentTerm] = useState<Term>({
+    termName: '',
+    isCurrent: true,
+  });
+
   useEffect(() => {
     const fetchSettings = async () => {
       try {
         setIsLoading(true);
+        if (!token || !user) throw new Error("Authentication required");
 
-        if (!token || !user) {
-          throw new Error("Authentication required");
-        }
-
-        const response = await fetch('http://localhost:5000/api/v1/settings', {
-          method: 'GET',
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
+        // First fetch the main settings
+        const settingsRes = await fetch('http://localhost:5000/api/v1/settings', {
+          headers: { Authorization: `Bearer ${token}` },
         });
 
-        if (!response.ok) {
+        if (!settingsRes.ok) {
           throw new Error("Failed to fetch settings");
         }
 
-        const data = await response.json();
-        if (data.user) {
+        const settingsData = await settingsRes.json();
+
+        // Update state with user settings
+        if (settingsData.user) {
           setFormData(prev => ({
             ...prev,
-            username: data.user.username || user?.name || '',
-            email: data.user.email || user?.email || '',
-            phone: data.user.phone || '',
-            notifications: data.user.notifications || prev.notifications,
-            security: data.user.security || prev.security,
-            schoolSettings: data.schoolSettings || prev.schoolSettings,
+            username: settingsData.user.username || user?.name || '',
+            email: settingsData.user.email || user?.email || '',
+            phone: settingsData.user.phone || '',
+            notifications: settingsData.user.notifications || prev.notifications,
+            security: settingsData.user.security || prev.security,
+            schoolSettings: settingsData.schoolSettings || prev.schoolSettings,
           }));
+        }
+
+        // If admin, fetch academic calendar and current term
+        if (user?.role.toUpperCase() === 'ADMIN') {
+          try {
+            const [calendarRes, termRes] = await Promise.all([
+              fetch('http://localhost:5000/api/v1/settings/academic-calendar', {
+                headers: { Authorization: `Bearer ${token}` },
+              }),
+              fetch('http://localhost:5000/api/v1/settings/terms', {
+                headers: { Authorization: `Bearer ${token}` },
+              }),
+            ]);
+
+            if (calendarRes.ok) {
+              const calendarData = await calendarRes.json();
+              setAcademicCalendar({
+                academicYear: calendarData.academicYear || '',
+                startDate: calendarData.startDate,
+                endDate: calendarData.endDate
+              });
+            }
+
+            if (termRes.ok) {
+              const termData = await termRes.json();
+              setCurrentTerm({
+                termName: termData.termName || '',
+                startDate: termData.startDate,
+                endDate: termData.endDate,
+                isCurrent: termData.isCurrent || false
+              });
+            }
+          } catch (err) {
+            console.log("Optional admin settings not found, using defaults");
+          }
         }
       } catch (err) {
         toast({
@@ -154,6 +212,113 @@ export default function Settings() {
     }));
   };
 
+  const handleAcademicCalendarSubmit = async () => {
+    try {
+      if (!token) throw new Error("Authentication required");
+      
+      // Validate academic year format
+      if (!/^\d{4}-\d{4}$/.test(academicCalendar.academicYear)) {
+        throw new Error("Academic year must be in YYYY-YYYY format");
+      }
+
+      const response = await fetch('http://localhost:5000/api/v1/settings/academic-calendar', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(academicCalendar),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to update academic calendar");
+      }
+
+      toast({
+        title: "Success",
+        description: "Academic calendar updated successfully",
+      });
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: err instanceof Error ? err.message : "Failed to update academic calendar",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleTermSubmit = async () => {
+    try {
+      if (!token) throw new Error("Authentication required");
+      
+      if (!currentTerm.termName) {
+        throw new Error("Please select a term");
+      }
+
+      const response = await fetch('http://localhost:5000/api/v1/settings/terms', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...currentTerm,
+          isCurrent: true,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to update term");
+      }
+
+      toast({
+        title: "Success",
+        description: "Term updated successfully",
+      });
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: err instanceof Error ? err.message : "Failed to update term",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleSchoolSettingsSubmit = async () => {
+    try {
+      if (!token || !user) throw new Error("Authentication required");
+
+      const response = await fetch('http://localhost:5000/api/v1/settings', {
+        method: 'PATCH',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          schoolSettings: formData.schoolSettings 
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to update school settings");
+      }
+
+      toast({
+        title: "Success",
+        description: "School settings updated successfully",
+      });
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: err instanceof Error ? err.message : "Failed to update school settings",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleSubmit = async (tab: string) => {
     try {
       if (!token || !user) {
@@ -178,8 +343,6 @@ export default function Settings() {
           currentPassword: formData.currentPassword,
           newPassword: formData.newPassword,
         };
-      } else if (tab === 'school' && user?.role.toUpperCase() === 'ADMIN') {
-        updateData = { schoolSettings: formData.schoolSettings };
       }
 
       const response = await fetch('http://localhost:5000/api/v1/settings', {
@@ -192,10 +355,10 @@ export default function Settings() {
       });
 
       if (!response.ok) {
-        throw new Error("Failed to update settings");
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to update settings");
       }
 
-      // Clear password fields only if we're on the security tab
       if (tab === 'security') {
         setFormData(prev => ({
           ...prev,
@@ -514,61 +677,174 @@ export default function Settings() {
                 <CardTitle>School Settings</CardTitle>
                 <CardDescription>Configure school-wide settings</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="schoolName">School Name</Label>
-                    <Input
-                      id="schoolName"
-                      value={formData.schoolSettings.schoolName}
-                      onChange={handleSchoolSettingsChange}
-                      placeholder="Enter school name"
-                    />
+              <CardContent className="space-y-6">
+                {/* Academic Calendar Section */}
+                <div className="space-y-4 border p-4 rounded-lg">
+                  <h3 className="font-medium">Academic Calendar</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="academicYear">Academic Year</Label>
+                      <Input
+                        id="academicYear"
+                        value={academicCalendar.academicYear}
+                        onChange={(e) => setAcademicCalendar({
+                          ...academicCalendar,
+                          academicYear: e.target.value
+                        })}
+                        placeholder="Enter in YYYY-YYYY format (e.g., 2025-2026)"
+                        pattern="\d{4}-\d{4}"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Format: YYYY-YYYY (e.g., 2025-2026)
+                      </p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="startDate">Start Date (Optional)</Label>
+                      <Input
+                        id="startDate"
+                        type="date"
+                        value={academicCalendar.startDate || ''}
+                        onChange={(e) => setAcademicCalendar({
+                          ...academicCalendar,
+                          startDate: e.target.value
+                        })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="endDate">End Date (Optional)</Label>
+                      <Input
+                        id="endDate"
+                        type="date"
+                        value={academicCalendar.endDate || ''}
+                        onChange={(e) => setAcademicCalendar({
+                          ...academicCalendar,
+                          endDate: e.target.value
+                        })}
+                      />
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="schoolEmail">School Email</Label>
-                    <Input
-                      id="schoolEmail"
-                      type="email"
-                      value={formData.schoolSettings.schoolEmail}
-                      onChange={handleSchoolSettingsChange}
-                      placeholder="Enter school email"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="schoolPhone">School Phone</Label>
-                    <Input
-                      id="schoolPhone"
-                      type="tel"
-                      value={formData.schoolSettings.schoolPhone}
-                      onChange={handleSchoolSettingsChange}
-                      placeholder="Enter school phone"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="schoolAddress">School Address</Label>
-                    <Input
-                      id="schoolAddress"
-                      value={formData.schoolSettings.schoolAddress}
-                      onChange={handleSchoolSettingsChange}
-                      placeholder="Enter school address"
-                    />
+                  <div className="flex justify-end">
+                    <Button onClick={handleAcademicCalendarSubmit}>
+                      Save Academic Calendar
+                    </Button>
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="schoolAbout">About School</Label>
-                  <textarea
-                    id="schoolAbout"
-                    className="min-h-[100px] w-full rounded-md border border-input px-3 py-2 text-sm"
-                    value={formData.schoolSettings.schoolAbout}
-                    onChange={handleSchoolSettingsChange}
-                    placeholder="Enter school description"
-                  />
+                {/* Term Settings Section */}
+                <div className="space-y-4 border p-4 rounded-lg">
+                  <h3 className="font-medium">Current Term</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label>Term</Label>
+                      <Select
+                        value={currentTerm.termName}
+                        onValueChange={(value) => setCurrentTerm({
+                          ...currentTerm,
+                          termName: value
+                        })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select current term" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Term 1">Term 1</SelectItem>
+                          <SelectItem value="Term 2">Term 2</SelectItem>
+                          <SelectItem value="Term 3">Term 3</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="termStartDate">Start Date (Optional)</Label>
+                      <Input
+                        id="termStartDate"
+                        type="date"
+                        value={currentTerm.startDate || ''}
+                        onChange={(e) => setCurrentTerm({
+                          ...currentTerm,
+                          startDate: e.target.value
+                        })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="termEndDate">End Date (Optional)</Label>
+                      <Input
+                        id="termEndDate"
+                        type="date"
+                        value={currentTerm.endDate || ''}
+                        onChange={(e) => setCurrentTerm({
+                          ...currentTerm,
+                          endDate: e.target.value
+                        })}
+                      />
+                    </div>
+                  </div>
+                  <div className="flex justify-end">
+                    <Button onClick={handleTermSubmit}>
+                      Save Term Settings
+                    </Button>
+                  </div>
                 </div>
 
-                <div className="flex justify-end">
-                  <Button onClick={() => handleSubmit('school')}>Save School Settings</Button>
+                {/* School Information Section */}
+                <div className="space-y-4 border p-4 rounded-lg">
+                  <h3 className="font-medium">School Information</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="schoolName">School Name</Label>
+                      <Input
+                        id="schoolName"
+                        value={formData.schoolSettings.schoolName}
+                        onChange={handleSchoolSettingsChange}
+                        placeholder="Enter school name"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="schoolEmail">School Email</Label>
+                      <Input
+                        id="schoolEmail"
+                        type="email"
+                        value={formData.schoolSettings.schoolEmail}
+                        onChange={handleSchoolSettingsChange}
+                        placeholder="Enter school email"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="schoolPhone">School Phone</Label>
+                      <Input
+                        id="schoolPhone"
+                        type="tel"
+                        value={formData.schoolSettings.schoolPhone}
+                        onChange={handleSchoolSettingsChange}
+                        placeholder="Enter school phone"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="schoolAddress">School Address</Label>
+                      <Input
+                        id="schoolAddress"
+                        value={formData.schoolSettings.schoolAddress}
+                        onChange={handleSchoolSettingsChange}
+                        placeholder="Enter school address"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="schoolAbout">About School</Label>
+                    <textarea
+                      id="schoolAbout"
+                      className="min-h-[100px] w-full rounded-md border border-input px-3 py-2 text-sm"
+                      value={formData.schoolSettings.schoolAbout}
+                      onChange={handleSchoolSettingsChange}
+                      placeholder="Enter school description"
+                    />
+                  </div>
+
+                  <div className="flex justify-end">
+                    <Button onClick={handleSchoolSettingsSubmit}>
+                      Save School Information
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>
