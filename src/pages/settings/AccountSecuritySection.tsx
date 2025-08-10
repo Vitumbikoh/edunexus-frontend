@@ -1,6 +1,11 @@
-
 import React, { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -9,7 +14,7 @@ import { Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 
-const API_BASE = 'http://localhost:5000/api/v1';
+const API_BASE = "http://localhost:5000/api/v1";
 export type AccountSecurityVariant = "account" | "security";
 
 type Security = { twoFactor: boolean };
@@ -19,6 +24,7 @@ type AccountData = {
   email: string;
   phone?: string;
   role?: string;
+  image?: string;
 };
 
 type SecurityData = {
@@ -66,66 +72,74 @@ export default function AccountSecuritySection({ variant }: Props) {
   const fetchAccountData = async () => {
     try {
       const res = await fetch(`${API_BASE}/settings`, {
-        method: 'GET',
+        method: "GET",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
       });
       if (!res.ok) throw new Error(await res.text());
       const data = await res.json();
       setAccountData({
-        username: data.username || "",
-        email: data.email || "",
-        phone: data.phone || "",
-        role: data.role || "",
+        username: data.user?.username || "",
+        email: data.user?.email || "",
+        phone: data.user?.phone || "",
+        role: data.user?.role || "",
+        image: data.user?.image || "",
       });
     } catch (error) {
-      console.error('Failed to fetch account data:', error);
+      console.error("Failed to fetch account data:", error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch account data",
+        variant: "destructive",
+      });
     }
   };
 
   const fetchSecurityData = async () => {
     try {
       const res = await fetch(`${API_BASE}/settings`, {
-        method: 'GET',
+        method: "GET",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
       });
       if (!res.ok) throw new Error(await res.text());
       const data = await res.json();
-      setSecurityData(prev => ({
+      setSecurityData((prev) => ({
         ...prev,
         twoFactor: (data.twoFactor ?? data.security?.twoFactor) || false,
       }));
     } catch (error) {
-      console.error('Failed to fetch security data:', error);
+      console.error("Failed to fetch security data:", error);
     }
   };
 
   const handleAccountInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target;
-    setAccountData(prev => ({ ...prev, [id]: value }));
+    setAccountData((prev) => ({ ...prev, [id]: value }));
   };
 
-  const handleSecurityInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleSecurityInputChange = (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
     const { id, value } = e.target;
-    setSecurityData(prev => ({ ...prev, [id]: value }));
+    setSecurityData((prev) => ({ ...prev, [id]: value }));
   };
 
   const handleSecurityToggle = () => {
-    setSecurityData(prev => ({ ...prev, twoFactor: !prev.twoFactor }));
+    setSecurityData((prev) => ({ ...prev, twoFactor: !prev.twoFactor }));
   };
 
   const onSubmitAccount = async () => {
     setLoading(true);
     try {
       const res = await fetch(`${API_BASE}/settings`, {
-        method: 'PATCH',
+        method: "PATCH",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify({
@@ -137,18 +151,20 @@ export default function AccountSecuritySection({ variant }: Props) {
         title: "Success",
         description: "Account information updated successfully",
       });
+      // Refresh the data after update
+      await fetchAccountData();
     } catch (error) {
       toast({
         title: "Error",
         description: "Failed to update account information",
         variant: "destructive",
       });
-      console.error('Error updating account:', error);
+      console.error("Error updating account:", error);
     } finally {
       setLoading(false);
     }
   };
-
+  
   const onSubmitSecurity = async () => {
     if (securityData.newPassword !== securityData.confirmPassword) {
       toast({
@@ -162,9 +178,9 @@ export default function AccountSecuritySection({ variant }: Props) {
     setLoading(true);
     try {
       const res = await fetch(`${API_BASE}/settings`, {
-        method: 'PATCH',
+        method: "PATCH",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify({
@@ -179,7 +195,7 @@ export default function AccountSecuritySection({ variant }: Props) {
         title: "Success",
         description: "Security settings updated successfully",
       });
-      setSecurityData(prev => ({
+      setSecurityData((prev) => ({
         ...prev,
         currentPassword: "",
         newPassword: "",
@@ -191,7 +207,7 @@ export default function AccountSecuritySection({ variant }: Props) {
         description: "Failed to update security settings",
         variant: "destructive",
       });
-      console.error('Error updating security:', error);
+      console.error("Error updating security:", error);
     } finally {
       setLoading(false);
     }
@@ -207,16 +223,33 @@ export default function AccountSecuritySection({ variant }: Props) {
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="username">Full Name</Label>
-              <Input id="username" value={accountData.username} onChange={handleAccountInputChange} />
+              <Label htmlFor="username">Username</Label>
+              <Input
+                id="username"
+                value={accountData.username}
+                onChange={handleAccountInputChange}
+                readOnly
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="email">Email Address</Label>
-              <Input id="email" type="email" value={accountData.email} onChange={handleAccountInputChange} />
+              <Input
+                id="email"
+                type="email"
+                value={accountData.email}
+                onChange={handleAccountInputChange}
+                readOnly
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="phone">Phone Number</Label>
-              <Input id="phone" type="tel" value={accountData.phone} onChange={handleAccountInputChange} placeholder="Enter your phone number" />
+              <Input
+                id="phone"
+                type="tel"
+                value={accountData.phone || ""}
+                onChange={handleAccountInputChange}
+                placeholder="Enter your phone number"
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="role">Role</Label>
@@ -259,7 +292,11 @@ export default function AccountSecuritySection({ variant }: Props) {
                   className="absolute right-2 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
                   onClick={() => setShowCurrentPassword(!showCurrentPassword)}
                 >
-                  {showCurrentPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                  {showCurrentPassword ? (
+                    <EyeOff className="h-5 w-5" />
+                  ) : (
+                    <Eye className="h-5 w-5" />
+                  )}
                 </button>
               </div>
             </div>
@@ -279,7 +316,11 @@ export default function AccountSecuritySection({ variant }: Props) {
                   className="absolute right-2 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
                   onClick={() => setShowNewPassword(!showNewPassword)}
                 >
-                  {showNewPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                  {showNewPassword ? (
+                    <EyeOff className="h-5 w-5" />
+                  ) : (
+                    <Eye className="h-5 w-5" />
+                  )}
                 </button>
               </div>
             </div>
@@ -299,7 +340,11 @@ export default function AccountSecuritySection({ variant }: Props) {
                   className="absolute right-2 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                 >
-                  {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                  {showConfirmPassword ? (
+                    <EyeOff className="h-5 w-5" />
+                  ) : (
+                    <Eye className="h-5 w-5" />
+                  )}
                 </button>
               </div>
             </div>
@@ -308,9 +353,14 @@ export default function AccountSecuritySection({ variant }: Props) {
           <div className="pt-4 flex items-center justify-between">
             <div>
               <h4 className="font-medium">Two-factor Authentication</h4>
-              <p className="text-sm text-muted-foreground">Add an extra layer of security</p>
+              <p className="text-sm text-muted-foreground">
+                Add an extra layer of security
+              </p>
             </div>
-            <Switch checked={securityData.twoFactor} onCheckedChange={handleSecurityToggle} />
+            <Switch
+              checked={securityData.twoFactor}
+              onCheckedChange={handleSecurityToggle}
+            />
           </div>
         </div>
 
