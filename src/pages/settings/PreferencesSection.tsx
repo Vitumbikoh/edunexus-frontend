@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
@@ -6,9 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Monitor, Sun, Moon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useTheme } from "@/contexts/ThemeContext";
-import { api } from "@/lib/api";
+import { useAuth } from "@/contexts/AuthContext";
 
 export type PreferencesVariant = "notifications" | "appearance";
+const API_BASE = 'http://localhost:5000/api/v1';
 
 type Notifications = {
   email: boolean;
@@ -24,6 +24,7 @@ type Props = {
 export default function PreferencesSection({ variant }: Props) {
   const { toast } = useToast();
   const { theme, setTheme } = useTheme();
+  const { token } = useAuth();
   
   const [notifications, setNotifications] = useState<Notifications>({
     email: false,
@@ -43,7 +44,15 @@ export default function PreferencesSection({ variant }: Props) {
 
   const fetchNotificationPreferences = async () => {
     try {
-      const data = await api.get('/settings');
+      const res = await fetch(`${API_BASE}/settings`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+      if (!res.ok) throw new Error(await res.text());
+      const data = await res.json();
       const n = data.notifications || data;
       setNotifications({
         email: n.email || false,
@@ -63,7 +72,15 @@ export default function PreferencesSection({ variant }: Props) {
   const onSaveNotifications = async () => {
     setLoading(true);
     try {
-      await api.patch('/settings', { notifications });
+      const res = await fetch(`${API_BASE}/settings`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ notifications }),
+      });
+      if (!res.ok) throw new Error(await res.text());
       toast({
         title: "Success",
         description: "Notification preferences updated successfully",
@@ -179,7 +196,7 @@ export default function PreferencesSection({ variant }: Props) {
             <p className="text-sm text-muted-foreground">
               {theme === "system"
                 ? "The system theme will automatically adjust based on your device settings."
-                : `The ${theme} theme will be applied across the entire system for your account.`}
+                : `The ${theme ?? 'light'} theme will be applied across the entire system for your account.`}
             </p>
           </div>
         </div>

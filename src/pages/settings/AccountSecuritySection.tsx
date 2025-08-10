@@ -7,8 +7,9 @@ import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { api } from "@/lib/api";
+import { useAuth } from "@/contexts/AuthContext";
 
+const API_BASE = 'http://localhost:5000/api/v1';
 export type AccountSecurityVariant = "account" | "security";
 
 type Security = { twoFactor: boolean };
@@ -33,6 +34,7 @@ type Props = {
 
 export default function AccountSecuritySection({ variant }: Props) {
   const { toast } = useToast();
+  const { token } = useAuth();
   const [accountData, setAccountData] = useState<AccountData>({
     username: "",
     email: "",
@@ -63,7 +65,15 @@ export default function AccountSecuritySection({ variant }: Props) {
 
   const fetchAccountData = async () => {
     try {
-      const data = await api.get('/settings');
+      const res = await fetch(`${API_BASE}/settings`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+      if (!res.ok) throw new Error(await res.text());
+      const data = await res.json();
       setAccountData({
         username: data.username || "",
         email: data.email || "",
@@ -77,7 +87,15 @@ export default function AccountSecuritySection({ variant }: Props) {
 
   const fetchSecurityData = async () => {
     try {
-      const data = await api.get('/settings');
+      const res = await fetch(`${API_BASE}/settings`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+      if (!res.ok) throw new Error(await res.text());
+      const data = await res.json();
       setSecurityData(prev => ({
         ...prev,
         twoFactor: (data.twoFactor ?? data.security?.twoFactor) || false,
@@ -104,9 +122,17 @@ export default function AccountSecuritySection({ variant }: Props) {
   const onSubmitAccount = async () => {
     setLoading(true);
     try {
-      await api.patch('/settings', {
-        phone: accountData.phone,
+      const res = await fetch(`${API_BASE}/settings`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          phone: accountData.phone,
+        }),
       });
+      if (!res.ok) throw new Error(await res.text());
       toast({
         title: "Success",
         description: "Account information updated successfully",
@@ -135,11 +161,19 @@ export default function AccountSecuritySection({ variant }: Props) {
 
     setLoading(true);
     try {
-      await api.patch('/settings', {
-        currentPassword: securityData.currentPassword,
-        newPassword: securityData.newPassword,
-        twoFactor: securityData.twoFactor,
+      const res = await fetch(`${API_BASE}/settings`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          currentPassword: securityData.currentPassword,
+          newPassword: securityData.newPassword,
+          twoFactor: securityData.twoFactor,
+        }),
       });
+      if (!res.ok) throw new Error(await res.text());
 
       toast({
         title: "Success",

@@ -5,14 +5,16 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { api } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 
 export type AcademicCalendar = {
   academicYear: string;
   startDate?: string;
   endDate?: string;
 };
+
+const API_BASE = 'http://localhost:5000/api/v1';
 
 export type Term = {
   id?: string;
@@ -32,6 +34,7 @@ type SchoolSettings = {
 
 export default function SchoolAcademicSection() {
   const { toast } = useToast();
+  const { token } = useAuth();
   
   const [academicCalendar, setAcademicCalendar] = useState<AcademicCalendar>({
     academicYear: "",
@@ -69,7 +72,15 @@ export default function SchoolAcademicSection() {
 
   const fetchSchoolData = async () => {
     try {
-      const data = await api.get('/settings');
+      const res = await fetch(`${API_BASE}/settings`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+      if (!res.ok) throw new Error(await res.text());
+      const data = await res.json();
       setSchoolSettings({
         schoolName: data.schoolName || "",
         schoolEmail: data.schoolEmail || "",
@@ -84,7 +95,15 @@ export default function SchoolAcademicSection() {
 
   const fetchAcademicData = async () => {
     try {
-      const data = await api.get('/settings/academic-calendar');
+      const res = await fetch(`${API_BASE}/settings/academic-calendar`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+      if (!res.ok) throw new Error(await res.text());
+      const data = await res.json();
       setAcademicCalendar({
         academicYear: data.academicYear || "",
         startDate: data.startDate || "",
@@ -97,7 +116,15 @@ export default function SchoolAcademicSection() {
 
   const fetchTermData = async () => {
     try {
-      const data = await api.get('/settings/terms');
+      const res = await fetch(`${API_BASE}/settings/terms`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+      if (!res.ok) throw new Error(await res.text());
+      const data = await res.json();
       const list = Array.isArray(data) ? data : [];
       const current = list.find((t: any) => t.isCurrent) || list[0] || {};
       setCurrentTerm({
@@ -120,7 +147,15 @@ export default function SchoolAcademicSection() {
   const onSaveSchool = async () => {
     setLoading(prev => ({ ...prev, school: true }));
     try {
-      await api.patch('/settings', schoolSettings);
+      const res = await fetch(`${API_BASE}/settings`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify(schoolSettings),
+      });
+      if (!res.ok) throw new Error(await res.text());
       toast({
         title: "Success",
         description: "School information updated successfully",
@@ -140,7 +175,15 @@ export default function SchoolAcademicSection() {
   const onSaveAcademic = async () => {
     setLoading(prev => ({ ...prev, academic: true }));
     try {
-      await api.post('/settings/academic-calendar', academicCalendar);
+      const res = await fetch(`${API_BASE}/settings/academic-calendar`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify(academicCalendar),
+      });
+      if (!res.ok) throw new Error(await res.text());
       toast({
         title: "Success",
         description: "Academic calendar updated successfully",
@@ -160,14 +203,30 @@ export default function SchoolAcademicSection() {
     setLoading(prev => ({ ...prev, term: true }));
     try {
       if (currentTerm.id) {
-        await api.patch(`/settings/terms/${currentTerm.id}` as string, {
-          termName: currentTerm.termName,
-          startDate: currentTerm.startDate,
-          endDate: currentTerm.endDate,
-          isCurrent: currentTerm.isCurrent,
+        const res = await fetch(`${API_BASE}/settings/terms/${currentTerm.id}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify({
+            termName: currentTerm.termName,
+            startDate: currentTerm.startDate,
+            endDate: currentTerm.endDate,
+            isCurrent: currentTerm.isCurrent,
+          }),
         });
+        if (!res.ok) throw new Error(await res.text());
       } else {
-        await api.post('/settings/terms', currentTerm);
+        const res = await fetch(`${API_BASE}/settings/terms`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify(currentTerm),
+        });
+        if (!res.ok) throw new Error(await res.text());
       }
       toast({
         title: "Success",
