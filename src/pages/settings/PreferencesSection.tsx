@@ -1,9 +1,12 @@
-import React from "react";
+
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Monitor, Sun, Moon } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
+import { useTheme } from "@/contexts/ThemeContext";
 
 export type PreferencesVariant = "notifications" | "appearance";
 
@@ -16,21 +19,88 @@ type Notifications = {
 
 type Props = {
   variant: PreferencesVariant;
-  notifications?: Notifications;
-  onNotificationToggle?: (key: keyof Notifications) => void;
-  onSaveNotifications?: () => void;
-  theme?: string;
-  setTheme?: (theme: "light" | "dark" | "system") => void;
 };
 
-export default function PreferencesSection({
-  variant,
-  notifications,
-  onNotificationToggle,
-  onSaveNotifications,
-  theme,
-  setTheme,
-}: Props) {
+export default function PreferencesSection({ variant }: Props) {
+  const { toast } = useToast();
+  const { token } = useAuth();
+  const { theme, setTheme } = useTheme();
+  
+  const [notifications, setNotifications] = useState<Notifications>({
+    email: false,
+    sms: false,
+    browser: false,
+    weeklySummary: false,
+  });
+
+  const [loading, setLoading] = useState(false);
+
+  // Fetch data on component mount
+  useEffect(() => {
+    if (variant === "notifications") {
+      fetchNotificationPreferences();
+    }
+  }, [variant]);
+
+  const fetchNotificationPreferences = async () => {
+    try {
+      const response = await fetch('http://localhost:5000/api/v1/user/notifications', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setNotifications({
+          email: data.email || false,
+          sms: data.sms || false,
+          browser: data.browser || false,
+          weeklySummary: data.weeklySummary || false,
+        });
+      }
+    } catch (error) {
+      console.error('Failed to fetch notification preferences:', error);
+    }
+  };
+
+  const handleNotificationToggle = (key: keyof Notifications) => {
+    setNotifications(prev => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  const onSaveNotifications = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch('http://localhost:5000/api/v1/user/notifications', {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(notifications),
+      });
+
+      if (response.ok) {
+        toast({
+          title: "Success",
+          description: "Notification preferences updated successfully",
+        });
+      } else {
+        throw new Error('Failed to update notification preferences');
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update notification preferences",
+        variant: "destructive",
+      });
+      console.error('Error updating notifications:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (variant === "notifications") {
     return (
       <Card>
@@ -45,7 +115,7 @@ export default function PreferencesSection({
                 <h4 className="font-medium">Email Notifications</h4>
                 <p className="text-sm text-muted-foreground">Receive email notifications</p>
               </div>
-              <Switch checked={!!notifications?.email} onCheckedChange={() => onNotificationToggle && onNotificationToggle("email")} />
+              <Switch checked={notifications.email} onCheckedChange={() => handleNotificationToggle("email")} />
             </div>
 
             <div className="flex items-center justify-between">
@@ -53,7 +123,7 @@ export default function PreferencesSection({
                 <h4 className="font-medium">SMS Notifications</h4>
                 <p className="text-sm text-muted-foreground">Receive text messages</p>
               </div>
-              <Switch checked={!!notifications?.sms} onCheckedChange={() => onNotificationToggle && onNotificationToggle("sms")} />
+              <Switch checked={notifications.sms} onCheckedChange={() => handleNotificationToggle("sms")} />
             </div>
 
             <div className="flex items-center justify-between">
@@ -61,7 +131,7 @@ export default function PreferencesSection({
                 <h4 className="font-medium">Browser Notifications</h4>
                 <p className="text-sm text-muted-foreground">Receive notifications in browser</p>
               </div>
-              <Switch checked={!!notifications?.browser} onCheckedChange={() => onNotificationToggle && onNotificationToggle("browser")} />
+              <Switch checked={notifications.browser} onCheckedChange={() => handleNotificationToggle("browser")} />
             </div>
 
             <div className="flex items-center justify-between">
@@ -69,12 +139,14 @@ export default function PreferencesSection({
                 <h4 className="font-medium">Weekly Summary</h4>
                 <p className="text-sm text-muted-foreground">Receive weekly summary reports</p>
               </div>
-              <Switch checked={!!notifications?.weeklySummary} onCheckedChange={() => onNotificationToggle && onNotificationToggle("weeklySummary")} />
+              <Switch checked={notifications.weeklySummary} onCheckedChange={() => handleNotificationToggle("weeklySummary")} />
             </div>
           </div>
 
           <div className="flex justify-end">
-            <Button onClick={onSaveNotifications}>Save Preferences</Button>
+            <Button onClick={onSaveNotifications} disabled={loading}>
+              {loading ? "Saving..." : "Save Preferences"}
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -93,7 +165,7 @@ export default function PreferencesSection({
             <h4 className="font-medium mb-3">Theme Mode</h4>
             <div className="grid grid-cols-3 gap-3">
               <button
-                onClick={() => setTheme && setTheme("light")}
+                onClick={() => setTheme("light")}
                 className={`flex flex-col items-center gap-2 p-4 rounded-lg border-2 transition-colors ${
                   theme === "light" ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
                 }`}
@@ -103,7 +175,7 @@ export default function PreferencesSection({
               </button>
 
               <button
-                onClick={() => setTheme && setTheme("dark")}
+                onClick={() => setTheme("dark")}
                 className={`flex flex-col items-center gap-2 p-4 rounded-lg border-2 transition-colors ${
                   theme === "dark" ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
                 }`}
@@ -113,7 +185,7 @@ export default function PreferencesSection({
               </button>
 
               <button
-                onClick={() => setTheme && setTheme("system")}
+                onClick={() => setTheme("system")}
                 className={`flex flex-col items-center gap-2 p-4 rounded-lg border-2 transition-colors ${
                   theme === "system" ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
                 }`}

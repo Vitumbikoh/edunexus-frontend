@@ -1,64 +1,214 @@
-import React from "react";
+
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Eye, EyeOff } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 
 export type AccountSecurityVariant = "account" | "security";
 
-type Notifications = {
-  email: boolean;
-  sms: boolean;
-  browser: boolean;
-  weeklySummary: boolean;
-};
-
 type Security = { twoFactor: boolean };
 
-type FormDataShape = {
+type AccountData = {
   username: string;
   email: string;
   phone?: string;
-  notifications: Notifications;
-  security: Security;
+  role?: string;
+};
+
+type SecurityData = {
   currentPassword: string;
   newPassword: string;
   confirmPassword: string;
+  twoFactor: boolean;
 };
 
 type Props = {
   variant: AccountSecurityVariant;
-  formData: FormDataShape;
-  role?: string;
-  // inputs
-  onInputChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
-  // security toggles
-  showCurrentPassword?: boolean;
-  showNewPassword?: boolean;
-  showConfirmPassword?: boolean;
-  setShowCurrentPassword?: (v: boolean) => void;
-  setShowNewPassword?: (v: boolean) => void;
-  setShowConfirmPassword?: (v: boolean) => void;
-  onSecurityToggle?: () => void;
-  onSubmit: (tab: "account" | "security") => void;
 };
 
-export default function AccountSecuritySection({
-  variant,
-  formData,
-  role,
-  onInputChange,
-  showCurrentPassword,
-  showNewPassword,
-  showConfirmPassword,
-  setShowCurrentPassword,
-  setShowNewPassword,
-  setShowConfirmPassword,
-  onSecurityToggle,
-  onSubmit,
-}: Props) {
+export default function AccountSecuritySection({ variant }: Props) {
+  const { toast } = useToast();
+  const { token, user } = useAuth();
+  
+  const [accountData, setAccountData] = useState<AccountData>({
+    username: "",
+    email: "",
+    phone: "",
+    role: "",
+  });
+
+  const [securityData, setSecurityData] = useState<SecurityData>({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+    twoFactor: false,
+  });
+
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  // Fetch user data on component mount
+  useEffect(() => {
+    if (variant === "account") {
+      fetchAccountData();
+    } else {
+      fetchSecurityData();
+    }
+  }, [variant]);
+
+  const fetchAccountData = async () => {
+    try {
+      const response = await fetch('http://localhost:5000/api/v1/user/profile', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setAccountData({
+          username: data.username || "",
+          email: data.email || "",
+          phone: data.phone || "",
+          role: data.role || "",
+        });
+      }
+    } catch (error) {
+      console.error('Failed to fetch account data:', error);
+    }
+  };
+
+  const fetchSecurityData = async () => {
+    try {
+      const response = await fetch('http://localhost:5000/api/v1/user/security', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setSecurityData(prev => ({
+          ...prev,
+          twoFactor: data.twoFactor || false,
+        }));
+      }
+    } catch (error) {
+      console.error('Failed to fetch security data:', error);
+    }
+  };
+
+  const handleAccountInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { id, value } = e.target;
+    setAccountData(prev => ({ ...prev, [id]: value }));
+  };
+
+  const handleSecurityInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { id, value } = e.target;
+    setSecurityData(prev => ({ ...prev, [id]: value }));
+  };
+
+  const handleSecurityToggle = () => {
+    setSecurityData(prev => ({ ...prev, twoFactor: !prev.twoFactor }));
+  };
+
+  const onSubmitAccount = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch('http://localhost:5000/api/v1/user/profile', {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          username: accountData.username,
+          email: accountData.email,
+          phone: accountData.phone,
+        }),
+      });
+
+      if (response.ok) {
+        toast({
+          title: "Success",
+          description: "Account information updated successfully",
+        });
+      } else {
+        throw new Error('Failed to update account');
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update account information",
+        variant: "destructive",
+      });
+      console.error('Error updating account:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const onSubmitSecurity = async () => {
+    if (securityData.newPassword !== securityData.confirmPassword) {
+      toast({
+        title: "Error",
+        description: "New passwords do not match",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await fetch('http://localhost:5000/api/v1/user/security', {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          currentPassword: securityData.currentPassword,
+          newPassword: securityData.newPassword,
+          twoFactor: securityData.twoFactor,
+        }),
+      });
+
+      if (response.ok) {
+        toast({
+          title: "Success",
+          description: "Security settings updated successfully",
+        });
+        // Clear password fields
+        setSecurityData(prev => ({
+          ...prev,
+          currentPassword: "",
+          newPassword: "",
+          confirmPassword: "",
+        }));
+      } else {
+        throw new Error('Failed to update security settings');
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update security settings",
+        variant: "destructive",
+      });
+      console.error('Error updating security:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (variant === "account") {
     return (
       <Card>
@@ -70,23 +220,25 @@ export default function AccountSecuritySection({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="username">Full Name</Label>
-              <Input id="username" value={formData.username} onChange={onInputChange} />
+              <Input id="username" value={accountData.username} onChange={handleAccountInputChange} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="email">Email Address</Label>
-              <Input id="email" type="email" value={formData.email} onChange={onInputChange} />
+              <Input id="email" type="email" value={accountData.email} onChange={handleAccountInputChange} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="phone">Phone Number</Label>
-              <Input id="phone" type="tel" value={formData.phone} onChange={onInputChange} placeholder="Enter your phone number" />
+              <Input id="phone" type="tel" value={accountData.phone} onChange={handleAccountInputChange} placeholder="Enter your phone number" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="role">Role</Label>
-              <Input id="role" readOnly value={role || ""} />
+              <Input id="role" readOnly value={accountData.role || ""} />
             </div>
           </div>
           <div className="flex justify-end">
-            <Button onClick={() => onSubmit("account")}>Save Changes</Button>
+            <Button onClick={onSubmitAccount} disabled={loading}>
+              {loading ? "Saving..." : "Save Changes"}
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -109,15 +261,15 @@ export default function AccountSecuritySection({
                 <Input
                   id="currentPassword"
                   type={showCurrentPassword ? "text" : "password"}
-                  value={formData.currentPassword}
-                  onChange={onInputChange}
+                  value={securityData.currentPassword}
+                  onChange={handleSecurityInputChange}
                   placeholder="Enter current password"
                   className="pr-10"
                 />
                 <button
                   type="button"
                   className="absolute right-2 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                  onClick={() => setShowCurrentPassword && setShowCurrentPassword(!showCurrentPassword)}
+                  onClick={() => setShowCurrentPassword(!showCurrentPassword)}
                 >
                   {showCurrentPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </button>
@@ -129,15 +281,15 @@ export default function AccountSecuritySection({
                 <Input
                   id="newPassword"
                   type={showNewPassword ? "text" : "password"}
-                  value={formData.newPassword}
-                  onChange={onInputChange}
+                  value={securityData.newPassword}
+                  onChange={handleSecurityInputChange}
                   placeholder="Enter new password"
                   className="pr-10"
                 />
                 <button
                   type="button"
                   className="absolute right-2 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                  onClick={() => setShowNewPassword && setShowNewPassword(!showNewPassword)}
+                  onClick={() => setShowNewPassword(!showNewPassword)}
                 >
                   {showNewPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </button>
@@ -149,15 +301,15 @@ export default function AccountSecuritySection({
                 <Input
                   id="confirmPassword"
                   type={showConfirmPassword ? "text" : "password"}
-                  value={formData.confirmPassword}
-                  onChange={onInputChange}
+                  value={securityData.confirmPassword}
+                  onChange={handleSecurityInputChange}
                   placeholder="Confirm new password"
                   className="pr-10"
                 />
                 <button
                   type="button"
                   className="absolute right-2 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                  onClick={() => setShowConfirmPassword && setShowConfirmPassword(!showConfirmPassword)}
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                 >
                   {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </button>
@@ -170,12 +322,14 @@ export default function AccountSecuritySection({
               <h4 className="font-medium">Two-factor Authentication</h4>
               <p className="text-sm text-muted-foreground">Add an extra layer of security</p>
             </div>
-            <Switch checked={formData.security.twoFactor} onCheckedChange={onSecurityToggle} />
+            <Switch checked={securityData.twoFactor} onCheckedChange={handleSecurityToggle} />
           </div>
         </div>
 
         <div className="flex justify-end">
-          <Button onClick={() => onSubmit("security")}>Update Security Settings</Button>
+          <Button onClick={onSubmitSecurity} disabled={loading}>
+            {loading ? "Saving..." : "Update Security Settings"}
+          </Button>
         </div>
       </CardContent>
     </Card>
