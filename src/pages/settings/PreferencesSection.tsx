@@ -43,12 +43,13 @@ export default function PreferencesSection({ variant }: Props) {
 
   const fetchNotificationPreferences = async () => {
     try {
-      const data = await api.get('/user/notifications');
+      const data = await api.get('/settings');
+      const n = data.notifications || data;
       setNotifications({
-        email: data.email || false,
-        sms: data.sms || false,
-        browser: data.browser || false,
-        weeklySummary: data.weeklySummary || false,
+        email: n.email || false,
+        sms: n.sms || false,
+        browser: n.browser || false,
+        weeklySummary: n.weeklySummary || false,
       });
     } catch (error) {
       console.error('Failed to fetch notification preferences:', error);
@@ -62,7 +63,7 @@ export default function PreferencesSection({ variant }: Props) {
   const onSaveNotifications = async () => {
     setLoading(true);
     try {
-      await api.put('/user/notifications', notifications);
+      await api.patch('/settings', { notifications });
       toast({
         title: "Success",
         description: "Notification preferences updated successfully",

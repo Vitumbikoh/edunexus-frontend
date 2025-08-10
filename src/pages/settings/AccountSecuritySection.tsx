@@ -63,7 +63,7 @@ export default function AccountSecuritySection({ variant }: Props) {
 
   const fetchAccountData = async () => {
     try {
-      const data = await api.get('/user/profile');
+      const data = await api.get('/settings');
       setAccountData({
         username: data.username || "",
         email: data.email || "",
@@ -77,10 +77,10 @@ export default function AccountSecuritySection({ variant }: Props) {
 
   const fetchSecurityData = async () => {
     try {
-      const data = await api.get('/user/security');
+      const data = await api.get('/settings');
       setSecurityData(prev => ({
         ...prev,
-        twoFactor: data.twoFactor || false,
+        twoFactor: (data.twoFactor ?? data.security?.twoFactor) || false,
       }));
     } catch (error) {
       console.error('Failed to fetch security data:', error);
@@ -104,9 +104,7 @@ export default function AccountSecuritySection({ variant }: Props) {
   const onSubmitAccount = async () => {
     setLoading(true);
     try {
-      await api.put('/user/profile', {
-        username: accountData.username,
-        email: accountData.email,
+      await api.patch('/settings', {
         phone: accountData.phone,
       });
       toast({
@@ -137,7 +135,7 @@ export default function AccountSecuritySection({ variant }: Props) {
 
     setLoading(true);
     try {
-      await api.put('/user/security', {
+      await api.patch('/settings', {
         currentPassword: securityData.currentPassword,
         newPassword: securityData.newPassword,
         twoFactor: securityData.twoFactor,

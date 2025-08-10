@@ -15,6 +15,7 @@ export type AcademicCalendar = {
 };
 
 export type Term = {
+  id?: string;
   termName: string;
   startDate?: string;
   endDate?: string;
@@ -68,8 +69,14 @@ export default function SchoolAcademicSection() {
 
   const fetchSchoolData = async () => {
     try {
-      const data = await api.get('/school/settings');
-      setSchoolSettings(data);
+      const data = await api.get('/settings');
+      setSchoolSettings({
+        schoolName: data.schoolName || "",
+        schoolEmail: data.schoolEmail || "",
+        schoolPhone: data.schoolPhone || "",
+        schoolAddress: data.schoolAddress || "",
+        schoolAbout: data.schoolAbout || "",
+      });
     } catch (error) {
       console.error('Failed to fetch school settings:', error);
     }
@@ -77,8 +84,12 @@ export default function SchoolAcademicSection() {
 
   const fetchAcademicData = async () => {
     try {
-      const data = await api.get('/academic/calendar');
-      setAcademicCalendar(data);
+      const data = await api.get('/settings/academic-calendar');
+      setAcademicCalendar({
+        academicYear: data.academicYear || "",
+        startDate: data.startDate || "",
+        endDate: data.endDate || "",
+      });
     } catch (error) {
       console.error('Failed to fetch academic calendar:', error);
     }
@@ -86,8 +97,16 @@ export default function SchoolAcademicSection() {
 
   const fetchTermData = async () => {
     try {
-      const data = await api.get('/academic/term/current');
-      setCurrentTerm(data);
+      const data = await api.get('/settings/terms');
+      const list = Array.isArray(data) ? data : [];
+      const current = list.find((t: any) => t.isCurrent) || list[0] || {};
+      setCurrentTerm({
+        id: current.id || current._id || "",
+        termName: current.termName || "",
+        startDate: current.startDate || "",
+        endDate: current.endDate || "",
+        isCurrent: current.isCurrent ?? true,
+      });
     } catch (error) {
       console.error('Failed to fetch current term:', error);
     }
@@ -101,7 +120,7 @@ export default function SchoolAcademicSection() {
   const onSaveSchool = async () => {
     setLoading(prev => ({ ...prev, school: true }));
     try {
-      await api.put('/school/settings', schoolSettings);
+      await api.patch('/settings', schoolSettings);
       toast({
         title: "Success",
         description: "School information updated successfully",
@@ -121,7 +140,7 @@ export default function SchoolAcademicSection() {
   const onSaveAcademic = async () => {
     setLoading(prev => ({ ...prev, academic: true }));
     try {
-      await api.put('/academic/calendar', academicCalendar);
+      await api.post('/settings/academic-calendar', academicCalendar);
       toast({
         title: "Success",
         description: "Academic calendar updated successfully",
@@ -132,7 +151,6 @@ export default function SchoolAcademicSection() {
         description: "Failed to update academic calendar",
         variant: "destructive",
       });
-      console.error('Error updating academic calendar:', error);
     } finally {
       setLoading(prev => ({ ...prev, academic: false }));
     }
@@ -141,7 +159,16 @@ export default function SchoolAcademicSection() {
   const onSaveTerm = async () => {
     setLoading(prev => ({ ...prev, term: true }));
     try {
-      await api.put('/academic/term/current', currentTerm);
+      if (currentTerm.id) {
+        await api.patch(`/settings/terms/${currentTerm.id}` as string, {
+          termName: currentTerm.termName,
+          startDate: currentTerm.startDate,
+          endDate: currentTerm.endDate,
+          isCurrent: currentTerm.isCurrent,
+        });
+      } else {
+        await api.post('/settings/terms', currentTerm);
+      }
       toast({
         title: "Success",
         description: "Term settings updated successfully",
