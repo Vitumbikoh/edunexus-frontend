@@ -7,7 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/contexts/AuthContext";
+import { api } from "@/lib/api";
 
 export type AccountSecurityVariant = "account" | "security";
 
@@ -33,8 +33,6 @@ type Props = {
 
 export default function AccountSecuritySection({ variant }: Props) {
   const { toast } = useToast();
-  const { token, user } = useAuth();
-  
   const [accountData, setAccountData] = useState<AccountData>({
     username: "",
     email: "",
@@ -65,22 +63,13 @@ export default function AccountSecuritySection({ variant }: Props) {
 
   const fetchAccountData = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/v1/user/profile', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
+      const data = await api.get('/user/profile');
+      setAccountData({
+        username: data.username || "",
+        email: data.email || "",
+        phone: data.phone || "",
+        role: data.role || "",
       });
-      
-      if (response.ok) {
-        const data = await response.json();
-        setAccountData({
-          username: data.username || "",
-          email: data.email || "",
-          phone: data.phone || "",
-          role: data.role || "",
-        });
-      }
     } catch (error) {
       console.error('Failed to fetch account data:', error);
     }
@@ -88,20 +77,11 @@ export default function AccountSecuritySection({ variant }: Props) {
 
   const fetchSecurityData = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/v1/user/security', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        setSecurityData(prev => ({
-          ...prev,
-          twoFactor: data.twoFactor || false,
-        }));
-      }
+      const data = await api.get('/user/security');
+      setSecurityData(prev => ({
+        ...prev,
+        twoFactor: data.twoFactor || false,
+      }));
     } catch (error) {
       console.error('Failed to fetch security data:', error);
     }
@@ -124,27 +104,15 @@ export default function AccountSecuritySection({ variant }: Props) {
   const onSubmitAccount = async () => {
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:5000/api/v1/user/profile', {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          username: accountData.username,
-          email: accountData.email,
-          phone: accountData.phone,
-        }),
+      await api.put('/user/profile', {
+        username: accountData.username,
+        email: accountData.email,
+        phone: accountData.phone,
       });
-
-      if (response.ok) {
-        toast({
-          title: "Success",
-          description: "Account information updated successfully",
-        });
-      } else {
-        throw new Error('Failed to update account');
-      }
+      toast({
+        title: "Success",
+        description: "Account information updated successfully",
+      });
     } catch (error) {
       toast({
         title: "Error",
@@ -169,34 +137,22 @@ export default function AccountSecuritySection({ variant }: Props) {
 
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:5000/api/v1/user/security', {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          currentPassword: securityData.currentPassword,
-          newPassword: securityData.newPassword,
-          twoFactor: securityData.twoFactor,
-        }),
+      await api.put('/user/security', {
+        currentPassword: securityData.currentPassword,
+        newPassword: securityData.newPassword,
+        twoFactor: securityData.twoFactor,
       });
 
-      if (response.ok) {
-        toast({
-          title: "Success",
-          description: "Security settings updated successfully",
-        });
-        // Clear password fields
-        setSecurityData(prev => ({
-          ...prev,
-          currentPassword: "",
-          newPassword: "",
-          confirmPassword: "",
-        }));
-      } else {
-        throw new Error('Failed to update security settings');
-      }
+      toast({
+        title: "Success",
+        description: "Security settings updated successfully",
+      });
+      setSecurityData(prev => ({
+        ...prev,
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      }));
     } catch (error) {
       toast({
         title: "Error",

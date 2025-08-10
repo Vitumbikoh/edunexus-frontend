@@ -5,8 +5,8 @@ import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Monitor, Sun, Moon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
+import { api } from "@/lib/api";
 
 export type PreferencesVariant = "notifications" | "appearance";
 
@@ -23,7 +23,6 @@ type Props = {
 
 export default function PreferencesSection({ variant }: Props) {
   const { toast } = useToast();
-  const { token } = useAuth();
   const { theme, setTheme } = useTheme();
   
   const [notifications, setNotifications] = useState<Notifications>({
@@ -44,22 +43,13 @@ export default function PreferencesSection({ variant }: Props) {
 
   const fetchNotificationPreferences = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/v1/user/notifications', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
+      const data = await api.get('/user/notifications');
+      setNotifications({
+        email: data.email || false,
+        sms: data.sms || false,
+        browser: data.browser || false,
+        weeklySummary: data.weeklySummary || false,
       });
-      
-      if (response.ok) {
-        const data = await response.json();
-        setNotifications({
-          email: data.email || false,
-          sms: data.sms || false,
-          browser: data.browser || false,
-          weeklySummary: data.weeklySummary || false,
-        });
-      }
     } catch (error) {
       console.error('Failed to fetch notification preferences:', error);
     }
@@ -72,23 +62,11 @@ export default function PreferencesSection({ variant }: Props) {
   const onSaveNotifications = async () => {
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:5000/api/v1/user/notifications', {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(notifications),
+      await api.put('/user/notifications', notifications);
+      toast({
+        title: "Success",
+        description: "Notification preferences updated successfully",
       });
-
-      if (response.ok) {
-        toast({
-          title: "Success",
-          description: "Notification preferences updated successfully",
-        });
-      } else {
-        throw new Error('Failed to update notification preferences');
-      }
     } catch (error) {
       toast({
         title: "Error",

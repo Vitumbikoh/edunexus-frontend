@@ -5,8 +5,8 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { api } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/contexts/AuthContext";
 
 export type AcademicCalendar = {
   academicYear: string;
@@ -31,7 +31,6 @@ type SchoolSettings = {
 
 export default function SchoolAcademicSection() {
   const { toast } = useToast();
-  const { token } = useAuth();
   
   const [academicCalendar, setAcademicCalendar] = useState<AcademicCalendar>({
     academicYear: "",
@@ -69,17 +68,8 @@ export default function SchoolAcademicSection() {
 
   const fetchSchoolData = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/v1/school/settings', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        setSchoolSettings(data);
-      }
+      const data = await api.get('/school/settings');
+      setSchoolSettings(data);
     } catch (error) {
       console.error('Failed to fetch school settings:', error);
     }
@@ -87,17 +77,8 @@ export default function SchoolAcademicSection() {
 
   const fetchAcademicData = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/v1/academic/calendar', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        setAcademicCalendar(data);
-      }
+      const data = await api.get('/academic/calendar');
+      setAcademicCalendar(data);
     } catch (error) {
       console.error('Failed to fetch academic calendar:', error);
     }
@@ -105,17 +86,8 @@ export default function SchoolAcademicSection() {
 
   const fetchTermData = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/v1/academic/term/current', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        setCurrentTerm(data);
-      }
+      const data = await api.get('/academic/term/current');
+      setCurrentTerm(data);
     } catch (error) {
       console.error('Failed to fetch current term:', error);
     }
@@ -129,23 +101,11 @@ export default function SchoolAcademicSection() {
   const onSaveSchool = async () => {
     setLoading(prev => ({ ...prev, school: true }));
     try {
-      const response = await fetch('http://localhost:5000/api/v1/school/settings', {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(schoolSettings),
+      await api.put('/school/settings', schoolSettings);
+      toast({
+        title: "Success",
+        description: "School information updated successfully",
       });
-
-      if (response.ok) {
-        toast({
-          title: "Success",
-          description: "School information updated successfully",
-        });
-      } else {
-        throw new Error('Failed to update school settings');
-      }
     } catch (error) {
       toast({
         title: "Error",
@@ -161,23 +121,11 @@ export default function SchoolAcademicSection() {
   const onSaveAcademic = async () => {
     setLoading(prev => ({ ...prev, academic: true }));
     try {
-      const response = await fetch('http://localhost:5000/api/v1/academic/calendar', {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(academicCalendar),
+      await api.put('/academic/calendar', academicCalendar);
+      toast({
+        title: "Success",
+        description: "Academic calendar updated successfully",
       });
-
-      if (response.ok) {
-        toast({
-          title: "Success",
-          description: "Academic calendar updated successfully",
-        });
-      } else {
-        throw new Error('Failed to update academic calendar');
-      }
     } catch (error) {
       toast({
         title: "Error",
@@ -193,23 +141,11 @@ export default function SchoolAcademicSection() {
   const onSaveTerm = async () => {
     setLoading(prev => ({ ...prev, term: true }));
     try {
-      const response = await fetch('http://localhost:5000/api/v1/academic/term/current', {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(currentTerm),
+      await api.put('/academic/term/current', currentTerm);
+      toast({
+        title: "Success",
+        description: "Term settings updated successfully",
       });
-
-      if (response.ok) {
-        toast({
-          title: "Success",
-          description: "Term settings updated successfully",
-        });
-      } else {
-        throw new Error('Failed to update term settings');
-      }
     } catch (error) {
       toast({
         title: "Error",
