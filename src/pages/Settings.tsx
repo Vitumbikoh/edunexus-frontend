@@ -8,8 +8,11 @@ import { Switch } from "@/components/ui/switch";
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useToast } from "@/components/ui/use-toast";
-import { Loader2, Eye, EyeOff, Monitor, Sun, Moon } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import AccountSecuritySection from "./settings/AccountSecuritySection";
+import PreferencesSection from "./settings/PreferencesSection";
+import SchoolAcademicSection from "./settings/SchoolAcademicSection";
 
 interface UserSettings {
   username: string;
@@ -408,446 +411,61 @@ export default function Settings() {
         </TabsList>
 
         <TabsContent value="account">
-          <Card>
-            <CardHeader>
-              <CardTitle>Account Information</CardTitle>
-              <CardDescription>Update your account details</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="username">Full Name</Label>
-                  <Input
-                    id="username"
-                    value={formData.username}
-                    onChange={handleInputChange}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email Address</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={formData.email}
-                    onChange={handleInputChange}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="phone">Phone Number</Label>
-                  <Input
-                    id="phone"
-                    type="tel"
-                    value={formData.phone}
-                    onChange={handleInputChange}
-                    placeholder="Enter your phone number"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="role">Role</Label>
-                  <Input
-                    id="role"
-                    readOnly
-                    value={user?.role}
-                  />
-                </div>
-              </div>
-              <div className="flex justify-end">
-                <Button onClick={() => handleSubmit('account')}>Save Changes</Button>
-              </div>
-            </CardContent>
-          </Card>
+          <AccountSecuritySection
+            variant="account"
+            formData={formData}
+            role={user?.role}
+            onInputChange={handleInputChange}
+            onSubmit={handleSubmit as any}
+          />
         </TabsContent>
 
         <TabsContent value="notifications">
-          <Card>
-            <CardHeader>
-              <CardTitle>Notification Preferences</CardTitle>
-              <CardDescription>Choose how you want to be notified</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h4 className="font-medium">Email Notifications</h4>
-                    <p className="text-sm text-muted-foreground">Receive email notifications</p>
-                  </div>
-                  <Switch
-                    checked={formData.notifications.email}
-                    onCheckedChange={() => handleNotificationChange('email')}
-                  />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h4 className="font-medium">SMS Notifications</h4>
-                    <p className="text-sm text-muted-foreground">Receive text messages</p>
-                  </div>
-                  <Switch
-                    checked={formData.notifications.sms}
-                    onCheckedChange={() => handleNotificationChange('sms')}
-                  />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h4 className="font-medium">Browser Notifications</h4>
-                    <p className="text-sm text-muted-foreground">Receive notifications in browser</p>
-                  </div>
-                  <Switch
-                    checked={formData.notifications.browser}
-                    onCheckedChange={() => handleNotificationChange('browser')}
-                  />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h4 className="font-medium">Weekly Summary</h4>
-                    <p className="text-sm text-muted-foreground">Receive weekly summary reports</p>
-                  </div>
-                  <Switch
-                    checked={formData.notifications.weeklySummary}
-                    onCheckedChange={() => handleNotificationChange('weeklySummary')}
-                  />
-                </div>
-              </div>
-
-              <div className="flex justify-end">
-                <Button onClick={() => handleSubmit('notifications')}>Save Preferences</Button>
-              </div>
-            </CardContent>
-          </Card>
+          <PreferencesSection
+            variant="notifications"
+            notifications={formData.notifications}
+            onNotificationToggle={handleNotificationChange as any}
+            onSaveNotifications={() => handleSubmit('notifications')}
+          />
         </TabsContent>
 
         <TabsContent value="appearance">
-          <Card>
-            <CardHeader>
-              <CardTitle>Appearance Settings</CardTitle>
-              <CardDescription>Choose your preferred theme</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-4">
-                <div>
-                  <h4 className="font-medium mb-3">Theme Mode</h4>
-                  <div className="grid grid-cols-3 gap-3">
-                    <button
-                      onClick={() => setTheme('light')}
-                      className={`flex flex-col items-center gap-2 p-4 rounded-lg border-2 transition-colors ${
-                        theme === 'light'
-                          ? 'border-primary bg-primary/5'
-                          : 'border-border hover:border-primary/50'
-                      }`}
-                    >
-                      <Sun className="h-6 w-6" />
-                      <span className="text-sm font-medium">Light</span>
-                    </button>
-                    
-                    <button
-                      onClick={() => setTheme('dark')}
-                      className={`flex flex-col items-center gap-2 p-4 rounded-lg border-2 transition-colors ${
-                        theme === 'dark'
-                          ? 'border-primary bg-primary/5'
-                          : 'border-border hover:border-primary/50'
-                      }`}
-                    >
-                      <Moon className="h-6 w-6" />
-                      <span className="text-sm font-medium">Dark</span>
-                    </button>
-                    
-                    <button
-                      onClick={() => setTheme('system')}
-                      className={`flex flex-col items-center gap-2 p-4 rounded-lg border-2 transition-colors ${
-                        theme === 'system'
-                          ? 'border-primary bg-primary/5'
-                          : 'border-border hover:border-primary/50'
-                      }`}
-                    >
-                      <Monitor className="h-6 w-6" />
-                      <span className="text-sm font-medium">System</span>
-                    </button>
-                  </div>
-                </div>
-                
-                <div className="pt-4 border-t">
-                  <p className="text-sm text-muted-foreground">
-                    {theme === 'system' 
-                      ? 'The system theme will automatically adjust based on your device settings.'
-                      : `The ${theme} theme will be applied across the entire system for your account.`
-                    }
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <PreferencesSection
+            variant="appearance"
+            theme={theme}
+            setTheme={setTheme}
+          />
         </TabsContent>
 
         <TabsContent value="security">
-          <Card>
-            <CardHeader>
-              <CardTitle>Security Settings</CardTitle>
-              <CardDescription>Manage your account security</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="currentPassword">Current Password</Label>
-                    <div className="relative">
-                      <Input
-                        id="currentPassword"
-                        type={showCurrentPassword ? "text" : "password"}
-                        value={formData.currentPassword}
-                        onChange={handleInputChange}
-                        placeholder="Enter current password"
-                        className="pr-10"
-                      />
-                      <button
-                        type="button"
-                        className="absolute right-2 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                        onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                      >
-                        {showCurrentPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                      </button>
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="newPassword">New Password</Label>
-                    <div className="relative">
-                      <Input
-                        id="newPassword"
-                        type={showNewPassword ? "text" : "password"}
-                        value={formData.newPassword}
-                        onChange={handleInputChange}
-                        placeholder="Enter new password"
-                        className="pr-10"
-                      />
-                      <button
-                        type="button"
-                        className="absolute right-2 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                        onClick={() => setShowNewPassword(!showNewPassword)}
-                      >
-                        {showNewPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                      </button>
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="confirmPassword">Confirm New Password</Label>
-                    <div className="relative">
-                      <Input
-                        id="confirmPassword"
-                        type={showConfirmPassword ? "text" : "password"}
-                        value={formData.confirmPassword}
-                        onChange={handleInputChange}
-                        placeholder="Confirm new password"
-                        className="pr-10"
-                      />
-                      <button
-                        type="button"
-                        className="absolute right-2 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      >
-                        {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="pt-4 flex items-center justify-between">
-                  <div>
-                    <h4 className="font-medium">Two-factor Authentication</h4>
-                    <p className="text-sm text-muted-foreground">Add an extra layer of security</p>
-                  </div>
-                  <Switch
-                    checked={formData.security.twoFactor}
-                    onCheckedChange={handleSecurityChange}
-                  />
-                </div>
-              </div>
-
-              <div className="flex justify-end">
-                <Button onClick={() => handleSubmit('security')}>Update Security Settings</Button>
-              </div>
-            </CardContent>
-          </Card>
+          <AccountSecuritySection
+            variant="security"
+            formData={formData}
+            onInputChange={handleInputChange}
+            showCurrentPassword={showCurrentPassword}
+            showNewPassword={showNewPassword}
+            showConfirmPassword={showConfirmPassword}
+            setShowCurrentPassword={setShowCurrentPassword}
+            setShowNewPassword={setShowNewPassword}
+            setShowConfirmPassword={setShowConfirmPassword}
+            onSecurityToggle={handleSecurityChange}
+            onSubmit={handleSubmit as any}
+          />
         </TabsContent>
 
         {user?.role.toUpperCase() === 'ADMIN' && (
           <TabsContent value="school">
-            <Card>
-              <CardHeader>
-                <CardTitle>School Settings</CardTitle>
-                <CardDescription>Configure school-wide settings</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {/* Academic Calendar Section */}
-                <div className="space-y-4 border p-4 rounded-lg">
-                  <h3 className="font-medium">Academic Calendar</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="academicYear">Academic Year</Label>
-                      <Input
-                        id="academicYear"
-                        value={academicCalendar.academicYear}
-                        onChange={(e) => setAcademicCalendar({
-                          ...academicCalendar,
-                          academicYear: e.target.value
-                        })}
-                        placeholder="Enter in YYYY-YYYY format (e.g., 2025-2026)"
-                        pattern="\d{4}-\d{4}"
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        Format: YYYY-YYYY (e.g., 2025-2026)
-                      </p>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="startDate">Start Date (Optional)</Label>
-                      <Input
-                        id="startDate"
-                        type="date"
-                        value={academicCalendar.startDate || ''}
-                        onChange={(e) => setAcademicCalendar({
-                          ...academicCalendar,
-                          startDate: e.target.value
-                        })}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="endDate">End Date (Optional)</Label>
-                      <Input
-                        id="endDate"
-                        type="date"
-                        value={academicCalendar.endDate || ''}
-                        onChange={(e) => setAcademicCalendar({
-                          ...academicCalendar,
-                          endDate: e.target.value
-                        })}
-                      />
-                    </div>
-                  </div>
-                  <div className="flex justify-end">
-                    <Button onClick={handleAcademicCalendarSubmit}>
-                      Save Academic Calendar
-                    </Button>
-                  </div>
-                </div>
-
-                {/* Term Settings Section */}
-                <div className="space-y-4 border p-4 rounded-lg">
-                  <h3 className="font-medium">Current Term</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="space-y-2">
-                      <Label>Term</Label>
-                      <Select
-                        value={currentTerm.termName}
-                        onValueChange={(value) => setCurrentTerm({
-                          ...currentTerm,
-                          termName: value
-                        })}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select current term" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Term 1">Term 1</SelectItem>
-                          <SelectItem value="Term 2">Term 2</SelectItem>
-                          <SelectItem value="Term 3">Term 3</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="termStartDate">Start Date (Optional)</Label>
-                      <Input
-                        id="termStartDate"
-                        type="date"
-                        value={currentTerm.startDate || ''}
-                        onChange={(e) => setCurrentTerm({
-                          ...currentTerm,
-                          startDate: e.target.value
-                        })}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="termEndDate">End Date (Optional)</Label>
-                      <Input
-                        id="termEndDate"
-                        type="date"
-                        value={currentTerm.endDate || ''}
-                        onChange={(e) => setCurrentTerm({
-                          ...currentTerm,
-                          endDate: e.target.value
-                        })}
-                      />
-                    </div>
-                  </div>
-                  <div className="flex justify-end">
-                    <Button onClick={handleTermSubmit}>
-                      Save Term Settings
-                    </Button>
-                  </div>
-                </div>
-
-                {/* School Information Section */}
-                <div className="space-y-4 border p-4 rounded-lg">
-                  <h3 className="font-medium">School Information</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="schoolName">School Name</Label>
-                      <Input
-                        id="schoolName"
-                        value={formData.schoolSettings.schoolName}
-                        onChange={handleSchoolSettingsChange}
-                        placeholder="Enter school name"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="schoolEmail">School Email</Label>
-                      <Input
-                        id="schoolEmail"
-                        type="email"
-                        value={formData.schoolSettings.schoolEmail}
-                        onChange={handleSchoolSettingsChange}
-                        placeholder="Enter school email"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="schoolPhone">School Phone</Label>
-                      <Input
-                        id="schoolPhone"
-                        type="tel"
-                        value={formData.schoolSettings.schoolPhone}
-                        onChange={handleSchoolSettingsChange}
-                        placeholder="Enter school phone"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="schoolAddress">School Address</Label>
-                      <Input
-                        id="schoolAddress"
-                        value={formData.schoolSettings.schoolAddress}
-                        onChange={handleSchoolSettingsChange}
-                        placeholder="Enter school address"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="schoolAbout">About School</Label>
-                    <textarea
-                      id="schoolAbout"
-                      className="min-h-[100px] w-full rounded-md border border-input px-3 py-2 text-sm"
-                      value={formData.schoolSettings.schoolAbout}
-                      onChange={handleSchoolSettingsChange}
-                      placeholder="Enter school description"
-                    />
-                  </div>
-
-                  <div className="flex justify-end">
-                    <Button onClick={handleSchoolSettingsSubmit}>
-                      Save School Information
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            <SchoolAcademicSection
+              academicCalendar={academicCalendar}
+              setAcademicCalendar={setAcademicCalendar}
+              currentTerm={currentTerm}
+              setCurrentTerm={setCurrentTerm}
+              onSaveAcademic={handleAcademicCalendarSubmit}
+              onSaveTerm={handleTermSubmit}
+              schoolSettings={formData.schoolSettings}
+              onSchoolChange={handleSchoolSettingsChange}
+              onSaveSchool={handleSchoolSettingsSubmit}
+            />
           </TabsContent>
         )}
       </Tabs>

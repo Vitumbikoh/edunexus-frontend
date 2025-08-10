@@ -98,7 +98,7 @@ export const FinanceDashboardCards = () => {
           </div>
         </CardContent>
         <div className="px-6 pb-6">
-          <Button className="w-full" onClick={() => navigate("/finance")}>
+          <Button className="w-full" onClick={() => navigate("/finance/reports")}>
             View Financial Details
             <ChevronRight className="ml-2 h-4 w-4" />
           </Button>
