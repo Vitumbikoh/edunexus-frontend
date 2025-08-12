@@ -35,14 +35,6 @@ export type AcademicYearTerm = {
   isCurrent: boolean;
 };
 
-type SchoolSettings = {
-  schoolName: string;
-  schoolEmail: string;
-  schoolPhone: string;
-  schoolAddress: string;
-  schoolAbout: string;
-};
-
 export default function SchoolAcademicSection() {
   const { toast } = useToast();
   const { token } = useAuth();
@@ -66,18 +58,9 @@ export default function SchoolAcademicSection() {
     isCurrent: false,
   });
   
-  const [schoolSettings, setSchoolSettings] = useState<SchoolSettings>({
-    schoolName: "",
-    schoolEmail: "",
-    schoolPhone: "",
-    schoolAddress: "",
-    schoolAbout: "",
-  });
-
   const [loading, setLoading] = useState({
     academic: false,
     term: false,
-    school: false,
     fetching: false,
   });
 
@@ -142,28 +125,6 @@ export default function SchoolAcademicSection() {
     }
   };
 
-  const fetchSchoolData = async () => {
-    try {
-      const res = await fetch(`${API_BASE}/settings`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-      });
-      if (!res.ok) throw new Error(await res.text());
-      const data = await res.json();
-      setSchoolSettings({
-        schoolName: data.schoolName || "",
-        schoolEmail: data.schoolEmail || "",
-        schoolPhone: data.schoolPhone || "",
-        schoolAddress: data.schoolAddress || "",
-        schoolAbout: data.schoolAbout || "",
-      });
-    } catch (error) {
-      console.error('Failed to fetch school settings:', error);
-    }
-  };
 
   const fetchAcademicData = async () => {
     setLoading(prev => ({ ...prev, fetching: true }));
@@ -205,38 +166,6 @@ export default function SchoolAcademicSection() {
     }
   };
 
-  const handleSchoolChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { id, value } = e.target;
-    setSchoolSettings(prev => ({ ...prev, [id]: value }));
-  };
-
-  const onSaveSchool = async () => {
-    setLoading(prev => ({ ...prev, school: true }));
-    try {
-      const res = await fetch(`${API_BASE}/settings`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify(schoolSettings),
-      });
-      if (!res.ok) throw new Error(await res.text());
-      toast({
-        title: "Success",
-        description: "School information updated successfully",
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to update school information",
-        variant: "destructive",
-      });
-      console.error('Error updating school settings:', error);
-    } finally {
-      setLoading(prev => ({ ...prev, school: false }));
-    }
-  };
 
   const onSaveAcademic = async () => {
     setLoading(prev => ({ ...prev, academic: true }));
@@ -334,12 +263,7 @@ export default function SchoolAcademicSection() {
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>School Settings</CardTitle>
-        <CardDescription>Configure school-wide settings</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
+    <div className="space-y-6">
         {/* Academic Calendar Section */}
         <div className="space-y-4 border p-4 rounded-lg">
           <div className="flex justify-between items-center">
@@ -717,12 +641,6 @@ export default function SchoolAcademicSection() {
           )}
         </div>
 
-        {/* School Information Section */}
-        {/* Moved into its own component to keep code modular while preserving the same layout */}
-        {/* It will be rendered in-place below to keep visuals identical */}
-        {/* @ts-ignore - component exists */}
-        <SchoolInfoSection />
-      </CardContent>
-    </Card>
+    </div>
   );
 }
