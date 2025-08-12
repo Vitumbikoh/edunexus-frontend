@@ -513,6 +513,134 @@ export default function SchoolAcademicSection() {
 
           {selectedAcademicCalendar.id ? (
             <>
+              {/* Select Term Dropdown */}
+              <div className="space-y-2">
+                <Label>Select Term</Label>
+                <Select
+                  value={currentTerm.id || ""}
+                  onValueChange={(value) => {
+                    const term = academicYearTerms.find(t => t.id === value);
+                    if (term) {
+                      setCurrentTerm(term);
+                    }
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a term to view/edit" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {academicYearTerms.map(term => (
+                      <SelectItem key={term.id} value={term.id || ""}>
+                        {term.termName} ({formatDate(term.startDate)} - {formatDate(term.endDate)})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Create New Term Button */}
+              <div className="flex justify-between items-center">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setCurrentTerm({
+                      termId: "",
+                      termName: "",
+                      academicCalendarId: selectedAcademicCalendar.id || "",
+                      startDate: "",
+                      endDate: "",
+                      isCurrent: false,
+                    });
+                    setShowNewTermForm(true);
+                  }}
+                >
+                  Create New Term
+                </Button>
+              </div>
+
+              {/* Create New Term Form - appears below dropdown when button is clicked */}
+              {showNewTermForm && (
+                <div className="space-y-4 border p-4 rounded-lg bg-muted/50">
+                  <h4 className="font-medium">Create New Term</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label>Term</Label>
+                      <Select
+                        value={currentTerm.termId}
+                        onValueChange={(value) => {
+                          const term = availableTerms.find(t => t.id === value);
+                          setCurrentTerm({ 
+                            ...currentTerm, 
+                            termId: value,
+                            termName: term?.name || ""
+                          });
+                        }}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select term" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {availableTerms.map(term => (
+                            <SelectItem 
+                              key={term.id} 
+                              value={term.id}
+                              disabled={academicYearTerms.some(t => t.termId === term.id)}
+                            >
+                              {term.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="newTermStartDate">Start Date</Label>
+                      <Input
+                        id="newTermStartDate"
+                        type="date"
+                        value={currentTerm.startDate || ""}
+                        onChange={(e) => setCurrentTerm({ 
+                          ...currentTerm, 
+                          startDate: e.target.value 
+                        })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="newTermEndDate">End Date</Label>
+                      <Input
+                        id="newTermEndDate"
+                        type="date"
+                        value={currentTerm.endDate || ""}
+                        onChange={(e) => setCurrentTerm({ 
+                          ...currentTerm, 
+                          endDate: e.target.value 
+                        })}
+                      />
+                    </div>
+                  </div>
+                  <div className="flex justify-end gap-2">
+                    <Button 
+                      variant="outline" 
+                      onClick={() => {
+                        setShowNewTermForm(false);
+                        setCurrentTerm({
+                          termId: "",
+                          termName: "",
+                          academicCalendarId: "",
+                          startDate: "",
+                          endDate: "",
+                          isCurrent: false,
+                        });
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                    <Button onClick={onSaveTerm} disabled={loading.term}>
+                      {loading.term ? "Saving..." : "Save Term"}
+                    </Button>
+                  </div>
+                </div>
+              )}
+
               {/* Terms List */}
               <div className="space-y-2">
                 <Label>Terms in {selectedAcademicCalendar.academicYear}</Label>
