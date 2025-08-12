@@ -1,10 +1,10 @@
 
 import React from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import AccountSecuritySection from "./settings/AccountSecuritySection";
-import PreferencesSection from "./settings/PreferencesSection";
-import SchoolAcademicSection from "./settings/SchoolAcademicSection";
 import { useAuth } from "@/contexts/AuthContext";
+import SchoolAcademicSection from "./AcademicAndTermsSection";
+import AccountSecuritySection from "./AccountSecuritySection";
+import PreferencesSection from "./PreferencesSection";
 
 export default function Settings() {
   const { user } = useAuth();
