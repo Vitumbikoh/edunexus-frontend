@@ -10,11 +10,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Search, Eye, Pencil } from 'lucide-react';
+import { Search, Eye, Pencil, Upload } from 'lucide-react';
 import { useAuth } from "@/contexts/AuthContext";
 import { Link, useNavigate } from 'react-router-dom';
 import { useToast } from "@/components/ui/use-toast";
 import { Pagination, PaginationContent, PaginationItem, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import * as XLSX from 'xlsx';
 
 interface Class {
   id: string;
@@ -56,6 +58,7 @@ export default function Students() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
+  const [formFilter, setFormFilter] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
   const [paginatedData, setPaginatedData] = useState<PaginatedData>({
@@ -66,6 +69,7 @@ export default function Students() {
   });
   const [apiError, setApiError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isUploading, setIsUploading] = useState(false);
 
   // Permission checks
   const canAddStudent = user?.role === "admin" || user?.role === "teacher";
@@ -81,14 +85,12 @@ export default function Students() {
         throw new Error("Authentication token not found. Please log in again.");
       }
 
-      const response = await fetch(
-        `http://localhost:5000/api/v1/student/students?page=${page}&limit=${limit}&search=${encodeURIComponent(search)}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const url = `http://localhost:5000/api/v1/student/students?page=${page}&limit=${limit}&search=${encodeURIComponent(search)}${formFilter ? `&form=${encodeURIComponent(formFilter)}` : ""}`;
+      const response = await fetch(url, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
       if (response.status === 401) {
         localStorage.removeItem("token");
@@ -124,7 +126,7 @@ export default function Students() {
     if (canView) {
       fetchStudents(currentPage, itemsPerPage, searchTerm);
     }
-  }, [currentPage, searchTerm, canView, token]);
+  }, [currentPage, searchTerm, formFilter, canView, token]);
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
@@ -167,17 +169,79 @@ export default function Students() {
       
       <Card>
         <CardHeader>
-          <div className="flex justify-between items-center">
+          <div className="flex justify-between items-center gap-4 flex-wrap">
             <CardTitle>Students List</CardTitle>
-            <div className="relative">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="search"
-                placeholder="Search students..."
-                className="pl-8 w-[250px]"
-                value={searchTerm}
-                onChange={handleSearchChange}
-              />
+            <div className="flex items-center gap-3">
+              <Select value={formFilter} onValueChange={(v) => { setFormFilter(v); setCurrentPage(1); }}>
+                <SelectTrigger className="w-[140px]">
+                  <SelectValue placeholder="All Forms" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">All Forms</SelectItem>
+                  <SelectItem value="Form 1">Form 1</SelectItem>
+                  <SelectItem value="Form 2">Form 2</SelectItem>
+                  <SelectItem value="Form 3">Form 3</SelectItem>
+                  <SelectItem value="Form 4">Form 4</SelectItem>
+                </SelectContent>
+              </Select>
+              <div className="relative">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="search"
+                  placeholder="Search students..."
+                  className="pl-8 w-[250px]"
+                  value={searchTerm}
+                  onChange={handleSearchChange}
+                />
+              </div>
+              <input id="bulk-upload" type="file" accept=".xlsx,.xls" className="hidden" onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                setIsUploading(true);
+                try {
+                  const data = await file.arrayBuffer();
+                  const workbook = XLSX.read(data);
+                  const sheetName = workbook.SheetNames[0];
+                  const sheet = workbook.Sheets[sheetName];
+                  const rows: any[] = XLSX.utils.sheet_to_json(sheet);
+
+                  let success = 0; let failed = 0;
+                  for (const row of rows) {
+                    const payload: any = {
+                      username: row.username,
+                      email: row.email,
+                      password: row.password,
+                      firstName: row.firstName,
+                      lastName: row.lastName,
+                      phoneNumber: row.phoneNumber || undefined,
+                      address: row.address || undefined,
+                      dateOfBirth: row.dateOfBirth || undefined,
+                      gender: row.gender || undefined,
+                    };
+                    const res = await fetch("http://localhost:5000/api/v1/student/students", {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        Authorization: `Bearer ${token}`,
+                      },
+                      body: JSON.stringify(payload),
+                    });
+                    if (res.ok) success++; else failed++;
+                  }
+
+                  toast({ title: 'Upload complete', description: `${success} added, ${failed} failed` });
+                  // refresh list
+                  fetchStudents(currentPage, itemsPerPage, searchTerm);
+                } catch (err) {
+                  toast({ title: 'Upload failed', description: 'Could not process the file', variant: 'destructive' });
+                } finally {
+                  setIsUploading(false);
+                  (e.target as HTMLInputElement).value = '';
+                }
+              }} />
+              <Button variant="outline" onClick={() => document.getElementById('bulk-upload')?.click()} disabled={isUploading}>
+                <Upload className="h-4 w-4 mr-2" /> {isUploading ? 'Uploading...' : 'Bulk Upload'}
+              </Button>
             </div>
           </div>
         </CardHeader>
