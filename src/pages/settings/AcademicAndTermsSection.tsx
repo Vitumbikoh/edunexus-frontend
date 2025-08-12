@@ -463,183 +463,181 @@ export default function SchoolAcademicSection() {
                   </Select>
                 </div>
               )}
-
-              {/* Create Term Section - Always visible below the term management area */}
-              <div className="space-y-4 border p-4 rounded-lg">
-                <div className="flex justify-between items-center">
-                  <h4 className="font-medium">Create Term</h4>
-                  {!showNewTermForm && (
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        setCurrentTerm({
-                          termId: "",
-                          termName: "",
-                          academicCalendarId: selectedAcademicCalendar.id || "",
-                          startDate: "",
-                          endDate: "",
-                          isCurrent: false,
-                        });
-                        setShowNewTermForm(true);
-                      }}
-                      disabled={academicYearTerms.length >= availableTerms.length}
-                    >
-                      Create New Term
-                    </Button>
-                  )}
-                </div>
-
-                {showNewTermForm ? (
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div className="space-y-2">
-                        <Label>Term</Label>
-                        <Select
-                          value={currentTerm.termId}
-                          onValueChange={(value) => {
-                            const term = availableTerms.find(t => t.id === value);
-                            setCurrentTerm({ 
-                              ...currentTerm, 
-                              termId: value,
-                              termName: term?.name || ""
-                            });
-                          }}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select term" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {availableTerms.map(term => (
-                              <SelectItem 
-                                key={term.id} 
-                                value={term.id}
-                                disabled={academicYearTerms.some(t => t.termId === term.id)}
-                              >
-                                {term.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="newTermStartDate">Start Date</Label>
-                        <Input
-                          id="newTermStartDate"
-                          type="date"
-                          value={currentTerm.startDate || ""}
-                          onChange={(e) => setCurrentTerm({ 
-                            ...currentTerm, 
-                            startDate: e.target.value 
-                          })}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="newTermEndDate">End Date</Label>
-                        <Input
-                          id="newTermEndDate"
-                          type="date"
-                          value={currentTerm.endDate || ""}
-                          onChange={(e) => setCurrentTerm({ 
-                            ...currentTerm, 
-                            endDate: e.target.value 
-                          })}
-                        />
-                      </div>
-                    </div>
-                    <div className="flex justify-end gap-2">
-                      <Button 
-                        variant="outline" 
-                        onClick={() => {
-                          setShowNewTermForm(false);
-                          setCurrentTerm({
-                            termId: "",
-                            termName: "",
-                            academicCalendarId: "",
-                            startDate: "",
-                            endDate: "",
-                            isCurrent: false,
-                          });
-                        }}
-                      >
-                        Cancel
-                      </Button>
-                      <Button onClick={onSaveTerm} disabled={loading.term}>
-                        {loading.term ? "Saving..." : "Save Term"}
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-center py-4">
-                    <p className="text-muted-foreground">
-                      {academicYearTerms.length >= availableTerms.length 
-                        ? "All terms have been created for this academic year"
-                        : "Click 'Create New Term' to add a term for this academic year"
-                      }
-                    </p>
-                  </div>
-                )}
-              </div>
-
-              {/* Terms List */}
-              {academicYearTerms.length > 0 && (
-                <div className="space-y-2">
-                  <Label>Terms in {selectedAcademicCalendar.academicYear}</Label>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Term</TableHead>
-                        <TableHead>Start Date</TableHead>
-                        <TableHead>End Date</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {academicYearTerms.map(term => (
-                        <TableRow key={term.id}>
-                          <TableCell>{term.termName}</TableCell>
-                          <TableCell>{formatDate(term.startDate)}</TableCell>
-                          <TableCell>{formatDate(term.endDate)}</TableCell>
-                          <TableCell>
-                            {term.isCurrent ? (
-                              <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
-                                Current
-                              </span>
-                            ) : (
-                              <span className="px-2 py-1 bg-gray-100 text-gray-800 text-xs rounded-full">
-                                Inactive
-                              </span>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex gap-2">
-                              <Button 
-                                variant="ghost" 
-                                size="sm"
-                                onClick={() => {
-                                  setCurrentTerm(term);
-                                  setShowNewTermForm(true);
-                                }}
-                              >
-                                Edit
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              )}
             </>
           ) : (
-            <div className="text-center py-4">
-              <p className="text-muted-foreground">
-                Please select an academic calendar to manage terms
-              </p>
-            </div>
+            <p className="text-muted-foreground">Please select an academic calendar to manage terms</p>
           )}
         </div>
+
+        {/* Create Term Section - Always visible as a separate section */}
+        {selectedAcademicCalendar.id && (
+          <div className="space-y-4 border p-4 rounded-lg">
+            <div className="flex justify-between items-center">
+              <h3 className="font-medium">Create Term</h3>
+              {!showNewTermForm && (
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setCurrentTerm({
+                      termId: "",
+                      termName: "",
+                      academicCalendarId: selectedAcademicCalendar.id || "",
+                      startDate: "",
+                      endDate: "",
+                      isCurrent: false,
+                    });
+                    setShowNewTermForm(true);
+                  }}
+                  disabled={academicYearTerms.length >= availableTerms.length}
+                >
+                  Create
+                </Button>
+              )}
+            </div>
+
+            {showNewTermForm ? (
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label>Term</Label>
+                    <Select
+                      value={currentTerm.termId}
+                      onValueChange={(value) => {
+                        const term = availableTerms.find(t => t.id === value);
+                        setCurrentTerm({ 
+                          ...currentTerm, 
+                          termId: value,
+                          termName: term?.name || ""
+                        });
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select term" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availableTerms.map(term => (
+                          <SelectItem 
+                            key={term.id} 
+                            value={term.id}
+                            disabled={academicYearTerms.some(t => t.termId === term.id)}
+                          >
+                            {term.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="newTermStartDate">Start Date</Label>
+                    <Input
+                      id="newTermStartDate"
+                      type="date"
+                      value={currentTerm.startDate || ""}
+                      onChange={(e) => setCurrentTerm({ 
+                        ...currentTerm, 
+                        startDate: e.target.value 
+                      })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="newTermEndDate">End Date</Label>
+                    <Input
+                      id="newTermEndDate"
+                      type="date"
+                      value={currentTerm.endDate || ""}
+                      onChange={(e) => setCurrentTerm({ 
+                        ...currentTerm, 
+                        endDate: e.target.value 
+                      })}
+                    />
+                  </div>
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => {
+                      setShowNewTermForm(false);
+                      setCurrentTerm({
+                        termId: "",
+                        termName: "",
+                        academicCalendarId: "",
+                        startDate: "",
+                        endDate: "",
+                        isCurrent: false,
+                      });
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button onClick={onSaveTerm} disabled={loading.term}>
+                    {loading.term ? "Saving..." : "Save Term"}
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-4">
+                <p className="text-muted-foreground">
+                  {academicYearTerms.length >= availableTerms.length 
+                    ? "All terms have been created for this academic year"
+                    : "Click 'Create' to add a term for this academic year"
+                  }
+                </p>
+              </div>
+            )}
+
+            {/* Terms List */}
+            {academicYearTerms.length > 0 && (
+              <div className="space-y-2 mt-4">
+                <Label>Terms in {selectedAcademicCalendar.academicYear}</Label>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Term</TableHead>
+                      <TableHead>Start Date</TableHead>
+                      <TableHead>End Date</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {academicYearTerms.map(term => (
+                      <TableRow key={term.id}>
+                        <TableCell>{term.termName}</TableCell>
+                        <TableCell>{formatDate(term.startDate)}</TableCell>
+                        <TableCell>{formatDate(term.endDate)}</TableCell>
+                        <TableCell>
+                          {term.isCurrent ? (
+                            <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
+                              Current
+                            </span>
+                          ) : (
+                            <span className="px-2 py-1 bg-gray-100 text-gray-800 text-xs rounded-full">
+                              Inactive
+                            </span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex gap-2">
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => {
+                                setCurrentTerm(term);
+                                setShowNewTermForm(true);
+                              }}
+                            >
+                              Edit
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </div>
+        )}
 
     </div>
   );
