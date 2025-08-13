@@ -54,7 +54,7 @@ export type AcademicYearTerm = {
   isCurrent: boolean;
 };
 
-export default function SchoolAcademicSection() {
+export default function AcademicAndTermsSection() {
   const { toast } = useToast();
   const { token } = useAuth();
 

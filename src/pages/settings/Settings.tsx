@@ -5,6 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import SchoolAcademicSection from "./AcademicAndTermsSection";
 import AccountSecuritySection from "./AccountSecuritySection";
 import PreferencesSection from "./PreferencesSection";
+import SchoolInfoSection from "./SchoolInfoSection";
 
 export default function Settings() {
   const { user } = useAuth();
@@ -47,6 +48,7 @@ export default function Settings() {
         {isAdmin && (
           <TabsContent value="school" className="space-y-6">
             <SchoolAcademicSection />
+            <SchoolInfoSection />
           </TabsContent>
         )}
       </Tabs>

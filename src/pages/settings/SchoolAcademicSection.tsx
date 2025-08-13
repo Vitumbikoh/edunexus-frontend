@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import AcademicAndTermsSection from "./AcademicAndTermsSection";
 import SchoolInfoSection from "./SchoolInfoSection";
 
+
 export default function SchoolAcademicSection() {
   return (
     <Card>
@@ -12,7 +13,6 @@ export default function SchoolAcademicSection() {
       </CardHeader>
       <CardContent className="space-y-6">
         <AcademicAndTermsSection />
-        <SchoolInfoSection />
       </CardContent>
     </Card>
   );
