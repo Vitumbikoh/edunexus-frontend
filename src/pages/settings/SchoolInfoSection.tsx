@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 
@@ -98,7 +99,7 @@ export default function SchoolInfoSection() {
 
       <div className="space-y-2">
         <Label htmlFor="schoolAbout">About School</Label>
-        <textarea id="schoolAbout" className="min-h-[100px] w-full rounded-md border border-input px-3 py-2 text-sm" value={schoolSettings.schoolAbout} onChange={handleSchoolChange} placeholder="Enter school description" />
+        <Textarea id="schoolAbout" className="min-h-[100px]" value={schoolSettings.schoolAbout} onChange={handleSchoolChange} placeholder="Enter school description" />
       </div>
 
       <div className="flex justify-end">
