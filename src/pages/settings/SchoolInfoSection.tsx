@@ -5,8 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-
-const API_BASE = 'http://localhost:5000/api/v1';
+import { API_CONFIG } from "@/config/api";
 
 export default function SchoolInfoSection() {
   const { token } = useAuth();
@@ -26,7 +25,7 @@ export default function SchoolInfoSection() {
   useEffect(() => {
     const fetchSchoolData = async () => {
       try {
-        const res = await fetch(`${API_BASE}/settings`, {
+        const res = await fetch(`${API_CONFIG.BASE_URL}/settings`, {
           headers: {
             'Content-Type': 'application/json',
             ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -75,7 +74,7 @@ export default function SchoolInfoSection() {
   const onSaveSchool = async () => {
     setSaving(true);
     try {
-      const res = await fetch(`${API_BASE}/settings`, {
+      const res = await fetch(`${API_CONFIG.BASE_URL}/settings`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',

@@ -1,9 +1,11 @@
 
 
+import { API_CONFIG } from '@/config/api';
+
 export const api = {
   get: async (endpoint: string) => {
     try {
-      const baseUrl = 'http://localhost:5000/api/v1';
+      const baseUrl = API_CONFIG.BASE_URL;
       const response = await fetch(`${baseUrl}${endpoint}`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
@@ -24,7 +26,7 @@ export const api = {
   },
   post: async (endpoint: string, body: unknown) => {
     try {
-      const baseUrl = 'http://localhost:5000/api/v1';
+      const baseUrl = API_CONFIG.BASE_URL;
       const response = await fetch(`${baseUrl}${endpoint}`, {
         method: 'POST',
         headers: {
@@ -47,7 +49,7 @@ export const api = {
   },
   patch: async (endpoint: string, body: unknown) => {
     try {
-      const baseUrl = 'http://localhost:5000/api/v1';
+      const baseUrl = API_CONFIG.BASE_URL;
       const response = await fetch(`${baseUrl}${endpoint}`, {
         method: 'PATCH',
         headers: {
@@ -70,7 +72,7 @@ export const api = {
   },
   put: async (endpoint: string, body: unknown) => {
     try {
-      const baseUrl = 'http://localhost:5000/api/v1';
+      const baseUrl = API_CONFIG.BASE_URL;
       const response = await fetch(`${baseUrl}${endpoint}`, {
         method: 'PUT',
         headers: {
