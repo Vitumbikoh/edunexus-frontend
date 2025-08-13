@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from "@/contexts/AuthContext";
+import { API_CONFIG } from "@/config/api";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
@@ -34,7 +35,7 @@ export default function LearningMaterials() {
   useEffect(() => {
     if (user && user.role === 'teacher' && token) {
       // Fetch classes from TeacherController
-      fetch('http://localhost:5000/api/v1/teacher/my-classes', {
+      fetch(`${API_CONFIG.BASE_URL}/teacher/my-classes`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -66,7 +67,7 @@ export default function LearningMaterials() {
   useEffect(() => {
     if (selectedClass && user && user.role === 'teacher' && token) {
       // Fetch courses from TeacherController
-      fetch(`http://localhost:5000/api/v1/teacher/my-courses/by-class/${selectedClass}`, {
+      fetch(`${API_CONFIG.BASE_URL}/teacher/my-courses/by-class/${selectedClass}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -148,7 +149,7 @@ export default function LearningMaterials() {
     formData.append('file', file);
 
     try {
-      const response = await fetch('http://localhost:5000/api/v1/learning-materials', {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/learning-materials`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,

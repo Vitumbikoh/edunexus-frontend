@@ -1,4 +1,6 @@
-const API_BASE_URL = 'http://localhost:5000/api/v1';
+import { API_CONFIG } from '@/config/api';
+
+const API_BASE_URL = API_CONFIG.BASE_URL;
 
 export interface LoginRequest {
   email: string;
@@ -10,6 +12,7 @@ export interface LoginResponse {
   user: {
     id: string;
     email: string;
+    name?: string;
     role: string;
   };
 }
@@ -19,6 +22,7 @@ export interface ValidateTokenResponse {
   user?: {
     id: string;
     email: string;
+    name?: string;
     role: string;
   };
 }

@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
+import { API_CONFIG } from "@/config/api";
 
 type LogEntry = {
   id: string;
@@ -47,7 +48,7 @@ export default function RecentActivitiesCard() {
   const fetchActivities = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch('http://localhost:5000/api/v1/activities/recent', {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/activities/recent`, {
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
