@@ -8,7 +8,6 @@ import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
 import { Plus, Trash2, Edit, ArrowLeft } from 'lucide-react';
-import { API_CONFIG } from '@/config/api';
 
 interface Class {
   id: string;
@@ -37,7 +36,7 @@ export default function ClassManagement() {
       setIsLoading(true);
       setApiError(null);
       
-      const response = await fetch(`${API_CONFIG.BASE_URL}/classes`, {
+      const response = await fetch("http://localhost:5000/api/v1/classes", {
         headers: { Authorization: `Bearer ${token}` }
       });
 
@@ -59,7 +58,7 @@ export default function ClassManagement() {
   const handleCreateClass = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const response = await fetch(`${API_CONFIG.BASE_URL}/classes`, {
+      const response = await fetch("http://localhost:5000/api/v1/classes", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -91,7 +90,7 @@ export default function ClassManagement() {
   const deleteClass = async (id: string) => {
     if (!window.confirm("Delete this class?")) return;
     try {
-      const response = await fetch(`${API_CONFIG.BASE_URL}/classes/${id}`, {
+      const response = await fetch(`http://localhost:5000/api/v1/classes/${id}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` }
       });

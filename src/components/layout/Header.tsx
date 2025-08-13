@@ -14,7 +14,6 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Link } from 'react-router-dom';
 import { useToast } from "@/components/ui/use-toast";
-import { API_CONFIG } from "@/config/api";
 
 interface Notification {
   id: string;
@@ -39,7 +38,7 @@ export default function Header() {
   const fetchNotifications = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_CONFIG.BASE_URL}/activities/recent`, {
+      const response = await fetch('http://localhost:5000/api/v1/activities/recent', {
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',

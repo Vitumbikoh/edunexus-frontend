@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useAuth } from './AuthContext';
-import { API_CONFIG } from '@/config/api';
 
 type Theme = 'light' | 'dark' | 'system';
 
@@ -66,7 +65,7 @@ setActualTheme(resolved);
 
       try {
         // First try to get from backend
-        const response = await fetch(`${API_CONFIG.BASE_URL}/settings`, {
+        const response = await fetch('http://localhost:5000/api/v1/settings', {
           headers: {
             Authorization: `Bearer ${token}`,
             'Content-Type': 'application/json',
@@ -139,7 +138,7 @@ setActualTheme(calculateActualTheme(storedTheme));
       // Try to save to backend
       if (token) {
         try {
-          await fetch(`${API_CONFIG.BASE_URL}/settings`, {
+          await fetch('http://localhost:5000/api/v1/settings', {
             method: 'PATCH',
             headers: {
               Authorization: `Bearer ${token}`,

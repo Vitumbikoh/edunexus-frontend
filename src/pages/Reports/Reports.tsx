@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { API_CONFIG } from "@/config/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -66,7 +65,7 @@ const fetchReportData = async () => {
   try {
     setIsLoading(true);
     setError(null);
-    const response = await fetch(`${API_CONFIG.BASE_URL}/admin/reports`, {
+    const response = await fetch('http://localhost:5000/api/v1/admin/reports', {
       headers: {
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
@@ -103,11 +102,11 @@ const fetchReportData = async () => {
       setIsGenerating(true);
 
       const endpoints = {
-        students: `${API_CONFIG.BASE_URL}/student/students`,
-        teachers: `${API_CONFIG.BASE_URL}/teacher/teachers`,
-        courses: `${API_CONFIG.BASE_URL}/course`,
-        enrollments: `${API_CONFIG.BASE_URL}/enrollments`,
-        feePayments: `${API_CONFIG.BASE_URL}/finance/fee-payments`,
+        students: "http://localhost:5000/api/v1/student/students",
+        teachers: "http://localhost:5000/api/v1/teacher/teachers",
+        courses: "http://localhost:5000/api/v1/course",
+        enrollments: "http://localhost:5000/api/v1/enrollments",
+        feePayments: "http://localhost:5000/api/v1/finance/fee-payments",
       };
 
       // For comprehensive report, fetch all endpoints
