@@ -106,12 +106,13 @@ const teacherNavItems: NavItem[] = [
     subItems: [
       { label: 'View Courses', href: '/my-courses', roles: ['admin', 'teacher'] },
       { label: 'Create Exams', href: '/my-courses', roles: ['admin', 'teacher'] },
+      { label: 'Submit Grades', href: '/submit-grades', roles: ['teacher'] },
     ],
   },
   { label: 'My Schedule', icon: Calendar, href: '/my-schedule', roles: ['teacher'] },
   { label: 'Take Attendance', icon: Check, href: '/take-attendance', roles: ['teacher'] },
   { label: 'Learning Materials', icon: Upload, href: '/learning-materials', roles: ['teacher'] },
-  { label: 'Submit Grades', icon: FileText, href: '/submit-grades', roles: ['teacher'] },
+  
   { label: 'Settings', icon: Settings, href: '/settings', roles: ['teacher'] },
 ];
 
