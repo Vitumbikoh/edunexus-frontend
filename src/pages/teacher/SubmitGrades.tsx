@@ -27,13 +27,15 @@ interface StudentInfo {
   name: string;
 }
 
-const assessmentTypes = [
-  { value: "midterm", label: "Mid-term Exam" },
-  { value: "endterm", label: "End-term Exam" },
-  { value: "quiz", label: "Quiz" },
-  { value: "assignment", label: "Assignment" },
-  { value: "practical", label: "Practical Exam" },
-];
+interface ExamInfo {
+  id: string;
+  title: string;
+  examType: string;
+  totalMarks: number;
+  date: string;
+  status: string;
+  description?: string;
+}
 
 export default function SubmitGrades() {
   const { user, token } = useAuth();
@@ -42,17 +44,14 @@ export default function SubmitGrades() {
   const [courses, setCourses] = useState<CourseInfo[]>([]);
   const [selectedClass, setSelectedClass] = useState<string>("");
   const [selectedCourse, setSelectedCourse] = useState<string>("");
-  const [assessmentType, setAssessmentType] = useState<string>("");
-  const [examTitle, setExamTitle] = useState<string>("");
+  const [availableExams, setAvailableExams] = useState<ExamInfo[]>([]);
+  const [selectedExam, setSelectedExam] = useState<string>("");
   const [students, setStudents] = useState<StudentInfo[]>([]);
   const [grades, setGrades] = useState<Record<string, number>>({});
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
-  const [totalMarks, setTotalMarks] = useState<number>(100);
-  const [academicYear] = useState<string>("2024-2025");
-  const [term] = useState<string>("First Term");
 
   if (!user || user.role !== 'teacher') {
     return (
@@ -189,6 +188,40 @@ export default function SubmitGrades() {
     }
   };
 
+  const fetchExamsForGrading = async (courseId: string) => {
+    try {
+      setIsLoading(true);
+      const response = await fetch(
+        `http://localhost:5000/api/v1/teacher/exams-for-grading?courseId=${courseId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch exams');
+      }
+
+      const data = await response.json();
+      if (!data.success) {
+        throw new Error('Failed to fetch exams');
+      }
+
+      setAvailableExams(data.exams);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load exams';
+      toast({
+        title: 'Error',
+        description: errorMessage,
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (user?.role === 'teacher') {
       fetchClasses();
@@ -204,18 +237,21 @@ export default function SubmitGrades() {
       setStudents([]);
       setGrades({});
       setFile(null);
-      setExamTitle('');
+      setAvailableExams([]);
+      setSelectedExam('');
     }
   }, [selectedClass, token]);
 
   useEffect(() => {
     if (selectedCourse) {
       fetchStudents(selectedCourse);
+      fetchExamsForGrading(selectedCourse);
     } else {
       setStudents([]);
       setGrades({});
       setFile(null);
-      setExamTitle('');
+      setAvailableExams([]);
+      setSelectedExam('');
     }
   }, [selectedCourse, token]);
 
@@ -256,6 +292,11 @@ export default function SubmitGrades() {
           );
         }
 
+        const selectedExamData = availableExams.find(e => e.id === selectedExam);
+        if (!selectedExamData) {
+          throw new Error('Selected exam not found');
+        }
+
         const parsedGrades: Record<string, number> = {};
         let validCount = 0;
         let invalidCount = 0;
@@ -282,8 +323,8 @@ export default function SubmitGrades() {
               return;
             }
 
-            if (marks < 0 || marks > totalMarks) {
-              invalidGrades.push(`Row ${index + 2}: ${marks} (must be 0-${totalMarks})`);
+            if (marks < 0 || marks > selectedExamData.totalMarks) {
+              invalidGrades.push(`Row ${index + 2}: ${marks} (must be 0-${selectedExamData.totalMarks})`);
               invalidCount++;
               return;
             }
@@ -345,12 +386,19 @@ export default function SubmitGrades() {
   };
 
   const handleGradeChange = (studentId: string, value: string) => {
+    const selectedExamData = availableExams.find(e => e.id === selectedExam);
+    if (!selectedExamData) return;
+
     const marks = parseFloat(value);
-    if (isNaN(marks) || marks < 0 || marks > totalMarks) {
+    if (isNaN(marks)) {
+      return;
+    }
+
+    if (marks < 0 || marks > selectedExamData.totalMarks) {
       toast({
         variant: "destructive",
         title: "Invalid grade",
-        description: `Marks for ${studentId} must be between 0 and ${totalMarks}`,
+        description: `Marks for ${studentId} must be between 0 and ${selectedExamData.totalMarks}`,
       });
       return;
     }
@@ -358,32 +406,17 @@ export default function SubmitGrades() {
   };
 
   const handleSubmitGrades = async () => {
-    if (!selectedClass || !selectedCourse || !assessmentType || !examTitle) {
+    if (!selectedExam || Object.keys(grades).length === 0) {
       toast({
         variant: "destructive",
         title: "Missing information",
-        description: "Please fill all required fields marked with *",
-      });
-      return;
-    }
-
-    if (Object.keys(grades).length === 0) {
-      toast({
-        variant: "destructive",
-        title: "No grades provided",
-        description: "Please upload an Excel file or enter grades manually.",
+        description: "Please select an exam and enter grades",
       });
       return;
     }
 
     const payload = {
-      classId: selectedClass,
-      courseId: selectedCourse,
-      assessmentType,
-      examTitle,
-      totalMarks,
-      academicYear,
-      term,
+      examId: selectedExam,
       grades,
     };
 
@@ -392,7 +425,7 @@ export default function SubmitGrades() {
     try {
       setIsLoading(true);
       setError(null);
-      const response = await fetch('http://localhost:5000/api/v1/grades', {
+      const response = await fetch('http://localhost:5000/api/v1/teacher/submit-grades', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -410,15 +443,16 @@ export default function SubmitGrades() {
         throw new Error(errorData.message || 'Failed to submit grades');
       }
 
+      const examTitle = availableExams.find(e => e.id === selectedExam)?.title || 'the exam';
       toast({
         title: "Grades submitted successfully",
         description: `Grades for ${examTitle} have been recorded.`,
       });
 
+      // Reset form
       setSelectedClass("");
       setSelectedCourse("");
-      setAssessmentType("");
-      setExamTitle("");
+      setSelectedExam("");
       setStudents([]);
       setGrades({});
       setFile(null);
@@ -472,6 +506,8 @@ export default function SubmitGrades() {
     );
   }
 
+  const selectedExamData = availableExams.find(e => e.id === selectedExam);
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -491,7 +527,7 @@ export default function SubmitGrades() {
           <CardDescription>Enter assessment results for your students</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
             <div className="space-y-2">
               <Label htmlFor="class">Class *</Label>
               <Select 
@@ -531,52 +567,69 @@ export default function SubmitGrades() {
                 </SelectContent>
               </Select>
             </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="assessment">Assessment Type *</Label>
+          </div>
+
+          {selectedCourse && (
+            <div className="space-y-2 mb-6">
+              <Label htmlFor="exam">Select Exam *</Label>
               <Select
-                value={assessmentType}
-                onValueChange={setAssessmentType}
-                disabled={!selectedCourse || isLoading}
+                value={selectedExam}
+                onValueChange={(value) => {
+                  setSelectedExam(value);
+                  const exam = availableExams.find(e => e.id === value);
+                  if (exam) {
+                    setGrades({}); // Reset grades when exam changes
+                  }
+                }}
+                disabled={availableExams.length === 0 || isLoading}
               >
-                <SelectTrigger id="assessment">
-                  <SelectValue placeholder="Select assessment type" />
+                <SelectTrigger id="exam">
+                  <SelectValue placeholder={
+                    availableExams.length === 0 ? "No exams available" : "Select an exam"
+                  } />
                 </SelectTrigger>
                 <SelectContent>
-                  {assessmentTypes.map((assessment) => (
-                    <SelectItem key={assessment.value} value={assessment.value}>
-                      {assessment.label}
+                  {availableExams.map((exam) => (
+                    <SelectItem 
+                      key={exam.id} 
+                      value={exam.id}
+                      disabled={exam.status === 'graded'}
+                    >
+                      {exam.title} ({exam.examType}) - {new Date(exam.date).toLocaleDateString()}
+                      {exam.status === 'graded' && ' (Already Graded)'}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
+          )}
 
-            <div className="space-y-2">
-              <Label htmlFor="examTitle">Exam Title *</Label>
-              <Input
-                id="examTitle"
-                value={examTitle}
-                onChange={(e) => setExamTitle(e.target.value)}
-                placeholder="Enter exam title (e.g., Introduction To Physical Science)"
-                disabled={!selectedCourse || isLoading}
-              />
+          {selectedExam && selectedExamData && (
+            <div className="mb-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <Label>Assessment Type</Label>
+                  <Input value={selectedExamData.examType} readOnly />
+                </div>
+                <div>
+                  <Label>Exam Title</Label>
+                  <Input value={selectedExamData.title} readOnly />
+                </div>
+                <div>
+                  <Label>Total Marks</Label>
+                  <Input value={selectedExamData.totalMarks} readOnly />
+                </div>
+              </div>
+              {selectedExamData.description && (
+                <div className="mt-4">
+                  <Label>Description</Label>
+                  <p className="text-sm text-muted-foreground">{selectedExamData.description}</p>
+                </div>
+              )}
             </div>
+          )}
 
-            <div className="space-y-2">
-              <Label htmlFor="totalMarks">Total Marks *</Label>
-              <Input
-                id="totalMarks"
-                type="number"
-                value={totalMarks}
-                onChange={(e) => setTotalMarks(parseInt(e.target.value) || 100)}
-                placeholder="Enter total marks"
-                disabled={!selectedCourse || isLoading}
-              />
-            </div>
-          </div>
-
-          {selectedClass && selectedCourse && assessmentType && (
+          {selectedExam && (
             <div className="mb-6">
               <Label>Upload Grades (Excel File)</Label>
               <div className="flex items-center gap-4 mt-2">
@@ -607,7 +660,7 @@ export default function SubmitGrades() {
             </div>
           )}
 
-          {students.length > 0 && (
+          {students.length > 0 && selectedExam && (
             <div className="mb-6">
               <h3 className="font-medium mb-4">Manual Grade Entry (Optional)</h3>
               <div className="border rounded-lg">
@@ -627,10 +680,12 @@ export default function SubmitGrades() {
                         <TableCell>
                           <Input
                             type="number"
-                            value={grades[student.studentId] || ''}
+                            value={grades[student.studentId] ?? ''}
                             onChange={(e) => handleGradeChange(student.studentId, e.target.value)}
                             placeholder="Enter marks"
                             className="w-24"
+                            min={0}
+                            max={selectedExamData?.totalMarks}
                           />
                         </TableCell>
                       </TableRow>
@@ -641,7 +696,7 @@ export default function SubmitGrades() {
             </div>
           )}
 
-          {students.length > 0 && Object.keys(grades).length > 0 && (
+          {students.length > 0 && Object.keys(grades).length > 0 && selectedExamData && (
             <div>
               <h3 className="font-medium mb-4">Grade Preview</h3>
               <div className="border rounded-lg">
@@ -651,24 +706,30 @@ export default function SubmitGrades() {
                       <TableHead>Student ID</TableHead>
                       <TableHead>Name</TableHead>
                       <TableHead>Marks Obtained</TableHead>
+                      <TableHead>Percentage</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {students.map((student) => (
-                      <TableRow key={student.id}>
-                        <TableCell>{student.studentId}</TableCell>
-                        <TableCell className="font-medium">{student.name}</TableCell>
-                        <TableCell>{grades[student.studentId] !== undefined ? grades[student.studentId] : "Not graded"}</TableCell>
-                      </TableRow>
-                    ))}
+                    {students.map((student) => {
+                      const mark = grades[student.studentId] ?? 0;
+                      const percentage = ((mark / selectedExamData.totalMarks) * 100).toFixed(1);
+                      return (
+                        <TableRow key={student.id}>
+                          <TableCell>{student.studentId}</TableCell>
+                          <TableCell className="font-medium">{student.name}</TableCell>
+                          <TableCell>{mark}</TableCell>
+                          <TableCell>{percentage}%</TableCell>
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
               </div>
               <div className="mt-4 space-y-2">
-                <p><strong>Exam Title:</strong> {examTitle || "Not set"}</p>
-                <p><strong>Total Marks:</strong> {totalMarks}</p>
-                <p><strong>Academic Year:</strong> {academicYear}</p>
-                <p><strong>Term:</strong> {term}</p>
+                <p><strong>Exam Title:</strong> {selectedExamData.title}</p>
+                <p><strong>Assessment Type:</strong> {selectedExamData.examType}</p>
+                <p><strong>Total Marks:</strong> {selectedExamData.totalMarks}</p>
+                <p><strong>Exam Date:</strong> {new Date(selectedExamData.date).toLocaleDateString()}</p>
               </div>
             </div>
           )}
@@ -676,7 +737,7 @@ export default function SubmitGrades() {
         <CardFooter className="flex justify-end">
           <Button 
             onClick={handleSubmitGrades} 
-            disabled={!selectedClass || !selectedCourse || !assessmentType || !examTitle || Object.keys(grades).length === 0 || isLoading}
+            disabled={!selectedExam || Object.keys(grades).length === 0 || isLoading}
             className="gap-2"
           >
             <Save className="h-4 w-4" />

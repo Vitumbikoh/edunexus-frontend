@@ -338,7 +338,7 @@ export default function Exams() {
                   <TableHead>Duration</TableHead>
                   <TableHead>Total Marks</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Enrolled/Completed</TableHead>
+                  {/* <TableHead>Enrolled/Completed</TableHead> */}
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -366,14 +366,14 @@ export default function Exams() {
                       <TableCell>{exam.duration}</TableCell>
                       <TableCell>{exam.totalMarks}</TableCell>
                       <TableCell>{getStatusBadge(exam.status)}</TableCell>
-                      <TableCell>
+                      {/* <TableCell>
                         <div className="flex items-center gap-1">
                           <Users className="h-4 w-4 text-muted-foreground" />
                           <span className="text-sm">
                             {exam.studentsCompleted}/{exam.studentsEnrolled}
                           </span>
                         </div>
-                      </TableCell>
+                      </TableCell> */}
                       <TableCell>
                         <Button
                           variant="ghost"
