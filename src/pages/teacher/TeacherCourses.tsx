@@ -1,12 +1,27 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
-import { Upload, BookOpen, FileText, Search, Plus, Calendar, Clock } from "lucide-react";
-import { useNavigate } from 'react-router-dom';
+import {
+  Upload,
+  BookOpen,
+  FileText,
+  Search,
+  Plus,
+  Calendar,
+  Clock,
+} from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
-import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 import { useToast } from "@/components/ui/use-toast";
 
 export default function TeacherCourses() {
@@ -16,7 +31,7 @@ export default function TeacherCourses() {
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
   const [pagination, setPagination] = useState({
@@ -26,7 +41,7 @@ export default function TeacherCourses() {
     itemsPerPage: limit,
   });
 
-  if (!user || user.role !== 'teacher') {
+  if (!user || user.role !== "teacher") {
     return (
       <div className="flex items-center justify-center h-96">
         <div className="text-center p-8 rounded-lg bg-red-50 border border-red-200 text-red-700 font-semibold">
@@ -42,7 +57,9 @@ export default function TeacherCourses() {
       setError(null);
 
       const response = await fetch(
-        `http://localhost:5000/api/v1/teacher/my-courses?page=${pageNum}&limit=${limit}${searchTerm ? `&search=${encodeURIComponent(searchTerm)}` : ''}`,
+        `http://localhost:5000/api/v1/teacher/my-courses?page=${pageNum}&limit=${limit}${
+          searchTerm ? `&search=${encodeURIComponent(searchTerm)}` : ""
+        }&includeExams=true`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -51,27 +68,28 @@ export default function TeacherCourses() {
       );
 
       if (response.status === 401) {
-        throw new Error('Unauthorized - Please log in again');
+        throw new Error("Unauthorized - Please log in again");
       }
 
       if (!response.ok) {
-        throw new Error('Failed to fetch courses');
+        throw new Error("Failed to fetch courses");
       }
 
       const data = await response.json();
       if (!data.success) {
-        throw new Error('Failed to fetch courses');
+        throw new Error("Failed to fetch courses");
       }
 
       setCourses(data.courses);
       setPagination(data.pagination);
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to load courses';
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to load courses";
       setError(errorMessage);
       toast({
-        title: 'Error',
+        title: "Error",
         description: errorMessage,
-        variant: 'destructive',
+        variant: "destructive",
       });
     } finally {
       setLoading(false);
@@ -166,10 +184,14 @@ export default function TeacherCourses() {
               <CardContent>
                 <div className="space-y-4">
                   <div>
-                    <h4 className="text-sm font-medium text-muted-foreground mb-2">Classes</h4>
+                    <h4 className="text-sm font-medium text-muted-foreground mb-2">
+                      Classes
+                    </h4>
                     <div className="flex flex-wrap gap-2">
                       {course.class ? (
-                        <Badge variant="secondary">Class {course.class.name}</Badge>
+                        <Badge variant="secondary">
+                          Class {course.class.name}
+                        </Badge>
                       ) : (
                         <Badge variant="outline">No class assigned</Badge>
                       )}
@@ -177,32 +199,52 @@ export default function TeacherCourses() {
                   </div>
 
                   <div>
-                    <h4 className="text-sm font-medium text-muted-foreground mb-2">Description</h4>
-                    <p className="text-sm">{course.description || 'No description available'}</p>
+                    <h4 className="text-sm font-medium text-muted-foreground mb-2">
+                      Description
+                    </h4>
+                    <p className="text-sm">
+                      {course.description || "No description available"}
+                    </p>
                   </div>
 
                   <div className="flex flex-wrap gap-4">
                     <div className="bg-muted rounded-md px-3 py-2 text-sm">
-                      <span className="font-medium text-muted-foreground">Materials:</span> {course.materials || 0}
+                      <span className="font-medium text-muted-foreground">
+                        Materials:
+                      </span>{" "}
+                      {course.materials || 0}
                     </div>
                     <div className="bg-muted rounded-md px-3 py-2 text-sm">
-                      <span className="font-medium text-muted-foreground">Students:</span> {course.totalStudents}
+                      <span className="font-medium text-muted-foreground">
+                        Students:
+                      </span>{" "}
+                      {course.totalStudents}
                     </div>
                     <div className="bg-muted rounded-md px-3 py-2 text-sm">
-                      <span className="font-medium text-muted-foreground">Exams:</span> {course.exams?.length || 0}
+                      <span className="font-medium text-muted-foreground">
+                        Exams:
+                      </span>{" "}
+                      {course.examsCount || 0}
                     </div>
                   </div>
 
                   {course.exams && course.exams.length > 0 && (
                     <div>
-                      <h4 className="text-sm font-medium text-muted-foreground mb-2">Recent Exams</h4>
+                      <h4 className="text-sm font-medium text-muted-foreground mb-2">
+                        Recent Exams
+                      </h4>
                       <div className="space-y-2">
                         {course.exams.slice(0, 3).map((exam: any) => (
-                          <div key={exam.id} className="bg-muted/50 rounded-md p-3 text-sm">
+                          <div
+                            key={exam.id}
+                            className="bg-muted/50 rounded-md p-3 text-sm"
+                          >
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-2">
                                 <Calendar className="h-4 w-4 text-muted-foreground" />
-                                <span className="font-medium">{exam.title}</span>
+                                <span className="font-medium">
+                                  {exam.title}
+                                </span>
                                 <Badge variant="outline" className="text-xs">
                                   {exam.examType}
                                 </Badge>
@@ -213,7 +255,8 @@ export default function TeacherCourses() {
                               </div>
                             </div>
                             <div className="mt-1 text-xs text-muted-foreground">
-                              {new Date(exam.date).toLocaleDateString()} • {exam.totalMarks} marks
+                              {new Date(exam.date).toLocaleDateString()} •{" "}
+                              {exam.totalMarks} marks
                             </div>
                           </div>
                         ))}
@@ -231,32 +274,45 @@ export default function TeacherCourses() {
                       variant="outline"
                       size="sm"
                       className="gap-2"
-                      onClick={() => navigate(`/learning-materials?courseId=${course.id}`)}
+                      onClick={() =>
+                        navigate(`/learning-materials?courseId=${course.id}`)
+                      }
                     >
                       <Upload className="h-4 w-4" />
                       Upload Materials
                     </Button>
+                    {/* In your TeacherCourses component */}
+                    {course.examsCount > 0 && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="gap-2"
+                        onClick={() =>
+                          navigate(`/submit-grades?courseId=${course.id}`)
+                        }
+                      >
+                        <FileText className="h-4 w-4" />
+                        Grade Students
+                      </Button>
+                    )}
                     <Button
                       variant="outline"
                       size="sm"
                       className="gap-2"
-                      onClick={() => navigate(`/submit-grades?courseId=${course.id}`)}
-                    >
-                      <FileText className="h-4 w-4" />
-                      Grade Students
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="gap-2"
-                      onClick={() => navigate(`/courses/${course.id}/create-exam`, {
-                        state: { course: { 
-                          id: course.id,
-                          class: course.class,
-                          teacher: { name: user?.name || 'Unknown Teacher' },
-                          name: course.name
-                        } }
-                      })}
+                      onClick={() =>
+                        navigate(`/courses/${course.id}/create-exam`, {
+                          state: {
+                            course: {
+                              id: course.id,
+                              class: course.class,
+                              teacher: {
+                                name: user?.name || "Unknown Teacher",
+                              },
+                              name: course.name,
+                            },
+                          },
+                        })
+                      }
                     >
                       <Plus className="h-4 w-4" />
                       Create Exams
@@ -283,7 +339,7 @@ export default function TeacherCourses() {
               <PaginationPrevious
                 href="#"
                 onClick={() => handlePageChange(page - 1)}
-                className={page === 1 ? 'pointer-events-none opacity-50' : ''}
+                className={page === 1 ? "pointer-events-none opacity-50" : ""}
               />
             </PaginationItem>
             {[...Array(pagination.totalPages)].map((_, index) => (
@@ -301,7 +357,11 @@ export default function TeacherCourses() {
               <PaginationNext
                 href="#"
                 onClick={() => handlePageChange(page + 1)}
-                className={page === pagination.totalPages ? 'pointer-events-none opacity-50' : ''}
+                className={
+                  page === pagination.totalPages
+                    ? "pointer-events-none opacity-50"
+                    : ""
+                }
               />
             </PaginationItem>
           </PaginationContent>
