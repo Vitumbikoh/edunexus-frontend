@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
 import { ArrowLeft, Save } from "lucide-react";
+import { API_CONFIG } from '@/config/api';
 
 interface Teacher {
   id: string;
@@ -73,7 +74,7 @@ export default function TeacherForm() {
           setIsSubmitting(true);
           setApiError(null);
 
-          const response = await fetch(`http://localhost:5000/api/v1/teacher/teachers/${id}`, {
+          const response = await fetch(`${API_CONFIG.BASE_URL}/teacher/teachers/${id}`, {
             headers: {
               "Authorization": `Bearer ${token}`,
             },
@@ -173,8 +174,8 @@ export default function TeacherForm() {
       }
 
       const url = isEditMode
-        ? `http://localhost:5000/api/v1/teacher/teachers/${id}`
-        : `http://localhost:5000/api/v1/teacher/teachers`;
+        ? `${API_CONFIG.BASE_URL}/teacher/teachers/${id}`
+        : `${API_CONFIG.BASE_URL}/teacher/teachers`;
       const method = isEditMode ? 'PUT' : 'POST';
 
       const response = await fetch(url, {

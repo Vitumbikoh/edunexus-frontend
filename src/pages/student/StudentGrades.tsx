@@ -8,6 +8,7 @@ import { Award, Printer } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { exportReportToPdf } from "@/components/reports/reportExport";
 import ReportCard from "@/components/reports/ReportCard";
+import { API_CONFIG } from '@/config/api';
 export default function StudentGrades() {
   const { user, token } = useAuth();
 const [selectedTerm, setSelectedTerm] = useState<string>("all");
@@ -30,7 +31,7 @@ const [error, setError] = useState<string | null>(null);
   try {
     setIsLoading(true);
     setError(null);
-    const response = await fetch('http://localhost:5000/api/v1/grades/students', {
+    const response = await fetch(`${API_CONFIG.BASE_URL}/grades/students`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },

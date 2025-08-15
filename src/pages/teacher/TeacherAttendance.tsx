@@ -8,6 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Check, Calendar } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useNavigate } from 'react-router-dom';
+import { API_CONFIG } from '@/config/api';
 
 export default function TeacherAttendance() {
   const { user, token } = useAuth();
@@ -35,7 +36,7 @@ export default function TeacherAttendance() {
     try {
       setLoading(true);
       setError(null);
-      const response = await fetch('http://localhost:5000/api/v1/teacher/my-classes', {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/teacher/my-classes`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -72,7 +73,7 @@ export default function TeacherAttendance() {
     try {
       setLoading(true);
       setError(null);
-      const response = await fetch(`http://localhost:5000/api/v1/teacher/my-courses/by-class/${classId}`, {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/teacher/my-courses/by-class/${classId}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -109,7 +110,7 @@ export default function TeacherAttendance() {
     try {
       setLoading(true);
       setError(null);
-      const response = await fetch(`http://localhost:5000/api/v1/teacher/my-students/by-course/${courseId}`, {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/teacher/my-students/by-course/${courseId}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -218,7 +219,7 @@ export default function TeacherAttendance() {
     try {
       setLoading(true);
       setError(null);
-      const response = await fetch('http://localhost:5000/api/v1/teacher/attendance', {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/teacher/attendance`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

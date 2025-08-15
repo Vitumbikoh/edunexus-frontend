@@ -8,15 +8,6 @@ import { Label } from "@/components/ui/label";
 import { useAuth, UserRole } from '@/contexts/AuthContext';
 import { useToast } from "@/hooks/use-toast";
 
-// Demo credentials for testing
-const demoCredentials = [
-  { email: 'admin@schoolportal.com', password: 'admin123', role: 'admin' as UserRole },
-  { email: 'teacher@schoolportal.com', password: 'teacher123', role: 'teacher' as UserRole },
-  { email: 'student@schoolportal.com', password: 'student123', role: 'student' as UserRole },
-  { email: 'parent@schoolportal.com', password: 'parent123', role: 'parent' as UserRole },
-  { email: 'finance@schoolportal.com', password: 'finance123', role: 'finance' as UserRole },
-];
-
 export default function Login() {
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -57,30 +48,6 @@ export default function Login() {
     }
   };
 
-  const handleDemoLogin = async (demoEmail: string, demoPassword: string) => {
-    setEmail(demoEmail);
-    setPassword(demoPassword);
-    
-    setIsLoading(true);
-    try {
-      await login(demoEmail, demoPassword);
-      navigate('/dashboard');
-      toast({
-        title: "Success",
-        description: "Logged in successfully",
-      });
-    } catch (error) {
-      console.error('Demo login failed:', error);
-      toast({
-        title: "Login Failed",
-        description: "Demo login failed",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-50">
       <Card className="w-full max-w-md">
@@ -100,7 +67,7 @@ export default function Login() {
               <Input 
                 id="email" 
                 type="email" 
-                placeholder="admin@schoolportal.com" 
+                placeholder="Enter your email" 
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required 
@@ -126,25 +93,6 @@ export default function Login() {
               {isLoading ? 'Signing In...' : 'Sign In'}
             </Button>
           </form>
-          <div className="mt-6">
-            <div className="text-center text-sm text-muted-foreground mb-2">
-              Or use demo credentials:
-            </div>
-            <div className="flex flex-col gap-2">
-              {demoCredentials.map((demo, index) => (
-                <Button 
-                  key={index}
-                  variant="outline" 
-                  className="w-full" 
-                  onClick={() => handleDemoLogin(demo.email, demo.password)}
-                  disabled={isLoading}
-                >
-                  Log in as {demo.role.charAt(0).toUpperCase() + demo.role.slice(1)}
-                </Button>
-              ))}
-            </div>
-            
-          </div>
         </CardContent>
         <CardFooter className="flex flex-col">
           <div className="text-sm text-muted-foreground text-center">

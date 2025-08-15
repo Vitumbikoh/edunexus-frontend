@@ -17,6 +17,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { Pagination, PaginationContent, PaginationItem, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import * as XLSX from 'xlsx';
+import { API_CONFIG } from '@/config/api';
 
 interface Class {
   id: string;
@@ -85,7 +86,7 @@ export default function Students() {
         throw new Error("Authentication token not found. Please log in again.");
       }
 
-      const url = `http://localhost:5000/api/v1/student/students?page=${page}&limit=${limit}&search=${encodeURIComponent(search)}${formFilter ? `&form=${encodeURIComponent(formFilter)}` : ""}`;
+      const url = `${API_CONFIG.BASE_URL}/student/students?page=${page}&limit=${limit}&search=${encodeURIComponent(search)}${formFilter ? `&form=${encodeURIComponent(formFilter)}` : ""}`;
       const response = await fetch(url, {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -218,7 +219,7 @@ export default function Students() {
                       dateOfBirth: row.dateOfBirth || undefined,
                       gender: row.gender || undefined,
                     };
-                    const res = await fetch("http://localhost:5000/api/v1/student/students", {
+                    const res = await fetch(`${API_CONFIG.BASE_URL}/student/students`, {
                       method: 'POST',
                       headers: {
                         'Content-Type': 'application/json',

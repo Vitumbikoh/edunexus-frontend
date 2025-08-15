@@ -7,6 +7,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { RefreshCw } from "lucide-react";
+import { API_CONFIG } from '@/config/api';
 
 export default function StudentSchedule() {
   const { user, token } = useAuth();
@@ -24,7 +25,7 @@ export default function StudentSchedule() {
         throw new Error("Authentication required");
       }
 
-      const response = await fetch(`http://localhost:5000/api/v1/student/${user.id}/courses`, {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/student/${user.id}/courses`, {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
@@ -70,7 +71,7 @@ export default function StudentSchedule() {
 
       // Fetch schedules for each course and combine results
       const schedulePromises = courseIds.map(courseId => 
-        fetch(`http://localhost:5000/api/v1/schedules/course/${courseId}`, {
+        fetch(`${API_CONFIG.BASE_URL}/schedules/course/${courseId}`, {
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",

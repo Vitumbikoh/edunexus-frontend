@@ -27,7 +27,9 @@ import {
 } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 
-const API_BASE = "http://localhost:5000/api/v1";
+import { API_CONFIG } from '@/config/api';
+
+const API_BASE = API_CONFIG.BASE_URL;
 
 // Type definitions
 export type AcademicCalendar = {

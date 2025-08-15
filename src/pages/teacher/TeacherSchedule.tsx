@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Badge } from "@/components/ui/badge";
 import { Calendar } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import { API_CONFIG } from '@/config/api';
 
 export default function TeacherSchedule() {
   const { user, token } = useAuth();
@@ -42,7 +43,7 @@ export default function TeacherSchedule() {
       setIsLoading(true);
       setError(null);
 
-      const response = await fetch('http://localhost:5000/api/v1/teacher/my-schedules', {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/teacher/my-schedules`, {
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json'

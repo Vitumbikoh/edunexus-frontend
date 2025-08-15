@@ -1,4 +1,6 @@
-const API_BASE_URL = 'http://localhost:5000/api/v1';
+import { API_CONFIG } from '@/config/api';
+
+const API_BASE_URL = API_CONFIG.BASE_URL;
 
 export interface LoginRequest {
   email: string;
@@ -25,26 +27,16 @@ export interface ValidateTokenResponse {
 
 export const authApi = {
   login: async (credentials: LoginRequest): Promise<LoginResponse> => {
-    console.log('🔐 Attempting login with:', { email: credentials.email, password: '***' });
-    console.log('🌐 Backend URL:', `${API_BASE_URL}/auth/login`);
-    
-    const requestBody = JSON.stringify(credentials);
-    console.log('📤 Request body:', requestBody);
-
     const response = await fetch(`${API_BASE_URL}/auth/login`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: requestBody,
+      body: JSON.stringify(credentials),
     });
-
-    console.log('📥 Response status:', response.status, response.statusText);
-    console.log('📥 Response headers:', Object.fromEntries(response.headers.entries()));
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.log('❌ Response error body:', errorText);
       
       // Try to parse as JSON for more details
       try {
@@ -57,7 +49,6 @@ export const authApi = {
     }
 
     const responseData = await response.json();
-    console.log('✅ Login successful:', { ...responseData, access_token: '***' });
     return responseData;
   },
 

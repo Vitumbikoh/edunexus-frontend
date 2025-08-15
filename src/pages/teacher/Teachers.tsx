@@ -16,6 +16,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Badge } from "@/components/ui/badge";
 import { Pagination, PaginationContent, PaginationItem, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { useToast } from "@/components/ui/use-toast";
+import { API_CONFIG } from '@/config/api';
 
 interface Teacher {
   id: string;
@@ -76,7 +77,7 @@ export default function Teachers() {
       }
 
       const response = await fetch(
-        `http://localhost:5000/api/v1/teacher/teachers?page=${page}&limit=${limit}&search=${encodeURIComponent(search)}`,
+        `${API_CONFIG.BASE_URL}/teacher/teachers?page=${page}&limit=${limit}&search=${encodeURIComponent(search)}`,
         {
           headers: {
             "Authorization": `Bearer ${token}`,

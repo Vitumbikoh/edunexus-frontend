@@ -23,6 +23,7 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import { useToast } from "@/components/ui/use-toast";
+import { API_CONFIG } from '@/config/api';
 
 export default function TeacherCourses() {
   const { user, token } = useAuth();
@@ -57,7 +58,7 @@ export default function TeacherCourses() {
       setError(null);
 
       const response = await fetch(
-        `http://localhost:5000/api/v1/teacher/my-courses?page=${pageNum}&limit=${limit}${
+        `${API_CONFIG.BASE_URL}/teacher/my-courses?page=${pageNum}&limit=${limit}${
           searchTerm ? `&search=${encodeURIComponent(searchTerm)}` : ""
         }&includeExams=true`,
         {

@@ -9,6 +9,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
 import { ArrowLeft, Save } from "lucide-react";
+import { API_CONFIG } from '@/config/api';
 
 interface Class {
   id: string;
@@ -88,7 +89,7 @@ export default function PaymentForm() {
           throw new Error("Authentication token not found. Please log in again.");
         }
 
-        const response = await fetch('http://localhost:5000/api/v1/student/students', {
+        const response = await fetch(`${API_CONFIG.BASE_URL}/student/students`, {
           headers: {
             "Authorization": `Bearer ${token}`,
             "Content-Type": "application/json",
@@ -152,7 +153,7 @@ export default function PaymentForm() {
   // Token refresh logic (if supported by backend)
   const refreshToken = async (): Promise<string | null> => {
     try {
-      const response = await fetch('http://localhost:5000/api/v1/auth/refresh', {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/auth/refresh`, {
         method: 'POST',
         headers: {
           "Content-Type": "application/json",
@@ -207,7 +208,7 @@ export default function PaymentForm() {
       }
 
       let authToken = token;
-      let response = await fetch('http://localhost:5000/api/v1/finance/payments', {
+      let response = await fetch(`${API_CONFIG.BASE_URL}/finance/payments`, {
         method: 'POST',
         headers: {
           "Content-Type": "application/json",
@@ -221,7 +222,7 @@ export default function PaymentForm() {
         const newToken = await refreshToken();
         if (newToken) {
           authToken = newToken;
-          response = await fetch('http://localhost:5000/api/v1/finance/payments', {
+          response = await fetch(`${API_CONFIG.BASE_URL}/finance/payments`, {
             method: 'POST',
             headers: {
               "Content-Type": "application/json",

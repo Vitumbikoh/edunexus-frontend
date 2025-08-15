@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Upload, FileType, BookOpen } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useNavigate } from 'react-router-dom';
+import { API_CONFIG } from '@/config/api';
 
 interface Class {
   id: string;
@@ -34,7 +35,7 @@ export default function LearningMaterials() {
   useEffect(() => {
     if (user && user.role === 'teacher' && token) {
       // Fetch classes from TeacherController
-      fetch('http://localhost:5000/api/v1/teacher/my-classes', {
+      fetch(`${API_CONFIG.BASE_URL}/teacher/my-classes`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -66,7 +67,7 @@ export default function LearningMaterials() {
   useEffect(() => {
     if (selectedClass && user && user.role === 'teacher' && token) {
       // Fetch courses from TeacherController
-      fetch(`http://localhost:5000/api/v1/teacher/my-courses/by-class/${selectedClass}`, {
+      fetch(`${API_CONFIG.BASE_URL}/teacher/my-courses/by-class/${selectedClass}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -148,7 +149,7 @@ export default function LearningMaterials() {
     formData.append('file', file);
 
     try {
-      const response = await fetch('http://localhost:5000/api/v1/learning-materials', {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/learning-materials`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Download, BookOpen, FileText } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import { API_CONFIG } from '@/config/api';
 
 export default function StudentMaterials() {
   const { user, token } = useAuth();
@@ -30,7 +31,7 @@ export default function StudentMaterials() {
           throw new Error("User ID not found. Please log in again.");
         }
 
-        const response = await fetch(`http://localhost:5000/api/v1/student/${user.id}/courses`, {
+        const response = await fetch(`${API_CONFIG.BASE_URL}/student/${user.id}/courses`, {
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
@@ -83,8 +84,8 @@ export default function StudentMaterials() {
         }
 
         const url = selectedCourse === "all"
-          ? `http://localhost:5000/api/v1/student/${user.id}/materials`
-          : `http://localhost:5000/api/v1/student/${user.id}/materials?courseId=${selectedCourse}`;
+          ? `${API_CONFIG.BASE_URL}/student/${user.id}/materials`
+          : `${API_CONFIG.BASE_URL}/student/${user.id}/materials?courseId=${selectedCourse}`;
 
         const response = await fetch(url, {
           headers: {
@@ -133,7 +134,7 @@ export default function StudentMaterials() {
 
   const handleDownload = async (material: { id: string; title: string; filePath: string; type: string }) => {
     try {
-      const response = await fetch(`http://localhost:5000${material.filePath}`, {
+      const response = await fetch(`${API_CONFIG.BASE_URL.replace('/api/v1', '')}${material.filePath}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },

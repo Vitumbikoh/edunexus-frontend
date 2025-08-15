@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/select";
 import { Search, Users, Loader2 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import { API_CONFIG } from '@/config/api';
 
 interface Student {
   id: string;
@@ -56,7 +57,7 @@ export default function TeacherStudents() {
         }
 
         const response = await fetch(
-          "http://localhost:5000/api/v1/teacher/my-students",
+          `${API_CONFIG.BASE_URL}/teacher/my-students`,
           {
             headers: {
               Authorization: `Bearer ${token}`,

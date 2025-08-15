@@ -9,6 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
 import { ArrowLeft, Save } from "lucide-react";
+import { API_CONFIG } from '@/config/api';
 
 interface FinanceData {
   id?: string;
@@ -87,7 +88,7 @@ export default function FinanceForm() {
 
   const fetchFinance = async () => {
     try {
-      const response = await fetch(`http://localhost:5000/api/v1/finance/${id}`, {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/finance/${id}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -189,8 +190,8 @@ export default function FinanceForm() {
       };
 
       const url = id 
-        ? `http://localhost:5000/api/v1/finance/${id}`
-        : "http://localhost:5000/api/v1/finance";
+        ? `${API_CONFIG.BASE_URL}/finance/${id}`
+        : `${API_CONFIG.BASE_URL}/finance`;
       
       const method = id ? "PUT" : "POST";
 

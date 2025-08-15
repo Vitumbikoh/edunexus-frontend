@@ -8,7 +8,9 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { useAuth } from "@/contexts/AuthContext";
 
 export type PreferencesVariant = "notifications" | "appearance";
-const API_BASE = 'http://localhost:5000/api/v1';
+import { API_CONFIG } from '@/config/api';
+
+const API_BASE = API_CONFIG.BASE_URL;
 
 type Notifications = {
   email: boolean;

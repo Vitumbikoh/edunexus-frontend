@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
 import { Plus, Trash2, Edit, ArrowLeft } from 'lucide-react';
+import { API_CONFIG } from '@/config/api';
 
 interface Class {
   id: string;
@@ -110,19 +111,19 @@ export default function ClassScheduleManagement() {
       
       // Fetch all endpoints in parallel
       const [classesRes, schedulesRes, coursesRes, teachersRes, classroomsRes] = await Promise.all([
-        fetch("http://localhost:5000/api/v1/classes", {
+        fetch(`${API_CONFIG.BASE_URL}/classes`, {
           headers: { Authorization: `Bearer ${token}` }
         }),
-        fetch("http://localhost:5000/api/v1/schedules", {
+        fetch(`${API_CONFIG.BASE_URL}/schedules`, {
           headers: { Authorization: `Bearer ${token}` }
         }),
-        fetch("http://localhost:5000/api/v1/course/courses", {
+        fetch(`${API_CONFIG.BASE_URL}/course/courses`, {
           headers: { Authorization: `Bearer ${token}` }
         }),
-        fetch("http://localhost:5000/api/v1/teacher/teachers", {
+        fetch(`${API_CONFIG.BASE_URL}/teacher/teachers`, {
           headers: { Authorization: `Bearer ${token}` }
         }),
-        fetch("http://localhost:5000/api/v1/classrooms", {
+        fetch(`${API_CONFIG.BASE_URL}/classrooms`, {
           headers: { Authorization: `Bearer ${token}` }
         })
       ]);
@@ -171,7 +172,7 @@ export default function ClassScheduleManagement() {
   const handleCreateClass = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const response = await fetch("http://localhost:5000/api/v1/classes", {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/classes`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -229,7 +230,7 @@ export default function ClassScheduleManagement() {
         isActive: scheduleForm.isActive
       };
 
-      const response = await fetch("http://localhost:5000/api/v1/schedules", {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/schedules`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -267,7 +268,7 @@ export default function ClassScheduleManagement() {
   const deleteClass = async (id: string) => {
     if (!window.confirm("Delete this class?")) return;
     try {
-      const response = await fetch(`http://localhost:5000/api/v1/classes/${id}`, {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/classes/${id}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -284,7 +285,7 @@ export default function ClassScheduleManagement() {
   const deleteSchedule = async (id: string) => {
     if (!window.confirm("Delete this schedule?")) return;
     try {
-      const response = await fetch(`http://localhost:5000/api/v1/schedules/${id}`, {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/schedules/${id}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` }
       });

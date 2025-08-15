@@ -10,6 +10,7 @@ import { Save, BookOpen, Upload } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useNavigate } from 'react-router-dom';
 import * as XLSX from 'xlsx';
+import { API_CONFIG } from '@/config/api';
 
 interface ClassInfo {
   id: string;
@@ -67,7 +68,7 @@ export default function SubmitGrades() {
     try {
       setIsLoading(true);
       setError(null);
-      const response = await fetch('http://localhost:5000/api/v1/teacher/my-classes', {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/teacher/my-classes`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -104,7 +105,7 @@ export default function SubmitGrades() {
     try {
       setIsLoading(true);
       setError(null);
-      const response = await fetch(`http://localhost:5000/api/v1/teacher/my-courses/by-class/${classId}`, {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/teacher/my-courses/by-class/${classId}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -141,7 +142,7 @@ export default function SubmitGrades() {
     try {
       setIsLoading(true);
       setError(null);
-      const response = await fetch(`http://localhost:5000/api/v1/teacher/my-students/by-course/${courseId}`, {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/teacher/my-students/by-course/${courseId}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -192,7 +193,7 @@ export default function SubmitGrades() {
     try {
       setIsLoading(true);
       const response = await fetch(
-        `http://localhost:5000/api/v1/teacher/exams-for-grading?courseId=${courseId}`,
+        `${API_CONFIG.BASE_URL}/teacher/exams-for-grading?courseId=${courseId}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -425,7 +426,7 @@ export default function SubmitGrades() {
     try {
       setIsLoading(true);
       setError(null);
-      const response = await fetch('http://localhost:5000/api/v1/teacher/submit-grades', {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/teacher/submit-grades`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
