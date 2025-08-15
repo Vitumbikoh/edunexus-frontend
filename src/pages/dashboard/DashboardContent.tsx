@@ -29,17 +29,7 @@ export const DashboardContent = () => {
       {isTeacher && <TeacherDashboardCards />}
       {/* ... other role content */}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {!isAdmin && <RecentActivitiesCard />}
-        <Card>
-          <CardHeader>
-            <CardTitle>Quick Actions</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <QuickActions />
-          </CardContent>
-        </Card>
-      </div>
+      
     </div>
   );
 };

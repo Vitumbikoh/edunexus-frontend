@@ -42,12 +42,6 @@ interface ReportDataAPI {
   enrollmentsByMonth: Array<{ month: string; count: number }>;
   paymentsByMonth: Array<{ month: string; amount: number }>;
   coursePopularity: Array<{ courseName: string; enrollments: number }>;
-  recentActivities: Array<{
-    id: string;
-    type: string;
-    description: string;
-    date: string;
-  }>;
 }
 
 const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884d8"];
@@ -871,38 +865,6 @@ const fetchReportData = async () => {
           </Card>
         </TabsContent>
       </Tabs>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Recent Activities</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {reportData.recentActivities.length > 0 ? (
-              reportData.recentActivities.map((activity) => (
-                <div
-                  key={activity.id}
-                  className="flex items-center space-x-4 p-4 border rounded-lg"
-                >
-                  <div className="flex-1">
-                    <p className="font-medium">{activity.type}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {activity.description}
-                    </p>
-                  </div>
-                  <div className="text-sm text-muted-foreground">
-                    {new Date(activity.date).toLocaleDateString()}
-                  </div>
-                </div>
-              ))
-            ) : (
-              <p className="text-center text-muted-foreground py-8">
-                No recent activities found.
-              </p>
-            )}
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }

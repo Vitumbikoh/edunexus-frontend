@@ -102,27 +102,6 @@ export const QuickActions = () => {
           </Button>
         </>
       )}
-
-      {isAdmin && (
-        <>
-          <Button className="w-full" onClick={() => navigate("/students/view")}>
-            <Users className="mr-2 h-4 w-4" />
-            Manage Students
-          </Button>
-          <Button className="w-full" onClick={() => navigate("/teachers/view")}>
-            <BookOpen className="mr-2 h-4 w-4" />
-            Manage Teachers
-          </Button>
-          <Button className="w-full" onClick={() => navigate("/reports")}>
-            <DollarSign className="mr-2 h-4 w-4" />
-            Financial Reports
-          </Button>
-          <Button className="w-full" onClick={() => navigate("/settings")}>
-            <FileText className="mr-2 h-4 w-4" />
-            System Settings
-          </Button>
-        </>
-      )}
     </div>
   );
 };

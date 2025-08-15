@@ -90,9 +90,61 @@ export default function RecentActivitiesCard() {
   const getDescription = (log: LogEntry): string => {
     switch (log.action) {
       case 'CREATE_STUDENT':
-        return `student ${log.studentCreated?.fullName}`;
+        return `created student ${log.studentCreated?.fullName}`;
       case 'ENROLL_STUDENT':
-        return `student ${log.studentCreated?.fullName} in a program`;
+        return `enrolled student ${log.studentCreated?.fullName} in a course`;
+      case 'UPDATE_STUDENT':
+        return `updated student ${log.studentCreated?.fullName}'s information`;
+      case 'DELETE_STUDENT':
+        return `removed student ${log.studentCreated?.fullName}`;
+      case 'CREATE_COURSE':
+        return `created a new course`;
+      case 'UPDATE_COURSE':
+        return `updated course information`;
+      case 'DELETE_COURSE':
+        return `deleted a course`;
+      case 'CREATE_CLASS':
+        return `created a new class`;
+      case 'UPDATE_CLASS':
+        return `updated class information`;
+      case 'DELETE_CLASS':
+        return `deleted a class`;
+      case 'SUBMIT_ATTENDANCE':
+        return `submitted attendance for a class`;
+      case 'CREATE_EXAM':
+        return `created a new exam`;
+      case 'GRADE_EXAM':
+        return `graded exam submissions`;
+      case 'PROCESS_PAYMENT':
+        return `processed a fee payment`;
+      case 'CREATE_INVOICE':
+        return `generated an invoice`;
+      case 'LOGIN':
+        return `logged into the system`;
+      case 'LOGOUT':
+        return `logged out of the system`;
+      case 'UPDATE_PROFILE':
+        return `updated their profile`;
+      case 'RESET_PASSWORD':
+        return `reset their password`;
+      case 'CREATE_ANNOUNCEMENT':
+        return `posted a new announcement`;
+      case 'UPDATE_ANNOUNCEMENT':
+        return `updated an announcement`;
+      case 'DELETE_ANNOUNCEMENT':
+        return `deleted an announcement`;
+      case 'GENERATE_REPORT':
+        return `generated a report`;
+      case 'EXPORT_DATA':
+        return `exported data`;
+      case 'IMPORT_DATA':
+        return `imported data`;
+      case 'CREATE_SCHEDULE':
+        return `created a class schedule`;
+      case 'UPDATE_SCHEDULE':
+        return `updated class schedule`;
+      case 'CANCEL_CLASS':
+        return `cancelled a class`;
       default:
         return 'performed an action';
     }
@@ -112,9 +164,13 @@ export default function RecentActivitiesCard() {
   };
 
   const getActionColor = (action: string) => {
-    if (action.includes('create')) return 'text-green-600';
-    if (action.includes('update') || action.includes('enroll')) return 'text-blue-600';
-    if (action.includes('delete')) return 'text-red-600';
+    const lowerAction = action.toLowerCase();
+    if (lowerAction.includes('create') || lowerAction.includes('add') || lowerAction.includes('enroll')) return 'text-green-600';
+    if (lowerAction.includes('update') || lowerAction.includes('edit') || lowerAction.includes('grade') || lowerAction.includes('submit')) return 'text-blue-600';
+    if (lowerAction.includes('delete') || lowerAction.includes('remove') || lowerAction.includes('cancel')) return 'text-red-600';
+    if (lowerAction.includes('login') || lowerAction.includes('logout')) return 'text-purple-600';
+    if (lowerAction.includes('payment') || lowerAction.includes('invoice') || lowerAction.includes('process')) return 'text-emerald-600';
+    if (lowerAction.includes('export') || lowerAction.includes('import') || lowerAction.includes('generate') || lowerAction.includes('report')) return 'text-orange-600';
     return 'text-gray-600';
   };
 

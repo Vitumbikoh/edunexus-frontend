@@ -18,7 +18,9 @@ import {
   ChartTooltipContent 
 } from '@/components/ui/chart';
 import { Progress } from '@/components/ui/progress';
+import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
+import { API_CONFIG } from '@/config/api';
 
 // Sample data for charts
 export const attendanceData = [
@@ -105,70 +107,295 @@ export const generateAssignmentStatusData = (user: any) => {
   ];
 };
 
-export const AttendanceOverview = () => (
-  <div className="space-y-6">
-    {attendanceData.map((item) => (
-      <div key={item.name} className="space-y-2">
-        <div className="flex justify-between items-center">
-          <span className="text-sm font-medium">{item.name}</span>
-          <span className="text-sm font-medium">{item.value}%</span>
-        </div>
-        <Progress 
-          value={item.value} 
-          className="h-2" 
-          indicatorClassName={`bg-gradient-to-r ${
-            item.value >= 90 ? 'from-green-400 to-green-500' :
-            item.value >= 80 ? 'from-blue-400 to-blue-500' :
-            'from-orange-400 to-orange-500'
-          }`}
-        />
-      </div>
-    ))}
-  </div>
-);
+export const AttendanceOverview = () => {
+  const [attendanceData, setAttendanceData] = React.useState([]);
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState<string | null>(null);
+  const { token } = useAuth();
 
-export const ClassPerformanceChart = () => (
-  <ChartContainer
-    config={{
-      students: { theme: { light: "#0ea5e9", dark: "#0ea5e9" } },
-      average: { theme: { light: "#f97316", dark: "#f97316" } },
-    }}
-  >
-    <BarChart
-      data={performanceData}
-      margin={{ top: 10, right: 30, left: 0, bottom: 20 }}
-    >
-      <XAxis dataKey="name" />
-      <YAxis />
-      <ChartTooltip content={<ChartTooltipContent />} />
-      <Bar dataKey="students" fill="var(--color-students)" name="Students" radius={[4, 4, 0, 0]} />
-      <Bar dataKey="average" fill="var(--color-average)" name="Class Average" radius={[4, 4, 0, 0]} />
-    </BarChart>
-  </ChartContainer>
-);
+  const fetchAttendanceData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.ATTENDANCE_OVERVIEW}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
 
-export const FeeCollectionChart = () => (
-  <ResponsiveContainer width="100%" height="100%">
-    <PieChart>
-      <Pie
-        data={feeCollection}
-        cx="50%"
-        cy="50%"
-        innerRadius={60}
-        outerRadius={80}
-        fill="#8884d8"
-        paddingAngle={5}
-        dataKey="value"
-        label={({name, percent}) => `${name} ${(percent * 100).toFixed(0)}%`}
-      >
-        {feeCollection.map((entry, index) => (
-          <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+      if (!response.ok) {
+        throw new Error('Failed to fetch attendance data');
+      }
+
+      const data = await response.json();
+      setAttendanceData(data.attendanceOverview || []);
+    } catch (err) {
+      console.error('Error fetching attendance data:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load attendance data');
+      // Fallback to empty array on error
+      setAttendanceData([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  React.useEffect(() => {
+    if (token) {
+      fetchAttendanceData();
+    }
+  }, [token]);
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        {[...Array(6)].map((_, index) => (
+          <div key={index} className="space-y-2">
+            <div className="flex justify-between items-center">
+              <div className="h-4 bg-gray-200 rounded w-20 animate-pulse"></div>
+              <div className="h-4 bg-gray-200 rounded w-10 animate-pulse"></div>
+            </div>
+            <div className="h-2 bg-gray-200 rounded animate-pulse"></div>
+          </div>
         ))}
-      </Pie>
-      <Tooltip />
-    </PieChart>
-  </ResponsiveContainer>
-);
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-4 text-center">
+        <p className="text-sm text-red-600">{error}</p>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="mt-2"
+          onClick={fetchAttendanceData}
+        >
+          Retry
+        </Button>
+      </div>
+    );
+  }
+
+  if (attendanceData.length === 0) {
+    return (
+      <div className="p-4 text-center">
+        <p className="text-sm text-muted-foreground">No attendance data available</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {attendanceData.map((item: any) => (
+        <div key={item.courseName || item.name} className="space-y-2">
+          <div className="flex justify-between items-center">
+            <span className="text-sm font-medium">{item.courseName || item.name}</span>
+            <span className="text-sm font-medium">{Math.round(item.attendanceRate || item.value)}%</span>
+          </div>
+          <Progress 
+            value={item.attendanceRate || item.value} 
+            className="h-2" 
+            indicatorClassName={`bg-gradient-to-r ${
+              (item.attendanceRate || item.value) >= 90 ? 'from-green-400 to-green-500' :
+              (item.attendanceRate || item.value) >= 80 ? 'from-blue-400 to-blue-500' :
+              'from-orange-400 to-orange-500'
+            }`}
+          />
+        </div>
+      ))}
+    </div>
+  );
+};
+
+export const ClassPerformanceChart = () => {
+  const [performanceData, setPerformanceData] = React.useState([]);
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState<string | null>(null);
+  const { token } = useAuth();
+
+  const fetchPerformanceData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.CLASS_PERFORMANCE}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch class performance data');
+      }
+
+      const data = await response.json();
+      setPerformanceData(data.classPerformance || []);
+    } catch (err) {
+      console.error('Error fetching performance data:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load performance data');
+      // Fallback to empty array on error
+      setPerformanceData([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  React.useEffect(() => {
+    if (token) {
+      fetchPerformanceData();
+    }
+  }, [token]);
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-80">
+        <div className="text-muted-foreground">Loading performance data...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col justify-center items-center h-80">
+        <p className="text-sm text-red-600 mb-2">{error}</p>
+        <Button 
+          variant="outline" 
+          size="sm"
+          onClick={fetchPerformanceData}
+        >
+          Retry
+        </Button>
+      </div>
+    );
+  }
+
+  if (performanceData.length === 0) {
+    return (
+      <div className="flex justify-center items-center h-80">
+        <p className="text-sm text-muted-foreground">No performance data available</p>
+      </div>
+    );
+  }
+
+  return (
+    <ChartContainer
+      config={{
+        students: { theme: { light: "#0ea5e9", dark: "#0ea5e9" } },
+        average: { theme: { light: "#f97316", dark: "#f97316" } },
+      }}
+    >
+      <BarChart
+        data={performanceData}
+        margin={{ top: 10, right: 30, left: 0, bottom: 20 }}
+      >
+        <XAxis dataKey="courseName" />
+        <YAxis />
+        <ChartTooltip content={<ChartTooltipContent />} />
+        <Bar dataKey="studentsCount" fill="var(--color-students)" name="Students" radius={[4, 4, 0, 0]} />
+        <Bar dataKey="averageScore" fill="var(--color-average)" name="Class Average" radius={[4, 4, 0, 0]} />
+      </BarChart>
+    </ChartContainer>
+  );
+};
+
+export const FeeCollectionChart = () => {
+  const [feeData, setFeeData] = React.useState([]);
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState<string | null>(null);
+  const { token } = useAuth();
+
+  const fetchFeeData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.FEE_COLLECTION}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch fee collection data');
+      }
+
+      const data = await response.json();
+      setFeeData(data.feeCollection || []);
+    } catch (err) {
+      console.error('Error fetching fee data:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load fee collection data');
+      // Fallback to empty array on error
+      setFeeData([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  React.useEffect(() => {
+    if (token) {
+      fetchFeeData();
+    }
+  }, [token]);
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="text-muted-foreground">Loading fee data...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col justify-center items-center h-64">
+        <p className="text-sm text-red-600 mb-2">{error}</p>
+        <Button 
+          variant="outline" 
+          size="sm"
+          onClick={fetchFeeData}
+        >
+          Retry
+        </Button>
+      </div>
+    );
+  }
+
+  if (feeData.length === 0) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <p className="text-sm text-muted-foreground">No fee collection data available</p>
+      </div>
+    );
+  }
+
+  return (
+    <ResponsiveContainer width="100%" height="100%">
+      <PieChart>
+        <Pie
+          data={feeData}
+          cx="50%"
+          cy="50%"
+          innerRadius={60}
+          outerRadius={80}
+          fill="#8884d8"
+          paddingAngle={5}
+          dataKey="amount"
+          label={({status, percent}) => `${status} ${(percent * 100).toFixed(0)}%`}
+        >
+          {feeData.map((entry, index) => (
+            <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+          ))}
+        </Pie>
+        <Tooltip formatter={(value: number) => [`$${value.toLocaleString()}`, 'Amount']} />
+      </PieChart>
+    </ResponsiveContainer>
+  );
+};
 
 export const FinanceOverviewChart = () => (
   <ChartContainer
