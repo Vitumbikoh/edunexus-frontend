@@ -65,6 +65,7 @@ import Reports from "./pages/Reports/Reports";
 import ExamDetails from "./pages/courses/ExamDetails";
 import CourseView from "./pages/courses/CourseView";
 import ExamResults from "./pages/courses/ExamResults";
+import ActivityDetail from "./pages/activities/ActivityDetail";
 
 // Protected route component - immediately redirects if not authenticated
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -594,6 +595,19 @@ const AppRoutes = () => {
             <AdminRoute>
               <Layout>
                 <Reports />
+              </Layout>
+            </AdminRoute>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/activities/:id"
+        element={
+          <ProtectedRoute>
+            <AdminRoute>
+              <Layout>
+                <ActivityDetail />
               </Layout>
             </AdminRoute>
           </ProtectedRoute>

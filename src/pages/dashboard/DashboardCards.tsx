@@ -13,6 +13,7 @@ import {
   generateAssignmentStatusData,
   generateStudentPerformanceData
 } from './DashboardCharts';
+import { API_CONFIG } from '@/config/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from "@/components/ui/use-toast";
 import { Badge } from "@/components/ui/badge";
@@ -22,17 +23,43 @@ import { Progress } from '@radix-ui/react-progress';
 
 export const AdminDashboardCards = () => {
   const navigate = useNavigate();
+  const { token } = useAuth();
+  const [academicYearId, setAcademicYearId] = useState<string | undefined>(undefined);
+  const [loadingAY, setLoadingAY] = useState<boolean>(false);
+
+  useEffect(() => {
+    const fetchCurrentAcademicYear = async () => {
+      if (!token) return;
+      try {
+        setLoadingAY(true);
+        const res = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.CURRENT_ACADEMIC_YEAR}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          // Accept flexible key names
+          const id = data?.id || data?.academicYearId || data?.currentAcademicYear?.id;
+          if (id) setAcademicYearId(id);
+        }
+      } catch (e) {
+        console.warn('Failed to load current academic year', e);
+      } finally {
+        setLoadingAY(false);
+      }
+    };
+    fetchCurrentAcademicYear();
+  }, [token]);
   
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       <Card className="bg-gradient-to-br from-white to-slate-50 dark:from-gray-900 dark:to-gray-900/50">
         <CardHeader>
           <CardTitle>Class Performance</CardTitle>
-          <CardDescription>Average scores by course</CardDescription>
+          <CardDescription>Average scores by course {loadingAY && <span className="text-xs text-muted-foreground">(loading year...)</span>}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="h-80">
-            <ClassPerformanceChart />
+            <ClassPerformanceChart academicYearId={academicYearId} />
           </div>
         </CardContent>
       </Card>
@@ -40,21 +67,21 @@ export const AdminDashboardCards = () => {
       <Card className="bg-gradient-to-br from-white to-slate-50 dark:from-gray-900 dark:to-gray-900/50">
         <CardHeader>
           <CardTitle>Attendance Overview</CardTitle>
-          <CardDescription>Current month attendance by class</CardDescription>
+          <CardDescription>Current month attendance by class {loadingAY && <span className="text-xs text-muted-foreground">(loading year...)</span>}</CardDescription>
         </CardHeader>
         <CardContent>
-          <AttendanceOverview />
+          <AttendanceOverview academicYearId={academicYearId} />
         </CardContent>
       </Card>
 
       <Card className="bg-gradient-to-br from-white to-slate-50 dark:from-gray-900 dark:to-gray-900/50">
         <CardHeader>
           <CardTitle>Fee Collection Status</CardTitle>
-          <CardDescription>Current academic year</CardDescription>
+          <CardDescription>Current academic year {loadingAY && <span className="text-xs text-muted-foreground">(loading year...)</span>}</CardDescription>
         </CardHeader>
         <CardContent className="flex justify-center">
           <div className="h-64 w-64">
-            <FeeCollectionChart />
+            <FeeCollectionChart academicYearId={academicYearId} />
           </div>
         </CardContent>
         <div className="px-6 pb-6">

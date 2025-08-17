@@ -12,7 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useToast } from "@/components/ui/use-toast";
 
 interface Notification {
@@ -20,6 +20,7 @@ interface Notification {
   title: string;
   description: string;
   time: string;
+  unread?: boolean;
 }
 
 export default function Header() {
@@ -28,10 +29,14 @@ export default function Header() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const [panelOpen, setPanelOpen] = useState(false);
 
   useEffect(() => {
     if (user?.role === "admin") {
       fetchNotifications();
+      const interval = setInterval(fetchNotifications, 30000);
+      return () => clearInterval(interval);
     }
   }, [user]);
 
@@ -48,7 +53,13 @@ export default function Header() {
       if (!response.ok) throw new Error('Failed to fetch notifications');
       
       const data = await response.json();
-      setNotifications(transformActivitiesToNotifications(data));
+      setNotifications(prev => {
+        const existing = new Map(prev.map(p => [p.id, p]));
+        return transformActivitiesToNotifications(data).map(n => ({
+          ...n,
+          unread: existing.has(n.id) ? existing.get(n.id)!.unread : true,
+        }));
+      });
     } catch (error) {
       toast({
         title: "Error",
@@ -62,30 +73,38 @@ export default function Header() {
   };
 
   const transformActivitiesToNotifications = (activities: any[]): Notification[] => {
-    return activities.map(activity => ({
-      id: activity.id,
-      title: getNotificationTitle(activity.action),
-      description: getNotificationDescription(activity),
-      time: formatTime(activity.timestamp || activity.date),
-    }));
+    return activities.map(activity => {
+      const { action, level, newValues, metadata } = activity;
+      let title = getNotificationTitle(action, level);
+      let description = getNotificationDescription(activity, newValues, metadata, level);
+      return {
+        id: activity.id,
+        title,
+        description,
+        time: formatTime(activity.timestamp || activity.date),
+      };
+    });
   };
 
-  const getNotificationTitle = (action: string): string => {
+  const getNotificationTitle = (action: string, level?: string): string => {
+    if (level === 'error') return 'Error Event';
+    if (action.includes('fee payment')) return 'Fee Payment';
     switch(action) {
-      case 'CREATE_STUDENT':
-        return 'New Student Registration';
-      case 'ENROLL_STUDENT':
-        return 'Student Enrollment';
-      default:
-        return 'System Activity';
+      case 'CREATE_STUDENT': return 'New Student Registration';
+      case 'ENROLL_STUDENT': return 'Student Enrollment';
+      default: return 'System Activity';
     }
   };
 
-  const getNotificationDescription = (activity: any): string => {
-    if (activity.studentCreated) {
-      return `Student: ${activity.studentCreated.fullName}`;
+  const getNotificationDescription = (activity: any, newValues: any, metadata: any, level?: string): string => {
+    if (level === 'error') return metadata?.errorMessage || metadata?.description || 'System error occurred';
+    if (activity.action.includes('fee payment')) {
+      const amount = newValues?.amount || metadata?.dto?.amount;
+      const student = newValues?.studentName || metadata?.dto?.studentId || 'student';
+      return `Payment of ${amount} for ${student}`;
     }
-    return `Action performed by ${activity.performedBy?.email || 'system'}`;
+    if (activity.studentCreated) return `Student: ${activity.studentCreated.fullName}`;
+    return metadata?.description || `By ${activity.performedBy?.email || 'system'}`;
   };
 
   const formatTime = (timestamp: string): string => {
@@ -127,9 +146,9 @@ export default function Header() {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="relative">
                 <Bell className="h-5 w-5" />
-                {notifications.length > 0 && (
+                {notifications.some(n => n.unread) && (
                   <span className="absolute -top-1 -right-1 bg-green-500 text-white text-[10px] rounded-full px-1.5 py-0.5 border border-white font-bold animate-pulse">
-                    {notifications.length}
+                    {notifications.filter(n => n.unread).length}
                   </span>
                 )}
               </Button>
@@ -149,9 +168,19 @@ export default function Header() {
                 </DropdownMenuItem>
               ) : (
                 notifications.map((note) => (
-                  <DropdownMenuItem key={note.id} className="flex flex-col items-start py-3 hover:bg-accent cursor-pointer transition-all">
-                    <span className="font-medium text-foreground">{note.title}</span>
-                    <span className="text-xs text-muted-foreground">{note.description}</span>
+                  <DropdownMenuItem
+                    key={note.id}
+                    className={`flex flex-col items-start py-3 hover:bg-accent cursor-pointer transition-all relative ${note.unread ? 'bg-accent/40' : ''}`}
+                    onClick={() => {
+                      setNotifications(ns => ns.map(n => n.id === note.id ? { ...n, unread: false } : n));
+                      navigate(`/activities/${note.id}`);
+                    }}
+                  >
+                    <span className="font-medium text-foreground flex items-center gap-2">
+                      {note.title}
+                      {note.unread && <span className="w-2 h-2 bg-blue-500 rounded-full" />}
+                    </span>
+                    <span className="text-xs text-muted-foreground line-clamp-2 w-full text-left">{note.description}</span>
                     <span className="text-[10px] text-muted-foreground mt-1">{note.time}</span>
                   </DropdownMenuItem>
                 ))

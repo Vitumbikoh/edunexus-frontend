@@ -1,9 +1,11 @@
 // RecentActivitiesCard.tsx
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
+import { useNavigate } from 'react-router-dom';
+import { API_CONFIG } from '@/config/api';
 
 type LogEntry = {
   id: string;
@@ -12,6 +14,7 @@ type LogEntry = {
     id?: string;
     email: string;
     role: string;
+    name?: string;
   };
   studentCreated?: {
     id: string;
@@ -20,6 +23,21 @@ type LogEntry = {
   timestamp: string;
   ipAddress: string;
   userAgent: string;
+  metadata?: {
+    errorMessage?: string;
+    description?: string;
+    dto?: {
+      amount?: number | string;
+      studentId?: string;
+    };
+  };
+  newValues?: {
+    amount?: number | string;
+    studentName?: string;
+  };
+  entityId?: string;
+  module?: string;
+  level?: string;
 };
 
 type Activity = {
@@ -43,118 +61,86 @@ export default function RecentActivitiesCard() {
   const [isLoading, setIsLoading] = useState(true);
   const { token } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const [unreadIds, setUnreadIds] = useState<Set<string>>(new Set());
 
-  const fetchActivities = async () => {
+  const fetchActivities = useCallback(async () => {
     try {
       setIsLoading(true);
-      const response = await fetch('http://localhost:5000/api/v1/activities/recent', {
+      const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.RECENT_ACTIVITIES}`, {
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
       });
-      
       if (!response.ok) throw new Error(`Failed to fetch activities`);
-      
       const data: LogEntry[] = await response.json();
-      
-      // Transform log entries to activities
       const transformedActivities = data.map(log => ({
         id: log.id,
-        type: 'Student', // Could be dynamic based on action
-        action: log.action.toLowerCase().replace('_', ' '),
-        description: getDescription(log),
-        entityId: log.studentCreated?.id,
+        type: log.module || 'System',
+        action: log.action,
+        description: buildDescription(log),
+        entityId: log.entityId || undefined,
         date: log.timestamp,
         user: {
-          id: log.performedBy.id,
-          name: log.performedBy.email.split('@')[0], // Use email prefix as name
-          email: log.performedBy.email,
-          role: log.performedBy.role,
+          id: log.performedBy?.id,
+          name: (log.performedBy?.name || log.performedBy?.email?.split('@')[0] || 'System'),
+          email: log.performedBy?.email || 'system',
+          role: log.performedBy?.role || 'SYSTEM',
         }
       }));
-      
       setActivities(transformedActivities);
+      setUnreadIds(prev => {
+        const next = new Set(prev);
+        transformedActivities.forEach(a => { if (!prev.has(a.id)) next.add(a.id); });
+        return next;
+      });
     } catch (error) {
       toast({
-        title: "Error",
+        title: 'Error',
         description: error instanceof Error ? error.message : 'Failed to fetch activities',
-        variant: "destructive",
+        variant: 'destructive',
       });
       setActivities([]);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [token, toast]);
 
-  const getDescription = (log: LogEntry): string => {
-    switch (log.action) {
-      case 'CREATE_STUDENT':
-        return `created student ${log.studentCreated?.fullName}`;
-      case 'ENROLL_STUDENT':
-        return `enrolled student ${log.studentCreated?.fullName} in a course`;
-      case 'UPDATE_STUDENT':
-        return `updated student ${log.studentCreated?.fullName}'s information`;
-      case 'DELETE_STUDENT':
-        return `removed student ${log.studentCreated?.fullName}`;
-      case 'CREATE_COURSE':
-        return `created a new course`;
-      case 'UPDATE_COURSE':
-        return `updated course information`;
-      case 'DELETE_COURSE':
-        return `deleted a course`;
-      case 'CREATE_CLASS':
-        return `created a new class`;
-      case 'UPDATE_CLASS':
-        return `updated class information`;
-      case 'DELETE_CLASS':
-        return `deleted a class`;
-      case 'SUBMIT_ATTENDANCE':
-        return `submitted attendance for a class`;
-      case 'CREATE_EXAM':
-        return `created a new exam`;
-      case 'GRADE_EXAM':
-        return `graded exam submissions`;
-      case 'PROCESS_PAYMENT':
-        return `processed a fee payment`;
-      case 'CREATE_INVOICE':
-        return `generated an invoice`;
-      case 'LOGIN':
-        return `logged into the system`;
-      case 'LOGOUT':
-        return `logged out of the system`;
-      case 'UPDATE_PROFILE':
-        return `updated their profile`;
-      case 'RESET_PASSWORD':
-        return `reset their password`;
-      case 'CREATE_ANNOUNCEMENT':
-        return `posted a new announcement`;
-      case 'UPDATE_ANNOUNCEMENT':
-        return `updated an announcement`;
-      case 'DELETE_ANNOUNCEMENT':
-        return `deleted an announcement`;
-      case 'GENERATE_REPORT':
-        return `generated a report`;
-      case 'EXPORT_DATA':
-        return `exported data`;
-      case 'IMPORT_DATA':
-        return `imported data`;
-      case 'CREATE_SCHEDULE':
-        return `created a class schedule`;
-      case 'UPDATE_SCHEDULE':
-        return `updated class schedule`;
-      case 'CANCEL_CLASS':
-        return `cancelled a class`;
-      default:
-        return 'performed an action';
+  const buildDescription = (log: LogEntry): string => {
+    // Attempt richer finance-related messages
+    if (log.action.includes('fee payment') && log.newValues) {
+      const amount = log.newValues.amount || log.metadata?.dto?.amount;
+      const student = log.newValues.studentName || log.metadata?.dto?.studentId || 'student';
+      return `processed fee payment of ${amount} for ${student}`;
     }
+    if (log.level === 'error') {
+      return log.metadata?.errorMessage || log.metadata?.description || 'system error occurred';
+    }
+    if (log.studentCreated?.fullName) {
+      return `${log.action.toLowerCase().replace(/_/g,' ')}: ${log.studentCreated.fullName}`;
+    }
+    return log.metadata?.description || log.action.toLowerCase().replace(/_/g,' ');
   };
 
   useEffect(() => {
     fetchActivities();
     const interval = setInterval(fetchActivities, 30000);
     return () => clearInterval(interval);
-  }, [token]);
+  }, [fetchActivities]);
+
+  const markAsRead = (id: string) => {
+    setUnreadIds(prev => {
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
+  };
+
+  const openActivity = (id: string) => {
+    markAsRead(id);
+    navigate(`/activities/${id}`);
+  };
 
   const getInitials = (name: string) => {
     return name.split(' ')
@@ -187,18 +173,21 @@ export default function RecentActivitiesCard() {
         ) : activities.length > 0 ? (
           <div className="space-y-4">
             {activities.map((activity) => (
-              <div key={activity.id} className="flex items-start space-x-4">
+              <div
+                key={activity.id}
+                className={`flex items-start space-x-4 p-2 rounded-md hover:bg-accent cursor-pointer transition ${unreadIds.has(activity.id) ? 'bg-accent/40' : ''}`}
+                onClick={() => openActivity(activity.id)}
+              >
                 <Avatar className="h-8 w-8">
                   <AvatarImage src={activity.user.avatar} alt={activity.user.name} />
                   <AvatarFallback>{getInitials(activity.user.name)}</AvatarFallback>
                 </Avatar>
                 <div className="space-y-1 flex-1">
-                  <p className="text-sm font-medium">
-                    <span className="font-semibold">{activity.user.name}</span> 
-                    <span className={`ml-1 ${getActionColor(activity.action)}`}>
-                      {activity.action.split(' ')[0]}ed
-                    </span> {activity.description}
+                  <p className="text-sm font-medium leading-snug">
+                    <span className="font-semibold">{activity.user.name}</span>{' '}
+                    <span className={`ml-1 ${getActionColor(activity.action)}`}>{activity.action.toLowerCase().replace(/_/g,' ')}</span>
                   </p>
+                  <p className="text-xs text-muted-foreground leading-snug break-words">{activity.description}</p>
                   <div className="flex justify-between">
                     <p className="text-xs text-muted-foreground">
                       {new Date(activity.date).toLocaleString()}
@@ -208,6 +197,7 @@ export default function RecentActivitiesCard() {
                     </span>
                   </div>
                 </div>
+                {unreadIds.has(activity.id) && <span className="w-2 h-2 bg-blue-500 rounded-full mt-2" />}
               </div>
             ))}
           </div>

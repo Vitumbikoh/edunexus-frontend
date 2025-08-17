@@ -107,8 +107,8 @@ export const generateAssignmentStatusData = (user: any) => {
   ];
 };
 
-export const AttendanceOverview = () => {
-  const [attendanceData, setAttendanceData] = React.useState([]);
+export const AttendanceOverview = ({ academicYearId }: { academicYearId?: string }) => {
+  const [attendanceData, setAttendanceData] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
   const { token } = useAuth();
@@ -117,8 +117,9 @@ export const AttendanceOverview = () => {
     try {
       setLoading(true);
       setError(null);
-      
-      const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.ATTENDANCE_OVERVIEW}`, {
+
+      const query = academicYearId ? `?academicYearId=${academicYearId}` : '';
+      const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.ATTENDANCE_BY_CLASS}${query}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -130,11 +131,16 @@ export const AttendanceOverview = () => {
       }
 
       const data = await response.json();
-      setAttendanceData(data.attendanceOverview || []);
+      // Normalization: API may return an array or object with key
+      const raw = Array.isArray(data) ? data : (data.attendanceByClass || data.attendanceOverview || []);
+      const normalized = raw.map((item: any) => ({
+        name: item.className || item.courseName || item.name,
+        attendanceRate: item.attendanceRate ?? item.value ?? item.rate ?? 0,
+      }));
+      setAttendanceData(normalized);
     } catch (err) {
       console.error('Error fetching attendance data:', err);
       setError(err instanceof Error ? err.message : 'Failed to load attendance data');
-      // Fallback to empty array on error
       setAttendanceData([]);
     } finally {
       setLoading(false);
@@ -145,7 +151,8 @@ export const AttendanceOverview = () => {
     if (token) {
       fetchAttendanceData();
     }
-  }, [token]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token, academicYearId]);
 
   if (loading) {
     return (
@@ -210,8 +217,8 @@ export const AttendanceOverview = () => {
   );
 };
 
-export const ClassPerformanceChart = () => {
-  const [performanceData, setPerformanceData] = React.useState([]);
+export const ClassPerformanceChart = ({ academicYearId }: { academicYearId?: string }) => {
+  const [performanceData, setPerformanceData] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
   const { token } = useAuth();
@@ -220,8 +227,9 @@ export const ClassPerformanceChart = () => {
     try {
       setLoading(true);
       setError(null);
-      
-      const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.CLASS_PERFORMANCE}`, {
+
+      const query = academicYearId ? `?academicYearId=${academicYearId}` : '';
+      const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.CLASS_PERFORMANCE}${query}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -233,11 +241,16 @@ export const ClassPerformanceChart = () => {
       }
 
       const data = await response.json();
-      setPerformanceData(data.classPerformance || []);
+      const raw = Array.isArray(data) ? data : (data.courseAverages || data.classPerformance || []);
+      const normalized = raw.map((item: any) => ({
+        courseName: item.courseName || item.name,
+        studentsCount: item.studentsCount ?? item.students ?? item.studentCount ?? 0,
+        averageScore: item.averageScore ?? item.average ?? item.score ?? 0,
+      }));
+      setPerformanceData(normalized);
     } catch (err) {
       console.error('Error fetching performance data:', err);
       setError(err instanceof Error ? err.message : 'Failed to load performance data');
-      // Fallback to empty array on error
       setPerformanceData([]);
     } finally {
       setLoading(false);
@@ -248,7 +261,8 @@ export const ClassPerformanceChart = () => {
     if (token) {
       fetchPerformanceData();
     }
-  }, [token]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token, academicYearId]);
 
   if (loading) {
     return (
@@ -302,18 +316,55 @@ export const ClassPerformanceChart = () => {
   );
 };
 
-export const FeeCollectionChart = () => {
-  const [feeData, setFeeData] = React.useState([]);
+export const FeeCollectionChart = ({ academicYearId }: { academicYearId?: string }) => {
+  const [feeData, setFeeData] = React.useState<any[]>([]);
+  const [rawResponse, setRawResponse] = React.useState<any | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
   const { token } = useAuth();
+
+  const toNumber = (val: any): number => {
+    if (val == null) return 0;
+    if (typeof val === 'number') return val;
+    if (typeof val === 'string') return parseFloat(val.replace(/[^0-9.-]/g, '')) || 0;
+    return 0;
+  };
+
+  const buildDataset = (data: any) => {
+    // Preferred dataset: feeTypeBreakdown if present
+    if (Array.isArray(data)) return data; // already array
+    if (!data) return [];
+    if (Array.isArray(data.feeTypeBreakdown) && data.feeTypeBreakdown.length > 0) {
+      return data.feeTypeBreakdown.map((f: any) => ({
+        status: f.feeType || f.status || f.name,
+        amount: toNumber(f.amount)
+      }));
+    }
+    // Fallback: use totalPaid vs outstanding (ensure non-negative)
+    const totalPaid = toNumber(data.totalPaidFees || data.paidFees);
+    let outstanding = toNumber(data.outstandingFees);
+    const expected = toNumber(data.totalExpectedFees || data.expectedFees);
+    // If outstanding negative due to expected being 0 but payments exist, clamp to 0
+    if (outstanding < 0) outstanding = 0;
+    // If expected > 0 but outstanding 0 and totalPaid < expected, recompute
+    if (expected > 0 && outstanding === 0 && totalPaid < expected) {
+      outstanding = Math.max(expected - totalPaid, 0);
+    }
+    // If both zero, nothing to show
+    if (totalPaid === 0 && outstanding === 0) return [];
+    return [
+      { status: 'Collected', amount: totalPaid },
+      { status: 'Outstanding', amount: outstanding }
+    ];
+  };
 
   const fetchFeeData = async () => {
     try {
       setLoading(true);
       setError(null);
-      
-      const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.FEE_COLLECTION}`, {
+
+      const query = academicYearId ? `?academicYearId=${academicYearId}` : '';
+      const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.FEE_COLLECTION}${query}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -325,11 +376,16 @@ export const FeeCollectionChart = () => {
       }
 
       const data = await response.json();
-      setFeeData(data.feeCollection || []);
+      setRawResponse(data);
+      const collection = Array.isArray(data) ? data : (data.feeCollectionStatus || data.feeCollection || data);
+      const normalized = buildDataset(collection).map((item: any) => ({
+        status: item.status || item.name,
+        amount: toNumber(item.amount ?? item.value)
+      }));
+      setFeeData(normalized);
     } catch (err) {
       console.error('Error fetching fee data:', err);
       setError(err instanceof Error ? err.message : 'Failed to load fee collection data');
-      // Fallback to empty array on error
       setFeeData([]);
     } finally {
       setLoading(false);
@@ -340,7 +396,8 @@ export const FeeCollectionChart = () => {
     if (token) {
       fetchFeeData();
     }
-  }, [token]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token, academicYearId]);
 
   if (loading) {
     return (
@@ -367,8 +424,11 @@ export const FeeCollectionChart = () => {
 
   if (feeData.length === 0) {
     return (
-      <div className="flex justify-center items-center h-64">
+      <div className="flex flex-col justify-center items-center h-64 text-center px-4">
         <p className="text-sm text-muted-foreground">No fee collection data available</p>
+        {rawResponse && (
+          <p className="mt-2 text-[11px] text-muted-foreground/70">Totals returned: paid {toNumber(rawResponse.totalPaidFees || rawResponse.paidFees)}, expected {toNumber(rawResponse.totalExpectedFees || rawResponse.expectedFees)}</p>
+        )}
       </div>
     );
   }
@@ -383,9 +443,9 @@ export const FeeCollectionChart = () => {
           innerRadius={60}
           outerRadius={80}
           fill="#8884d8"
-          paddingAngle={5}
+          paddingAngle={feeData.length > 1 ? 5 : 0}
           dataKey="amount"
-          label={({status, percent}) => `${status} ${(percent * 100).toFixed(0)}%`}
+          label={({status, percent, amount}) => `${status} ${amount ? ((percent * 100).toFixed(0) + '%') : ''}`}
         >
           {feeData.map((entry, index) => (
             <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
