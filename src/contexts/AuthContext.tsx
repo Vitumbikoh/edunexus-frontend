@@ -2,7 +2,7 @@ import React, { createContext, useState, useContext, ReactNode, useEffect } from
 import { authApi } from '@/services/authService';
 
 // Define user roles based on your backend enum
-export type UserRole = 'admin' | 'teacher' | 'student' | 'parent' | 'finance';
+export type UserRole = 'super_admin' | 'admin' | 'teacher' | 'student' | 'parent' | 'finance';
 
 // Define student type for parent's children
 export type ChildStudent = {
@@ -45,6 +45,8 @@ export type User = {
   phone?: string;
   image?: string;
   isActive?: boolean;
+  schoolId?: string; // Added for multi-tenant support
+  forcePasswordReset?: boolean; // Added for first-login password reset
   createdAt?: Date;
   updatedAt?: Date;
   
@@ -95,21 +97,28 @@ export type User = {
   };
 };
 
+// Login response type
+export interface LoginResponse {
+  access_token: string;
+  user: User;
+}
+
 export interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<LoginResponse>;
   logout: () => void;
+  changePassword: (newPassword: string, token?: string) => Promise<void>;
   loading: boolean;
   token: string | null;
-};
+}
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // Function to normalize role from backend to UserRole type
 const normalizeRole = (role: string): UserRole => {
   const roleStr = role.toLowerCase();
-  if (['admin', 'teacher', 'student', 'parent', 'finance'].includes(roleStr)) {
+  if (['super_admin', 'admin', 'teacher', 'student', 'parent', 'finance'].includes(roleStr)) {
     return roleStr as UserRole;
   }
   // Default fallback
@@ -135,7 +144,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setUser({
               ...response.user,
               role: normalizedRole,
-              name: response.user.email.split('@')[0],
+              name: response.user.username || response.user.email.split('@')[0],
               avatar: `https://ui-avatars.com/api/?name=${response.user.email}&background=0D8ABC&color=fff`
             });
             setToken(storedToken);
@@ -157,7 +166,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     checkAuth();
   }, []);
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string): Promise<LoginResponse> => {
     try {
       // Backend login
       const response = await authApi.login({ email, password });
@@ -169,16 +178,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const userData: User = {
         ...response.user,
         role: normalizedRole,
-        name: response.user.email.split('@')[0],
+        name: response.user.username || response.user.email.split('@')[0],
         avatar: `https://ui-avatars.com/api/?name=${response.user.email}&background=0D8ABC&color=fff`
       };
       
       setUser(userData);
       localStorage.setItem('user_data', JSON.stringify(userData));
+      
+      return response;
     } catch (error) {
       console.error('Login failed:', error);
       throw new Error('Invalid credentials');
     }
+  };
+
+  const changePassword = async (newPassword: string, authToken?: string): Promise<void> => {
+    const tokenToUse = authToken || token;
+    if (!tokenToUse) {
+      throw new Error('No authentication token available');
+    }
+    const result = await authApi.changePassword(newPassword, tokenToUse);
+    if (user && user.forcePasswordReset) {
+      const updatedUser = { ...user, forcePasswordReset: false };
+      setUser(updatedUser);
+      localStorage.setItem('user_data', JSON.stringify(updatedUser));
+    }
+    return result;
   };
 
   const logout = () => {
@@ -194,6 +219,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isAuthenticated: !!user, 
       login, 
       logout,
+      changePassword,
       loading,
       token
     }}>

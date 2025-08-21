@@ -1,4 +1,9 @@
-// src/finance/Finance.tsx
+// Updated to use new finance summary & statuses endpoints:
+// - /finance/fee-summary
+// - /finance/fee-statuses
+// Utilizes fields: expectedFees, totalFeesPaid, remainingFees, overdueFees
+// Derives fallbacks if summary not available.
+
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -38,7 +43,7 @@ interface FeePayment {
   paymentType: string;
   paymentMethod: string;
   receiptNumber: string | null;
-  status: 'paid' | 'pending' | 'overdue';
+  status: 'paid' | 'pending' | 'overdue' | string;
   notes: string | null;
 }
 
@@ -59,7 +64,23 @@ interface FeeStatusItem {
   expectedAmount: number;
   paidAmount: number;
   outstandingAmount: number;
-  status: string; // e.g., paid | pending | overdue | partial
+  status: string; // paid | pending | overdue | partial | unpaid
+  isOverdue?: boolean;
+  overdueAmount?: number;
+}
+
+interface FeeSummaryResponse {
+  expectedFees?: number;
+  totalExpectedFees?: number;
+  totalFeesPaid?: number;
+  totalPaidFees?: number;
+  remainingFees?: number;
+  outstandingFees?: number;
+  overdueFees?: number;
+  overdueStudents?: number;
+  academicYearId?: string;
+  isPastAcademicYear?: boolean;
+  academicYearEndDate?: string;
 }
 
 export default function Finance() {
@@ -68,54 +89,63 @@ export default function Finance() {
   const { toast } = useToast();
   const isParent = user?.role === 'parent';
   const isAdmin = user?.role === 'admin' || user?.role === 'finance';
+
   const [searchQuery, setSearchQuery] = useState("");
   const [feePayments, setFeePayments] = useState<FeePayment[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [apiError, setApiError] = useState<string | null>(null);
-  const [expectedFeesAmount, setExpectedFeesAmount] = useState<number>(0);
+
   const [academicYears, setAcademicYears] = useState<{ id: string; name: string }[]>([]);
   const [academicYearId, setAcademicYearId] = useState<string | undefined>(undefined);
-  const [fetchingExpectation, setFetchingExpectation] = useState(false);
+
   const [showSetUniformDialog, setShowSetUniformDialog] = useState(false);
   const [uniformAmount, setUniformAmount] = useState<string>("");
   const [uniformAcademicYearId, setUniformAcademicYearId] = useState<string | undefined>(undefined);
   const [savingUniform, setSavingUniform] = useState(false);
+
   const [generatingExpectations, setGeneratingExpectations] = useState(false);
+
   const [feeStatuses, setFeeStatuses] = useState<FeeStatusItem[]>([]);
   const [loadingStatuses, setLoadingStatuses] = useState(false);
   const [statusesError, setStatusesError] = useState<string | null>(null);
-  const [summaryData, setSummaryData] = useState<any | null>(null);
 
-  // Fetch current academic year (and optionally list) once
+  const [summaryData, setSummaryData] = useState<FeeSummaryResponse | null>(null);
+  const [fetchingSummary, setFetchingSummary] = useState(false);
+  const [expectedFeesAmount, setExpectedFeesAmount] = useState<number>(0); // fallback / legacy
+
+  // Fetch current academic year (single)
   useEffect(() => {
     const fetchAcademicYear = async () => {
       if (!token) return;
       try {
-  const res = await fetch(`${API_CONFIG.BASE_URL}/analytics/current-academic-year`, {
+        const res = await fetch(`${API_CONFIG.BASE_URL}/analytics/current-academic-year`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (res.ok) {
           const data = await res.json();
-          const id = data?.id || data?.academicYearId || data?.currentAcademicYear?.id;
-          const rawName = data?.name || data?.currentAcademicYear?.name;
-          const hasRange = (data?.startYear || data?.endYear);
-          const rangeName = hasRange ? `${data?.startYear || ''}${hasRange ? '-' : ''}${data?.endYear || ''}` : '';
-          const computedName = (rawName && rawName.trim()) || (rangeName && rangeName !== '-' ? rangeName : '') || 'Current Academic Year';
-          if (id) {
-            setAcademicYearId(id);
-            setAcademicYears([{ id, name: computedName }]);
-            setUniformAcademicYearId(id);
-          }
+            const id = data?.id || data?.academicYearId || data?.currentAcademicYear?.id;
+            const rawName = data?.name || data?.currentAcademicYear?.name;
+            const hasRange = (data?.startYear || data?.endYear);
+            const rangeName = hasRange ? `${data?.startYear || ''}${hasRange ? '-' : ''}${data?.endYear || ''}` : '';
+            const computedName = (rawName && rawName.trim()) || (rangeName && rangeName !== '-' ? rangeName : '') || 'Current Academic Year';
+            if (id) {
+              setAcademicYearId(id);
+              setUniformAcademicYearId(id);
+              setAcademicYears(prev => {
+                if (prev.find(p => p.id === id)) return prev;
+                return [{ id, name: computedName }];
+              });
+            }
         }
-      } catch (e) {
-        // silent fail
+      } catch {
+        // silent
       }
     };
     fetchAcademicYear();
   }, [token]);
 
-  // Fetch all academic years list
+  // Fetch all academic years
   useEffect(() => {
     const fetchAllYears = async () => {
       if (!token) return;
@@ -131,7 +161,6 @@ export default function Finance() {
             const hasRange = (y.startYear || y.endYear);
             const rangeName = hasRange ? `${y.startYear || ''}${hasRange ? '-' : ''}${y.endYear || ''}` : '';
             let name = rawName || (rangeName && rangeName !== '-' ? rangeName : '') || 'Academic Year';
-            // If backend accidentally gives just '-' treat as unknown
             if (name === '-') name = 'Academic Year';
             return {
               id: y.id || y.academicYearId || y.uuid,
@@ -139,7 +168,6 @@ export default function Finance() {
               isCurrent: y.isCurrent || y.current || false
             };
           }).filter((y: any) => y.id);
-          // Sort: current first, then by name descending (assuming newer years later)
           mapped.sort((a: any, b: any) => {
             if (a.isCurrent && !b.isCurrent) return -1;
             if (!a.isCurrent && b.isCurrent) return 1;
@@ -153,69 +181,94 @@ export default function Finance() {
             }
           }
         }
-      } catch (e) {
+      } catch {
         // ignore
       }
     };
     fetchAllYears();
-  }, [token]);
+  }, [token, academicYearId]);
 
-  // Fetch expected fees summary when academic year changes
+  // Fetch summary (new endpoint)
   useEffect(() => {
-    const fetchExpectedFees = async () => {
+    const fetchSummary = async () => {
       if (!token || !academicYearId) return;
+      setFetchingSummary(true);
       try {
-        setFetchingExpectation(true);
-        // Attempt summary endpoint (assumed). If it fails, ignore.
-  const res = await fetch(`${API_CONFIG.BASE_URL}/finance/fee-expectations/summary?academicYearId=${academicYearId}`, {
+        const res = await fetch(`${API_CONFIG.BASE_URL}/finance/fee-summary?academicYearId=${academicYearId}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (res.ok) {
-          const data = await res.json();
+          const data: FeeSummaryResponse = await res.json();
           setSummaryData(data);
-          const total = data?.totalExpectedFees || data?.expectedFeesAmount || data?.total || 0;
-          setExpectedFeesAmount(Number(total));
-          if (data?.totalPaidFees && !isNaN(Number(data.totalPaidFees))) {
-            // Optionally could override paidAmount but we still compute from payments fetch; keep in summary.
-          }
+          const totalExpected = Number(
+            data.expectedFees ??
+            data.totalExpectedFees ??
+            0
+          );
+          setExpectedFeesAmount(totalExpected);
         }
-      } catch (e) {
-        // ignore errors (feature may not exist yet)
+      } catch {
+        // fallback via statuses/payments
       } finally {
-        setFetchingExpectation(false);
+        setFetchingSummary(false);
       }
     };
-    fetchExpectedFees();
+    fetchSummary();
   }, [token, academicYearId]);
 
-  // Fetch per-student fee statuses for the academic year
+  // Fetch per-student statuses
   useEffect(() => {
     const fetchStatuses = async () => {
       if (!token || !academicYearId) return;
       try {
         setLoadingStatuses(true);
         setStatusesError(null);
-        const res = await fetch(`${API_CONFIG.BASE_URL}/finance/fee-expectations/statuses?academicYearId=${academicYearId}`, {
+        const res = await fetch(`${API_CONFIG.BASE_URL}/finance/fee-statuses?academicYearId=${academicYearId}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
-        if (!res.ok) {
-          throw new Error('Failed to fetch fee statuses');
-        }
+        if (!res.ok) throw new Error('Failed to fetch fee statuses');
         const data = await res.json();
-        const list = Array.isArray(data) ? data : (data.statuses || data.items || []);
-        const mapped: FeeStatusItem[] = list.map((s: any) => ({
-          studentId: s.studentId || s.id,
-          studentName: s.studentName || `${s.firstName || ''} ${s.lastName || ''}`.trim() || 'Unknown',
-          expectedAmount: Number(s.expectedAmount || s.expectedFee || s.expected || 0),
-          paidAmount: Number(s.paidAmount || s.paid || 0),
-          outstandingAmount: Number(s.outstandingAmount || s.outstanding || Math.max((s.expectedAmount || 0) - (s.paidAmount || 0), 0)),
-          status: (s.status || (Number(s.outstandingAmount || 0) === 0 ? 'paid' : 'pending')).toLowerCase(),
-        }));
+        const list = Array.isArray(data) ? data : (data.statuses || data.items || data.students || []);
+        const mapped: FeeStatusItem[] = list.map((s: any) => {
+          const expected = Number(
+            s.totalExpected ??
+            s.expectedFees ??
+            s.expectedAmount ??
+            s.expected ??
+            0
+          );
+          const paid = Number(
+            s.totalPaid ??
+            s.paidAmount ??
+            s.paid ??
+            0
+          );
+            const outstanding = Number(
+              s.outstanding ??
+              s.outstandingAmount ??
+              Math.max(expected - paid, 0)
+            );
+          const isOverdue = Boolean(s.isOverdue || (s.status?.toLowerCase?.() === 'overdue'));
+          const computedStatus =
+            isOverdue ? 'overdue' :
+            (s.status?.toLowerCase?.()) ||
+            (outstanding === 0 ? 'paid' : (paid === 0 ? 'unpaid' : 'partial'));
+          return {
+            studentId: s.studentId || s.id,
+            studentName: s.studentName || `${s.firstName || ''} ${s.lastName || ''}`.trim() || 'Unknown',
+            expectedAmount: expected,
+            paidAmount: paid,
+            outstandingAmount: outstanding,
+            status: computedStatus,
+            isOverdue,
+            overdueAmount: isOverdue ? outstanding : 0,
+          };
+        });
         setFeeStatuses(mapped);
-        // If summary endpoint not available, derive expected total
+        // Fallback expected total if summary not present
         if (!summaryData && mapped.length) {
-          const derivedExpected = mapped.reduce((sum, i) => sum + i.expectedAmount, 0);
-          setExpectedFeesAmount(derivedExpected);
+          const derived = mapped.reduce((sum, i) => sum + i.expectedAmount, 0);
+          setExpectedFeesAmount(derived);
         }
       } catch (e) {
         setStatusesError(e instanceof Error ? e.message : 'Failed to load statuses');
@@ -227,15 +280,13 @@ export default function Finance() {
     fetchStatuses();
   }, [token, academicYearId, summaryData]);
 
+  // Fetch payments & transactions (legacy detail lists)
   useEffect(() => {
     const fetchData = async () => {
       try {
         setIsLoading(true);
         setApiError(null);
-
-        if (!token) {
-          throw new Error("Authentication token not found. Please log in again.");
-        }
+        if (!token) throw new Error("Authentication token not found. Please log in again.");
 
         const paymentsEndpoint = isParent
           ? `${API_CONFIG.BASE_URL}/finance/parent-payments`
@@ -262,31 +313,35 @@ export default function Finance() {
         }
 
         if (!paymentsResponse.ok) {
-          const errorData = await paymentsResponse.json();
+          const errorData = await paymentsResponse.json().catch(() => ({}));
           throw new Error(errorData.message || "Failed to fetch fee payments");
         }
 
         if (!transactionsResponse.ok) {
-          const errorData = await transactionsResponse.json();
+          const errorData = await transactionsResponse.json().catch(() => ({}));
           throw new Error(errorData.message || "Failed to fetch transactions");
         }
 
         const paymentsData = await paymentsResponse.json();
         const transactionsData = await transactionsResponse.json();
 
-        const mappedPayments: FeePayment[] = paymentsData.payments.map((p: any) => ({
+        const mappedPayments: FeePayment[] = (paymentsData.payments || paymentsData.items || []).map((p: any) => ({
           id: p.id,
           studentName: p.studentName,
           amount: Number(p.amount),
           paymentDate: p.paymentDate,
-          paymentType: p.paymentType,
+            paymentType: p.paymentType,
           paymentMethod: p.paymentMethod,
           receiptNumber: p.receiptNumber,
-          status: p.status,
+          status:
+            p.status === 'completed' ? 'paid' :
+            p.status === 'pending' ? 'pending' :
+            p.status === 'overdue' ? 'overdue' :
+            p.status,
           notes: p.notes,
         }));
 
-        const mappedTransactions: Transaction[] = transactionsData.transactions.map((t: any) => ({
+        const mappedTransactions: Transaction[] = (transactionsData.transactions || transactionsData.items || []).map((t: any) => ({
           id: t.id,
           studentName: t.studentName,
           amount: Number(t.amount),
@@ -324,8 +379,8 @@ export default function Finance() {
     try {
       setSavingUniform(true);
       const body: any = { amount: Number(uniformAmount) };
-  body.academicYearId = uniformAcademicYearId || academicYearId;
-  const res = await fetch(`${API_CONFIG.BASE_URL}/finance/fee-structure`, {
+      body.academicYearId = uniformAcademicYearId || academicYearId;
+      const res = await fetch(`${API_CONFIG.BASE_URL}/finance/fee-structure`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -337,12 +392,9 @@ export default function Finance() {
         const err = await res.json().catch(() => ({}));
         throw new Error(err.message || 'Failed to set uniform fee expectation');
       }
-      // Update expected fees amount (assume backend returns summary)
-      const data = await res.json().catch(() => ({}));
-      const newTotal = data?.totalExpectedFees || data?.expectedFeesAmount || body.amount;
-      setExpectedFeesAmount(Number(newTotal));
-      // Refresh statuses & summary after setting uniform fee
-      setSummaryData(null); // trigger re-fetch cascade via effects
+      await res.json().catch(() => ({}));
+      // Trigger re-fetch summary
+      setSummaryData(null);
       toast({ title: 'Success', description: 'Uniform fee expectation saved.' });
       setShowSetUniformDialog(false);
     } catch (e) {
@@ -356,6 +408,7 @@ export default function Finance() {
     if (!token || !academicYearId) return;
     try {
       setGeneratingExpectations(true);
+      // Keeping legacy generation endpoint if backend still provides it
       const res = await fetch(`${API_CONFIG.BASE_URL}/finance/fee-expectations/generate`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
@@ -366,8 +419,7 @@ export default function Finance() {
         throw new Error(err.message || 'Failed to generate expectations');
       }
       toast({ title: 'Success', description: 'Fee expectations generated.' });
-      // Re-fetch summary & statuses
-      setSummaryData(null);
+      setSummaryData(null); // triggers summary & statuses refresh
     } catch (e) {
       toast({ title: 'Error', description: e instanceof Error ? e.message : 'Generation failed', variant: 'destructive' });
     } finally {
@@ -375,24 +427,36 @@ export default function Finance() {
     }
   };
 
-  const totalFeesAmount = feePayments.reduce((sum, invoice) => sum + invoice.amount, 0); // historical actual total
-  const paidAmount = feePayments
-    .filter(invoice => invoice.status === "paid")
-    .reduce((sum, invoice) => sum + invoice.amount, 0);
-  // Pending now represents remaining expected not yet paid
-  // If we have feeStatuses use them to derive paid & expected & pending for higher accuracy
+  // ---------------- Metrics calculation ----------------
+  // Summary preferred, fallback to derived
+  const summaryPaid = Number(summaryData?.totalFeesPaid ?? summaryData?.totalPaidFees ?? 0);
+  const summaryExpected = Number(summaryData?.expectedFees ?? summaryData?.totalExpectedFees ?? expectedFeesAmount);
+  const summaryRemaining = Number(
+    summaryData?.remainingFees ??
+    summaryData?.outstandingFees ??
+    Math.max(summaryExpected - summaryPaid, 0)
+  );
+  const summaryOverdue = Number(summaryData?.overdueFees ?? 0);
+
+  // Derive from statuses if available (gives precision)
   const statusDerivedPaid = feeStatuses.reduce((sum, s) => sum + s.paidAmount, 0);
   const statusDerivedExpected = feeStatuses.reduce((sum, s) => sum + s.expectedAmount, 0);
-  const effectivePaid = feeStatuses.length ? statusDerivedPaid : paidAmount;
-  const effectiveExpected = feeStatuses.length ? statusDerivedExpected : expectedFeesAmount;
-  const pendingRemaining = effectiveExpected > 0 ? Math.max(effectiveExpected - effectivePaid, 0) : expectedFeesAmount > 0 ? Math.max(expectedFeesAmount - paidAmount, 0) : feePayments
-    .filter(invoice => invoice.status === "pending")
-    .reduce((sum, invoice) => sum + invoice.amount, 0);
-  const overdueAmount = feePayments
-    .filter(invoice => invoice.status === "overdue")
-    .reduce((sum, invoice) => sum + invoice.amount, 0);
-  const paidPercentage = effectiveExpected > 0 ? Math.round((effectivePaid / effectiveExpected) * 100) : 0;
 
+  const effectivePaid = feeStatuses.length ? statusDerivedPaid : summaryPaid;
+  const effectiveExpected = feeStatuses.length ? statusDerivedExpected : summaryExpected;
+  const pendingRemaining = feeStatuses.length
+    ? Math.max(statusDerivedExpected - statusDerivedPaid, 0)
+    : summaryRemaining;
+  const overdueFromStatuses = feeStatuses
+    .filter(s => s.status === 'overdue')
+    .reduce((sum, s) => sum + (s.outstandingAmount || 0), 0);
+  const overdueAmount = summaryOverdue || overdueFromStatuses;
+
+  const paidPercentage = effectiveExpected > 0
+    ? Math.round((effectivePaid / effectiveExpected) * 100)
+    : 0;
+
+  // Legacy raw payment fallback (not primary anymore)
   const filteredInvoices = feePayments.filter(payment =>
     payment.studentName.toLowerCase().includes(searchQuery.toLowerCase()) ||
     payment.paymentType.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -407,6 +471,7 @@ export default function Finance() {
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Finance</h1>
@@ -459,7 +524,9 @@ export default function Finance() {
                         {academicYears.map(y => <option key={y.id} value={y.id}>{y.name}</option>)}
                       </select>
                     </div>
-                    <p className="text-xs text-muted-foreground">Sets a uniform expected fee for all enrolled students in the selected academic year.</p>
+                    <p className="text-xs text-muted-foreground">
+                      Sets a uniform expected fee for all enrolled students in the selected academic year.
+                    </p>
                   </div>
                   <DialogFooter>
                     <Button variant="outline" onClick={() => setShowSetUniformDialog(false)} disabled={savingUniform}>Cancel</Button>
@@ -488,6 +555,7 @@ export default function Finance() {
         <div>Loading...</div>
       ) : (
         <>
+          {/* Summary Cards */}
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -496,10 +564,12 @@ export default function Finance() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">${effectivePaid.toFixed(2)}</div>
-                <p className="text-xs text-muted-foreground">For {isParent ? 'all children' : 'all students'}</p>
+                <p className="text-xs text-muted-foreground">
+                  {fetchingSummary ? 'Updating...' : `For ${isParent ? 'all children' : 'all students'}`}
+                </p>
               </CardContent>
             </Card>
-            
+
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Expected Fees Amount</CardTitle>
@@ -510,11 +580,11 @@ export default function Finance() {
                 <div className="mt-2 space-y-1">
                   <Progress value={paidPercentage} className="h-2" />
                   <p className="text-xs text-muted-foreground">{paidPercentage}% of total fees</p>
-                  {fetchingExpectation && <p className="text-[10px] text-muted-foreground">Updating expectation...</p>}
+                  {fetchingSummary && <p className="text-[10px] text-muted-foreground">Refreshing summary...</p>}
                 </div>
               </CardContent>
             </Card>
-            
+
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Pending</CardTitle>
@@ -522,10 +592,10 @@ export default function Finance() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">${pendingRemaining.toFixed(2)}</div>
-                <p className="text-xs text-muted-foreground">For the remaining students</p>
+                <p className="text-xs text-muted-foreground">Remaining balance</p>
               </CardContent>
             </Card>
-            
+
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Overdue</CardTitle>
@@ -534,209 +604,221 @@ export default function Finance() {
               <CardContent>
                 <div className="text-2xl font-bold">${overdueAmount.toFixed(2)}</div>
                 <p className="text-xs text-muted-foreground">
-                  Past due payments
+                  {summaryData?.overdueStudents
+                    ? `${summaryData.overdueStudents} students overdue`
+                    : 'Past due payments'}
                 </p>
               </CardContent>
             </Card>
           </div>
 
-          <Tabs defaultValue="invoices">
-            <TabsList>
-              <TabsTrigger value="invoices">Fee Invoices</TabsTrigger>
-              <TabsTrigger value="transactions">Transaction History</TabsTrigger>
-              <TabsTrigger value="statuses">Fee Statuses</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="invoices" className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle>Fee Invoices</CardTitle>
-                    
-                    <div className="flex items-center space-x-2">
-                      <div className="relative">
-                        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                        <Input
-                          type="search"
-                          placeholder="Search invoices..."
-                          className="pl-8 w-[200px] md:w-[300px]"
-                          value={searchQuery}
-                          onChange={(e) => setSearchQuery(e.target.value)}
-                        />
-                      </div>
-                      
-                      {isAdmin && (
-                        <Button variant="outline" size="sm">
-                          <Download className="mr-2 h-4 w-4" />
-                          Export
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                </CardHeader>
-                
-                <CardContent>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Invoice ID</TableHead>
-                        <TableHead>Date</TableHead>
-                        <TableHead>{isParent ? "Child" : "Student"}</TableHead>
-                        <TableHead>Description</TableHead>
-                        <TableHead className="text-right">Amount</TableHead>
-                        <TableHead className="text-right">Status</TableHead>
-                        {isParent && <TableHead className="text-right">Action</TableHead>}
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredInvoices.map((invoice) => (
-                        <TableRow key={invoice.id}>
-                          <TableCell className="font-medium">{invoice.id}</TableCell>
-                          <TableCell>{invoice.paymentDate || 'N/A'}</TableCell>
-                          <TableCell>{invoice.studentName}</TableCell>
-                          <TableCell>{invoice.paymentType}</TableCell>
-                          <TableCell className="text-right">${invoice.amount.toFixed(2)}</TableCell>
-                          <TableCell className="text-right">
-                            <Badge variant={
-                              invoice.status === "paid" ? "default" :
-                              invoice.status === "pending" ? "outline" : "destructive"
-                            } className="capitalize">
-                              {invoice.status}
-                            </Badge>
-                          </TableCell>
-                          {isParent && (
-                            <TableCell className="text-right">
-                              {invoice.status !== "paid" && (
-                                <Button size="sm" variant="outline" onClick={() => navigate('/finance/record')}>
-                                  Pay Now
-                                </Button>
-                              )}
-                            </TableCell>
-                          )}
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </CardContent>
-              </Card>
-            </TabsContent>
-            
-            <TabsContent value="transactions" className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle>Transaction History</CardTitle>
-                    
-                    <div className="flex items-center space-x-2">
-                      <div className="relative">
-                        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                        <Input
-                          type="search"
-                          placeholder="Search transactions..."
-                          className="pl-8 w-[200px] md:w-[300px]"
-                          value={searchQuery}
-                          onChange={(e) => setSearchQuery(e.target.value)}
-                        />
-                      </div>
-                      
-                      {isAdmin && (
-                        <Button variant="outline" size="sm">
-                          <Download className="mr-2 h-4 w-4" />
-                          Export
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                </CardHeader>
-                
-                <CardContent>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Transaction ID</TableHead>
-                        <TableHead>Date</TableHead>
-                        <TableHead>{isParent ? "Child" : "Student"}</TableHead>
-                        <TableHead>Description</TableHead>
-                        <TableHead className="text-right">Amount</TableHead>
-                        <TableHead className="text-right">Method</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredTransactions.map((transaction) => (
-                        <TableRow key={transaction.id}>
-                          <TableCell className="font-medium">{transaction.id}</TableCell>
-                          <TableCell>{transaction.paymentDate}</TableCell>
-                          <TableCell>{transaction.studentName}</TableCell>
-                          <TableCell>{transaction.paymentType}</TableCell>
-                          <TableCell className="text-right">${transaction.amount.toFixed(2)}</TableCell>
-                          <TableCell className="text-right">{transaction.paymentMethod}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </CardContent>
-              </Card>
-            </TabsContent>
+          {/* Tabs */}
+            <Tabs defaultValue="invoices">
+              <TabsList>
+                <TabsTrigger value="invoices">Fee Invoices</TabsTrigger>
+                <TabsTrigger value="transactions">Transaction History</TabsTrigger>
+                <TabsTrigger value="statuses">Fee Statuses</TabsTrigger>
+              </TabsList>
 
-            <TabsContent value="statuses" className="space-y-4">
-              <Card>
-                <CardHeader className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                  <div>
-                    <CardTitle>Fee Statuses</CardTitle>
-                    <CardDescription>Per-student expected vs paid amounts</CardDescription>
-                  </div>
-                  <div className="flex gap-2 flex-wrap">
-                    {isAdmin && (
-                      <Button size="sm" variant="outline" onClick={generateExpectations} disabled={generatingExpectations || !academicYearId}>
-                        {generatingExpectations ? 'Generating...' : 'Generate Expectations'}
-                      </Button>
-                    )}
-                    {isAdmin && (
-                      <Button size="sm" variant="outline" onClick={() => setShowSetUniformDialog(true)}>
-                        Set Uniform Fee
-                      </Button>
-                    )}
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  {loadingStatuses ? (
-                    <div className="py-6 text-sm text-muted-foreground">Loading statuses...</div>
-                  ) : statusesError ? (
-                    <div className="py-6 text-sm text-red-600">{statusesError}</div>
-                  ) : feeStatuses.length === 0 ? (
-                    <div className="py-6 text-sm text-muted-foreground">No fee statuses available.</div>
-                  ) : (
-                    <div className="overflow-x-auto">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Student</TableHead>
-                            <TableHead className="text-right">Expected</TableHead>
-                            <TableHead className="text-right">Paid</TableHead>
-                            <TableHead className="text-right">Outstanding</TableHead>
-                            <TableHead className="text-right">Status</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {feeStatuses.map(s => (
-                            <TableRow key={s.studentId}>
-                              <TableCell className="font-medium">{s.studentName}</TableCell>
-                              <TableCell className="text-right">${s.expectedAmount.toFixed(2)}</TableCell>
-                              <TableCell className="text-right">${s.paidAmount.toFixed(2)}</TableCell>
-                              <TableCell className="text-right">${s.outstandingAmount.toFixed(2)}</TableCell>
-                              <TableCell className="text-right">
-                                <Badge variant={s.status === 'paid' ? 'default' : s.status === 'overdue' ? 'destructive' : 'outline'} className="capitalize">{s.status}</Badge>
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
+              <TabsContent value="invoices" className="space-y-4">
+                <Card>
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <CardTitle>Fee Invoices</CardTitle>
+                      <div className="flex items-center space-x-2">
+                        <div className="relative">
+                          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            type="search"
+                            placeholder="Search invoices..."
+                            className="pl-8 w-[200px] md:w-[300px]"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                          />
+                        </div>
+                        {isAdmin && (
+                          <Button variant="outline" size="sm">
+                            <Download className="mr-2 h-4 w-4" />
+                            Export
+                          </Button>
+                        )}
+                      </div>
                     </div>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
+                  </CardHeader>
+                  <CardContent>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Invoice ID</TableHead>
+                          <TableHead>Date</TableHead>
+                          <TableHead>{isParent ? "Child" : "Student"}</TableHead>
+                          <TableHead>Description</TableHead>
+                          <TableHead className="text-right">Amount</TableHead>
+                          <TableHead className="text-right">Status</TableHead>
+                          {isParent && <TableHead className="text-right">Action</TableHead>}
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredInvoices.map(invoice => (
+                          <TableRow key={invoice.id}>
+                            <TableCell className="font-medium">{invoice.id}</TableCell>
+                            <TableCell>{invoice.paymentDate || 'N/A'}</TableCell>
+                            <TableCell>{invoice.studentName}</TableCell>
+                            <TableCell>{invoice.paymentType}</TableCell>
+                            <TableCell className="text-right">${invoice.amount.toFixed(2)}</TableCell>
+                            <TableCell className="text-right">
+                              <Badge
+                                variant={
+                                  invoice.status === "paid" ? "default" :
+                                  invoice.status === "pending" ? "outline" :
+                                  invoice.status === "overdue" ? "destructive" : "outline"
+                                }
+                                className="capitalize"
+                              >
+                                {invoice.status}
+                              </Badge>
+                            </TableCell>
+                            {isParent && (
+                              <TableCell className="text-right">
+                                {invoice.status !== "paid" && (
+                                  <Button size="sm" variant="outline" onClick={() => navigate('/finance/record')}>
+                                    Pay Now
+                                  </Button>
+                                )}
+                              </TableCell>
+                            )}
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="transactions" className="space-y-4">
+                <Card>
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <CardTitle>Transaction History</CardTitle>
+                      <div className="flex items-center space-x-2">
+                        <div className="relative">
+                          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            type="search"
+                            placeholder="Search transactions..."
+                            className="pl-8 w-[200px] md:w-[300px]"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                          />
+                        </div>
+                        {isAdmin && (
+                          <Button variant="outline" size="sm">
+                            <Download className="mr-2 h-4 w-4" />
+                            Export
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Transaction ID</TableHead>
+                          <TableHead>Date</TableHead>
+                          <TableHead>{isParent ? "Child" : "Student"}</TableHead>
+                          <TableHead>Description</TableHead>
+                          <TableHead className="text-right">Amount</TableHead>
+                          <TableHead className="text-right">Method</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredTransactions.map(transaction => (
+                          <TableRow key={transaction.id}>
+                            <TableCell className="font-medium">{transaction.id}</TableCell>
+                            <TableCell>{transaction.paymentDate}</TableCell>
+                            <TableCell>{transaction.studentName}</TableCell>
+                            <TableCell>{transaction.paymentType}</TableCell>
+                            <TableCell className="text-right">${transaction.amount.toFixed(2)}</TableCell>
+                            <TableCell className="text-right">{transaction.paymentMethod}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="statuses" className="space-y-4">
+                <Card>
+                  <CardHeader className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                    <div>
+                      <CardTitle>Fee Statuses</CardTitle>
+                      <CardDescription>Per-student expected vs paid amounts</CardDescription>
+                    </div>
+                    <div className="flex gap-2 flex-wrap">
+                      {isAdmin && (
+                        <Button size="sm" variant="outline" onClick={generateExpectations} disabled={generatingExpectations || !academicYearId}>
+                          {generatingExpectations ? 'Generating...' : 'Generate Expectations'}
+                        </Button>
+                      )}
+                      {isAdmin && (
+                        <Button size="sm" variant="outline" onClick={() => setShowSetUniformDialog(true)}>
+                          Set Uniform Fee
+                        </Button>
+                      )}
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    {loadingStatuses ? (
+                      <div className="py-6 text-sm text-muted-foreground">Loading statuses...</div>
+                    ) : statusesError ? (
+                      <div className="py-6 text-sm text-red-600">{statusesError}</div>
+                    ) : feeStatuses.length === 0 ? (
+                      <div className="py-6 text-sm text-muted-foreground">No fee statuses available.</div>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Student</TableHead>
+                              <TableHead className="text-right">Expected</TableHead>
+                              <TableHead className="text-right">Paid</TableHead>
+                              <TableHead className="text-right">Outstanding</TableHead>
+                              <TableHead className="text-right">Status</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {feeStatuses.map(s => (
+                              <TableRow key={s.studentId}>
+                                <TableCell className="font-medium">{s.studentName}</TableCell>
+                                <TableCell className="text-right">${s.expectedAmount.toFixed(2)}</TableCell>
+                                <TableCell className="text-right">${s.paidAmount.toFixed(2)}</TableCell>
+                                <TableCell className="text-right">${s.outstandingAmount.toFixed(2)}</TableCell>
+                                <TableCell className="text-right">
+                                  <Badge
+                                    variant={
+                                      s.status === 'paid' ? 'default'
+                                        : s.status === 'overdue' ? 'destructive'
+                                        : s.status === 'partial' ? 'outline'
+                                        : s.status === 'unpaid' ? 'outline'
+                                        : 'outline'
+                                    }
+                                    className="capitalize"
+                                  >
+                                    {s.status}
+                                  </Badge>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
         </>
       )}
     </div>

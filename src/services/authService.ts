@@ -1,33 +1,19 @@
-import { API_CONFIG } from '@/config/api';
+// authService.ts updated per user request
+// Note: Using process.env.REACT_APP_API_URL (CRA style). In Vite, prefer import.meta.env.VITE_API_BASE_URL.
+// To keep compatibility, we also check Vite env if available.
+// Falls back to localhost server root (without /api/v1) because endpoints below include /api/v1.
 
-const API_BASE_URL = API_CONFIG.BASE_URL;
-
-export interface LoginRequest {
-  email: string;
-  password: string;
-}
-
-export interface LoginResponse {
-  access_token: string;
-  user: {
-    id: string;
-    email: string;
-    role: string;
-  };
-}
-
-export interface ValidateTokenResponse {
-  valid: boolean;
-  user?: {
-    id: string;
-    email: string;
-    role: string;
-  };
-}
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const runtimeEnv: any = typeof import.meta !== 'undefined' ? (import.meta as any).env : {};
+// Vite doesn't expose process.env by default; use import.meta.env only.
+// If VITE_API_BASE_URL already contains /api/v1 strip it to append explicit endpoints below.
+const API_BASE_URL = (runtimeEnv.VITE_API_BASE_URL || 'http://localhost:5000')
+  .replace(/\/$/, '')
+  .replace(/\/?api\/v1\/?$/, '');
 
 export const authApi = {
-  login: async (credentials: LoginRequest): Promise<LoginResponse> => {
-    const response = await fetch(`${API_BASE_URL}/auth/login`, {
+  login: async (credentials: { email: string; password: string }) => {
+    const response = await fetch(`${API_BASE_URL}/api/v1/auth/login`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -36,47 +22,56 @@ export const authApi = {
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      
-      // Try to parse as JSON for more details
-      try {
-        const errorJson = JSON.parse(errorText);
-        console.log('❌ Parsed error:', errorJson);
-        throw new Error(errorJson.message || errorJson.error || 'Invalid credentials');
-      } catch {
-        throw new Error(`HTTP ${response.status}: ${errorText || 'Invalid credentials'}`);
-      }
+      throw new Error('Login failed');
     }
-
-    const responseData = await response.json();
-    return responseData;
-  },
-
-  validateToken: async (token: string): Promise<ValidateTokenResponse> => {
-    const response = await fetch(`${API_BASE_URL}/auth/validate-token`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ token }),
-    });
 
     return response.json();
   },
 
-  verifyToken: async (token: string): Promise<ValidateTokenResponse> => {
-    const response = await fetch(`${API_BASE_URL}/auth/verify`, {
+  verifyToken: async (token: string) => {
+    const response = await fetch(`${API_BASE_URL}/api/v1/auth/verify`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
       },
     });
 
     if (!response.ok) {
-      return { valid: false };
+      throw new Error('Token verification failed');
     }
 
     return response.json();
   },
+
+  // First-login / standard password change. Some backends expect newPassword, others password.
+  changePassword: async (newPassword: string, token: string) => {
+    const url = `${API_BASE_URL}/api/v1/users/me/change-password`;
+    const res = await fetch(url, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({ newPassword }),
+    });
+
+    if (!res.ok) {
+      // Try parse JSON error; fallback to text
+      let serverMessage = '';
+      try {
+        const data = await res.json();
+        serverMessage = data.message || data.error || '';
+      } catch {
+        serverMessage = await res.text().catch(() => '');
+      }
+      throw new Error(serverMessage || `Password change failed (HTTP ${res.status})`);
+    }
+
+    // Successful response (may or may not have body)
+    try {
+      return await res.json();
+    } catch {
+      return { success: true };
+    }
+  }
 };
