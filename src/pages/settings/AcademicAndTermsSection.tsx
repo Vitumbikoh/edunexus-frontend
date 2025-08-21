@@ -28,17 +28,12 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 
 import { API_CONFIG } from '@/config/api';
+import { academicCalendarService, AcademicCalendar as ServiceAcademicCalendar } from '@/services/academicCalendarService';
 
 const API_BASE = API_CONFIG.BASE_URL;
 
 // Type definitions
-export type AcademicCalendar = {
-  id?: string;
-  academicYear: string;
-  startDate?: string | null;
-  endDate?: string | null;
-  isActive?: boolean;
-};
+export type AcademicCalendar = ServiceAcademicCalendar;
 
 export type Term = {
   id: string;
@@ -62,6 +57,7 @@ export default function AcademicAndTermsSection() {
 
   // State
   const [academicCalendars, setAcademicCalendars] = useState<AcademicCalendar[]>([]);
+  const [activeAcademicCalendar, setActiveAcademicCalendar] = useState<AcademicCalendar | null>(null);
   const [selectedAcademicCalendar, setSelectedAcademicCalendar] = useState<AcademicCalendar>({
     academicYear: "",
     startDate: null,
@@ -84,6 +80,7 @@ export default function AcademicAndTermsSection() {
     academic: false,
     term: false,
     fetching: false,
+    activating: false,
   });
 
   const [showNewCalendarForm, setShowNewCalendarForm] = useState(false);
@@ -164,27 +161,29 @@ export default function AcademicAndTermsSection() {
   const fetchAcademicData = async () => {
     setLoading((prev) => ({ ...prev, fetching: true }));
     try {
-      const res = await fetch(`${API_BASE}/settings/academic-calendars`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (!res.ok) throw new Error(await res.text());
-
-      const data = await res.json();
-      const calendars = Array.isArray(data) ? data : [];
-
+      // Fetch all academic calendars
+      const calendars = await academicCalendarService.getAcademicCalendars(token!);
       setAcademicCalendars(calendars);
 
-      const activeCalendar = calendars.find((c) => c.isActive) || calendars[0] || {
+      // Fetch active academic calendar (handle potential errors gracefully)
+      let activeCalendar: AcademicCalendar | null = null;
+      try {
+        activeCalendar = await academicCalendarService.getActiveAcademicCalendar(token!);
+      } catch (error) {
+        console.warn("Failed to fetch active academic calendar:", error);
+        // Continue without active calendar
+      }
+      setActiveAcademicCalendar(activeCalendar);
+
+      // Set selected calendar to active one or first available
+      const defaultCalendar = activeCalendar || calendars[0] || {
         academicYear: "",
         startDate: null,
         endDate: null,
         isActive: false,
       };
 
-      setSelectedAcademicCalendar(activeCalendar);
+      setSelectedAcademicCalendar(defaultCalendar);
     } catch (error) {
       console.error("Failed to fetch academic calendars:", error);
       toast({
@@ -200,20 +199,7 @@ export default function AcademicAndTermsSection() {
   const onSaveAcademic = async () => {
     setLoading((prev) => ({ ...prev, academic: true }));
     try {
-      const res = await fetch(`${API_BASE}/settings/academic-calendar`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          academicYear: selectedAcademicCalendar.academicYear,
-          startDate: selectedAcademicCalendar.startDate || undefined,
-          endDate: selectedAcademicCalendar.endDate || undefined,
-        }),
-      });
-
-      if (!res.ok) throw new Error(await res.text());
+      await academicCalendarService.createAcademicCalendar(selectedAcademicCalendar, token!);
 
       toast({
         title: "Success",
@@ -225,11 +211,33 @@ export default function AcademicAndTermsSection() {
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to save academic calendar",
+        description: error instanceof Error ? error.message : "Failed to save academic calendar",
         variant: "destructive",
       });
     } finally {
       setLoading((prev) => ({ ...prev, academic: false }));
+    }
+  };
+
+  const onActivateAcademicCalendar = async (calendarId: string) => {
+    setLoading((prev) => ({ ...prev, activating: true }));
+    try {
+      await academicCalendarService.setActiveAcademicCalendar(calendarId, token!);
+
+      toast({
+        title: "Success",
+        description: "Academic calendar activated successfully",
+      });
+
+      await fetchAcademicData();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to activate academic calendar",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading((prev) => ({ ...prev, activating: false }));
     }
   };
 
@@ -295,6 +303,45 @@ export default function AcademicAndTermsSection() {
 
   return (
     <div className="space-y-6">
+      {/* Active Academic Calendar Section */}
+      <div className="space-y-4 border p-4 rounded-lg bg-green-50">
+        <h3 className="font-medium text-green-800">Active Academic Calendar</h3>
+        {activeAcademicCalendar ? (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label className="text-green-700">Academic Year</Label>
+              <Input
+                value={activeAcademicCalendar.academicYear}
+                readOnly
+                className="bg-white"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-green-700">Start Date</Label>
+              <Input
+                value={formatDateForDisplay(activeAcademicCalendar.startDate)}
+                readOnly
+                className="bg-white"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-green-700">End Date</Label>
+              <Input
+                value={formatDateForDisplay(activeAcademicCalendar.endDate)}
+                readOnly
+                className="bg-white"
+              />
+            </div>
+          </div>
+        ) : (
+          <div className="text-center py-4">
+            <p className="text-muted-foreground">
+              No active academic calendar set. Please activate one from the list below.
+            </p>
+          </div>
+        )}
+      </div>
+
       {/* Academic Calendar Section */}
       <div className="space-y-4 border p-4 rounded-lg">
         <div className="flex justify-between items-center">
@@ -402,7 +449,7 @@ export default function AcademicAndTermsSection() {
                       {academicCalendars.map((calendar) => (
                         <SelectItem key={calendar.id} value={calendar.id || ""}>
                           {calendar.academicYear}{" "}
-                          {calendar.isActive ? "(Active)" : ""}
+                          {calendar.id === activeAcademicCalendar?.id ? "(Active)" : ""}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -431,6 +478,58 @@ export default function AcademicAndTermsSection() {
                       readOnly
                     />
                   </div>
+                </div>
+
+                {/* Academic Calendar List with Activation */}
+                <div className="space-y-2 mt-6">
+                  <Label>All Academic Calendars</Label>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Academic Year</TableHead>
+                        <TableHead>Start Date</TableHead>
+                        <TableHead>End Date</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {academicCalendars.map((calendar) => (
+                        <TableRow key={calendar.id}>
+                          <TableCell className="font-medium">
+                            {calendar.academicYear}
+                          </TableCell>
+                          <TableCell>{formatDateForDisplay(calendar.startDate)}</TableCell>
+                          <TableCell>{formatDateForDisplay(calendar.endDate)}</TableCell>
+                          <TableCell>
+                            {calendar.id === activeAcademicCalendar?.id ? (
+                              <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
+                                Active
+                              </span>
+                            ) : (
+                              <span className="px-2 py-1 bg-gray-100 text-gray-800 text-xs rounded-full">
+                                Inactive
+                              </span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex gap-2">
+                              {calendar.id !== activeAcademicCalendar?.id && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => calendar.id && onActivateAcademicCalendar(calendar.id)}
+                                  disabled={loading.activating || !calendar.id}
+                                >
+                                  {loading.activating ? "Activating..." : "Activate"}
+                                </Button>
+                              )}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
                 </div>
 
                 <div className="flex justify-end gap-2">
@@ -471,10 +570,17 @@ export default function AcademicAndTermsSection() {
       <div className="space-y-4 border p-4 rounded-lg">
         <div className="flex justify-between items-center">
           <h3 className="font-medium">Term Management</h3>
-          <p className="text-sm text-muted-foreground">
-            Academic Year:{" "}
-            {selectedAcademicCalendar.academicYear || "Not selected"}
-          </p>
+          <div className="text-sm text-muted-foreground">
+            <span>Academic Year: </span>
+            <span className="font-medium">
+              {selectedAcademicCalendar.academicYear || "Not selected"}
+            </span>
+            {selectedAcademicCalendar.id === activeAcademicCalendar?.id && (
+              <span className="ml-2 px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
+                Active
+              </span>
+            )}
+          </div>
         </div>
 
         {selectedAcademicCalendar.id ? (
