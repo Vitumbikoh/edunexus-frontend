@@ -172,7 +172,7 @@ export default function RecentActivitiesCard() {
           </div>
         ) : activities.length > 0 ? (
           <div className="space-y-4">
-            {activities.map((activity) => (
+            {activities.slice(0,5).map((activity) => (
               <div
                 key={activity.id}
                 className={`flex items-start space-x-4 p-2 rounded-md hover:bg-accent cursor-pointer transition ${unreadIds.has(activity.id) ? 'bg-accent/40' : ''}`}
@@ -200,6 +200,16 @@ export default function RecentActivitiesCard() {
                 {unreadIds.has(activity.id) && <span className="w-2 h-2 bg-blue-500 rounded-full mt-2" />}
               </div>
             ))}
+            {activities.length > 5 && (
+              <div className="pt-2">
+                <button
+                  onClick={() => navigate('/activities')}
+                  className="text-sm text-primary hover:underline"
+                >
+                  See more
+                </button>
+              </div>
+            )}
           </div>
         ) : (
           <div className="flex justify-center py-4">

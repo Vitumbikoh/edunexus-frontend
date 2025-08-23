@@ -1,30 +1,37 @@
-import React, { useEffect, useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import React, { useEffect, useState } from "react";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ChevronRight } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import { 
-  AttendanceOverview, 
-  ClassPerformanceChart, 
+import { ChevronRight } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import {
+  AttendanceOverview,
+  ClassPerformanceChart,
   FeeCollectionChart,
   FinanceOverviewChart,
   StudentPerformanceChart,
   AssignmentStatusChart,
   generateAssignmentStatusData,
-  generateStudentPerformanceData
-} from './DashboardCharts';
-import { API_CONFIG } from '@/config/api';
-import { useAuth } from '@/contexts/AuthContext';
+  generateStudentPerformanceData,
+} from "./DashboardCharts";
+import { API_CONFIG } from "@/config/api";
+import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
 import { Badge } from "@/components/ui/badge";
-import RecentActivitiesCard from '@/components/dashboard/RecentActivitiesCard';
-import { Progress } from '@radix-ui/react-progress';
-
+import RecentActivitiesCard from "@/components/dashboard/RecentActivitiesCard";
+import { Progress } from "@radix-ui/react-progress";
 
 export const AdminDashboardCards = () => {
   const navigate = useNavigate();
   const { token } = useAuth();
-  const [academicYearId, setAcademicYearId] = useState<string | undefined>(undefined);
+  const [academicYearId, setAcademicYearId] = useState<string | undefined>(
+    undefined
+  );
   const [loadingAY, setLoadingAY] = useState<boolean>(false);
 
   useEffect(() => {
@@ -32,52 +39,41 @@ export const AdminDashboardCards = () => {
       if (!token) return;
       try {
         setLoadingAY(true);
-        const res = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.CURRENT_ACADEMIC_YEAR}`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
+        const res = await fetch(
+          `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.CURRENT_ACADEMIC_YEAR}`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
         if (res.ok) {
           const data = await res.json();
           // Accept flexible key names
-          const id = data?.id || data?.academicYearId || data?.currentAcademicYear?.id;
+          const id =
+            data?.id || data?.academicYearId || data?.currentAcademicYear?.id;
           if (id) setAcademicYearId(id);
         }
       } catch (e) {
-        console.warn('Failed to load current academic year', e);
+        console.warn("Failed to load current academic year", e);
       } finally {
         setLoadingAY(false);
       }
     };
     fetchCurrentAcademicYear();
   }, [token]);
-  
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       <Card className="bg-gradient-to-br from-white to-slate-50 dark:from-gray-900 dark:to-gray-900/50">
         <CardHeader>
-          <CardTitle>Class Performance</CardTitle>
-          <CardDescription>Average scores by course {loadingAY && <span className="text-xs text-muted-foreground">(loading year...)</span>}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="h-80">
-            <ClassPerformanceChart academicYearId={academicYearId} />
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card className="bg-gradient-to-br from-white to-slate-50 dark:from-gray-900 dark:to-gray-900/50">
-        <CardHeader>
-          <CardTitle>Attendance Overview</CardTitle>
-          <CardDescription>Current month attendance by class {loadingAY && <span className="text-xs text-muted-foreground">(loading year...)</span>}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <AttendanceOverview academicYearId={academicYearId} />
-        </CardContent>
-      </Card>
-
-      <Card className="bg-gradient-to-br from-white to-slate-50 dark:from-gray-900 dark:to-gray-900/50">
-        <CardHeader>
           <CardTitle>Fee Collection Status</CardTitle>
-          <CardDescription>Current academic year {loadingAY && <span className="text-xs text-muted-foreground">(loading year...)</span>}</CardDescription>
+          <CardDescription>
+            Current academic year{" "}
+            {loadingAY && (
+              <span className="text-xs text-muted-foreground">
+                (loading year...)
+              </span>
+            )}
+          </CardDescription>
         </CardHeader>
         <CardContent className="flex justify-center">
           <div className="h-64 w-64">
@@ -91,15 +87,53 @@ export const AdminDashboardCards = () => {
           </Button>
         </div>
       </Card>
-      
+
       <RecentActivitiesCard />
+
+      <Card className="bg-gradient-to-br from-white to-slate-50 dark:from-gray-900 dark:to-gray-900/50">
+        <CardHeader>
+          <CardTitle>Class Performance</CardTitle>
+          <CardDescription>
+            Average scores by course{" "}
+            {loadingAY && (
+              <span className="text-xs text-muted-foreground">
+                (loading year...)
+              </span>
+            )}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="h-80">
+            <ClassPerformanceChart academicYearId={academicYearId} />
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="bg-gradient-to-br from-white to-slate-50 dark:from-gray-900 dark:to-gray-900/50">
+        <CardHeader>
+          <CardTitle>Attendance Overview</CardTitle>
+          <CardDescription>
+            Current month attendance by class{" "}
+            {loadingAY && (
+              <span className="text-xs text-muted-foreground">
+                (loading year...)
+              </span>
+            )}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <AttendanceOverview academicYearId={academicYearId} />
+        </CardContent>
+      </Card>
+
+      
     </div>
   );
 };
 
 export const FinanceDashboardCards = () => {
   const navigate = useNavigate();
-  
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       <Card className="bg-gradient-to-br from-white to-slate-50 dark:from-gray-900 dark:to-gray-900/50">
@@ -125,7 +159,10 @@ export const FinanceDashboardCards = () => {
           </div>
         </CardContent>
         <div className="px-6 pb-6">
-          <Button className="w-full" onClick={() => navigate("/finance/reports")}>
+          <Button
+            className="w-full"
+            onClick={() => navigate("/finance/reports")}
+          >
             View Financial Details
             <ChevronRight className="ml-2 h-4 w-4" />
           </Button>
@@ -142,21 +179,27 @@ export const FinanceDashboardCards = () => {
             <div className="flex justify-between items-center p-3 rounded-lg bg-background/50">
               <div>
                 <p className="font-medium">John Smith - Grade 10</p>
-                <p className="text-sm text-muted-foreground">Tuition Fee Payment</p>
+                <p className="text-sm text-muted-foreground">
+                  Tuition Fee Payment
+                </p>
               </div>
               <span className="text-green-600 font-medium">+$1,200</span>
             </div>
             <div className="flex justify-between items-center p-3 rounded-lg bg-background/50">
               <div>
                 <p className="font-medium">Sarah Johnson - Grade 8</p>
-                <p className="text-sm text-muted-foreground">Book Fee Payment</p>
+                <p className="text-sm text-muted-foreground">
+                  Book Fee Payment
+                </p>
               </div>
               <span className="text-green-600 font-medium">+$150</span>
             </div>
             <div className="flex justify-between items-center p-3 rounded-lg bg-background/50">
               <div>
                 <p className="font-medium">Office Supplies</p>
-                <p className="text-sm text-muted-foreground">Administrative Expense</p>
+                <p className="text-sm text-muted-foreground">
+                  Administrative Expense
+                </p>
               </div>
               <span className="text-red-600 font-medium">-$450</span>
             </div>
@@ -174,21 +217,27 @@ export const FinanceDashboardCards = () => {
             <div className="flex justify-between items-center p-3 rounded-lg bg-background/50">
               <div>
                 <p className="font-medium">Michael Brown</p>
-                <p className="text-sm text-muted-foreground">Grade 9 - Due: Dec 15</p>
+                <p className="text-sm text-muted-foreground">
+                  Grade 9 - Due: Dec 15
+                </p>
               </div>
               <Badge variant="destructive">$800</Badge>
             </div>
             <div className="flex justify-between items-center p-3 rounded-lg bg-background/50">
               <div>
                 <p className="font-medium">Emily Davis</p>
-                <p className="text-sm text-muted-foreground">Grade 11 - Due: Dec 20</p>
+                <p className="text-sm text-muted-foreground">
+                  Grade 11 - Due: Dec 20
+                </p>
               </div>
               <Badge variant="destructive">$650</Badge>
             </div>
             <div className="flex justify-between items-center p-3 rounded-lg bg-background/50">
               <div>
                 <p className="font-medium">Alex Wilson</p>
-                <p className="text-sm text-muted-foreground">Grade 7 - Due: Dec 25</p>
+                <p className="text-sm text-muted-foreground">
+                  Grade 7 - Due: Dec 25
+                </p>
               </div>
               <Badge variant="destructive">$450</Badge>
             </div>
@@ -201,7 +250,7 @@ export const FinanceDashboardCards = () => {
 
 export const ParentDashboardCards = () => {
   const { user } = useAuth();
-  
+
   if (!user?.parentData) return null;
 
   return (
@@ -216,13 +265,20 @@ export const ParentDashboardCards = () => {
             <CardContent>
               <div className="space-y-4">
                 {child.grades.map((grade, index) => (
-                  <div key={index} className="flex justify-between items-center p-2 rounded-lg bg-background/50">
+                  <div
+                    key={index}
+                    className="flex justify-between items-center p-2 rounded-lg bg-background/50"
+                  >
                     <span className="font-medium">{grade.course}</span>
-                    <Badge variant={
-                      grade.grade.startsWith('A') ? 'default' :
-                      grade.grade.startsWith('B') ? 'secondary' :
-                      'outline'
-                    }>
+                    <Badge
+                      variant={
+                        grade.grade.startsWith("A")
+                          ? "default"
+                          : grade.grade.startsWith("B")
+                          ? "secondary"
+                          : "outline"
+                      }
+                    >
                       {grade.grade}
                     </Badge>
                   </div>
@@ -240,21 +296,31 @@ export const ParentDashboardCards = () => {
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
                   <span>Present</span>
-                  <span className="text-green-600">{child.attendance.present}%</span>
+                  <span className="text-green-600">
+                    {child.attendance.present}%
+                  </span>
                 </div>
                 <Progress value={child.attendance.present} className="h-2" />
                 <div className="grid grid-cols-3 gap-4 mt-4">
                   <div className="text-center">
-                    <div className="text-2xl font-bold">{child.attendance.absent}</div>
+                    <div className="text-2xl font-bold">
+                      {child.attendance.absent}
+                    </div>
                     <div className="text-sm text-muted-foreground">Absent</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-2xl font-bold">{child.attendance.late}</div>
+                    <div className="text-2xl font-bold">
+                      {child.attendance.late}
+                    </div>
                     <div className="text-sm text-muted-foreground">Late</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-2xl font-bold">{child.attendance.total}</div>
-                    <div className="text-sm text-muted-foreground">Total Days</div>
+                    <div className="text-2xl font-bold">
+                      {child.attendance.total}
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      Total Days
+                    </div>
                   </div>
                 </div>
               </div>
@@ -269,7 +335,7 @@ export const ParentDashboardCards = () => {
 export const StudentDashboardCards = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  
+
   const studentPerformanceData = generateStudentPerformanceData(user);
   const assignmentStatusData = generateAssignmentStatusData(user);
 
@@ -278,7 +344,9 @@ export const StudentDashboardCards = () => {
       <Card className="bg-gradient-to-br from-white to-slate-50 dark:from-gray-900 dark:to-gray-900/50">
         <CardHeader>
           <CardTitle>My Performance</CardTitle>
-          <CardDescription>Course scores compared to class average</CardDescription>
+          <CardDescription>
+            Course scores compared to class average
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="h-80">
@@ -358,7 +426,10 @@ export const TeacherDashboardCards = () => {
         setClasses(classesData.classes || []);
         setAttendance(attendanceData.attendance || []);
       } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : "Failed to load teacher dashboard data";
+        const errorMessage =
+          err instanceof Error
+            ? err.message
+            : "Failed to load teacher dashboard data";
         setError(errorMessage);
         toast({
           title: "Error",
@@ -406,12 +477,25 @@ export const TeacherDashboardCards = () => {
         <CardContent>
           <div className="space-y-4">
             {attendance.map((record, index) => (
-              <div key={index} className="flex justify-between items-center p-3 rounded-lg bg-background/50">
+              <div
+                key={index}
+                className="flex justify-between items-center p-3 rounded-lg bg-background/50"
+              >
                 <div>
-                  <p className="font-medium">{record.className} - {record.courseName}</p>
-                  <p className="text-sm text-muted-foreground">{record.enrolledStudents} students enrolled</p>
+                  <p className="font-medium">
+                    {record.className} - {record.courseName}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    {record.enrolledStudents} students enrolled
+                  </p>
                 </div>
-                <Badge variant={record.presentStudents >= record.enrolledStudents * 0.9 ? 'default' : 'secondary'}>
+                <Badge
+                  variant={
+                    record.presentStudents >= record.enrolledStudents * 0.9
+                      ? "default"
+                      : "secondary"
+                  }
+                >
                   {record.presentStudents} present
                 </Badge>
               </div>
@@ -428,10 +512,15 @@ export const TeacherDashboardCards = () => {
         <CardContent>
           <div className="space-y-4">
             {classes.map((cls) => (
-              <div key={cls.id} className="flex justify-between items-center p-3 rounded-lg bg-background/50">
+              <div
+                key={cls.id}
+                className="flex justify-between items-center p-3 rounded-lg bg-background/50"
+              >
                 <div>
                   <p className="font-medium">{cls.courseName}</p>
-                  <p className="text-sm text-muted-foreground">{cls.className} • {cls.room}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {cls.className} • {cls.room}
+                  </p>
                 </div>
                 <span className="text-sm font-medium">{cls.startTime}</span>
               </div>
@@ -439,7 +528,10 @@ export const TeacherDashboardCards = () => {
           </div>
         </CardContent>
         <div className="px-6 pb-6">
-          <Button className="w-full" onClick={() => navigate("/teacher/schedules")}>
+          <Button
+            className="w-full"
+            onClick={() => navigate("/teacher/schedules")}
+          >
             View Full Schedule
             <ChevronRight className="ml-2 h-4 w-4" />
           </Button>

@@ -56,10 +56,11 @@ export const useDashboardStats = () => {
         }
 
         if (role === "admin") {
-          const [studentsData, coursesData, financesData] = await Promise.all([
+          const [studentsData, coursesData, financesData, teachersData] = await Promise.all([
             fetchData("/student/total-students"),
             fetchData("/course/stats/total-courses"),
             fetchData("/finance/total-finances"),
+            fetchData("/teacher/total-teachers"),
           ]);
 
           setStats([
@@ -78,9 +79,24 @@ export const useDashboardStats = () => {
               className: "bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-900/10",
             },
             {
-              title: "Upcoming Events",
-              value: "8",
-              icon: <Calendar size={24} />,
+              title: "Total Teachers",
+              value: (() => {
+                try {
+                  const raw = (
+                    teachersData?.totalTeachers ??
+                    teachersData?.total ??
+                    teachersData?.count ??
+                    teachersData?.value ??
+                    teachersData?.data?.total ??
+                    0
+                  );
+                  const num = typeof raw === 'number' ? raw : Number(raw);
+                  return Number.isFinite(num) ? num.toLocaleString() : '0';
+                } catch {
+                  return '0';
+                }
+              })(),
+              icon: <Users size={24} />,
               className: "bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-900/10",
             },
             {

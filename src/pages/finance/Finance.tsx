@@ -99,12 +99,16 @@ export default function Finance() {
   const [academicYears, setAcademicYears] = useState<{ id: string; name: string }[]>([]);
   const [academicYearId, setAcademicYearId] = useState<string | undefined>(undefined);
 
+  // Uniform fee expectation dialog state (restored)
   const [showSetUniformDialog, setShowSetUniformDialog] = useState(false);
   const [uniformAmount, setUniformAmount] = useState<string>("");
   const [uniformAcademicYearId, setUniformAcademicYearId] = useState<string | undefined>(undefined);
   const [savingUniform, setSavingUniform] = useState(false);
 
-  const [generatingExpectations, setGeneratingExpectations] = useState(false);
+  // Invoices (fetched directly instead of using feePayments fallback)
+  const [feeInvoices, setFeeInvoices] = useState<FeePayment[]>([]);
+  const [loadingInvoices, setLoadingInvoices] = useState(false);
+  const [invoicesError, setInvoicesError] = useState<string | null>(null);
 
   const [feeStatuses, setFeeStatuses] = useState<FeeStatusItem[]>([]);
   const [loadingStatuses, setLoadingStatuses] = useState(false);
@@ -131,7 +135,7 @@ export default function Finance() {
             const computedName = (rawName && rawName.trim()) || (rangeName && rangeName !== '-' ? rangeName : '') || 'Current Academic Year';
             if (id) {
               setAcademicYearId(id);
-              setUniformAcademicYearId(id);
+              if (!uniformAcademicYearId) setUniformAcademicYearId(id);
               setAcademicYears(prev => {
                 if (prev.find(p => p.id === id)) return prev;
                 return [{ id, name: computedName }];
@@ -177,7 +181,7 @@ export default function Finance() {
             setAcademicYears(mapped.map(({id, name}: any) => ({id, name})));
             if (!academicYearId) {
               setAcademicYearId(mapped[0].id);
-              setUniformAcademicYearId(mapped[0].id);
+              if (!uniformAcademicYearId) setUniformAcademicYearId(mapped[0].id);
             }
           }
         }
@@ -374,58 +378,43 @@ export default function Finance() {
     fetchData();
   }, [token, navigate, toast, searchQuery, isParent, academicYearId]);
 
-  const saveUniformFeeExpectation = async () => {
-    if (!token || !uniformAmount) return;
-    try {
-      setSavingUniform(true);
-      const body: any = { amount: Number(uniformAmount) };
-      body.academicYearId = uniformAcademicYearId || academicYearId;
-      const res = await fetch(`${API_CONFIG.BASE_URL}/finance/fee-structure`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(body)
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.message || 'Failed to set uniform fee expectation');
+  // Fetch invoices from backend
+  useEffect(() => {
+    const fetchInvoices = async () => {
+      if (!token || !academicYearId) return;
+      setLoadingInvoices(true);
+      setInvoicesError(null);
+      try {
+        const res = await fetch(`${API_CONFIG.BASE_URL}/finance/fee-invoices?academicYearId=${academicYearId}&search=${encodeURIComponent(searchQuery)}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.message || 'Failed to fetch invoices');
+        }
+        const data = await res.json();
+        const list = Array.isArray(data) ? data : (data.invoices || data.items || data.data || []);
+        const mapped: FeePayment[] = list.map((inv: any) => ({
+          id: inv.id || inv.invoiceId,
+          studentName: inv.studentName || inv.student || 'Unknown',
+          amount: Number(inv.amount ?? inv.total ?? 0),
+          paymentDate: inv.date || inv.invoiceDate || inv.createdAt || null,
+          paymentType: inv.description || inv.feeType || 'Invoice',
+          paymentMethod: inv.paymentMethod || inv.method || 'N/A',
+          receiptNumber: inv.receiptNumber || inv.reference || null,
+          status: (inv.status || 'pending').toLowerCase(),
+          notes: inv.notes || null,
+        })).filter((i: FeePayment) => i.id);
+        setFeeInvoices(mapped);
+      } catch (e) {
+        setInvoicesError(e instanceof Error ? e.message : 'Failed to load invoices');
+        setFeeInvoices([]);
+      } finally {
+        setLoadingInvoices(false);
       }
-      await res.json().catch(() => ({}));
-      // Trigger re-fetch summary
-      setSummaryData(null);
-      toast({ title: 'Success', description: 'Uniform fee expectation saved.' });
-      setShowSetUniformDialog(false);
-    } catch (e) {
-      toast({ title: 'Error', description: e instanceof Error ? e.message : 'Failed to save expectation', variant: 'destructive' });
-    } finally {
-      setSavingUniform(false);
-    }
-  };
-
-  const generateExpectations = async () => {
-    if (!token || !academicYearId) return;
-    try {
-      setGeneratingExpectations(true);
-      // Keeping legacy generation endpoint if backend still provides it
-      const res = await fetch(`${API_CONFIG.BASE_URL}/finance/fee-expectations/generate`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ academicYearId, overwrite: true })
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.message || 'Failed to generate expectations');
-      }
-      toast({ title: 'Success', description: 'Fee expectations generated.' });
-      setSummaryData(null); // triggers summary & statuses refresh
-    } catch (e) {
-      toast({ title: 'Error', description: e instanceof Error ? e.message : 'Generation failed', variant: 'destructive' });
-    } finally {
-      setGeneratingExpectations(false);
-    }
-  };
+    };
+    fetchInvoices();
+  }, [token, academicYearId, searchQuery]);
 
   // ---------------- Metrics calculation ----------------
   // Summary preferred, fallback to derived
@@ -456,11 +445,11 @@ export default function Finance() {
     ? Math.round((effectivePaid / effectiveExpected) * 100)
     : 0;
 
-  // Legacy raw payment fallback (not primary anymore)
-  const filteredInvoices = feePayments.filter(payment =>
-    payment.studentName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    payment.paymentType.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    payment.receiptNumber?.toLowerCase().includes(searchQuery.toLowerCase())
+  // Invoices filtering
+  const filteredInvoices = feeInvoices.filter(invoice =>
+    invoice.studentName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    invoice.paymentType.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    invoice.receiptNumber?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const filteredTransactions = transactions.filter(transaction =>
@@ -468,6 +457,37 @@ export default function Finance() {
     transaction.paymentType.toLowerCase().includes(searchQuery.toLowerCase()) ||
     transaction.receiptNumber?.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  // Save uniform fee expectation (restored)
+  const saveUniformFeeExpectation = async () => {
+    if (!token || !uniformAmount) return;
+    try {
+      setSavingUniform(true);
+      const body: any = { amount: Number(uniformAmount) };
+      body.academicYearId = uniformAcademicYearId || academicYearId;
+      const res = await fetch(`${API_CONFIG.BASE_URL}/finance/fee-structure`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(body)
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message || 'Failed to set uniform fee expectation');
+      }
+      await res.json().catch(() => ({}));
+      // Trigger re-fetch summary
+      setSummaryData(null);
+      toast({ title: 'Success', description: 'Uniform fee expectation saved.' });
+      setShowSetUniformDialog(false);
+    } catch (e) {
+      toast({ title: 'Error', description: e instanceof Error ? e.message : 'Failed to save expectation', variant: 'destructive' });
+    } finally {
+      setSavingUniform(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -536,7 +556,7 @@ export default function Finance() {
                   </DialogFooter>
                 </DialogContent>
               </Dialog>
-              <Button onClick={() => navigate("/finance/record")}>
+              <Button onClick={() => navigate("/finance/record")}> 
                 <PlusCircle className="mr-2 h-4 w-4" />
                 Record Payment
               </Button>
@@ -755,18 +775,6 @@ export default function Finance() {
                     <div>
                       <CardTitle>Fee Statuses</CardTitle>
                       <CardDescription>Per-student expected vs paid amounts</CardDescription>
-                    </div>
-                    <div className="flex gap-2 flex-wrap">
-                      {isAdmin && (
-                        <Button size="sm" variant="outline" onClick={generateExpectations} disabled={generatingExpectations || !academicYearId}>
-                          {generatingExpectations ? 'Generating...' : 'Generate Expectations'}
-                        </Button>
-                      )}
-                      {isAdmin && (
-                        <Button size="sm" variant="outline" onClick={() => setShowSetUniformDialog(true)}>
-                          Set Uniform Fee
-                        </Button>
-                      )}
                     </div>
                   </CardHeader>
                   <CardContent>

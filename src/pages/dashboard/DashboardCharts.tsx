@@ -334,23 +334,45 @@ export const FeeCollectionChart = ({ academicYearId }: { academicYearId?: string
     // Preferred dataset: feeTypeBreakdown if present
     if (Array.isArray(data)) return data; // already array
     if (!data) return [];
-    if (Array.isArray(data.feeTypeBreakdown) && data.feeTypeBreakdown.length > 0) {
-      return data.feeTypeBreakdown.map((f: any) => ({
-        status: f.feeType || f.status || f.name,
-        amount: toNumber(f.amount)
+
+    // New backend shape handling: paymentTrends.byFeeType & paymentSummary
+    const feeTypeBreakdown = data.feeTypeBreakdown || data.feeTypes || data.fee_structure;
+    if (Array.isArray(feeTypeBreakdown) && feeTypeBreakdown.length > 0) {
+      return feeTypeBreakdown.map((f: any) => ({
+        status: f.feeType || f.type || f.status || f.name,
+        amount: toNumber(f.amount || f.totalPaid || f.expectedAmount)
       }));
     }
-    // Fallback: use totalPaid vs outstanding (ensure non-negative)
-    const totalPaid = toNumber(data.totalPaidFees || data.paidFees);
-    let outstanding = toNumber(data.outstandingFees);
-    const expected = toNumber(data.totalExpectedFees || data.expectedFees);
-    // If outstanding negative due to expected being 0 but payments exist, clamp to 0
-    if (outstanding < 0) outstanding = 0;
-    // If expected > 0 but outstanding 0 and totalPaid < expected, recompute
-    if (expected > 0 && outstanding === 0 && totalPaid < expected) {
+
+    // paymentTrends.byFeeType (analytics/fee-collection-status)
+    if (data.paymentTrends && Array.isArray(data.paymentTrends.byFeeType) && data.paymentTrends.byFeeType.length > 0) {
+      const arr = data.paymentTrends.byFeeType.map((f: any) => ({
+        status: (f.feeType || f.type || 'Fee').toString().replace(/_/g,' '),
+        amount: toNumber(f.totalPaid || f.amount || 0)
+      }));
+      // If only one fee type, fallback to aggregated pie for better visualization
+      if (arr.length > 1) return arr;
+    }
+
+    // paymentSummary aggregated values
+    const paymentSummary = data.paymentSummary || {};
+    let totalPaid = toNumber(
+      paymentSummary.totalPaid ?? paymentSummary.paid ?? data.totalPaidFees ?? data.paidFees ?? 0
+    );
+    let outstanding = toNumber(
+      paymentSummary.totalOutstanding ?? paymentSummary.outstanding ?? data.outstandingFees ?? 0
+    );
+    const expected = toNumber(
+      paymentSummary.totalExpected ?? paymentSummary.expected ?? data.totalExpectedFees ?? data.expectedFees ?? (totalPaid + outstanding)
+    );
+
+    // Derive if outstanding not explicitly present
+    if (expected > 0 && (outstanding === 0 || Math.abs(expected - (totalPaid + outstanding)) > 1)) {
       outstanding = Math.max(expected - totalPaid, 0);
     }
-    // If both zero, nothing to show
+    if (outstanding < 0) outstanding = 0;
+
+    // If both zero, nothing useful
     if (totalPaid === 0 && outstanding === 0) return [];
     return [
       { status: 'Collected', amount: totalPaid },
@@ -427,7 +449,10 @@ export const FeeCollectionChart = ({ academicYearId }: { academicYearId?: string
       <div className="flex flex-col justify-center items-center h-64 text-center px-4">
         <p className="text-sm text-muted-foreground">No fee collection data available</p>
         {rawResponse && (
-          <p className="mt-2 text-[11px] text-muted-foreground/70">Totals returned: paid {toNumber(rawResponse.totalPaidFees || rawResponse.paidFees)}, expected {toNumber(rawResponse.totalExpectedFees || rawResponse.expectedFees)}</p>
+          <p className="mt-2 text-[11px] text-muted-foreground/70">
+            Totals returned: paid {toNumber(rawResponse.paymentSummary?.totalPaid ?? rawResponse.totalPaidFees ?? rawResponse.paidFees)}
+            , expected {toNumber(rawResponse.paymentSummary?.totalExpected ?? rawResponse.totalExpectedFees ?? rawResponse.expectedFees)}
+          </p>
         )}
       </div>
     );
