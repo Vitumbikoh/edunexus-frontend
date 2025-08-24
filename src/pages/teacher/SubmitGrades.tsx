@@ -192,6 +192,28 @@ export default function SubmitGrades() {
   const fetchExamsForGrading = async (courseId: string) => {
     try {
       setIsLoading(true);
+      console.log('Fetching exams for grading with courseId:', courseId);
+      console.log('Current user (teacher):', user);
+      
+      // First, let's also check what regular exams exist for comparison
+      try {
+        const regularExamsResponse = await fetch(
+          `${API_CONFIG.BASE_URL}/exams?courseId=${courseId}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+        
+        if (regularExamsResponse.ok) {
+          const regularExamsData = await regularExamsResponse.json();
+          console.log('Regular exams API response for comparison:', regularExamsData);
+        }
+      } catch (debugError) {
+        console.log('Could not fetch regular exams for comparison:', debugError);
+      }
+      
       const response = await fetch(
         `${API_CONFIG.BASE_URL}/teacher/exams-for-grading?courseId=${courseId}`,
         {
@@ -201,16 +223,33 @@ export default function SubmitGrades() {
         }
       );
 
+      console.log('Exams for grading API response status:', response.status);
+
       if (!response.ok) {
         throw new Error('Failed to fetch exams');
       }
 
       const data = await response.json();
+      console.log('Exams for grading API response data:', data);
+      
       if (!data.success) {
         throw new Error('Failed to fetch exams');
       }
 
       setAvailableExams(data.exams);
+      
+      if (data.exams.length === 0) {
+        console.warn('No exams found for grading. This could be due to:');
+        console.warn('1. Exam status (only administered/completed exams might be available for grading)');
+        console.warn('2. Teacher permissions (teacher might not be assigned to exams for this course)');
+        console.warn('3. Academic year filters (exams might be from different academic year)');
+        
+        toast({
+          title: 'No Exams Available',
+          description: 'No exams are currently available for grading for this course. This could be because exams haven\'t been administered yet or you don\'t have permission to grade them.',
+          variant: 'default',
+        });
+      }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to load exams';
       toast({

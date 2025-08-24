@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -9,16 +10,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { PrinterIcon, Eye, GraduationCap, Calendar } from "lucide-react";
+import { PrinterIcon, Eye, GraduationCap, Calendar, Search } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 import ReportCard from "@/components/reports/ReportCard";
-
-interface Class {
-  id: string;
-  name: string;
-}
+import { academicCalendarService, AcademicCalendar } from "@/services/academicCalendarService";
+import { academicYearService, AcademicYear } from "@/services/academicYearService";
+import { classService, Class } from "@/services/classService";
 
 interface Student {
   id: string;
@@ -70,12 +69,16 @@ const ExamResults = () => {
   const { toast } = useToast();
 
   const [classes, setClasses] = useState<Class[]>([]);
+  const [academicCalendars, setAcademicCalendars] = useState<AcademicCalendar[]>([]);
+  const [academicYears, setAcademicYears] = useState<AcademicYear[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
+  const [filteredStudents, setFilteredStudents] = useState<Student[]>([]);
 
   const [selectedClass, setSelectedClass] = useState<string>("");
-  const [selectedYear, setSelectedYear] = useState<string>("2024-2025");
-  const [selectedTerm, setSelectedTerm] = useState<string>("First Term");
+  const [selectedAcademicCalendar, setSelectedAcademicCalendar] = useState<string>("");
+  const [selectedAcademicYear, setSelectedAcademicYear] = useState<string>("");
   const [selectedStudentId, setSelectedStudentId] = useState<string>("");
+  const [searchTerm, setSearchTerm] = useState<string>("");
 
   const [studentResults, setStudentResults] = useState<StudentResult | null>(
     null
@@ -84,75 +87,150 @@ const ExamResults = () => {
     useState<AllStudentsResults | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const academicYears = ["2023-2024", "2024-2025", "2025-2026"];
-  const terms = ["First Term", "Second Term", "Third Term"];
-
+  // Fetch all initial data
   useEffect(() => {
-    const fetchClasses = async () => {
+    const fetchInitialData = async () => {
       try {
+        setIsLoading(true);
+
         // Fetch classes
-        const response = await fetch(
-          "http://localhost:5000/api/v1/grades/classes",
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
-        if (!response.ok) throw new Error("Failed to fetch classes");
-        const data = await response.json();
-        setClasses(data);
+        const classesResponse = await classService.getClasses(token!);
+        setClasses(classesResponse);
+
+        // Fetch academic calendars
+        const calendarsResponse = await academicCalendarService.getAcademicCalendars(token!);
+        setAcademicCalendars(calendarsResponse);
+
+        // Fetch academic years
+        const yearsResponse = await academicYearService.getAcademicYears(token!);
+        setAcademicYears(yearsResponse);
+
       } catch (error) {
+        console.error('Error fetching initial data:', error);
         toast({
           title: "Error",
-          description: "Failed to fetch classes",
+          description: "Failed to fetch initial data",
           variant: "destructive",
         });
+      } finally {
+        setIsLoading(false);
       }
     };
-    fetchClasses();
+
+    if (token) {
+      fetchInitialData();
+    }
   }, [token, toast]);
 
+  // Filter academic years based on selected calendar
+  const filteredAcademicYears = selectedAcademicCalendar 
+    ? academicYears.filter(year => {
+        // If you have a relationship between calendar and years, filter here
+        // For now, show all academic years when a calendar is selected
+        return true;
+      })
+    : [];
+
+  // Auto-select active/current academic year when calendar changes
   useEffect(() => {
-    if (selectedClass && selectedYear && selectedTerm) {
+    if (selectedAcademicCalendar && filteredAcademicYears.length > 0) {
+      const currentYear = filteredAcademicYears.find(year => 
+        year.isActive || year.isCurrent || year.current
+      );
+      if (currentYear && !selectedAcademicYear) {
+        setSelectedAcademicYear(currentYear.id);
+      }
+    } else {
+      setSelectedAcademicYear("");
+    }
+  }, [selectedAcademicCalendar, filteredAcademicYears]);
+
+  // Reset dependent selections when parent selections change
+  useEffect(() => {
+    setSelectedAcademicCalendar("");
+    setSelectedAcademicYear("");
+    setSelectedStudentId("");
+    setSearchTerm("");
+  }, [selectedClass]);
+
+  useEffect(() => {
+    setSelectedAcademicYear("");
+    setSelectedStudentId("");
+    setSearchTerm("");
+  }, [selectedAcademicCalendar]);
+
+  useEffect(() => {
+    setSelectedStudentId("");
+    setSearchTerm("");
+  }, [selectedAcademicYear]);
+
+  // Filter students based on search term
+  useEffect(() => {
+    if (!searchTerm.trim()) {
+      setFilteredStudents(students);
+    } else {
+      const filtered = students.filter(student => 
+        `${student.firstName} ${student.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        student.studentId.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+      setFilteredStudents(filtered);
+    }
+  }, [students, searchTerm]);
+
+  // Fetch students when class, academic calendar, and academic year are selected
+  useEffect(() => {
+    if (selectedClass && selectedAcademicCalendar && selectedAcademicYear) {
       const fetchStudents = async () => {
         try {
-          // Fetch students
+          setIsLoading(true);
+          // Fetch students for the selected class
           const response = await fetch(
-            `http://localhost:5000/api/v1/grades/classes/${selectedClass}/students`,
+            `http://localhost:5000/api/v1/grades/classes/${selectedClass}/students?academicCalendarId=${selectedAcademicCalendar}&academicYearId=${selectedAcademicYear}`,
             { headers: { Authorization: `Bearer ${token}` } }
           );
           if (!response.ok) throw new Error("Failed to fetch students");
           const data = await response.json();
           console.log("Fetched students:", data);
           setStudents(data);
+          
+          // Reset selected student when students change
+          setSelectedStudentId("");
+          
           if (data.length === 0) {
             toast({
               title: "No Students",
-              description: "No students are enrolled in this class.",
+              description: "No students are enrolled in this class for the selected academic calendar and year.",
               variant: "default",
             });
-            setSelectedStudentId("");
           }
         } catch (error) {
+          console.error('Error fetching students:', error);
           toast({
             title: "Error",
             description: "Failed to fetch students",
             variant: "destructive",
           });
           setStudents([]);
+        } finally {
+          setIsLoading(false);
         }
       };
       fetchStudents();
+    } else {
+      // Clear students if any filter is not selected
+      setStudents([]);
+      setSelectedStudentId("");
     }
-  }, [selectedClass, selectedYear, selectedTerm, token, toast]);
+  }, [selectedClass, selectedAcademicCalendar, selectedAcademicYear, token, toast]);
 
   const fetchAllStudentsResults = async () => {
-    if (!selectedClass || !selectedYear || !selectedTerm) return;
+    if (!selectedClass || !selectedAcademicCalendar || !selectedAcademicYear) return;
 
     setIsLoading(true);
     try {
-      // Fetch all students results
+      // Fetch all students results with new filter parameters
       const response = await fetch(
-        `http://localhost:5000/api/v1/grades/class/${selectedClass}`,
+        `http://localhost:5000/api/v1/grades/class/${selectedClass}?academicCalendarId=${selectedAcademicCalendar}&academicYearId=${selectedAcademicYear}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       if (!response.ok) throw new Error("Failed to fetch students results");
@@ -162,11 +240,12 @@ const ExamResults = () => {
       if (data.students.length === 0) {
         toast({
           title: "No Results",
-          description: "No grades recorded for this class and term.",
+          description: "No grades recorded for this class and academic period.",
           variant: "default",
         });
       }
     } catch (error) {
+      console.error('Error fetching all students results:', error);
       toast({
         title: "Error",
         description: "Failed to fetch students results",
@@ -178,13 +257,13 @@ const ExamResults = () => {
   };
 
   useEffect(() => {
-    if (selectedClass && selectedYear && selectedTerm && !selectedStudentId) {
+    if (selectedClass && selectedAcademicCalendar && selectedAcademicYear && !selectedStudentId) {
       fetchAllStudentsResults();
     }
-  }, [selectedClass, selectedYear, selectedTerm, students]);
+  }, [selectedClass, selectedAcademicCalendar, selectedAcademicYear, students]);
 
   const fetchStudentResults = async () => {
-    if (!selectedStudentId || !selectedClass) return;
+    if (!selectedStudentId || !selectedClass || !selectedAcademicCalendar || !selectedAcademicYear) return;
 
     setIsLoading(true);
     try {
@@ -194,9 +273,9 @@ const ExamResults = () => {
         throw new Error("Student not found");
       }
 
-      // Use the numeric studentId in the request
+      // Use the student ID with academic calendar and year parameters
       const response = await fetch(
-        `http://localhost:5000/api/v1/grades/student/${selectedStudentId}?classId=${selectedClass}`,
+        `http://localhost:5000/api/v1/grades/student/${selectedStudentId}?classId=${selectedClass}&academicCalendarId=${selectedAcademicCalendar}&academicYearId=${selectedAcademicYear}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
@@ -207,11 +286,12 @@ const ExamResults = () => {
         toast({
           title: "No Results",
           description:
-            "No grades recorded for this student in the selected class and term.",
+            "No grades recorded for this student in the selected class and academic period.",
           variant: "default",
         });
       }
     } catch (error) {
+      console.error('Error fetching student results:', error);
       toast({
         title: "Error",
         description:
@@ -441,12 +521,12 @@ const ExamResults = () => {
                   }</span>
                 </div>
                 <div class="info-item">
-                  <span class="info-label">Academic Year:</span>
-                  <span>${selectedYear}</span>
+                  <span class="info-label">Academic Calendar:</span>
+                  <span>${academicCalendars.find((c) => c.id === selectedAcademicCalendar)?.academicYear || "N/A"}</span>
                 </div>
                 <div class="info-item">
-                  <span class="info-label">Term:</span>
-                  <span>${selectedTerm}</span>
+                  <span class="info-label">Academic Year:</span>
+                  <span>${academicYears.find((y) => y.id === selectedAcademicYear)?.name || "N/A"}</span>
                 </div>
                 <div class="info-item">
                   <span class="info-label">Generated:</span>
@@ -564,7 +644,18 @@ const ExamResults = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {isLoading && (
+            <div className="flex items-center justify-center py-8">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+                <p className="text-muted-foreground">Loading data...</p>
+              </div>
+            </div>
+          )}
+          
+          {!isLoading && (
+            <>
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <div className="space-y-2">
               <label className="text-sm font-medium">Class</label>
               <Select value={selectedClass} onValueChange={setSelectedClass}>
@@ -582,15 +673,19 @@ const ExamResults = () => {
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium">Academic Year</label>
-              <Select value={selectedYear} onValueChange={setSelectedYear}>
+              <label className="text-sm font-medium">Academic Calendar</label>
+              <Select 
+                value={selectedAcademicCalendar} 
+                onValueChange={setSelectedAcademicCalendar}
+                disabled={!selectedClass}
+              >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select academic year" />
+                  <SelectValue placeholder="Select academic calendar" />
                 </SelectTrigger>
                 <SelectContent>
-                  {academicYears.map((year) => (
-                    <SelectItem key={year} value={year}>
-                      {year}
+                  {academicCalendars.map((calendar) => (
+                    <SelectItem key={calendar.id} value={calendar.id!}>
+                      {calendar.academicYear} {calendar.isActive && "(Current)"}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -598,15 +693,19 @@ const ExamResults = () => {
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium">Term</label>
-              <Select value={selectedTerm} onValueChange={setSelectedTerm}>
+              <label className="text-sm font-medium">Academic Year</label>
+              <Select 
+                value={selectedAcademicYear} 
+                onValueChange={setSelectedAcademicYear}
+                disabled={!selectedAcademicCalendar}
+              >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select term" />
+                  <SelectValue placeholder="Select academic year" />
                 </SelectTrigger>
                 <SelectContent>
-                  {terms.map((term) => (
-                    <SelectItem key={term} value={term}>
-                      {term}
+                  {filteredAcademicYears.map((year) => (
+                    <SelectItem key={year.id} value={year.id}>
+                      {year.name} {(year.isActive || year.isCurrent || year.current) && "(Current)"}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -620,25 +719,25 @@ const ExamResults = () => {
                 onValueChange={setSelectedStudentId}
                 disabled={
                   !selectedClass ||
-                  !selectedYear ||
-                  !selectedTerm ||
-                  students.length === 0
+                  !selectedAcademicCalendar ||
+                  !selectedAcademicYear ||
+                  filteredStudents.length === 0
                 }
               >
                 <SelectTrigger>
                   <SelectValue
                     placeholder={
-                      students.length === 0
+                      filteredStudents.length === 0
                         ? "No students available"
                         : "Select a student"
                     }
                   />
                 </SelectTrigger>
                 <SelectContent>
-                  {students.map((student) => (
+                  {filteredStudents.map((student) => (
                     <SelectItem
-                      key={student.id} // Use UUID as key
-                      value={student.id} // Store UUID as value
+                      key={student.id}
+                      value={student.id}
                     >
                       {student.firstName} {student.lastName} (
                       {student.studentId})
@@ -648,8 +747,101 @@ const ExamResults = () => {
               </Select>
             </div>
           </div>
+
+          {/* Search Field */}
+          {students.length > 0 && (
+            <div className="mt-6 space-y-2">
+              <label className="text-sm font-medium">Search Students</label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                <Input
+                  placeholder="Search by student name or ID..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              {searchTerm && (
+                <p className="text-sm text-muted-foreground">
+                  Showing {filteredStudents.length} of {students.length} students
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* Reset Filters Button */}
+          {(selectedClass || selectedAcademicCalendar || selectedAcademicYear || selectedStudentId || searchTerm) && (
+            <div className="mt-6 flex justify-end">
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setSelectedClass("");
+                  setSelectedAcademicCalendar("");
+                  setSelectedAcademicYear("");
+                  setSelectedStudentId("");
+                  setSearchTerm("");
+                  setStudents([]);
+                  setStudentResults(null);
+                  setAllStudentsResults(null);
+                }}
+              >
+                Reset All Filters
+              </Button>
+            </div>
+          )}
+            </>
+          )}
         </CardContent>
       </Card>
+
+      {/* Status Messages */}
+      {!selectedClass && (
+        <Card>
+          <CardContent className="py-8">
+            <div className="text-center text-muted-foreground">
+              <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <h3 className="text-lg font-medium mb-2">Get Started</h3>
+              <p>Select a class to begin viewing exam results</p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {selectedClass && !selectedAcademicCalendar && (
+        <Card>
+          <CardContent className="py-8">
+            <div className="text-center text-muted-foreground">
+              <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <h3 className="text-lg font-medium mb-2">Select Academic Calendar</h3>
+              <p>Choose an academic calendar to continue</p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {selectedClass && selectedAcademicCalendar && !selectedAcademicYear && (
+        <Card>
+          <CardContent className="py-8">
+            <div className="text-center text-muted-foreground">
+              <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <h3 className="text-lg font-medium mb-2">Select Academic Year</h3>
+              <p>Choose an academic year to continue</p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {selectedClass && selectedAcademicCalendar && selectedAcademicYear && students.length === 0 && !isLoading && (
+        <Card>
+          <CardContent className="py-8">
+            <div className="text-center text-muted-foreground">
+              <GraduationCap className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <h3 className="text-lg font-medium mb-2">No Students Found</h3>
+              <p>No students are enrolled in this class for the selected academic period</p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {studentResults && (
         <ReportCard
@@ -785,8 +977,8 @@ const ExamResults = () => {
       )}
 
       {selectedClass &&
-        selectedYear &&
-        selectedTerm &&
+        selectedAcademicCalendar &&
+        selectedAcademicYear &&
         !selectedStudentId &&
         !allStudentsResults && (
           <Card>
