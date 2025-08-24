@@ -102,6 +102,7 @@ export default function Exams() {
     }
   };
 
+  // Navigate to exam details
   const handleViewDetails = (examId: string) => {
     navigate(`/exams/${examId}`);
   };
