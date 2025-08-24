@@ -1,43 +1,16 @@
-import React, { useState, useEffect } from 'react';
-import { Search, FileText, CheckCircle, Clock, Users, BookOpen, Filter } from 'lucide-react';
+import React from 'react';
+import { Search, FileText, CheckCircle, Clock, BookOpen, Filter, RefreshCw } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { useToast } from "@/components/ui/use-toast";
-import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 
-interface Exam {
-  id: string;
-  title: string;
-  subject: string;
-  classId: string;
-  class: {
-    id: string;
-    name: string;
-  };
-  teacher: {
-    id: string;
-    firstName: string;
-    lastName: string;
-    userId: string;
-  };
-  date: string;
-  duration: string;
-  totalMarks: number;
-  status: 'upcoming' | 'administered' | 'graded';
-  studentsEnrolled: number;
-  studentsCompleted: number;
-  academicYear: string;
-}
-
-interface Class {
-  id: string;
-  name: string;
-}
+// Import the custom hook
+import { useExamManagement } from '@/hooks/useExamManagement';
 
 interface Teacher {
   id: string;
@@ -46,135 +19,39 @@ interface Teacher {
   lastName: string;
 }
 
-const academicYears = ['All Years', '2023-2024', '2024-2025'];
-
 export default function Exams() {
-  const { token } = useAuth();
-  const [exams, setExams] = useState<Exam[]>([]);
-  const [classes, setClasses] = useState<Class[]>([]);
-  const [teachers, setTeachers] = useState<Teacher[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedClass, setSelectedClass] = useState('All Classes');
-  const [selectedTeacher, setSelectedTeacher] = useState('All Teachers');
-  const [selectedAcademicYear, setSelectedAcademicYear] = useState('All Years');
-  const [isLoading, setIsLoading] = useState(false);
-  const { toast } = useToast();
   const navigate = useNavigate();
-
-  const fetchWithAuth = async (url: string, params?: Record<string, string>) => {
-    const queryString = params
-      ? `?${Object.entries(params)
-          .filter(([_, value]) => value !== undefined)
-          .map(([key, value]) => `${key}=${encodeURIComponent(value)}`)
-          .join('&')}`
-      : '';
-    const response = await fetch(`${url}${queryString}`, {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    });
-
-    if (!response.ok) {
-      if (response.status === 401) {
-        throw new Error('Unauthorized - Please log in again');
-      }
-      if (response.status === 403) {
-        throw new Error('Access Denied - Insufficient permissions');
-      }
-      throw new Error(`Request failed: ${response.status}`);
-    }
-
-    const data = await response.json();
-    return data;
-  };
-
-  useEffect(() => {
-    const fetchInitialData = async () => {
-      try {
-        setIsLoading(true);
-
-        // Fetch classes for filter dropdown
-        const classesData = await fetchWithAuth('http://localhost:5000/api/v1/classes');
-        const classData: Class[] = classesData as Class[];
-        console.log('Classes fetched:', classData);
-        setClasses([{ id: 'all', name: 'All Classes' }, ...classData]);
-
-        // Fetch teachers
-        try {
-          const teachersData = await fetchWithAuth('http://localhost:5000/api/v1/teacher/teachers');
-          const teacherData = teachersData.teachers.map((teacher: any) => ({
-            id: teacher.id,
-            userId: teacher.userId,
-            firstName: teacher.firstName,
-            lastName: teacher.lastName,
-          }));
-          console.log('Teachers fetched:', teacherData);
-          setTeachers([{ id: 'all', userId: 'all', firstName: 'All', lastName: 'Teachers' }, ...teacherData]);
-        } catch (error: any) {
-          console.warn('Failed to fetch teachers, proceeding with empty teacher list:', error);
-          setTeachers([{ id: 'all', userId: 'all', firstName: 'All', lastName: 'Teachers' }]);
-        }
-
-        // Fetch exams
-        const examsData = await fetchWithAuth('http://localhost:5000/api/v1/exams');
-        console.log('Exams API response:', examsData);
-        setExams(examsData);
-      } catch (error: any) {
-        const errorMessage = error.message || 'Failed to fetch data';
-        toast({
-          title: 'Error',
-          description: errorMessage,
-          variant: 'destructive',
-        });
-        if (errorMessage.includes('Unauthorized')) {
-          window.location.href = '/login';
-        }
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    if (token) {
-      fetchInitialData();
-    } else {
-      toast({
-        title: 'Authentication Required',
-        description: 'Please log in to access this page.',
-        variant: 'destructive',
-      });
-      window.location.href = '/login';
-    }
-  }, [toast, token]);
-
-  useEffect(() => {
-    const fetchFilteredExams = async () => {
-      if (!token) return;
-      try {
-        setIsLoading(true);
-        const className = selectedClass === 'All Classes' ? undefined : selectedClass;
-        const teacherId = selectedTeacher === 'All Teachers' ? undefined : teachers.find((t) => `${t.firstName} ${t.lastName}` === selectedTeacher)?.userId;
-        const params: Record<string, string> = {
-          searchTerm,
-          class: className,
-          teacherId,
-          academicYear: selectedAcademicYear === 'All Years' ? undefined : selectedAcademicYear,
-        };
-        console.log('Filter params:', params);
-        const examsData = await fetchWithAuth('http://localhost:5000/api/v1/exams', params);
-        console.log('Filtered exams API response:', examsData);
-        setExams(examsData);
-      } catch (error: any) {
-        const errorMessage = error.message || 'Failed to fetch exams';
-        toast({
-          title: 'Error',
-          description: errorMessage,
-          variant: 'destructive',
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchFilteredExams();
-  }, [searchTerm, selectedClass, selectedTeacher, selectedAcademicYear, toast, token, teachers]);
+  const { token } = useAuth();
+  
+  // Use the custom hook for all exam management logic
+  const {
+    // Data
+    exams,
+    classes,
+    teachers,
+    academicYears,
+    
+    // Loading states
+    isLoading,
+    isInitialLoading,
+    
+    // Error state
+    error,
+    
+    // Filter state
+    searchTerm,
+    selectedClass,
+    selectedTeacher,
+    selectedAcademicYear,
+    
+    // Actions
+    setSearchTerm,
+    setSelectedClass,
+    setSelectedTeacher,
+    setSelectedAcademicYear,
+    resetFilters,
+    refreshData,
+  } = useExamManagement();
 
   // Calculate statistics
   const totalExams = exams.length;
@@ -195,24 +72,108 @@ export default function Exams() {
     }
   };
 
-  const resetFilters = () => {
-    setSearchTerm('');
-    setSelectedClass('All Classes');
-    setSelectedTeacher('All Teachers');
-    setSelectedAcademicYear('All Years');
+  // Test function to debug classes API
+  const testClassesAPI = async () => {
+    if (!token) return;
+    
+    try {
+      console.log('Testing classes API with token:', token?.substring(0, 20) + '...');
+      const response = await fetch('http://localhost:5000/api/v1/classes', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      console.log('Classes API Response Status:', response.status);
+      console.log('Classes API Response OK:', response.ok);
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Classes API Data:', data);
+        console.log('Is array?', Array.isArray(data));
+        console.log('Data length:', data?.length);
+      } else {
+        const errorText = await response.text();
+        console.error('Classes API Error:', errorText);
+      }
+    } catch (error) {
+      console.error('Classes API Exception:', error);
+    }
   };
 
   const handleViewDetails = (examId: string) => {
     navigate(`/exams/${examId}`);
   };
 
+  // Show loading state for initial load
+  if (isInitialLoading) {
+    return (
+      <div className="container mx-auto py-6">
+        <div className="flex justify-center items-center h-64">
+          <div className="text-center">
+            <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4 text-muted-foreground" />
+            <p className="text-muted-foreground">Loading exam management...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="container mx-auto py-6 space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Exam Management</h1>
-        <p className="text-muted-foreground">Manage and monitor all examinations</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Exam Management</h1>
+          <p className="text-muted-foreground">Manage and monitor all examinations</p>
+        </div>
+        <Button
+          variant="outline"
+          onClick={refreshData}
+          disabled={isLoading}
+          className="flex items-center gap-2"
+        >
+          <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+          Refresh
+        </Button>
       </div>
+
+      {/* Debug Information - Remove in production */}
+      {process.env.NODE_ENV === 'development' && (
+        <Card className="bg-gray-50 dark:bg-gray-900">
+          <CardContent className="pt-6">
+            <div className="text-sm space-y-2">
+              <div><strong>Debug Info:</strong></div>
+              <div>Classes loaded: {classes.length - 1} actual classes (+ "All Classes" option)</div>
+              <div>Academic Years loaded: {academicYears.length} years</div>
+              <div>Teachers loaded: {teachers.length - 1} actual teachers (+ "All Teachers" option)</div>
+              <div>Selected Class: {selectedClass}</div>
+              <div>Selected Academic Year: {selectedAcademicYear}</div>
+              <div>Selected Teacher: {selectedTeacher}</div>
+              <div>Exams found: {exams.length}</div>
+              <div>Active Academic Year: {academicYears.length > 0 ? `${academicYears[0].name} (${academicYears[0].id})` : 'None'}</div>
+              <Button 
+                onClick={testClassesAPI} 
+                size="sm" 
+                variant="outline" 
+                className="mt-2"
+              >
+                Test Classes API
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Error Display */}
+      {error && (
+        <Card className="border-destructive bg-destructive/10">
+          <CardContent className="pt-6">
+            <div className="text-destructive font-medium">{error}</div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Statistics Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -263,6 +224,9 @@ export default function Exams() {
           <div className="flex items-center gap-2">
             <Filter className="h-5 w-5" />
             <CardTitle>Filter Exams</CardTitle>
+            {isLoading && (
+              <RefreshCw className="h-4 w-4 animate-spin text-muted-foreground" />
+            )}
           </div>
         </CardHeader>
         <CardContent>
@@ -278,18 +242,28 @@ export default function Exams() {
               />
             </div>
             
-            <Select value={selectedClass} onValueChange={setSelectedClass} disabled={isLoading}>
+            <Select 
+              value={selectedClass} 
+              onValueChange={setSelectedClass} 
+              disabled={isLoading}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Select class" />
               </SelectTrigger>
               <SelectContent>
                 {classes.map((cls) => (
-                  <SelectItem key={cls.id} value={cls.name}>{cls.name}</SelectItem>
+                  <SelectItem key={cls.id} value={cls.id === 'all' ? 'All Classes' : cls.id}>
+                    {cls.name}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
 
-            <Select value={selectedTeacher} onValueChange={setSelectedTeacher} disabled={isLoading}>
+            <Select 
+              value={selectedTeacher} 
+              onValueChange={setSelectedTeacher} 
+              disabled={isLoading}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Select teacher" />
               </SelectTrigger>
@@ -302,18 +276,29 @@ export default function Exams() {
               </SelectContent>
             </Select>
 
-            <Select value={selectedAcademicYear} onValueChange={setSelectedAcademicYear} disabled={isLoading}>
+            <Select 
+              value={selectedAcademicYear} 
+              onValueChange={setSelectedAcademicYear} 
+              disabled={isLoading}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Select academic year" />
               </SelectTrigger>
               <SelectContent>
-                {academicYears.map((year) => (
-                  <SelectItem key={year} value={year}>{year}</SelectItem>
+                {academicYears.map((year, index) => (
+                  <SelectItem key={year.id} value={year.id}>
+                    {year.name} {index === 0 ? '(Current)' : ''}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
 
-            <Button variant="outline" onClick={resetFilters} className="w-full" disabled={isLoading}>
+            <Button 
+              variant="outline" 
+              onClick={resetFilters} 
+              className="w-full" 
+              disabled={isLoading}
+            >
               Clear Filters
             </Button>
           </div>
@@ -323,7 +308,12 @@ export default function Exams() {
       {/* Exams Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Exams List</CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle>Exams List</CardTitle>
+            <div className="text-sm text-muted-foreground">
+              {isLoading ? 'Loading...' : `${exams.length} exam${exams.length !== 1 ? 's' : ''} found`}
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="rounded-md border">
@@ -338,47 +328,57 @@ export default function Exams() {
                   <TableHead>Duration</TableHead>
                   <TableHead>Total Marks</TableHead>
                   <TableHead>Status</TableHead>
-                  {/* <TableHead>Enrolled/Completed</TableHead> */}
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
-                      Loading exams...
+                    <TableCell colSpan={9} className="text-center py-12">
+                      <div className="flex flex-col items-center gap-2">
+                        <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
+                        <span className="text-muted-foreground">Loading exams...</span>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ) : exams.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
-                      No exams found matching your criteria
+                    <TableCell colSpan={9} className="text-center py-12">
+                      <div className="flex flex-col items-center gap-2">
+                        <FileText className="h-8 w-8 text-muted-foreground" />
+                        <span className="text-muted-foreground font-medium">No exams found</span>
+                        <span className="text-sm text-muted-foreground">
+                          {searchTerm || selectedClass !== 'All Classes' || selectedTeacher !== 'All Teachers' || selectedAcademicYear !== 'All Years'
+                            ? 'Try adjusting your filters or search criteria'
+                            : 'No exams have been created yet'
+                          }
+                        </span>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ) : (
                   exams.map((exam) => (
-                    <TableRow key={exam.id}>
+                    <TableRow key={exam.id} className="hover:bg-muted/50">
                       <TableCell className="font-medium">{exam.title}</TableCell>
                       <TableCell>{exam.subject}</TableCell>
-                      <TableCell>{exam.class?.name || 'Unknown Class'}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="font-normal">
+                          {exam.class?.name || 'Unknown Class'}
+                        </Badge>
+                      </TableCell>
                       <TableCell>{`${exam.teacher.firstName} ${exam.teacher.lastName}`}</TableCell>
-                      <TableCell>{new Date(exam.date).toLocaleDateString()}</TableCell>
-                      <TableCell>{exam.duration}</TableCell>
+                      <TableCell>
+                        {exam.date ? new Date(exam.date).toLocaleDateString() : 'Not scheduled'}
+                      </TableCell>
+                      <TableCell>{exam.duration || 'N/A'}</TableCell>
                       <TableCell>{exam.totalMarks}</TableCell>
                       <TableCell>{getStatusBadge(exam.status)}</TableCell>
-                      {/* <TableCell>
-                        <div className="flex items-center gap-1">
-                          <Users className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-sm">
-                            {exam.studentsCompleted}/{exam.studentsEnrolled}
-                          </span>
-                        </div>
-                      </TableCell> */}
                       <TableCell>
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => handleViewDetails(exam.id)}
+                          className="text-primary hover:text-primary/80"
                         >
                           View Details
                         </Button>
