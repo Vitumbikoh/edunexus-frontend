@@ -10,12 +10,16 @@ export interface Exam {
   class: {
     id: string;
     name: string;
+    numericalName?: number;
+    description?: string;
   };
   teacher: {
     id: string;
     firstName: string;
     lastName: string;
     userId: string;
+    phoneNumber?: string;
+    address?: string;
   };
   date: string;
   duration: string;
@@ -23,8 +27,26 @@ export interface Exam {
   status: 'upcoming' | 'administered' | 'graded';
   studentsEnrolled: number;
   studentsCompleted: number;
-  academicYear: string;
+  academicYear: {
+    id: string;
+    name?: string;
+    startDate: string;
+    endDate: string;
+    academicCalendar?: any;
+    term?: any;
+  } | string; // Support both object and string formats
+  academicYearId?: string;
   description?: string;
+  instructions?: string;
+  examType?: string;
+  course?: {
+    id: string;
+    name: string;
+    code?: string;
+    description?: string;
+    status?: string;
+  };
+  schoolId?: string;
 }
 
 export interface ExamFilters {

@@ -241,8 +241,19 @@ export const useExamManagement = (): UseExamManagementReturn => {
       console.log('Fetching exams with filters:', filters);
       
       const examsData = await examService.getExams(token, filters);
-      setExams(examsData);
-      console.log('Exams fetched successfully:', examsData.length);
+      console.log('Raw exams from API:', examsData.length);
+      
+      // Additional client-side filtering as fallback
+      let filteredExams = examsData;
+      
+      // Client-side class filtering if server-side didn't work
+      if (selectedClass !== 'All Classes' && selectedClass !== 'all' && selectedClass) {
+        filteredExams = filteredExams.filter(exam => {
+          return exam.classId === selectedClass || exam.class?.id === selectedClass;
+        });
+      }
+      
+      setExams(filteredExams);
 
     } catch (error: any) {
       const errorMessage = error.message || 'Failed to fetch exams';
@@ -263,6 +274,7 @@ export const useExamManagement = (): UseExamManagementReturn => {
 
   // Reset filters
   const resetFilters = useCallback(() => {
+    console.log('Resetting filters');
     setSearchTerm('');
     setSelectedClass('All Classes');
     setSelectedTeacher('All Teachers');

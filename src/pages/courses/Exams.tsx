@@ -72,36 +72,6 @@ export default function Exams() {
     }
   };
 
-  // Test function to debug classes API
-  const testClassesAPI = async () => {
-    if (!token) return;
-    
-    try {
-      console.log('Testing classes API with token:', token?.substring(0, 20) + '...');
-      const response = await fetch('http://localhost:5000/api/v1/classes', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-      
-      console.log('Classes API Response Status:', response.status);
-      console.log('Classes API Response OK:', response.ok);
-      
-      if (response.ok) {
-        const data = await response.json();
-        console.log('Classes API Data:', data);
-        console.log('Is array?', Array.isArray(data));
-        console.log('Data length:', data?.length);
-      } else {
-        const errorText = await response.text();
-        console.error('Classes API Error:', errorText);
-      }
-    } catch (error) {
-      console.error('Classes API Exception:', error);
-    }
-  };
-
   // Navigate to exam details
   const handleViewDetails = (examId: string) => {
     navigate(`/exams/${examId}`);
@@ -139,33 +109,6 @@ export default function Exams() {
           Refresh
         </Button>
       </div>
-
-      {/* Debug Information - Remove in production */}
-      {process.env.NODE_ENV === 'development' && (
-        <Card className="bg-gray-50 dark:bg-gray-900">
-          <CardContent className="pt-6">
-            <div className="text-sm space-y-2">
-              <div><strong>Debug Info:</strong></div>
-              <div>Classes loaded: {classes.length - 1} actual classes (+ "All Classes" option)</div>
-              <div>Academic Years loaded: {academicYears.length} years</div>
-              <div>Teachers loaded: {teachers.length - 1} actual teachers (+ "All Teachers" option)</div>
-              <div>Selected Class: {selectedClass}</div>
-              <div>Selected Academic Year: {selectedAcademicYear}</div>
-              <div>Selected Teacher: {selectedTeacher}</div>
-              <div>Exams found: {exams.length}</div>
-              <div>Active Academic Year: {academicYears.length > 0 ? `${academicYears[0].name} (${academicYears[0].id})` : 'None'}</div>
-              <Button 
-                onClick={testClassesAPI} 
-                size="sm" 
-                variant="outline" 
-                className="mt-2"
-              >
-                Test Classes API
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       {/* Error Display */}
       {error && (

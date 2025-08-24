@@ -14,12 +14,16 @@ interface Exam {
   class: {
     id: string;
     name: string;
+    numericalName?: number;
+    description?: string;
   };
   teacher: {
     id: string;
     firstName: string;
     lastName: string;
     userId: string;
+    phoneNumber?: string;
+    address?: string;
   };
   date: string;
   duration: string;
@@ -27,14 +31,26 @@ interface Exam {
   status: 'upcoming' | 'administered' | 'graded';
   studentsEnrolled: number;
   studentsCompleted: number;
-  academicYear: string;
+  academicYear: {
+    id: string;
+    name?: string;
+    startDate: string;
+    endDate: string;
+    academicCalendar?: any;
+    term?: any;
+  };
+  academicYearId: string;
   description?: string;
   instructions?: string;
   examType: string;
   course: {
     id: string;
     name: string;
+    code?: string;
+    description?: string;
+    status?: string;
   };
+  schoolId: string;
 }
 
 export default function ExamDetails() {
@@ -42,6 +58,7 @@ export default function ExamDetails() {
   const { token } = useAuth();
   const [exam, setExam] = useState<Exam | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [renderError, setRenderError] = useState<string | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -83,6 +100,17 @@ export default function ExamDetails() {
         setIsLoading(true);
         const examData = await fetchWithAuth(`http://localhost:5000/api/v1/exams/${examId}`);
         console.log('Exam details API response:', examData);
+        
+        // Validate the exam data structure
+        if (!examData || typeof examData !== 'object') {
+          throw new Error('Invalid exam data received from server');
+        }
+        
+        // Ensure required fields exist
+        if (!examData.id || !examData.title) {
+          throw new Error('Incomplete exam data received from server');
+        }
+        
         setExam(examData);
       } catch (error: any) {
         const errorMessage = error.message || 'Failed to fetch exam details';
@@ -133,6 +161,20 @@ export default function ExamDetails() {
     );
   }
 
+  if (renderError) {
+    return (
+      <div className="container mx-auto py-6">
+        <div className="text-center py-8">
+          <div className="text-red-600 mb-4">Error displaying exam details</div>
+          <div className="text-sm text-muted-foreground mb-4">{renderError}</div>
+          <Button onClick={() => navigate('/exams')}>Back to Exams</Button>
+        </div>
+      </div>
+    );
+  }
+
+  try {
+
   return (
     <div className="container mx-auto py-6 space-y-6">
       <div className="flex items-center gap-4">
@@ -176,7 +218,7 @@ export default function ExamDetails() {
               </div>
               <div>
                 <h3 className="font-semibold">Teacher</h3>
-                <p className="text-sm">{`${exam.teacher.firstName} ${exam.teacher.lastName}`}</p>
+                <p className="text-sm">{exam.teacher ? `${exam.teacher.firstName} ${exam.teacher.lastName}` : 'Unknown Teacher'}</p>
               </div>
               <div>
                 <h3 className="font-semibold">Course</h3>
@@ -184,7 +226,7 @@ export default function ExamDetails() {
               </div>
               <div>
                 <h3 className="font-semibold">Date</h3>
-                <p className="text-sm">{new Date(exam.date).toLocaleDateString()}</p>
+                <p className="text-sm">{exam.date ? new Date(exam.date).toLocaleDateString() : 'Not scheduled'}</p>
               </div>
               <div>
                 <h3 className="font-semibold">Duration</h3>
@@ -207,7 +249,9 @@ export default function ExamDetails() {
               </div>
               <div>
                 <h3 className="font-semibold">Academic Year</h3>
-                <p className="text-sm">{exam.academicYear}</p>
+                <p className="text-sm">
+                  {exam.academicYear?.name || `${new Date(exam.academicYear?.startDate).getFullYear()} - ${new Date(exam.academicYear?.endDate).getFullYear()}`}
+                </p>
               </div>
               <div>
                 <h3 className="font-semibold">Exam Type</h3>
@@ -231,4 +275,16 @@ export default function ExamDetails() {
       </Card>
     </div>
   );
+  } catch (error: any) {
+    console.error('Error rendering exam details:', error);
+    return (
+      <div className="container mx-auto py-6">
+        <div className="text-center py-8">
+          <div className="text-red-600 mb-4">Error displaying exam details</div>
+          <div className="text-sm text-muted-foreground mb-4">{error.message || 'An unexpected error occurred'}</div>
+          <Button onClick={() => navigate('/exams')}>Back to Exams</Button>
+        </div>
+      </div>
+    );
+  }
 }
