@@ -50,6 +50,10 @@ export type User = {
   createdAt?: Date;
   updatedAt?: Date;
   
+  // Name fields
+  firstName?: string;
+  lastName?: string;
+  
   // Frontend only fields
   name?: string;
   avatar?: string;

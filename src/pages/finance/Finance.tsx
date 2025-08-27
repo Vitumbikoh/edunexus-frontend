@@ -35,18 +35,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogT
 import { Label } from "@/components/ui/label";
 import { API_CONFIG } from '@/config/api';
 
-interface FeePayment {
-  id: string;
-  studentName: string;
-  amount: number;
-  paymentDate: string | null;
-  paymentType: string;
-  paymentMethod: string;
-  receiptNumber: string | null;
-  status: 'paid' | 'pending' | 'overdue' | string;
-  notes: string | null;
-}
-
 interface Transaction {
   id: string;
   studentName: string;
@@ -91,7 +79,6 @@ export default function Finance() {
   const isAdmin = user?.role === 'admin' || user?.role === 'finance';
 
   const [searchQuery, setSearchQuery] = useState("");
-  const [feePayments, setFeePayments] = useState<FeePayment[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [apiError, setApiError] = useState<string | null>(null);
@@ -105,11 +92,8 @@ export default function Finance() {
   const [uniformAcademicYearId, setUniformAcademicYearId] = useState<string | undefined>(undefined);
   const [savingUniform, setSavingUniform] = useState(false);
 
-  // Invoices (fetched directly instead of using feePayments fallback)
-  const [feeInvoices, setFeeInvoices] = useState<FeePayment[]>([]);
-  const [loadingInvoices, setLoadingInvoices] = useState(false);
-  const [invoicesError, setInvoicesError] = useState<string | null>(null);
-
+  // Invoices (removed - no longer needed)
+  
   const [feeStatuses, setFeeStatuses] = useState<FeeStatusItem[]>([]);
   const [loadingStatuses, setLoadingStatuses] = useState(false);
   const [statusesError, setStatusesError] = useState<string | null>(null);
@@ -329,21 +313,7 @@ export default function Finance() {
         const paymentsData = await paymentsResponse.json();
         const transactionsData = await transactionsResponse.json();
 
-        const mappedPayments: FeePayment[] = (paymentsData.payments || paymentsData.items || []).map((p: any) => ({
-          id: p.id,
-          studentName: p.studentName,
-          amount: Number(p.amount),
-          paymentDate: p.paymentDate,
-            paymentType: p.paymentType,
-          paymentMethod: p.paymentMethod,
-          receiptNumber: p.receiptNumber,
-          status:
-            p.status === 'completed' ? 'paid' :
-            p.status === 'pending' ? 'pending' :
-            p.status === 'overdue' ? 'overdue' :
-            p.status,
-          notes: p.notes,
-        }));
+        // Remove fee payments mapping since invoices tab is removed
 
         const mappedTransactions: Transaction[] = (transactionsData.transactions || transactionsData.items || []).map((t: any) => ({
           id: t.id,
@@ -356,7 +326,7 @@ export default function Finance() {
           processedByName: t.processedByName,
         }));
 
-        setFeePayments(mappedPayments);
+        // Remove fee payments mapping since invoices tab is removed
         setTransactions(mappedTransactions);
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : "Failed to fetch data";
@@ -377,44 +347,6 @@ export default function Finance() {
 
     fetchData();
   }, [token, navigate, toast, searchQuery, isParent, academicYearId]);
-
-  // Fetch invoices from backend
-  useEffect(() => {
-    const fetchInvoices = async () => {
-      if (!token || !academicYearId) return;
-      setLoadingInvoices(true);
-      setInvoicesError(null);
-      try {
-        const res = await fetch(`${API_CONFIG.BASE_URL}/finance/fee-invoices?academicYearId=${academicYearId}&search=${encodeURIComponent(searchQuery)}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        if (!res.ok) {
-          const err = await res.json().catch(() => ({}));
-          throw new Error(err.message || 'Failed to fetch invoices');
-        }
-        const data = await res.json();
-        const list = Array.isArray(data) ? data : (data.invoices || data.items || data.data || []);
-        const mapped: FeePayment[] = list.map((inv: any) => ({
-          id: inv.id || inv.invoiceId,
-          studentName: inv.studentName || inv.student || 'Unknown',
-          amount: Number(inv.amount ?? inv.total ?? 0),
-          paymentDate: inv.date || inv.invoiceDate || inv.createdAt || null,
-          paymentType: inv.description || inv.feeType || 'Invoice',
-          paymentMethod: inv.paymentMethod || inv.method || 'N/A',
-          receiptNumber: inv.receiptNumber || inv.reference || null,
-          status: (inv.status || 'pending').toLowerCase(),
-          notes: inv.notes || null,
-        })).filter((i: FeePayment) => i.id);
-        setFeeInvoices(mapped);
-      } catch (e) {
-        setInvoicesError(e instanceof Error ? e.message : 'Failed to load invoices');
-        setFeeInvoices([]);
-      } finally {
-        setLoadingInvoices(false);
-      }
-    };
-    fetchInvoices();
-  }, [token, academicYearId, searchQuery]);
 
   // ---------------- Metrics calculation ----------------
   // Summary preferred, fallback to derived
@@ -445,13 +377,7 @@ export default function Finance() {
     ? Math.round((effectivePaid / effectiveExpected) * 100)
     : 0;
 
-  // Invoices filtering
-  const filteredInvoices = feeInvoices.filter(invoice =>
-    invoice.studentName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    invoice.paymentType.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    invoice.receiptNumber?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
+  // Transaction filtering
   const filteredTransactions = transactions.filter(transaction =>
     transaction.studentName.toLowerCase().includes(searchQuery.toLowerCase()) ||
     transaction.paymentType.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -633,87 +559,11 @@ export default function Finance() {
           </div>
 
           {/* Tabs */}
-            <Tabs defaultValue="invoices">
+            <Tabs defaultValue="transactions">
               <TabsList>
-                <TabsTrigger value="invoices">Fee Invoices</TabsTrigger>
                 <TabsTrigger value="transactions">Transaction History</TabsTrigger>
                 <TabsTrigger value="statuses">Fee Statuses</TabsTrigger>
               </TabsList>
-
-              <TabsContent value="invoices" className="space-y-4">
-                <Card>
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <CardTitle>Fee Invoices</CardTitle>
-                      <div className="flex items-center space-x-2">
-                        <div className="relative">
-                          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                          <Input
-                            type="search"
-                            placeholder="Search invoices..."
-                            className="pl-8 w-[200px] md:w-[300px]"
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                          />
-                        </div>
-                        {isAdmin && (
-                          <Button variant="outline" size="sm">
-                            <Download className="mr-2 h-4 w-4" />
-                            Export
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Invoice ID</TableHead>
-                          <TableHead>Date</TableHead>
-                          <TableHead>{isParent ? "Child" : "Student"}</TableHead>
-                          <TableHead>Description</TableHead>
-                          <TableHead className="text-right">Amount</TableHead>
-                          <TableHead className="text-right">Status</TableHead>
-                          {isParent && <TableHead className="text-right">Action</TableHead>}
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {filteredInvoices.map(invoice => (
-                          <TableRow key={invoice.id}>
-                            <TableCell className="font-medium">{invoice.id}</TableCell>
-                            <TableCell>{invoice.paymentDate || 'N/A'}</TableCell>
-                            <TableCell>{invoice.studentName}</TableCell>
-                            <TableCell>{invoice.paymentType}</TableCell>
-                            <TableCell className="text-right">${invoice.amount.toFixed(2)}</TableCell>
-                            <TableCell className="text-right">
-                              <Badge
-                                variant={
-                                  invoice.status === "paid" ? "default" :
-                                  invoice.status === "pending" ? "outline" :
-                                  invoice.status === "overdue" ? "destructive" : "outline"
-                                }
-                                className="capitalize"
-                              >
-                                {invoice.status}
-                              </Badge>
-                            </TableCell>
-                            {isParent && (
-                              <TableCell className="text-right">
-                                {invoice.status !== "paid" && (
-                                  <Button size="sm" variant="outline" onClick={() => navigate('/finance/record')}>
-                                    Pay Now
-                                  </Button>
-                                )}
-                              </TableCell>
-                            )}
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </CardContent>
-                </Card>
-              </TabsContent>
 
               <TabsContent value="transactions" className="space-y-4">
                 <Card>

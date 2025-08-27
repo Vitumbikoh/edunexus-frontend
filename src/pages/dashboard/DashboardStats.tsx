@@ -97,6 +97,7 @@ export const useDashboardStats = () => {
                 }
               })(),
               icon: <Users size={24} />,
+              trend: { value: 100, isPositive: true },
               className: "bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-900/10",
             },
             {
@@ -276,41 +277,66 @@ export const DashboardStats = () => {
 
   if (loading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {[...Array(4)].map((_, index) => (
-          <div
-            key={index}
-            className="h-32 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse"
-          />
-        ))}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Key Metrics</h2>
+          <div className="h-4 w-24 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {[...Array(4)].map((_, index) => (
+            <div
+              key={index}
+              className="h-36 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 rounded-xl animate-pulse shadow-lg"
+            />
+          ))}
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="p-4 mb-4 text-sm text-red-700 bg-red-100 rounded-lg">
-        {error}
+      <div className="p-6 mb-6 text-sm text-red-700 bg-red-50 dark:bg-red-900/20 dark:text-red-400 rounded-xl border border-red-200 dark:border-red-800">
+        <div className="flex items-center space-x-2">
+          <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+          </svg>
+          <span className="font-medium">Error loading dashboard statistics</span>
+        </div>
+        <p className="mt-1 text-sm">{error}</p>
       </div>
     );
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-      {stats.map((stat, index) => (
-        <StatCard
-          key={index}
-          title={stat.title}
-          value={stat.value}
-          icon={
-            React.isValidElement(stat.icon)
-              ? stat.icon
-              : React.createElement(stat.icon, { size: 24 })
-          }
-          trend={stat.trend}
-          className={stat.className}
-        />
-      ))}
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Key Metrics</h2>
+        <div className="text-sm text-gray-500 dark:text-gray-400">
+          Last updated: {new Date().toLocaleDateString('en-US', { 
+            month: 'short', 
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+          })}
+        </div>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {stats.map((stat, index) => (
+          <StatCard
+            key={index}
+            title={stat.title}
+            value={stat.value}
+            icon={
+              React.isValidElement(stat.icon)
+                ? stat.icon
+                : React.createElement(stat.icon, { size: 24 })
+            }
+            trend={stat.trend}
+            className={stat.className}
+          />
+        ))}
+      </div>
     </div>
   );
 };

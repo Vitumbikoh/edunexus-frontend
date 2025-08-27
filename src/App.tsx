@@ -65,7 +65,12 @@ import Reports from "./pages/Reports/Reports";
 import ExamDetails from "./pages/courses/ExamDetails";
 import CourseView from "./pages/courses/CourseView";
 import ExamResults from "./pages/courses/ExamResults";
+import Activities from "./pages/activities/Activities";
 import ActivityDetail from "./pages/activities/ActivityDetail";
+
+// Admin specific pages
+import SystemMonitoring from "./pages/admin/SystemMonitoring";
+import StaffManagement from "./pages/admin/StaffManagement";
 
 // Protected route component - immediately redirects if not authenticated
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -188,7 +193,7 @@ const AdminRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
-// Finance route component - only accessible by finance role
+// Finance route component - accessible by finance and admin roles
 const FinanceRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading, isAuthenticated } = useAuth();
 
@@ -198,7 +203,7 @@ const FinanceRoute = ({ children }: { children: React.ReactNode }) => {
   }
 
   // Immediately redirect if authenticated but wrong role
-  if (!loading && user && user.role !== "finance") {
+  if (!loading && user && user.role !== "finance" && user.role !== "admin" && user.role !== "super_admin") {
     return <Navigate to="/dashboard" replace />;
   }
 
@@ -602,12 +607,65 @@ const AppRoutes = () => {
       />
 
       <Route
+        path="/reports/academic"
+        element={
+          <ProtectedRoute>
+            <AdminRoute>
+              <Layout>
+                <Reports />
+              </Layout>
+            </AdminRoute>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/activities"
+        element={
+          <ProtectedRoute>
+            <AdminRoute>
+              <Layout>
+                <Activities />
+              </Layout>
+            </AdminRoute>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
         path="/activities/:id"
         element={
           <ProtectedRoute>
             <AdminRoute>
               <Layout>
                 <ActivityDetail />
+              </Layout>
+            </AdminRoute>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Admin specific routes */}
+      <Route
+        path="/admin/system-monitoring"
+        element={
+          <ProtectedRoute>
+            <AdminRoute>
+              <Layout>
+                <SystemMonitoring />
+              </Layout>
+            </AdminRoute>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/admin/staff-management"
+        element={
+          <ProtectedRoute>
+            <AdminRoute>
+              <Layout>
+                <StaffManagement />
               </Layout>
             </AdminRoute>
           </ProtectedRoute>

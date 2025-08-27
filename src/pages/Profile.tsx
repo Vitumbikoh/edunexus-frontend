@@ -1,10 +1,12 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from '@/contexts/AuthContext';
+import { API_CONFIG } from '@/config/api';
+import { useToast } from '@/components/ui/use-toast';
 
 const mockActivities = [
   { id: 1, action: "Logged in", date: "April 20, 2023 - 08:45 AM" },
@@ -15,7 +17,51 @@ const mockActivities = [
 ];
 
 export default function Profile() {
-  const { user } = useAuth();
+  const { user, token } = useAuth();
+  const { toast } = useToast();
+  const [profile, setProfile] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  
+  useEffect(() => {
+    const fetchProfile = async () => {
+      if (!token) return;
+      
+      try {
+        setLoading(true);
+        const response = await fetch(`${API_CONFIG.BASE_URL}/profile`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch profile');
+        }
+
+        const profileData = await response.json();
+        setProfile(profileData);
+      } catch (error) {
+        console.error('Error fetching profile:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load profile information",
+          variant: "destructive",
+        });
+        // Fallback to user data from auth context
+        setProfile(user);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProfile();
+  }, [token, user, toast]);
+  
+  if (!user) return null;
+  
+  // Use profile data if available, otherwise fallback to user data
+  const displayData = profile || user;
   
   if (!user) return null;
   
@@ -25,6 +71,33 @@ export default function Profile() {
       .join('')
       .toUpperCase();
   };
+
+  const getDisplayName = () => {
+    if (loading) return "Loading...";
+    
+    // For profile data, try different field combinations
+    if (displayData.firstName && displayData.lastName) {
+      return `${displayData.firstName} ${displayData.lastName}`;
+    }
+    if (displayData.fullName) {
+      return displayData.fullName;
+    }
+    return displayData.name || displayData.email?.split('@')[0] || 'User';
+  };
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold">My Profile</h1>
+          <p className="text-muted-foreground">View and manage your profile information</p>
+        </div>
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -40,13 +113,13 @@ export default function Profile() {
           </CardHeader>
           <CardContent className="flex flex-col items-center text-center">
             <Avatar className="h-24 w-24 mb-4">
-              <AvatarImage src={user.avatar} alt={user.name} />
-              <AvatarFallback>{getInitials(user.name)}</AvatarFallback>
+              <AvatarImage src={displayData.avatar || displayData.profilePicture} alt={getDisplayName()} />
+              <AvatarFallback>{getInitials(getDisplayName())}</AvatarFallback>
             </Avatar>
             
-            <h2 className="text-xl font-bold">{user.name}</h2>
-            <p className="text-muted-foreground capitalize">{user.role}</p>
-            <p className="text-sm mt-1">{user.email}</p>
+            <h2 className="text-xl font-bold">{getDisplayName()}</h2>
+            <p className="text-muted-foreground capitalize">{displayData.role}</p>
+            <p className="text-sm mt-1">{displayData.email}</p>
             
             <div className="mt-6 w-full">
               <Button className="w-full">Edit Profile</Button>
@@ -55,20 +128,32 @@ export default function Profile() {
             <div className="mt-8 w-full space-y-4">
               <div className="flex justify-between items-center border-b pb-2">
                 <span className="text-muted-foreground">User ID:</span>
-                <span>{user.id}</span>
+                <span>{displayData.id || displayData.userId}</span>
               </div>
               <div className="flex justify-between items-center border-b pb-2">
                 <span className="text-muted-foreground">Role:</span>
-                <span className="capitalize">{user.role}</span>
+                <span className="capitalize">{displayData.role}</span>
               </div>
               <div className="flex justify-between items-center border-b pb-2">
                 <span className="text-muted-foreground">Status:</span>
-                <span className="text-green-500">Active</span>
+                <span className="text-green-500">{displayData.status || 'Active'}</span>
               </div>
               <div className="flex justify-between items-center border-b pb-2">
                 <span className="text-muted-foreground">Joined:</span>
-                <span>March 15, 2023</span>
+                <span>{displayData.createdAt ? new Date(displayData.createdAt).toLocaleDateString() : 'March 15, 2023'}</span>
               </div>
+              {displayData.phone && (
+                <div className="flex justify-between items-center border-b pb-2">
+                  <span className="text-muted-foreground">Phone:</span>
+                  <span>{displayData.phone}</span>
+                </div>
+              )}
+              {displayData.department && (
+                <div className="flex justify-between items-center border-b pb-2">
+                  <span className="text-muted-foreground">Department:</span>
+                  <span>{displayData.department}</span>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
