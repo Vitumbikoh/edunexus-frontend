@@ -7,8 +7,10 @@ import { ArrowLeft } from 'lucide-react';
 type Student = {
   firstName: string;
   lastName: string;
+  studentId?: string; // human readable student ID
   user?: {
     email?: string;
+    username?: string;
   };
   class?: {
     name?: string;
@@ -67,8 +69,16 @@ export default function StudentDetails() {
             <p>{student.firstName} {student.lastName}</p>
           </div>
           <div className="space-y-2">
+            <p className="text-sm font-medium text-muted-foreground">Student ID</p>
+            <p>{student.studentId || '-'}</p>
+          </div>
+          <div className="space-y-2">
             <p className="text-sm font-medium text-muted-foreground">Email</p>
             <p>{student.user?.email || '-'}</p>
+          </div>
+          <div className="space-y-2">
+            <p className="text-sm font-medium text-muted-foreground">Username</p>
+            <p>{student.user?.username || '-'}</p>
           </div>
           <div className="space-y-2">
             <p className="text-sm font-medium text-muted-foreground">Class</p>

@@ -26,15 +26,15 @@ interface Class {
 
 interface Student {
   id: string;
+  studentId?: string; // human readable student ID
   firstName: string;
   lastName: string;
   user: {
     email: string;
+    username?: string;
   };
   class?: Class;
   phoneNumber?: string;
-  attendance?: number;
-  performance?: string;
   dateOfBirth?: string;
   gender?: string;
   address?: string;
@@ -259,8 +259,8 @@ export default function Students() {
                     <TableHead>Name</TableHead>
                     <TableHead>Class</TableHead>
                     <TableHead>Email</TableHead>
-                    <TableHead>Attendance</TableHead>
-                    <TableHead>Performance</TableHead>
+                    <TableHead>Username</TableHead>
+                    <TableHead>Student ID</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -278,10 +278,10 @@ export default function Students() {
                           {student.user?.email || '-'}
                         </TableCell>
                         <TableCell>
-                          {student.attendance ? `${student.attendance}%` : '-'}
+                          {student.user?.username || '-'}
                         </TableCell>
                         <TableCell>
-                          {student.performance || '-'}
+                          {student.studentId || '-'}
                         </TableCell>
                         <TableCell className="text-right space-x-2">
                           <Button variant="ghost" size="sm" asChild>

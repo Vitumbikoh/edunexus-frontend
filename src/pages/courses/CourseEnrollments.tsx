@@ -22,13 +22,18 @@ import {
 
 interface Enrollment {
   id: string;
+  enrollmentDate: string; // Backend uses enrollmentDate, not enrolledAt
+  status: string;
   student: {
     id: string;
+    studentId?: string; // human readable student ID
     firstName: string;
     lastName: string;
-    email: string;
+    email?: string;
+    user?: {
+      email?: string;
+    };
   };
-  enrolledAt: string;
 }
 
 export default function CourseEnrollments() {
@@ -178,6 +183,7 @@ export default function CourseEnrollments() {
             <TableHeader>
               <TableRow>
                 <TableHead>Student</TableHead>
+                <TableHead>Student ID</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Enrolled At</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
@@ -189,9 +195,16 @@ export default function CourseEnrollments() {
                   <TableCell>
                     {enrollment.student.firstName} {enrollment.student.lastName}
                   </TableCell>
-                  <TableCell>{enrollment.student.email}</TableCell>
+                  <TableCell>{enrollment.student.studentId || '-'}</TableCell>
+                  <TableCell>{enrollment.student.email || enrollment.student.user?.email || '-'}</TableCell>
                   <TableCell>
-                    {new Date(enrollment.enrolledAt).toLocaleDateString()}
+                    {enrollment.enrollmentDate ? 
+                      new Date(enrollment.enrollmentDate).toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric'
+                      }) : '-'
+                    }
                   </TableCell>
                   <TableCell className="text-right">
                     <Button
