@@ -1,6 +1,6 @@
 import React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import AcademicAndTermsSection from "./AcademicAndTermsSection";
+import AcademicAndPeriodsSection from "./AcademicAndPeriodsSection";
 import SchoolInfoSection from "./SchoolInfoSection";
 
 
@@ -12,7 +12,7 @@ export default function SchoolAcademicSection() {
         <CardDescription>Configure school-wide settings</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        <AcademicAndTermsSection />
+        <AcademicAndPeriodsSection />
       </CardContent>
     </Card>
   );

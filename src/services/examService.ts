@@ -27,15 +27,15 @@ export interface Exam {
   status: 'upcoming' | 'administered' | 'graded';
   studentsEnrolled: number;
   studentsCompleted: number;
-  academicYear: {
+  term: {
     id: string;
     name?: string;
     startDate: string;
     endDate: string;
     academicCalendar?: any;
-    term?: any;
+    period?: any;
   } | string; // Support both object and string formats
-  academicYearId?: string;
+  termId?: string;
   description?: string;
   instructions?: string;
   examType?: string;
@@ -50,10 +50,10 @@ export interface Exam {
 }
 
 export interface ExamFilters {
-  searchTerm?: string;
+  searchPeriod?: string;
   classId?: string;
   teacherId?: string;
-  academicYearId?: string;
+  termId?: string;
   status?: string;
 }
 

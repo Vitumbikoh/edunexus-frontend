@@ -11,7 +11,7 @@ export default function ExamFilterTest() {
   const { toast } = useToast();
   
   const [classes, setClasses] = useState([]);
-  const [academicYears, setAcademicYears] = useState([]);
+  const [terms, setTerms] = useState([]);
   const [selectedClass, setSelectedClass] = useState('all');
   const [selectedYear, setSelectedYear] = useState('all');
   const [isLoading, setIsLoading] = useState(false);
@@ -43,8 +43,8 @@ export default function ExamFilterTest() {
           console.log('Raw academic year data:', yearData);
           
           // Handle different response formats
-          const years = Array.isArray(yearData) ? yearData : (yearData.academicYears || []);
-          setAcademicYears([{ id: 'all', name: 'All Years' }, ...years]);
+          const years = Array.isArray(yearData) ? yearData : (yearData.terms || []);
+          setTerms([{ id: 'all', name: 'All Years' }, ...years]);
         }
         
       } catch (error) {
@@ -73,7 +73,7 @@ export default function ExamFilterTest() {
         <CardContent>
           <div className="space-y-2 text-sm">
             <div><strong>Classes count:</strong> {classes.length}</div>
-            <div><strong>Academic Years count:</strong> {academicYears.length}</div>
+            <div><strong>Academic Years count:</strong> {terms.length}</div>
             <div><strong>Selected Class:</strong> {selectedClass}</div>
             <div><strong>Selected Year:</strong> {selectedYear}</div>
             <div><strong>Loading:</strong> {isLoading ? 'Yes' : 'No'}</div>
@@ -110,7 +110,7 @@ export default function ExamFilterTest() {
                   <SelectValue placeholder="Select year" />
                 </SelectTrigger>
                 <SelectContent>
-                  {academicYears.map((year) => (
+                  {terms.map((year) => (
                     <SelectItem key={year.id} value={year.id}>
                       {year.name}
                     </SelectItem>
@@ -147,7 +147,7 @@ export default function ExamFilterTest() {
             <div>
               <h4 className="font-medium">Academic Years:</h4>
               <pre className="text-xs bg-gray-100 p-2 rounded">
-                {JSON.stringify(academicYears, null, 2)}
+                {JSON.stringify(terms, null, 2)}
               </pre>
             </div>
           </div>

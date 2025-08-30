@@ -52,14 +52,14 @@ export default function TeacherCourses() {
     );
   }
 
-  const fetchCourses = async (pageNum: number, searchTerm: string) => {
+  const fetchCourses = async (pageNum: number, searchPeriod: string) => {
     try {
       setLoading(true);
       setError(null);
 
       const response = await fetch(
         `${API_CONFIG.BASE_URL}/teacher/my-courses?page=${pageNum}&limit=${limit}${
-          searchTerm ? `&search=${encodeURIComponent(searchTerm)}` : ""
+          searchPeriod ? `&search=${encodeURIComponent(searchPeriod)}` : ""
         }&includeExams=true`,
         {
           headers: {

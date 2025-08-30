@@ -12,7 +12,7 @@ const API_BASE_URL = (runtimeEnv.VITE_API_BASE_URL || 'http://localhost:5000')
   .replace(/\/?api\/v1\/?$/, '');
 
 export const authApi = {
-  login: async (credentials: { email: string; password: string }) => {
+  login: async (credentials: { username: string; password: string }) => {
     const response = await fetch(`${API_BASE_URL}/api/v1/auth/login`, {
       method: 'POST',
       headers: {

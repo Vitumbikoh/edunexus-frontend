@@ -2,7 +2,7 @@ import { API_CONFIG } from '@/config/api';
 
 const API_BASE = API_CONFIG.BASE_URL;
 
-export interface AcademicYear {
+export interface Term {
   id: string;
   name: string;
   startDate?: string | null;
@@ -13,15 +13,15 @@ export interface AcademicYear {
   description?: string;
 }
 
-export interface AcademicYearResponse {
-  academicYears?: AcademicYear[];
+export interface TermResponse {
+  terms?: Term[];
   success?: boolean;
   message?: string;
 }
 
-export const academicYearService = {
+export const termService = {
   // Get all academic years
-  getAcademicYears: async (token: string): Promise<AcademicYear[]> => {
+  getTerms: async (token: string): Promise<Term[]> => {
     const response = await fetch(`${API_BASE}/settings/academic-years`, {
       method: 'GET',
       headers: {
@@ -57,12 +57,12 @@ export const academicYearService = {
         return data;
       }
       
-      if (data.academicYears && Array.isArray(data.academicYears)) {
-        return data.academicYears;
+      if (data.terms && Array.isArray(data.terms)) {
+        return data.terms;
       }
       
-      if (data.success && data.academicYears) {
-        return data.academicYears;
+      if (data.success && data.terms) {
+        return data.terms;
       }
       
       return [];
@@ -73,7 +73,7 @@ export const academicYearService = {
   },
 
   // Get the active/current academic year
-  getActiveAcademicYear: async (token: string): Promise<AcademicYear | null> => {
+  getActiveTerm: async (token: string): Promise<Term | null> => {
     try {
       const response = await fetch(`${API_BASE}/settings/active-academic-year`, {
         method: 'GET',
@@ -106,7 +106,7 @@ export const academicYearService = {
       // If active endpoint fails, try to get from all academic years
       console.warn('Active academic year endpoint failed, falling back to all years');
       try {
-        const allYears = await academicYearService.getAcademicYears(token);
+        const allYears = await termService.getTerms(token);
         return allYears.find(year => year.isActive || year.isCurrent || year.current) || null;
       } catch (fallbackError) {
         console.error('Fallback to get active academic year also failed:', fallbackError);
@@ -116,7 +116,7 @@ export const academicYearService = {
   },
 
   // Create a new academic year
-  createAcademicYear: async (yearData: Omit<AcademicYear, 'id'>, token: string): Promise<AcademicYear> => {
+  createTerm: async (yearData: Omit<Term, 'id'>, token: string): Promise<Term> => {
     const response = await fetch(`${API_BASE}/settings/academic-years`, {
       method: 'POST',
       headers: {
@@ -135,7 +135,7 @@ export const academicYearService = {
   },
 
   // Update an academic year
-  updateAcademicYear: async (id: string, yearData: Partial<AcademicYear>, token: string): Promise<AcademicYear> => {
+  updateTerm: async (id: string, yearData: Partial<Term>, token: string): Promise<Term> => {
     const response = await fetch(`${API_BASE}/settings/academic-years/${id}`, {
       method: 'PUT',
       headers: {
@@ -154,7 +154,7 @@ export const academicYearService = {
   },
 
   // Set an academic year as active
-  setActiveAcademicYear: async (id: string, token: string): Promise<void> => {
+  setActiveTerm: async (id: string, token: string): Promise<void> => {
     const response = await fetch(`${API_BASE}/settings/academic-years/${id}/set-active`, {
       method: 'PATCH',
       headers: {
@@ -170,7 +170,7 @@ export const academicYearService = {
   },
 
   // Delete an academic year
-  deleteAcademicYear: async (id: string, token: string): Promise<void> => {
+  deleteTerm: async (id: string, token: string): Promise<void> => {
     const response = await fetch(`${API_BASE}/settings/academic-years/${id}`, {
       method: 'DELETE',
       headers: {

@@ -12,7 +12,7 @@ export default function Login() {
   const navigate = useNavigate();
   const { toast } = useToast();
   
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -22,10 +22,10 @@ export default function Login() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password) {
+    if (!username || !password) {
       toast({
         title: "Error",
-        description: "Please enter both email and password",
+        description: "Please enter both username and password",
         variant: "destructive",
       });
       return;
@@ -33,7 +33,7 @@ export default function Login() {
 
     setIsLoading(true);
     try {
-      const result = await login(email, password);
+      const result = await login(username, password);
       
       // Check if password reset is required
       if (result.user.forcePasswordReset) {
@@ -55,7 +55,7 @@ export default function Login() {
       console.error('Login failed:', error);
       toast({
         title: "Login Failed",
-        description: "Invalid email or password",
+        description: "Invalid username or password",
         variant: "destructive",
       });
     } finally {
@@ -98,7 +98,7 @@ export default function Login() {
       await changePassword(newPassword, loginToken);
       
       // Auto-login with new credentials
-      await login(email, newPassword);
+      await login(username, newPassword);
       navigate('/dashboard');
       
       toast({
@@ -203,13 +203,13 @@ export default function Login() {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="username">Username</Label>
               <Input 
-                id="email" 
-                type="email" 
-                placeholder="Enter your email" 
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                id="username" 
+                type="text" 
+                placeholder="Enter your username" 
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
                 required 
               />
             </div>

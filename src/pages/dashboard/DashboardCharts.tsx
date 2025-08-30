@@ -107,7 +107,7 @@ export const generateAssignmentStatusData = (user: any) => {
   ];
 };
 
-export const AttendanceOverview = ({ academicYearId }: { academicYearId?: string }) => {
+export const AttendanceOverview = ({ termId }: { termId?: string }) => {
   const [attendanceData, setAttendanceData] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
@@ -118,7 +118,7 @@ export const AttendanceOverview = ({ academicYearId }: { academicYearId?: string
       setLoading(true);
       setError(null);
 
-      const query = academicYearId ? `?academicYearId=${academicYearId}` : '';
+      const query = termId ? `?termId=${termId}` : '';
       const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.ATTENDANCE_BY_CLASS}${query}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -152,7 +152,7 @@ export const AttendanceOverview = ({ academicYearId }: { academicYearId?: string
       fetchAttendanceData();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token, academicYearId]);
+  }, [token, termId]);
 
   if (loading) {
     return (
@@ -217,7 +217,7 @@ export const AttendanceOverview = ({ academicYearId }: { academicYearId?: string
   );
 };
 
-export const ClassPerformanceChart = ({ academicYearId }: { academicYearId?: string }) => {
+export const ClassPerformanceChart = ({ termId }: { termId?: string }) => {
   const [performanceData, setPerformanceData] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
@@ -228,7 +228,7 @@ export const ClassPerformanceChart = ({ academicYearId }: { academicYearId?: str
       setLoading(true);
       setError(null);
 
-      const query = academicYearId ? `?academicYearId=${academicYearId}` : '';
+      const query = termId ? `?termId=${termId}` : '';
       const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.CLASS_PERFORMANCE}${query}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -262,7 +262,7 @@ export const ClassPerformanceChart = ({ academicYearId }: { academicYearId?: str
       fetchPerformanceData();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token, academicYearId]);
+  }, [token, termId]);
 
   if (loading) {
     return (
@@ -316,7 +316,7 @@ export const ClassPerformanceChart = ({ academicYearId }: { academicYearId?: str
   );
 };
 
-export const FeeCollectionChart = ({ academicYearId }: { academicYearId?: string }) => {
+export const FeeCollectionChart = ({ termId }: { termId?: string }) => {
   const [feeData, setFeeData] = React.useState<any[]>([]);
   const [rawResponse, setRawResponse] = React.useState<any | null>(null);
   const [loading, setLoading] = React.useState(true);
@@ -385,7 +385,7 @@ export const FeeCollectionChart = ({ academicYearId }: { academicYearId?: string
       setLoading(true);
       setError(null);
 
-      const query = academicYearId ? `?academicYearId=${academicYearId}` : '';
+      const query = termId ? `?termId=${termId}` : '';
       const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.FEE_COLLECTION}${query}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -419,7 +419,7 @@ export const FeeCollectionChart = ({ academicYearId }: { academicYearId?: string
       fetchFeeData();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token, academicYearId]);
+  }, [token, termId]);
 
   if (loading) {
     return (

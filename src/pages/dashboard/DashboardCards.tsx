@@ -29,7 +29,7 @@ import { Progress } from "@radix-ui/react-progress";
 export const AdminDashboardCards = () => {
   const navigate = useNavigate();
   const { token } = useAuth();
-  const [academicYearId, setAcademicYearId] = useState<string | undefined>(
+  const [termId, setTermId] = useState<string | undefined>(
     undefined
   );
   const [loadingAY, setLoadingAY] = useState<boolean>(false);
@@ -185,7 +185,7 @@ export const AdminDashboardCards = () => {
   };
 
   useEffect(() => {
-    const fetchCurrentAcademicYear = async () => {
+    const fetchCurrentTerm = async () => {
       if (!token) return;
       try {
         setLoadingAY(true);
@@ -199,8 +199,8 @@ export const AdminDashboardCards = () => {
           const data = await res.json();
           // Accept flexible key names
           const id =
-            data?.id || data?.academicYearId || data?.currentAcademicYear?.id;
-          if (id) setAcademicYearId(id);
+            data?.id || data?.termId || data?.currentTerm?.id;
+          if (id) setTermId(id);
         }
       } catch (e) {
         console.warn("Failed to load current academic year", e);
@@ -208,7 +208,7 @@ export const AdminDashboardCards = () => {
         setLoadingAY(false);
       }
     };
-    fetchCurrentAcademicYear();
+    fetchCurrentTerm();
   }, [token]);
 
   useEffect(() => {
@@ -243,7 +243,7 @@ export const AdminDashboardCards = () => {
           </CardHeader>
           <CardContent className="pt-0 pb-4 flex-1 flex flex-col justify-between">
             <div className="flex-1 flex items-center justify-center">
-              <FeeCollectionChart academicYearId={academicYearId} />
+              <FeeCollectionChart termId={termId} />
             </div>
             <Button 
               className="w-full bg-blue-600 hover:bg-blue-700 text-white shadow-md"
@@ -406,7 +406,7 @@ export const AdminDashboardCards = () => {
 
               {/* Performance Chart */}
               <div className="flex-1 flex items-center justify-center">
-                <ClassPerformanceChart academicYearId={academicYearId} />
+                <ClassPerformanceChart termId={termId} />
               </div>
             </div>
             <Button 
@@ -441,7 +441,7 @@ export const AdminDashboardCards = () => {
           </CardHeader>
           <CardContent className="pt-0 pb-4 flex-1 flex flex-col justify-center">
             <div className="flex-1 flex items-center justify-center">
-              <AttendanceOverview academicYearId={academicYearId} />
+              <AttendanceOverview termId={termId} />
             </div>
           </CardContent>
         </Card>

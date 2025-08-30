@@ -66,9 +66,9 @@ interface FeeSummaryResponse {
   outstandingFees?: number;
   overdueFees?: number;
   overdueStudents?: number;
-  academicYearId?: string;
-  isPastAcademicYear?: boolean;
-  academicYearEndDate?: string;
+  termId?: string;
+  isPastTerm?: boolean;
+  termEndDate?: string;
 }
 
 export default function Finance() {
@@ -83,13 +83,13 @@ export default function Finance() {
   const [isLoading, setIsLoading] = useState(true);
   const [apiError, setApiError] = useState<string | null>(null);
 
-  const [academicYears, setAcademicYears] = useState<{ id: string; name: string }[]>([]);
-  const [academicYearId, setAcademicYearId] = useState<string | undefined>(undefined);
+  const [terms, setTerms] = useState<{ id: string; name: string }[]>([]);
+  const [termId, setTermId] = useState<string | undefined>(undefined);
 
   // Uniform fee expectation dialog state (restored)
   const [showSetUniformDialog, setShowSetUniformDialog] = useState(false);
   const [uniformAmount, setUniformAmount] = useState<string>("");
-  const [uniformAcademicYearId, setUniformAcademicYearId] = useState<string | undefined>(undefined);
+  const [uniformTermId, setUniformTermId] = useState<string | undefined>(undefined);
   const [savingUniform, setSavingUniform] = useState(false);
 
   // Invoices (removed - no longer needed)
@@ -104,7 +104,7 @@ export default function Finance() {
 
   // Fetch current academic year (single)
   useEffect(() => {
-    const fetchAcademicYear = async () => {
+    const fetchTerm = async () => {
       if (!token) return;
       try {
         const res = await fetch(`${API_CONFIG.BASE_URL}/analytics/current-academic-year`, {
@@ -112,15 +112,15 @@ export default function Finance() {
         });
         if (res.ok) {
           const data = await res.json();
-            const id = data?.id || data?.academicYearId || data?.currentAcademicYear?.id;
-            const rawName = data?.name || data?.currentAcademicYear?.name;
+            const id = data?.id || data?.termId || data?.currentTerm?.id;
+            const rawName = data?.name || data?.currentTerm?.name;
             const hasRange = (data?.startYear || data?.endYear);
             const rangeName = hasRange ? `${data?.startYear || ''}${hasRange ? '-' : ''}${data?.endYear || ''}` : '';
             const computedName = (rawName && rawName.trim()) || (rangeName && rangeName !== '-' ? rangeName : '') || 'Current Academic Year';
             if (id) {
-              setAcademicYearId(id);
-              if (!uniformAcademicYearId) setUniformAcademicYearId(id);
-              setAcademicYears(prev => {
+              setTermId(id);
+              if (!uniformTermId) setUniformTermId(id);
+              setTerms(prev => {
                 if (prev.find(p => p.id === id)) return prev;
                 return [{ id, name: computedName }];
               });
@@ -130,7 +130,7 @@ export default function Finance() {
         // silent
       }
     };
-    fetchAcademicYear();
+    fetchTerm();
   }, [token]);
 
   // Fetch all academic years
@@ -143,7 +143,7 @@ export default function Finance() {
         });
         if (res.ok) {
           const data = await res.json();
-          const list = Array.isArray(data) ? data : (data.academicYears || []);
+          const list = Array.isArray(data) ? data : (data.terms || []);
           const mapped = list.map((y: any) => {
             const rawName = y.name && y.name.trim();
             const hasRange = (y.startYear || y.endYear);
@@ -151,7 +151,7 @@ export default function Finance() {
             let name = rawName || (rangeName && rangeName !== '-' ? rangeName : '') || 'Academic Year';
             if (name === '-') name = 'Academic Year';
             return {
-              id: y.id || y.academicYearId || y.uuid,
+              id: y.id || y.termId || y.uuid,
               name,
               isCurrent: y.isCurrent || y.current || false
             };
@@ -162,10 +162,10 @@ export default function Finance() {
             return (b.name || '').localeCompare(a.name || '');
           });
           if (mapped.length) {
-            setAcademicYears(mapped.map(({id, name}: any) => ({id, name})));
-            if (!academicYearId) {
-              setAcademicYearId(mapped[0].id);
-              if (!uniformAcademicYearId) setUniformAcademicYearId(mapped[0].id);
+            setTerms(mapped.map(({id, name}: any) => ({id, name})));
+            if (!termId) {
+              setTermId(mapped[0].id);
+              if (!uniformTermId) setUniformTermId(mapped[0].id);
             }
           }
         }
@@ -174,15 +174,15 @@ export default function Finance() {
       }
     };
     fetchAllYears();
-  }, [token, academicYearId]);
+  }, [token, termId]);
 
   // Fetch summary (new endpoint)
   useEffect(() => {
     const fetchSummary = async () => {
-      if (!token || !academicYearId) return;
+      if (!token || !termId) return;
       setFetchingSummary(true);
       try {
-        const res = await fetch(`${API_CONFIG.BASE_URL}/finance/fee-summary?academicYearId=${academicYearId}`, {
+        const res = await fetch(`${API_CONFIG.BASE_URL}/finance/fee-summary?termId=${termId}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (res.ok) {
@@ -202,16 +202,16 @@ export default function Finance() {
       }
     };
     fetchSummary();
-  }, [token, academicYearId]);
+  }, [token, termId]);
 
   // Fetch per-student statuses
   useEffect(() => {
     const fetchStatuses = async () => {
-      if (!token || !academicYearId) return;
+      if (!token || !termId) return;
       try {
         setLoadingStatuses(true);
         setStatusesError(null);
-        const res = await fetch(`${API_CONFIG.BASE_URL}/finance/fee-statuses?academicYearId=${academicYearId}`, {
+        const res = await fetch(`${API_CONFIG.BASE_URL}/finance/fee-statuses?termId=${termId}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (!res.ok) throw new Error('Failed to fetch fee statuses');
@@ -266,7 +266,7 @@ export default function Finance() {
       }
     };
     fetchStatuses();
-  }, [token, academicYearId, summaryData]);
+  }, [token, termId, summaryData]);
 
   // Fetch payments & transactions (legacy detail lists)
   useEffect(() => {
@@ -280,7 +280,7 @@ export default function Finance() {
           ? `${API_CONFIG.BASE_URL}/finance/parent-payments`
           : `${API_CONFIG.BASE_URL}/finance/fee-payments`;
 
-        const yearParam = academicYearId ? `&academicYearId=${academicYearId}` : '';
+        const yearParam = termId ? `&termId=${termId}` : '';
         const [paymentsResponse, transactionsResponse] = await Promise.all([
           fetch(`${paymentsEndpoint}?page=1&limit=100&search=${encodeURIComponent(searchQuery)}${yearParam}`, {
             headers: {
@@ -346,7 +346,7 @@ export default function Finance() {
     };
 
     fetchData();
-  }, [token, navigate, toast, searchQuery, isParent, academicYearId]);
+  }, [token, navigate, toast, searchQuery, isParent, termId]);
 
   // ---------------- Metrics calculation ----------------
   // Summary preferred, fallback to derived
@@ -390,7 +390,7 @@ export default function Finance() {
     try {
       setSavingUniform(true);
       const body: any = { amount: Number(uniformAmount) };
-      body.academicYearId = uniformAcademicYearId || academicYearId;
+      body.termId = uniformTermId || termId;
       const res = await fetch(`${API_CONFIG.BASE_URL}/finance/fee-structure`, {
         method: 'POST',
         headers: {
@@ -427,14 +427,14 @@ export default function Finance() {
         </div>
         <div className="flex flex-col sm:flex-row gap-2 sm:items-center sm:mt-0">
           <div className="flex items-center gap-2">
-            <Label htmlFor="academicYear" className="text-xs">Academic Year</Label>
+            <Label htmlFor="term" className="text-xs">Academic Year</Label>
             <select
-              id="academicYear"
+              id="term"
               className="border rounded-md h-9 px-2 bg-background text-sm"
-              value={academicYearId || ''}
-              onChange={(e) => setAcademicYearId(e.target.value || undefined)}
+              value={termId || ''}
+              onChange={(e) => setTermId(e.target.value || undefined)}
             >
-              {academicYears.map(y => <option key={y.id} value={y.id}>{y.name}</option>)}
+              {terms.map(y => <option key={y.id} value={y.id}>{y.name}</option>)}
             </select>
           </div>
           {isAdmin && (
@@ -464,10 +464,10 @@ export default function Finance() {
                       <select
                         id="uniformYear"
                         className="w-full border rounded-md h-9 px-2 bg-background"
-                        value={uniformAcademicYearId || academicYearId || ''}
-                        onChange={e => setUniformAcademicYearId(e.target.value || undefined)}
+                        value={uniformTermId || termId || ''}
+                        onChange={e => setUniformTermId(e.target.value || undefined)}
                       >
-                        {academicYears.map(y => <option key={y.id} value={y.id}>{y.name}</option>)}
+                        {terms.map(y => <option key={y.id} value={y.id}>{y.name}</option>)}
                       </select>
                     </div>
                     <p className="text-xs text-muted-foreground">

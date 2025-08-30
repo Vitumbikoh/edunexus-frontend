@@ -25,20 +25,20 @@ export default function ParentChildrenPerformance() {
       id: 'child-1',
       name: 'Emma Johnson',
       grades: [
-        { course: 'Mathematics', grade: 'A-', term: 'Fall 2023' },
-        { course: 'Science', grade: 'B+', term: 'Fall 2023' },
-        { course: 'English', grade: 'A', term: 'Fall 2023' },
-        { course: 'History', grade: 'B', term: 'Fall 2023' },
+        { course: 'Mathematics', grade: 'A-', period: 'Fall 2023' },
+        { course: 'Science', grade: 'B+', period: 'Fall 2023' },
+        { course: 'English', grade: 'A', period: 'Fall 2023' },
+        { course: 'History', grade: 'B', period: 'Fall 2023' },
       ],
     },
     {
       id: 'child-2',
       name: 'Alex Johnson',
       grades: [
-        { course: 'Mathematics', grade: 'B+', term: 'Fall 2023' },
-        { course: 'Science', grade: 'A-', term: 'Fall 2023' },
-        { course: 'English', grade: 'B', term: 'Fall 2023' },
-        { course: 'Art', grade: 'A', term: 'Fall 2023' },
+        { course: 'Mathematics', grade: 'B+', period: 'Fall 2023' },
+        { course: 'Science', grade: 'A-', period: 'Fall 2023' },
+        { course: 'English', grade: 'B', period: 'Fall 2023' },
+        { course: 'Art', grade: 'A', period: 'Fall 2023' },
       ],
     },
   ];

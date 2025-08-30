@@ -19,6 +19,7 @@ type LogEntry = {
     email: string;
     role: string;
     name?: string;
+    username?: string;
   };
   studentCreated?: {
     id: string;
@@ -63,7 +64,7 @@ type Activity = {
 export default function Activities() {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchPeriod, setSearchPeriod] = useState('');
   const [filterType, setFilterType] = useState('all');
   const [filterRole, setFilterRole] = useState('all');
   const { token } = useAuth();
@@ -90,7 +91,7 @@ export default function Activities() {
         date: log.timestamp,
         user: {
           id: log.performedBy?.id,
-          name: (log.performedBy?.name || log.performedBy?.email?.split('@')[0] || 'System'),
+          name: (log.performedBy?.name || log.performedBy?.username || log.performedBy?.email?.split('@')[0] || 'System'),
           email: log.performedBy?.email || 'system',
           role: log.performedBy?.role || 'SYSTEM',
         }
@@ -164,10 +165,10 @@ export default function Activities() {
 
   // Filter activities based on search and filters
   const filteredActivities = activities.filter(activity => {
-    const matchesSearch = searchTerm === '' || 
-      activity.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      activity.user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      activity.action.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = searchPeriod === '' || 
+      activity.description.toLowerCase().includes(searchPeriod.toLowerCase()) ||
+      activity.user.name.toLowerCase().includes(searchPeriod.toLowerCase()) ||
+      activity.action.toLowerCase().includes(searchPeriod.toLowerCase());
     
     const matchesType = filterType === 'all' || activity.type.toLowerCase() === filterType.toLowerCase();
     const matchesRole = filterRole === 'all' || activity.user.role.toLowerCase() === filterRole.toLowerCase();
@@ -215,8 +216,8 @@ export default function Activities() {
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
                   placeholder="Search activities..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  value={searchPeriod}
+                  onChange={(e) => setSearchPeriod(e.target.value)}
                   className="pl-10"
                 />
               </div>
@@ -346,7 +347,7 @@ export default function Activities() {
               </div>
               <p className="text-gray-500 dark:text-gray-400 font-medium">No activities found</p>
               <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">
-                {searchTerm || filterType !== 'all' || filterRole !== 'all' 
+                {searchPeriod || filterType !== 'all' || filterRole !== 'all' 
                   ? 'Try adjusting your filters' 
                   : 'Check back later for updates'
                 }

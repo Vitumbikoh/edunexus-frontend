@@ -29,7 +29,7 @@ export default function Exams() {
     exams,
     classes,
     teachers,
-    academicYears,
+    terms,
     
     // Loading states
     isLoading,
@@ -39,16 +39,16 @@ export default function Exams() {
     error,
     
     // Filter state
-    searchTerm,
+    searchPeriod,
     selectedClass,
     selectedTeacher,
-    selectedAcademicYear,
+    selectedTerm,
     
     // Actions
-    setSearchTerm,
+    setSearchPeriod,
     setSelectedClass,
     setSelectedTeacher,
-    setSelectedAcademicYear,
+    setSelectedTerm,
     resetFilters,
     refreshData,
   } = useExamManagement();
@@ -179,8 +179,8 @@ export default function Exams() {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
               <Input
                 placeholder="Search exams..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                value={searchPeriod}
+                onChange={(e) => setSearchPeriod(e.target.value)}
                 className="pl-10"
                 disabled={isLoading}
               />
@@ -221,15 +221,15 @@ export default function Exams() {
             </Select>
 
             <Select 
-              value={selectedAcademicYear} 
-              onValueChange={setSelectedAcademicYear} 
+              value={selectedTerm} 
+              onValueChange={setSelectedTerm} 
               disabled={isLoading}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select academic year" />
               </SelectTrigger>
               <SelectContent>
-                {academicYears.map((year, index) => (
+                {terms.map((year, index) => (
                   <SelectItem key={year.id} value={year.id}>
                     {year.name} {index === 0 ? '(Current)' : ''}
                   </SelectItem>
@@ -292,7 +292,7 @@ export default function Exams() {
                         <FileText className="h-8 w-8 text-muted-foreground" />
                         <span className="text-muted-foreground font-medium">No exams found</span>
                         <span className="text-sm text-muted-foreground">
-                          {searchTerm || selectedClass !== 'All Classes' || selectedTeacher !== 'All Teachers' || selectedAcademicYear !== 'All Years'
+                          {searchPeriod || selectedClass !== 'All Classes' || selectedTeacher !== 'All Teachers' || selectedTerm !== 'All Years'
                             ? 'Try adjusting your filters or search criteria'
                             : 'No exams have been created yet'
                           }

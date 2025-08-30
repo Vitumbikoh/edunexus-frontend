@@ -78,8 +78,8 @@ export const DashboardContent = () => {
       return displayData.name;
     }
     
-    // Final fallback to email username
-    return displayData?.email?.split('@')[0] || 'User';
+    // Use username if available, otherwise fallback to email username or 'User'
+    return displayData?.username || displayData?.email?.split('@')[0] || 'User';
   };
 
   const getCurrentTime = () => {

@@ -17,6 +17,7 @@ type LogEntry = {
     email: string;
     role: string;
     name?: string;
+    username?: string;
   };
   studentCreated?: {
     id: string;
@@ -86,7 +87,7 @@ export default function RecentActivitiesCard() {
         date: log.timestamp,
         user: {
           id: log.performedBy?.id,
-          name: (log.performedBy?.name || log.performedBy?.email?.split('@')[0] || 'System'),
+          name: (log.performedBy?.name || log.performedBy?.username || log.performedBy?.email?.split('@')[0] || 'System'),
           email: log.performedBy?.email || 'system',
           role: log.performedBy?.role || 'SYSTEM',
         }
@@ -127,7 +128,8 @@ export default function RecentActivitiesCard() {
 
   useEffect(() => {
     fetchActivities();
-    const interval = setInterval(fetchActivities, 30000);
+    // Refresh every 10 minutes (600000 ms)
+    const interval = setInterval(fetchActivities, 600000);
     return () => clearInterval(interval);
   }, [fetchActivities]);
 

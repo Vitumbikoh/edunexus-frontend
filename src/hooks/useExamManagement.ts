@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 
 // Import services
 import { classService, Class } from '@/services/classService';
-import { academicYearService, AcademicYear } from '@/services/academicYearService';
+import { termService, Term } from '@/services/termService';
 import { examService, Exam, ExamFilters } from '@/services/examService';
 
 interface Teacher {
@@ -20,7 +20,7 @@ interface UseExamManagementReturn {
   exams: Exam[];
   classes: Class[];
   teachers: Teacher[];
-  academicYears: AcademicYear[];
+  terms: Term[];
   
   // Loading states
   isLoading: boolean;
@@ -30,16 +30,16 @@ interface UseExamManagementReturn {
   error: string | null;
   
   // Filter state
-  searchTerm: string;
+  searchPeriod: string;
   selectedClass: string;
   selectedTeacher: string;
-  selectedAcademicYear: string;
+  selectedTerm: string;
   
   // Actions
-  setSearchTerm: (term: string) => void;
+  setSearchPeriod: (period: string) => void;
   setSelectedClass: (classId: string) => void;
   setSelectedTeacher: (teacher: string) => void;
-  setSelectedAcademicYear: (yearId: string) => void;
+  setSelectedTerm: (yearId: string) => void;
   resetFilters: () => void;
   refreshData: () => void;
 }
@@ -53,7 +53,7 @@ export const useExamManagement = (): UseExamManagementReturn => {
   const [exams, setExams] = useState<Exam[]>([]);
   const [classes, setClasses] = useState<Class[]>([]);
   const [teachers, setTeachers] = useState<Teacher[]>([]);
-  const [academicYears, setAcademicYears] = useState<AcademicYear[]>([]);
+  const [terms, setTerms] = useState<Term[]>([]);
   
   // Loading and error state
   const [isLoading, setIsLoading] = useState(false);
@@ -61,10 +61,10 @@ export const useExamManagement = (): UseExamManagementReturn => {
   const [error, setError] = useState<string | null>(null);
   
   // Filter state
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchPeriod, setSearchPeriod] = useState('');
   const [selectedClass, setSelectedClass] = useState('All Classes');
   const [selectedTeacher, setSelectedTeacher] = useState('All Teachers');
-  const [selectedAcademicYear, setSelectedAcademicYear] = useState('All Years');
+  const [selectedTerm, setSelectedTerm] = useState('All Years');
 
   // Fetch teachers separately as it might use a different endpoint
   const fetchTeachers = async (authToken: string): Promise<Teacher[]> => {
@@ -142,7 +142,7 @@ export const useExamManagement = (): UseExamManagementReturn => {
       if (yearResponse.ok) {
         const yearData = await yearResponse.json();
         console.log('Raw academic years from API:', yearData);
-        allYears = Array.isArray(yearData) ? yearData : (yearData.academicYears || []);
+        allYears = Array.isArray(yearData) ? yearData : (yearData.terms || []);
         
         // Find the active year
         activeYear = allYears.find(year => year.isActive || year.isCurrent || year.current);
@@ -172,12 +172,12 @@ export const useExamManagement = (): UseExamManagementReturn => {
 
       // Set academic years - show active year by default, but allow selection of others
       if (activeYear) {
-        setAcademicYears([activeYear, ...allYears.filter(y => y.id !== activeYear.id)]);
-        setSelectedAcademicYear(activeYear.id);
+        setTerms([activeYear, ...allYears.filter(y => y.id !== activeYear.id)]);
+        setSelectedTerm(activeYear.id);
         console.log('Active academic year set:', activeYear.name);
       } else {
         const allYearsOption = { id: 'all', name: 'All Years' };
-        setAcademicYears([allYearsOption, ...allYears]);
+        setTerms([allYearsOption, ...allYears]);
         console.log('No active year found, showing all years');
       }
 
@@ -219,8 +219,8 @@ export const useExamManagement = (): UseExamManagementReturn => {
       const filters: ExamFilters = {};
 
       // Apply filters
-      if (searchTerm.trim()) {
-        filters.searchTerm = searchTerm.trim();
+      if (searchPeriod.trim()) {
+        filters.searchPeriod = searchPeriod.trim();
       }
 
       if (selectedClass !== 'All Classes' && selectedClass !== 'all') {
@@ -234,8 +234,8 @@ export const useExamManagement = (): UseExamManagementReturn => {
         }
       }
 
-      if (selectedAcademicYear !== 'All Years' && selectedAcademicYear !== 'all' && selectedAcademicYear) {
-        filters.academicYearId = selectedAcademicYear;
+      if (selectedTerm !== 'All Years' && selectedTerm !== 'all' && selectedTerm) {
+        filters.termId = selectedTerm;
       }
 
       console.log('Fetching exams with filters:', filters);
@@ -270,19 +270,19 @@ export const useExamManagement = (): UseExamManagementReturn => {
     } finally {
       setIsLoading(false);
     }
-  }, [token, searchTerm, selectedClass, selectedTeacher, selectedAcademicYear, teachers, toast, navigate]);
+  }, [token, searchPeriod, selectedClass, selectedTeacher, selectedTerm, teachers, toast, navigate]);
 
   // Reset filters
   const resetFilters = useCallback(() => {
     console.log('Resetting filters');
-    setSearchTerm('');
+    setSearchPeriod('');
     setSelectedClass('All Classes');
     setSelectedTeacher('All Teachers');
     // Reset to the first academic year (which should be active) instead of "All Years"
-    if (academicYears.length > 0) {
-      setSelectedAcademicYear(academicYears[0].id);
+    if (terms.length > 0) {
+      setSelectedTerm(terms[0].id);
     }
-  }, [academicYears]);
+  }, [terms]);
 
   // Refresh all data
   const refreshData = useCallback(() => {
@@ -307,7 +307,7 @@ export const useExamManagement = (): UseExamManagementReturn => {
     exams,
     classes,
     teachers,
-    academicYears,
+    terms,
     
     // Loading states
     isLoading,
@@ -317,16 +317,16 @@ export const useExamManagement = (): UseExamManagementReturn => {
     error,
     
     // Filter state
-    searchTerm,
+    searchPeriod,
     selectedClass,
     selectedTeacher,
-    selectedAcademicYear,
+    selectedTerm,
     
     // Actions
-    setSearchTerm,
+    setSearchPeriod,
     setSelectedClass,
     setSelectedTeacher,
-    setSelectedAcademicYear,
+    setSelectedTerm,
     resetFilters,
     refreshData,
   };

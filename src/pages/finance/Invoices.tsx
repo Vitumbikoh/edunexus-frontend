@@ -56,12 +56,12 @@ const mockInvoices = [
 ];
 
 export default function Invoices() {
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchPeriod, setSearchPeriod] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
 
   const filteredInvoices = mockInvoices.filter(invoice => {
-    const matchesSearch = invoice.studentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         invoice.invoiceNumber.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = invoice.studentName.toLowerCase().includes(searchPeriod.toLowerCase()) ||
+                         invoice.invoiceNumber.toLowerCase().includes(searchPeriod.toLowerCase());
     const matchesStatus = statusFilter === 'all' || invoice.status.toLowerCase() === statusFilter;
     
     return matchesSearch && matchesStatus;
@@ -160,8 +160,8 @@ export default function Invoices() {
               <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search invoices..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                value={searchPeriod}
+                onChange={(e) => setSearchPeriod(e.target.value)}
                 className="pl-10"
               />
             </div>

@@ -40,7 +40,7 @@ export default function ExamForm() {
     status: "upcoming" as "upcoming" | "administered" | "graded",
     studentsEnrolled: 0,
     studentsCompleted: 0,
-    academicYear: "2024-2025",
+    term: "2024-2025",
     courseId: courseId || "",
   });
 
@@ -166,7 +166,7 @@ export default function ExamForm() {
         status: formData.status,
         studentsEnrolled: formData.studentsEnrolled,
         studentsCompleted: formData.studentsCompleted,
-        academicYear: formData.academicYear,
+        term: formData.term,
         courseId: formData.courseId,
       };
 
@@ -247,7 +247,7 @@ export default function ExamForm() {
               <Label htmlFor="title">Exam Title *</Label>
               <Input
                 id="title"
-                placeholder="e.g., Mathematics Mid-term Exam"
+                placeholder="e.g., Mathematics Mid-period Exam"
                 value={formData.title}
                 onChange={(e) => handleInputChange("title", e.target.value)}
                 required
@@ -266,8 +266,8 @@ export default function ExamForm() {
                   <SelectValue placeholder="Select exam type" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="midterm">Mid-term Exam</SelectItem>
-                  <SelectItem value="endterm">End-term Exam</SelectItem>
+                  <SelectItem value="midperiod">Mid-period Exam</SelectItem>
+                  <SelectItem value="endperiod">End-period Exam</SelectItem>
                   <SelectItem value="quiz">Quiz</SelectItem>
                   <SelectItem value="assignment">Assignment</SelectItem>
                   <SelectItem value="practical">Practical Exam</SelectItem>

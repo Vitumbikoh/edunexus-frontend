@@ -16,7 +16,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 import ReportCard from "@/components/reports/ReportCard";
 import { academicCalendarService, AcademicCalendar } from "@/services/academicCalendarService";
-import { academicYearService, AcademicYear } from "@/services/academicYearService";
+import { termService, Term } from "@/services/termService";
 import { classService, Class } from "@/services/classService";
 
 interface Student {
@@ -70,15 +70,15 @@ const ExamResults = () => {
 
   const [classes, setClasses] = useState<Class[]>([]);
   const [academicCalendars, setAcademicCalendars] = useState<AcademicCalendar[]>([]);
-  const [academicYears, setAcademicYears] = useState<AcademicYear[]>([]);
+  const [terms, setTerms] = useState<Term[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [filteredStudents, setFilteredStudents] = useState<Student[]>([]);
 
   const [selectedClass, setSelectedClass] = useState<string>("");
   const [selectedAcademicCalendar, setSelectedAcademicCalendar] = useState<string>("");
-  const [selectedAcademicYear, setSelectedAcademicYear] = useState<string>("");
+  const [selectedTerm, setSelectedTerm] = useState<string>("");
   const [selectedStudentId, setSelectedStudentId] = useState<string>("");
-  const [searchTerm, setSearchTerm] = useState<string>("");
+  const [searchPeriod, setSearchPeriod] = useState<string>("");
 
   const [studentResults, setStudentResults] = useState<StudentResult | null>(
     null
@@ -102,8 +102,8 @@ const ExamResults = () => {
         setAcademicCalendars(calendarsResponse);
 
         // Fetch academic years
-        const yearsResponse = await academicYearService.getAcademicYears(token!);
-        setAcademicYears(yearsResponse);
+        const yearsResponse = await termService.getTerms(token!);
+        setTerms(yearsResponse);
 
       } catch (error) {
         console.error('Error fetching initial data:', error);
@@ -123,8 +123,8 @@ const ExamResults = () => {
   }, [token, toast]);
 
   // Filter academic years based on selected calendar
-  const filteredAcademicYears = selectedAcademicCalendar 
-    ? academicYears.filter(year => {
+  const filteredTerms = selectedAcademicCalendar 
+    ? terms.filter(year => {
         // If you have a relationship between calendar and years, filter here
         // For now, show all academic years when a calendar is selected
         return true;
@@ -133,59 +133,59 @@ const ExamResults = () => {
 
   // Auto-select active/current academic year when calendar changes
   useEffect(() => {
-    if (selectedAcademicCalendar && filteredAcademicYears.length > 0) {
-      const currentYear = filteredAcademicYears.find(year => 
+    if (selectedAcademicCalendar && filteredTerms.length > 0) {
+      const currentYear = filteredTerms.find(year => 
         year.isActive || year.isCurrent || year.current
       );
-      if (currentYear && !selectedAcademicYear) {
-        setSelectedAcademicYear(currentYear.id);
+      if (currentYear && !selectedTerm) {
+        setSelectedTerm(currentYear.id);
       }
     } else {
-      setSelectedAcademicYear("");
+      setSelectedTerm("");
     }
-  }, [selectedAcademicCalendar, filteredAcademicYears]);
+  }, [selectedAcademicCalendar, filteredTerms]);
 
   // Reset dependent selections when parent selections change
   useEffect(() => {
     setSelectedAcademicCalendar("");
-    setSelectedAcademicYear("");
+    setSelectedTerm("");
     setSelectedStudentId("");
-    setSearchTerm("");
+    setSearchPeriod("");
   }, [selectedClass]);
 
   useEffect(() => {
-    setSelectedAcademicYear("");
+    setSelectedTerm("");
     setSelectedStudentId("");
-    setSearchTerm("");
+    setSearchPeriod("");
   }, [selectedAcademicCalendar]);
 
   useEffect(() => {
     setSelectedStudentId("");
-    setSearchTerm("");
-  }, [selectedAcademicYear]);
+    setSearchPeriod("");
+  }, [selectedTerm]);
 
-  // Filter students based on search term
+  // Filter students based on search period
   useEffect(() => {
-    if (!searchTerm.trim()) {
+    if (!searchPeriod.trim()) {
       setFilteredStudents(students);
     } else {
       const filtered = students.filter(student => 
-        `${student.firstName} ${student.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        student.studentId.toLowerCase().includes(searchTerm.toLowerCase())
+        `${student.firstName} ${student.lastName}`.toLowerCase().includes(searchPeriod.toLowerCase()) ||
+        student.studentId.toLowerCase().includes(searchPeriod.toLowerCase())
       );
       setFilteredStudents(filtered);
     }
-  }, [students, searchTerm]);
+  }, [students, searchPeriod]);
 
   // Fetch students when class, academic calendar, and academic year are selected
   useEffect(() => {
-    if (selectedClass && selectedAcademicCalendar && selectedAcademicYear) {
+    if (selectedClass && selectedAcademicCalendar && selectedTerm) {
       const fetchStudents = async () => {
         try {
           setIsLoading(true);
           // Fetch students for the selected class
           const response = await fetch(
-            `http://localhost:5000/api/v1/grades/classes/${selectedClass}/students?academicCalendarId=${selectedAcademicCalendar}&academicYearId=${selectedAcademicYear}`,
+            `http://localhost:5000/api/v1/grades/classes/${selectedClass}/students?academicCalendarId=${selectedAcademicCalendar}&termId=${selectedTerm}`,
             { headers: { Authorization: `Bearer ${token}` } }
           );
           if (!response.ok) throw new Error("Failed to fetch students");
@@ -221,16 +221,16 @@ const ExamResults = () => {
       setStudents([]);
       setSelectedStudentId("");
     }
-  }, [selectedClass, selectedAcademicCalendar, selectedAcademicYear, token, toast]);
+  }, [selectedClass, selectedAcademicCalendar, selectedTerm, token, toast]);
 
   const fetchAllStudentsResults = async () => {
-    if (!selectedClass || !selectedAcademicCalendar || !selectedAcademicYear) return;
+    if (!selectedClass || !selectedAcademicCalendar || !selectedTerm) return;
 
     setIsLoading(true);
     try {
       // Fetch all students results with new filter parameters
       const response = await fetch(
-        `http://localhost:5000/api/v1/grades/class/${selectedClass}?academicCalendarId=${selectedAcademicCalendar}&academicYearId=${selectedAcademicYear}`,
+        `http://localhost:5000/api/v1/grades/class/${selectedClass}?academicCalendarId=${selectedAcademicCalendar}&termId=${selectedTerm}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       if (!response.ok) throw new Error("Failed to fetch students results");
@@ -257,13 +257,13 @@ const ExamResults = () => {
   };
 
   useEffect(() => {
-    if (selectedClass && selectedAcademicCalendar && selectedAcademicYear && !selectedStudentId) {
+    if (selectedClass && selectedAcademicCalendar && selectedTerm && !selectedStudentId) {
       fetchAllStudentsResults();
     }
-  }, [selectedClass, selectedAcademicCalendar, selectedAcademicYear, students]);
+  }, [selectedClass, selectedAcademicCalendar, selectedTerm, students]);
 
   const fetchStudentResults = async () => {
-    if (!selectedStudentId || !selectedClass || !selectedAcademicCalendar || !selectedAcademicYear) return;
+    if (!selectedStudentId || !selectedClass || !selectedAcademicCalendar || !selectedTerm) return;
 
     setIsLoading(true);
     try {
@@ -275,7 +275,7 @@ const ExamResults = () => {
 
       // Use the student ID with academic calendar and year parameters
       const response = await fetch(
-        `http://localhost:5000/api/v1/grades/student/${selectedStudentId}?classId=${selectedClass}&academicCalendarId=${selectedAcademicCalendar}&academicYearId=${selectedAcademicYear}`,
+        `http://localhost:5000/api/v1/grades/student/${selectedStudentId}?classId=${selectedClass}&academicCalendarId=${selectedAcademicCalendar}&termId=${selectedTerm}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
@@ -522,11 +522,11 @@ const ExamResults = () => {
                 </div>
                 <div class="info-item">
                   <span class="info-label">Academic Calendar:</span>
-                  <span>${academicCalendars.find((c) => c.id === selectedAcademicCalendar)?.academicYear || "N/A"}</span>
+                  <span>${academicCalendars.find((c) => c.id === selectedAcademicCalendar)?.term || "N/A"}</span>
                 </div>
                 <div class="info-item">
                   <span class="info-label">Academic Year:</span>
-                  <span>${academicYears.find((y) => y.id === selectedAcademicYear)?.name || "N/A"}</span>
+                  <span>${terms.find((y) => y.id === selectedTerm)?.name || "N/A"}</span>
                 </div>
                 <div class="info-item">
                   <span class="info-label">Generated:</span>
@@ -685,7 +685,7 @@ const ExamResults = () => {
                 <SelectContent>
                   {academicCalendars.map((calendar) => (
                     <SelectItem key={calendar.id} value={calendar.id!}>
-                      {calendar.academicYear} {calendar.isActive && "(Current)"}
+                      {calendar.term} {calendar.isActive && "(Current)"}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -695,15 +695,15 @@ const ExamResults = () => {
             <div className="space-y-2">
               <label className="text-sm font-medium">Academic Year</label>
               <Select 
-                value={selectedAcademicYear} 
-                onValueChange={setSelectedAcademicYear}
+                value={selectedTerm} 
+                onValueChange={setSelectedTerm}
                 disabled={!selectedAcademicCalendar}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select academic year" />
                 </SelectTrigger>
                 <SelectContent>
-                  {filteredAcademicYears.map((year) => (
+                  {filteredTerms.map((year) => (
                     <SelectItem key={year.id} value={year.id}>
                       {year.name} {(year.isActive || year.isCurrent || year.current) && "(Current)"}
                     </SelectItem>
@@ -720,7 +720,7 @@ const ExamResults = () => {
                 disabled={
                   !selectedClass ||
                   !selectedAcademicCalendar ||
-                  !selectedAcademicYear ||
+                  !selectedTerm ||
                   filteredStudents.length === 0
                 }
               >
@@ -756,12 +756,12 @@ const ExamResults = () => {
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                 <Input
                   placeholder="Search by student name or ID..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  value={searchPeriod}
+                  onChange={(e) => setSearchPeriod(e.target.value)}
                   className="pl-10"
                 />
               </div>
-              {searchTerm && (
+              {searchPeriod && (
                 <p className="text-sm text-muted-foreground">
                   Showing {filteredStudents.length} of {students.length} students
                 </p>
@@ -770,16 +770,16 @@ const ExamResults = () => {
           )}
 
           {/* Reset Filters Button */}
-          {(selectedClass || selectedAcademicCalendar || selectedAcademicYear || selectedStudentId || searchTerm) && (
+          {(selectedClass || selectedAcademicCalendar || selectedTerm || selectedStudentId || searchPeriod) && (
             <div className="mt-6 flex justify-end">
               <Button 
                 variant="outline" 
                 onClick={() => {
                   setSelectedClass("");
                   setSelectedAcademicCalendar("");
-                  setSelectedAcademicYear("");
+                  setSelectedTerm("");
                   setSelectedStudentId("");
-                  setSearchTerm("");
+                  setSearchPeriod("");
                   setStudents([]);
                   setStudentResults(null);
                   setAllStudentsResults(null);
@@ -819,7 +819,7 @@ const ExamResults = () => {
         </Card>
       )}
 
-      {selectedClass && selectedAcademicCalendar && !selectedAcademicYear && (
+      {selectedClass && selectedAcademicCalendar && !selectedTerm && (
         <Card>
           <CardContent className="py-8">
             <div className="text-center text-muted-foreground">
@@ -831,7 +831,7 @@ const ExamResults = () => {
         </Card>
       )}
 
-      {selectedClass && selectedAcademicCalendar && selectedAcademicYear && students.length === 0 && !isLoading && (
+      {selectedClass && selectedAcademicCalendar && selectedTerm && students.length === 0 && !isLoading && (
         <Card>
           <CardContent className="py-8">
             <div className="text-center text-muted-foreground">
@@ -978,7 +978,7 @@ const ExamResults = () => {
 
       {selectedClass &&
         selectedAcademicCalendar &&
-        selectedAcademicYear &&
+        selectedTerm &&
         !selectedStudentId &&
         !allStudentsResults && (
           <Card>

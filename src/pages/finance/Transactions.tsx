@@ -51,13 +51,13 @@ const mockTransactions = [
 ];
 
 export default function Transactions() {
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchPeriod, setSearchPeriod] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
 
   const filteredTransactions = mockTransactions.filter(transaction => {
-    const matchesSearch = transaction.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         transaction.reference.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = transaction.description.toLowerCase().includes(searchPeriod.toLowerCase()) ||
+                         transaction.reference.toLowerCase().includes(searchPeriod.toLowerCase());
     const matchesStatus = statusFilter === 'all' || transaction.status.toLowerCase() === statusFilter;
     const matchesType = typeFilter === 'all' || transaction.type.toLowerCase() === typeFilter;
     
@@ -148,8 +148,8 @@ export default function Transactions() {
               <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search transactions..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                value={searchPeriod}
+                onChange={(e) => setSearchPeriod(e.target.value)}
                 className="pl-10"
               />
             </div>

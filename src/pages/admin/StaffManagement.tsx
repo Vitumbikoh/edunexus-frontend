@@ -129,7 +129,7 @@ const StaffManagement: React.FC = () => {
     }
   ]);
 
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchPeriod, setSearchPeriod] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
@@ -147,10 +147,10 @@ const StaffManagement: React.FC = () => {
 
   const filteredStaff = staff.filter(member => {
     const matchesSearch = 
-      member.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      member.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      member.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      member.department.toLowerCase().includes(searchTerm.toLowerCase());
+      member.firstName.toLowerCase().includes(searchPeriod.toLowerCase()) ||
+      member.lastName.toLowerCase().includes(searchPeriod.toLowerCase()) ||
+      member.email.toLowerCase().includes(searchPeriod.toLowerCase()) ||
+      member.department.toLowerCase().includes(searchPeriod.toLowerCase());
     
     const matchesRole = roleFilter === 'all' || member.role === roleFilter;
     const matchesStatus = statusFilter === 'all' || member.status === statusFilter;
@@ -295,8 +295,8 @@ const StaffManagement: React.FC = () => {
                     <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                     <Input
                       placeholder="Search staff members..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
+                      value={searchPeriod}
+                      onChange={(e) => setSearchPeriod(e.target.value)}
                       className="pl-10"
                     />
                   </div>

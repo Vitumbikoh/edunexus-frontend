@@ -20,7 +20,7 @@ export type ChildStudent = {
   grades: {
     course: string;
     grade: string;
-    term: string;
+    period: string;
   }[];
   attendance: {
     total: number;
@@ -75,7 +75,7 @@ export type User = {
     grades: {
       course: string;
       grade: string;
-      term: string;
+      period: string;
     }[];
     attendance: {
       total: number;
@@ -110,7 +110,7 @@ export interface LoginResponse {
 export interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
-  login: (email: string, password: string) => Promise<LoginResponse>;
+  login: (username: string, password: string) => Promise<LoginResponse>;
   logout: () => void;
   changePassword: (newPassword: string, token?: string) => Promise<void>;
   loading: boolean;
@@ -148,8 +148,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setUser({
               ...response.user,
               role: normalizedRole,
-              name: response.user.username || response.user.email.split('@')[0],
-              avatar: `https://ui-avatars.com/api/?name=${response.user.email}&background=0D8ABC&color=fff`
+              name: response.user.username || response.user.firstName || response.user.email?.split('@')[0] || 'User',
+              avatar: `https://ui-avatars.com/api/?name=${response.user.username || response.user.firstName || 'User'}&background=0D8ABC&color=fff`
             });
             setToken(storedToken);
           } else {
@@ -170,10 +170,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     checkAuth();
   }, []);
 
-  const login = async (email: string, password: string): Promise<LoginResponse> => {
+  const login = async (username: string, password: string): Promise<LoginResponse> => {
     try {
       // Backend login
-      const response = await authApi.login({ email, password });
+      const response = await authApi.login({ username, password });
       
       localStorage.setItem('access_token', response.access_token);
       setToken(response.access_token);
@@ -182,8 +182,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const userData: User = {
         ...response.user,
         role: normalizedRole,
-        name: response.user.username || response.user.email.split('@')[0],
-        avatar: `https://ui-avatars.com/api/?name=${response.user.email}&background=0D8ABC&color=fff`
+        name: response.user.username || response.user.firstName || response.user.email?.split('@')[0] || 'User',
+        avatar: `https://ui-avatars.com/api/?name=${response.user.username || response.user.firstName || 'User'}&background=0D8ABC&color=fff`
       };
       
       setUser(userData);

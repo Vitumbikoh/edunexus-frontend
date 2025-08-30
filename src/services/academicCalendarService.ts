@@ -5,7 +5,7 @@ const API_BASE = API_CONFIG.BASE_URL;
 
 export interface AcademicCalendar {
   id?: string;
-  academicYear: string;
+  term: string;
   startDate?: string | null;
   endDate?: string | null;
   isActive?: boolean;
@@ -97,7 +97,7 @@ export const academicCalendarService = {
         'Authorization': `Bearer ${token}`,
       },
       body: JSON.stringify({
-        academicYear: calendar.academicYear,
+        term: calendar.term,
         startDate: calendar.startDate || undefined,
         endDate: calendar.endDate || undefined,
       }),

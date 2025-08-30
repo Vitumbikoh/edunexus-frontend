@@ -61,7 +61,7 @@ export default function Courses() {
   });
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchPeriod, setSearchPeriod] = useState("");
   const [selectedClass, setSelectedClass] = useState<string>("all");
   const [apiError, setApiError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -224,9 +224,9 @@ export default function Courses() {
 
   useEffect(() => {
     if (canShow) {
-      fetchCourses(currentPage, itemsPerPage, searchTerm, selectedClass);
+      fetchCourses(currentPage, itemsPerPage, searchPeriod, selectedClass);
     }
-  }, [currentPage, searchTerm, selectedClass, canShow, token]);
+  }, [currentPage, searchPeriod, selectedClass, canShow, token]);
 
   const handlePageChange = (newPage: number) => {
     if (newPage >= 1 && newPage <= paginatedData.totalPages) {
@@ -235,7 +235,7 @@ export default function Courses() {
   };
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchTerm(e.target.value);
+    setSearchPeriod(e.target.value);
     setCurrentPage(1);
   };
 
@@ -300,7 +300,7 @@ export default function Courses() {
           type="search"
           placeholder="Search courses..."
           className="pl-8 w-full md:w-[300px] py-2 rounded-md border border-input"
-          value={searchTerm}
+          value={searchPeriod}
           onChange={handleSearchChange}
         />
         <svg

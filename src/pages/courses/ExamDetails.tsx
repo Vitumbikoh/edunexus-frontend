@@ -31,15 +31,15 @@ interface Exam {
   status: 'upcoming' | 'administered' | 'graded';
   studentsEnrolled: number;
   studentsCompleted: number;
-  academicYear: {
+  term: {
     id: string;
     name?: string;
     startDate: string;
     endDate: string;
     academicCalendar?: any;
-    term?: any;
+    period?: any;
   };
-  academicYearId: string;
+  termId: string;
   description?: string;
   instructions?: string;
   examType: string;
@@ -250,7 +250,7 @@ export default function ExamDetails() {
               <div>
                 <h3 className="font-semibold">Academic Year</h3>
                 <p className="text-sm">
-                  {exam.academicYear?.name || `${new Date(exam.academicYear?.startDate).getFullYear()} - ${new Date(exam.academicYear?.endDate).getFullYear()}`}
+                  {exam.term?.name || `${new Date(exam.term?.startDate).getFullYear()} - ${new Date(exam.term?.endDate).getFullYear()}`}
                 </p>
               </div>
               <div>

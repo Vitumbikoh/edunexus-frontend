@@ -50,7 +50,7 @@ export default function Teachers() {
   const { user, token } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchPeriod, setSearchPeriod] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
   const [paginatedData, setPaginatedData] = useState<PaginatedData>({
@@ -118,12 +118,12 @@ export default function Teachers() {
 
   useEffect(() => {
     if (canShow) {
-      fetchTeachers(currentPage, itemsPerPage, searchTerm);
+      fetchTeachers(currentPage, itemsPerPage, searchPeriod);
     }
-  }, [currentPage, searchTerm, canShow, token]);
+  }, [currentPage, searchPeriod, canShow, token]);
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchTerm(e.target.value);
+    setSearchPeriod(e.target.value);
     setCurrentPage(1); // Reset to first page when searching
   };
 
@@ -175,7 +175,7 @@ export default function Teachers() {
                 type="search"
                 placeholder="Search teachers..."
                 className="pl-8 w-[250px]"
-                value={searchTerm}
+                value={searchPeriod}
                 onChange={handleSearchChange}
               />
             </div>

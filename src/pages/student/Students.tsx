@@ -58,7 +58,7 @@ export default function Students() {
   const { user, token } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchPeriod, setSearchPeriod] = useState("");
   const [formFilter, setFormFilter] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
@@ -125,12 +125,12 @@ export default function Students() {
 
   useEffect(() => {
     if (canView) {
-      fetchStudents(currentPage, itemsPerPage, searchTerm);
+      fetchStudents(currentPage, itemsPerPage, searchPeriod);
     }
-  }, [currentPage, searchTerm, formFilter, canView, token]);
+  }, [currentPage, searchPeriod, formFilter, canView, token]);
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchTerm(e.target.value);
+    setSearchPeriod(e.target.value);
     setCurrentPage(1);
   };
 
@@ -191,7 +191,7 @@ export default function Students() {
                   type="search"
                   placeholder="Search students..."
                   className="pl-8 w-[250px]"
-                  value={searchTerm}
+                  value={searchPeriod}
                   onChange={handleSearchChange}
                 />
               </div>
@@ -232,7 +232,7 @@ export default function Students() {
 
                   toast({ title: 'Upload complete', description: `${success} added, ${failed} failed` });
                   // refresh list
-                  fetchStudents(currentPage, itemsPerPage, searchTerm);
+                  fetchStudents(currentPage, itemsPerPage, searchPeriod);
                 } catch (err) {
                   toast({ title: 'Upload failed', description: 'Could not process the file', variant: 'destructive' });
                 } finally {

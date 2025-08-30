@@ -27,7 +27,7 @@ interface ActivityLog {
   action: string;
   module?: string;
   level?: string;
-  performedBy?: { id?: string; email?: string; role?: string; name?: string } | null;
+  performedBy?: { id?: string; email?: string; role?: string; name?: string; username?: string } | null;
   entityId?: string | null;
   entityType?: string | null;
   newValues?: any;
@@ -238,20 +238,20 @@ const ActivityDetail: React.FC = () => {
           {activity.performedBy && (
             <div className="flex items-center space-x-4 p-4 bg-white dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700">
               <Avatar className="h-12 w-12 ring-2 ring-gray-200 dark:ring-gray-700">
-                <AvatarImage src="" alt={activity.performedBy.name || activity.performedBy.email} />
+                <AvatarImage src="" alt={activity.performedBy.name || activity.performedBy.username || activity.performedBy.email} />
                 <AvatarFallback className="bg-gradient-to-br from-blue-100 to-blue-200 dark:from-blue-900 dark:to-blue-800 text-blue-700 dark:text-blue-300 font-semibold">
-                  {getInitials(activity.performedBy.name || activity.performedBy.email || 'System')}
+                  {getInitials(activity.performedBy.name || activity.performedBy.username || activity.performedBy.email || 'System')}
                 </AvatarFallback>
               </Avatar>
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
                   <User className="h-4 w-4 text-gray-400" />
                   <span className="font-medium text-gray-900 dark:text-gray-100">
-                    {activity.performedBy.name || activity.performedBy.email || 'System'}
+                    {activity.performedBy.name || activity.performedBy.username || activity.performedBy.email || 'System'}
                   </span>
                 </div>
-                {activity.performedBy.email && (
-                  <p className="text-sm text-gray-600 dark:text-gray-400">{activity.performedBy.email}</p>
+                {(activity.performedBy.email || activity.performedBy.username) && (
+                  <p className="text-sm text-gray-600 dark:text-gray-400">{activity.performedBy.username || activity.performedBy.email}</p>
                 )}
                 {activity.performedBy.role && (
                   <Badge className="text-xs" variant="secondary">

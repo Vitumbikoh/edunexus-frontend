@@ -47,7 +47,7 @@ export default function FinanceOfficers() {
   const { user, token } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchPeriod, setSearchPeriod] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
   const [paginatedData, setPaginatedData] = useState<PaginatedData>({
@@ -118,12 +118,12 @@ export default function FinanceOfficers() {
 
   useEffect(() => {
     if (canShow) {
-      fetchFinanceOfficers(currentPage, itemsPerPage, searchTerm);
+      fetchFinanceOfficers(currentPage, itemsPerPage, searchPeriod);
     }
-  }, [currentPage, searchTerm, canShow, token]);
+  }, [currentPage, searchPeriod, canShow, token]);
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchTerm(e.target.value);
+    setSearchPeriod(e.target.value);
     setCurrentPage(1); // Reset to first page when searching
   };
 
@@ -176,7 +176,7 @@ export default function FinanceOfficers() {
                 type="search"
                 placeholder="Search finance officers..."
                 className="pl-8 w-[250px]"
-                value={searchTerm}
+                value={searchPeriod}
                 onChange={handleSearchChange}
               />
             </div>

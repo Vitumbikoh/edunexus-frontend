@@ -104,7 +104,7 @@ export default function Header() {
       return `Payment of ${amount} for ${student}`;
     }
     if (activity.studentCreated) return `Student: ${activity.studentCreated.fullName}`;
-    return metadata?.description || `By ${activity.performedBy?.email || 'system'}`;
+    return metadata?.description || `By ${activity.performedBy?.username || activity.performedBy?.email || 'system'}`;
   };
 
   const formatTime = (timestamp: string): string => {
@@ -202,7 +202,7 @@ export default function Header() {
             <DropdownMenuLabel className="font-normal">
               <div className="flex flex-col space-y-1">
                 <p className="text-sm font-medium leading-none">{user.name}</p>
-                <p className="text-xs leading-none text-muted-foreground">{user.email}</p>
+                <p className="text-xs leading-none text-muted-foreground">{user.username || user.email}</p>
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />

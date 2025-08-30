@@ -33,7 +33,7 @@ This document outlines the comprehensive improvements made to the Exam Managemen
 
 #### Created Dedicated Service Files:
 - **`classService.ts`** - Handles all class-related API operations
-- **`academicYearService.ts`** - Manages academic year data
+- **`termService.ts`** - Manages academic year data
 - **`examService.ts`** - Handles exam-related operations
 
 #### Benefits:
@@ -78,7 +78,7 @@ try {
 }
 
 // After: Comprehensive service with multiple fallback strategies
-const academicYearsData = await academicYearService.getAcademicYears(token);
+const termsData = await termService.getTerms(token);
 // Includes automatic active year detection and proper error handling
 ```
 
@@ -201,7 +201,7 @@ function ExamComponent() {
   const { 
     exams, 
     classes, 
-    academicYears, 
+    terms, 
     isLoading, 
     error 
   } = useExamManagement();
