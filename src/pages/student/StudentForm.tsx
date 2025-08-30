@@ -26,8 +26,7 @@ interface Parent {
 
 interface StudentData {
   id?: string;
-  username: string;
-  email: string;
+  email: string; // now optional in validation (can be blank)
   password?: string;
   firstName: string;
   lastName: string;
@@ -55,7 +54,6 @@ export default function StudentForm() {
   const [showPassword, setShowPassword] = React.useState(false);
 
   const [formData, setFormData] = React.useState<StudentData>({
-    username: '',
     email: '',
     password: '',
     firstName: '',
@@ -81,7 +79,6 @@ export default function StudentForm() {
     if (state?.student) {
       const { student } = state;
       setFormData({
-        username: student.user?.username || '',
         email: student.user?.email || '',
         password: '',
         firstName: student.firstName || '',
@@ -117,7 +114,6 @@ export default function StudentForm() {
 
       const student = await response.json();
       setFormData({
-        username: student.user?.username || '',
         email: student.user?.email || '',
         password: '',
         firstName: student.firstName || '',
@@ -206,9 +202,9 @@ export default function StudentForm() {
     setIsSubmitting(true);
     setApiError(null);
 
-    // Validate required fields
-    if (!formData.username || !formData.email || !formData.firstName || !formData.lastName) {
-      setApiError("Please fill in all required fields");
+    // Validate required fields (username removed, email optional)
+    if (!formData.firstName || !formData.lastName) {
+      setApiError("First name and last name are required");
       setIsSubmitting(false);
       return;
     }
@@ -226,8 +222,8 @@ export default function StudentForm() {
       }
 
       const requestBody = {
-        username: formData.username,
-        email: formData.email,
+        // username removed (server should auto-generate if needed)
+        email: formData.email || undefined, // omit if blank
         password: formData.password || undefined, // Only include password for new students
         firstName: formData.firstName,
         lastName: formData.lastName,
@@ -331,26 +327,17 @@ export default function StudentForm() {
           <CardContent className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <Label htmlFor="username">Username *</Label>
-                <Input 
-                  id="username" 
-                  value={formData.username}
-                  onChange={handleChange}
-                  placeholder="johndoe123" 
-                  required 
-                  disabled={!!id} // Disable username editing for existing students
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="email">Email *</Label>
+                <Label htmlFor="email">Email (optional)</Label>
                 <Input 
                   id="email" 
                   type="email" 
                   value={formData.email}
                   onChange={handleChange}
                   placeholder="john.doe@example.com" 
-                  required 
                 />
+              </div>
+              <div className="space-y-2">
+                {/* Empty to keep grid symmetry */}
               </div>
             </div>
 
