@@ -35,7 +35,8 @@ export default function Header() {
   useEffect(() => {
     if (user?.role === "admin") {
       fetchNotifications();
-      const interval = setInterval(fetchNotifications, 30000);
+  // Poll every 20 minutes instead of 30 seconds to reduce noise
+  const interval = setInterval(fetchNotifications, 1200000);
       return () => clearInterval(interval);
     }
   }, [user]);

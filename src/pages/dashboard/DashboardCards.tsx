@@ -214,7 +214,8 @@ export const AdminDashboardCards = () => {
   useEffect(() => {
     fetchAcademicStats();
     fetchActivities();
-    const interval = setInterval(fetchActivities, 60000);
+  // Reduce polling frequency to every 20 minutes (1,200,000 ms)
+  const interval = setInterval(fetchActivities, 1200000);
     return () => clearInterval(interval);
   }, [fetchActivities, fetchAcademicStats]);
 

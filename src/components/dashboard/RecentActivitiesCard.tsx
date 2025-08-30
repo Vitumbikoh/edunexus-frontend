@@ -127,9 +127,9 @@ export default function RecentActivitiesCard() {
   };
 
   useEffect(() => {
-    fetchActivities();
-    // Refresh every 10 minutes (600000 ms)
-    const interval = setInterval(fetchActivities, 600000);
+  fetchActivities();
+  // Refresh every 20 minutes (1,200,000 ms) per updated requirement
+  const interval = setInterval(fetchActivities, 1200000);
     return () => clearInterval(interval);
   }, [fetchActivities]);
 

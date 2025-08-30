@@ -127,7 +127,8 @@ export default function Activities() {
 
   useEffect(() => {
     fetchActivities();
-    const interval = setInterval(fetchActivities, 60000); // Refresh every minute
+  // Refresh every 20 minutes instead of every minute to minimize backend load
+  const interval = setInterval(fetchActivities, 1200000);
     return () => clearInterval(interval);
   }, [fetchActivities]);
 

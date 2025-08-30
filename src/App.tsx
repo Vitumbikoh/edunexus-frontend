@@ -50,6 +50,7 @@ import CourseEnrollments from "./pages/courses/CourseEnrollments";
 import StudentDetails from "./pages/student/StudentDetails";
 import FinanceOfficers from "./pages/finance/FinanceOfficers";
 import FinanceForm from "./pages/finance/FinanceForm";
+import FinanceOfficerDetails from "./pages/finance/FinanceOfficerDetails";
 import Transactions from "./pages/finance/Transactions";
 import Invoices from "./pages/finance/Invoices";
 import FinanceReports from "./pages/finance/FinanceReports";
@@ -510,9 +511,11 @@ const AppRoutes = () => {
         path="/finance/officers/view"
         element={
           <ProtectedRoute>
-            <Layout>
-              <FinanceOfficers />
-            </Layout>
+            <AdminRoute>
+              <Layout>
+                <FinanceOfficers />
+              </Layout>
+            </AdminRoute>
           </ProtectedRoute>
         }
       />
@@ -521,9 +524,37 @@ const AppRoutes = () => {
         path="/finance/officers/add"
         element={
           <ProtectedRoute>
-            <Layout>
-              <FinanceForm />
-            </Layout>
+            <AdminRoute>
+              <Layout>
+                <FinanceForm />
+              </Layout>
+            </AdminRoute>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/finance/officers/:id"
+        element={
+          <ProtectedRoute>
+            <AdminRoute>
+              <Layout>
+                <FinanceOfficerDetails />
+              </Layout>
+            </AdminRoute>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/finance/officers/:id/edit"
+        element={
+          <ProtectedRoute>
+            <AdminRoute>
+              <Layout>
+                <FinanceForm />
+              </Layout>
+            </AdminRoute>
           </ProtectedRoute>
         }
       />

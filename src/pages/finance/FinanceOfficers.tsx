@@ -254,14 +254,14 @@ export default function FinanceOfficers() {
                         </TableCell>
                         <TableCell className="text-right space-x-2">
                           <Button variant="ghost" size="sm" asChild>
-                            <Link to={`/finance/${officer.id}`}>
+                            <Link to={`/finance/officers/${officer.id}`}>
                               <Eye className="h-4 w-4 mr-1" />
                               View
                             </Link>
                           </Button>
                           {canEdit && (
                             <Button variant="ghost" size="sm" asChild>
-                              <Link to={`/finance/${officer.id}/edit`}>
+                              <Link to={`/finance/officers/${officer.id}/edit`}>
                                 <Pencil className="h-4 w-4 mr-1" />
                                 Edit
                               </Link>

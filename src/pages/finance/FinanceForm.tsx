@@ -13,7 +13,7 @@ import { API_CONFIG } from '@/config/api';
 
 interface FinanceData {
   id?: string;
-  username: string;
+  username?: string; // read-only on edit
   email: string;
   password?: string;
   firstName: string;
@@ -67,17 +67,17 @@ export default function FinanceForm() {
       const { finance } = state;
       setFormData({
         username: finance.user?.username || '',
-        email: finance.user?.email || '',
+        email: finance.user?.email || finance.email || '',
         password: '',
         firstName: finance.firstName || '',
         lastName: finance.lastName || '',
         phoneNumber: finance.phoneNumber || '',
         address: finance.address || '',
-        dateOfBirth: finance.dateOfBirth || '',
+        dateOfBirth: finance.dateOfBirth ? finance.dateOfBirth.split('T')[0] : '',
         gender: finance.gender || '',
         department: finance.department || '',
         canApproveBudgets: finance.canApproveBudgets || false,
-        canProcessPayments: finance.canProcessPayments !== false // default to true if not specified
+        canProcessPayments: finance.canProcessPayments !== false
       });
       setIsLoadingFinance(false);
     } else if (id) {
@@ -101,13 +101,13 @@ export default function FinanceForm() {
       const finance = await response.json();
       setFormData({
         username: finance.user?.username || '',
-        email: finance.user?.email || '',
+        email: finance.user?.email || finance.email || '',
         password: '',
         firstName: finance.firstName || '',
         lastName: finance.lastName || '',
         phoneNumber: finance.phoneNumber || '',
         address: finance.address || '',
-        dateOfBirth: finance.dateOfBirth || '',
+        dateOfBirth: finance.dateOfBirth ? finance.dateOfBirth.split('T')[0] : '',
         gender: finance.gender || '',
         department: finance.department || '',
         canApproveBudgets: finance.canApproveBudgets || false,
@@ -156,7 +156,7 @@ export default function FinanceForm() {
     setApiError(null);
 
     // Validate required fields
-    if (!formData.username || !formData.email || !formData.firstName || !formData.lastName) {
+  if (!formData.email || !formData.firstName || !formData.lastName) {
       setApiError("Please fill in all required fields");
       setIsSubmitting(false);
       return;
@@ -174,8 +174,7 @@ export default function FinanceForm() {
         throw new Error("Authentication token not found. Please log in again.");
       }
 
-      const requestBody = {
-        username: formData.username,
+      const requestBody: any = {
         email: formData.email,
         password: formData.password || undefined, // Only include password for new finance staff
         firstName: formData.firstName,
@@ -188,6 +187,11 @@ export default function FinanceForm() {
         canApproveBudgets: formData.canApproveBudgets,
         canProcessPayments: formData.canProcessPayments
       };
+
+      // Include username only on update if backend expects it (deriving from email local-part)
+      if (id && formData.username) {
+        requestBody.username = formData.username;
+      }
 
       const url = id 
         ? `${API_CONFIG.BASE_URL}/finance/${id}`
@@ -225,7 +229,7 @@ export default function FinanceForm() {
         variant: "default",
       });
       
-      navigate('/finance');
+  navigate('/finance/officers/view');
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : `Failed to ${id ? 'update' : 'add'} finance staff`;
       setApiError(errorMessage);
@@ -248,7 +252,7 @@ export default function FinanceForm() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-10">
       <div className="flex items-center">
         <Button variant="ghost" onClick={() => navigate('/finance')} className="mr-4">
           <ArrowLeft className="mr-2 h-4 w-4" />
@@ -270,7 +274,7 @@ export default function FinanceForm() {
         </div>
       )}
 
-      <Card>
+  <Card className="overflow-visible">
         <form onSubmit={handleSubmit}>
           <CardHeader>
             <CardTitle>Finance Staff Information</CardTitle>
@@ -280,17 +284,17 @@ export default function FinanceForm() {
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <Label htmlFor="username">Username *</Label>
-                <Input 
-                  id="username" 
-                  value={formData.username}
-                  onChange={handleChange}
-                  placeholder="johndoe123" 
-                  required 
-                  disabled={!!id} // Disable username editing for existing finance staff
-                />
-              </div>
+              {id && (
+                <div className="space-y-2">
+                  <Label htmlFor="username">Username</Label>
+                  <Input
+                    id="username"
+                    value={formData.username || ''}
+                    disabled
+                    placeholder="auto-generated"
+                  />
+                </div>
+              )}
               <div className="space-y-2">
                 <Label htmlFor="email">Email *</Label>
                 <Input 
