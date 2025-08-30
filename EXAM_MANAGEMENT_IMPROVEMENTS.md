@@ -71,7 +71,7 @@ const classesData = await classService.getClasses(token);
 ```typescript
 // Before: Try-catch with fallback
 try {
-  const yearsData = await fetchWithAuth('/settings/academic-years');
+  const yearsData = await fetchWithAuth('/setting/terms');
   // Basic response handling
 } catch (error) {
   console.warn('Failed to fetch academic years:', error);
@@ -161,7 +161,7 @@ The custom hook implements:
 - **Fallback support** for paginated vs. array responses
 - **Teacher-specific classes** support via `/teacher/my-classes`
 
-### Academic Years Endpoint: `/settings/academic-years`
+### Academic Years Endpoint: `/setting/terms`
 - **Active year detection** with multiple criteria
 - **Fallback mechanisms** for missing active year data
 - **Support for different naming conventions** (isActive, isCurrent, current)

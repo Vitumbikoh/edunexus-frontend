@@ -130,7 +130,7 @@ export const useExamManagement = (): UseExamManagementReturn => {
       }
 
       // Fetch academic years and get ONLY the active one by default
-      const yearResponse = await fetch('http://localhost:5000/api/v1/settings/academic-years', {
+      const yearResponse = await fetch('http://localhost:5000/api/v1/setting/terms', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',

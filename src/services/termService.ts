@@ -22,7 +22,7 @@ export interface TermResponse {
 export const termService = {
   // Get all academic years
   getTerms: async (token: string): Promise<Term[]> => {
-    const response = await fetch(`${API_BASE}/settings/academic-years`, {
+    const response = await fetch(`${API_BASE}/settings/terms`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -75,7 +75,7 @@ export const termService = {
   // Get the active/current academic year
   getActiveTerm: async (token: string): Promise<Term | null> => {
     try {
-      const response = await fetch(`${API_BASE}/settings/active-academic-year`, {
+      const response = await fetch(`${API_BASE}/settings/active-term`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -117,7 +117,7 @@ export const termService = {
 
   // Create a new academic year
   createTerm: async (yearData: Omit<Term, 'id'>, token: string): Promise<Term> => {
-    const response = await fetch(`${API_BASE}/settings/academic-years`, {
+    const response = await fetch(`${API_BASE}/setting/terms`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -136,7 +136,7 @@ export const termService = {
 
   // Update an academic year
   updateTerm: async (id: string, yearData: Partial<Term>, token: string): Promise<Term> => {
-    const response = await fetch(`${API_BASE}/settings/academic-years/${id}`, {
+    const response = await fetch(`${API_BASE}/setting/terms/${id}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -155,7 +155,7 @@ export const termService = {
 
   // Set an academic year as active
   setActiveTerm: async (id: string, token: string): Promise<void> => {
-    const response = await fetch(`${API_BASE}/settings/academic-years/${id}/set-active`, {
+    const response = await fetch(`${API_BASE}/setting/terms/${id}/set-active`, {
       method: 'PATCH',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -171,7 +171,7 @@ export const termService = {
 
   // Delete an academic year
   deleteTerm: async (id: string, token: string): Promise<void> => {
-    const response = await fetch(`${API_BASE}/settings/academic-years/${id}`, {
+    const response = await fetch(`${API_BASE}/setting/terms/${id}`, {
       method: 'DELETE',
       headers: {
         'Authorization': `Bearer ${token}`,

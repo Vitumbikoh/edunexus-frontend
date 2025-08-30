@@ -15,6 +15,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -82,6 +93,7 @@ export default function AcademicAndPeriodsSection() {
     fetching: false,
     activating: false,
     activatingPeriod: false,
+    completingTerm: false,
   });
 
   const [showNewCalendarForm, setShowNewCalendarForm] = useState(false);
@@ -343,6 +355,40 @@ export default function AcademicAndPeriodsSection() {
       });
     } finally {
       setLoading((prev) => ({ ...prev, activatingPeriod: false }));
+    }
+  };
+
+  const onCompleteTerm = async (termId: string) => {
+    setLoading((prev) => ({ ...prev, completingTerm: true }));
+    try {
+      const res = await fetch(`${API_BASE}/settings/periods/term/${termId}/complete`, {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || "Failed to complete term");
+      }
+
+      toast({
+        title: "Success",
+        description: "Term completed successfully",
+      });
+
+      if (selectedAcademicCalendar.id) {
+        await fetchTermPeriods(selectedAcademicCalendar.id);
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to complete term",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading((prev) => ({ ...prev, completingTerm: false }));
     }
   };
 
@@ -882,6 +928,37 @@ export default function AcademicAndPeriodsSection() {
                                 >
                                   {loading.activatingPeriod ? "Activating..." : "Activate"}
                                 </Button>
+                              )}
+                              {period.isCurrent && (
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button
+                                      variant="destructive"
+                                      size="sm"
+                                      disabled={loading.completingTerm || !period.id}
+                                    >
+                                      {loading.completingTerm ? "Completing..." : "Complete Term"}
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        This action will mark the term "{period.periodName}" as completed. 
+                                        This action cannot be undone.
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                      <AlertDialogAction
+                                        onClick={() => period.id && onCompleteTerm(period.id)}
+                                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                      >
+                                        Complete Term
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
                               )}
                             </div>
                           </TableCell>

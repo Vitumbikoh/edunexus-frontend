@@ -138,7 +138,7 @@ export default function Finance() {
     const fetchAllYears = async () => {
       if (!token) return;
       try {
-        const res = await fetch(`${API_CONFIG.BASE_URL}/settings/academic-years`, {
+        const res = await fetch(`${API_CONFIG.BASE_URL}/setting/terms`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (res.ok) {
