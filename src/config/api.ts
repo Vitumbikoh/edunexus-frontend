@@ -12,7 +12,7 @@ export const API_CONFIG = {
   ATTENDANCE_BY_CLASS: '/analytics/attendance-by-class',
   CLASS_PERFORMANCE: '/analytics/course-averages',
   FEE_COLLECTION: '/analytics/fee-collection-status',
-  CURRENT_ACADEMIC_YEAR: '/analytics/current-academic-year',
+  CURRENT_ACADEMIC_YEAR: '/analytics/current-term',
   RECENT_ACTIVITIES: '/activities/recent',
   }
 } as const;

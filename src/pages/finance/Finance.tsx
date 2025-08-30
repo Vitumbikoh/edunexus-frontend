@@ -107,7 +107,7 @@ export default function Finance() {
     const fetchTerm = async () => {
       if (!token) return;
       try {
-        const res = await fetch(`${API_CONFIG.BASE_URL}/analytics/current-academic-year`, {
+        const res = await fetch(`${API_CONFIG.BASE_URL}/analytics/current-term`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (res.ok) {
