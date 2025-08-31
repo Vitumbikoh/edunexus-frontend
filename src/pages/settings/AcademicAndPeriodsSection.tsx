@@ -75,6 +75,7 @@ export default function AcademicAndPeriodsSection() {
     startDate: null,
     endDate: null,
     isActive: false,
+    isClosed: false,
   });
 
   const [availablePeriods, setAvailablePeriods] = useState<Period[]>([]);
@@ -94,6 +95,7 @@ export default function AcademicAndPeriodsSection() {
     period: false,
     fetching: false,
     activating: false,
+    closing: false,
     activatingPeriod: false,
     completingTerm: false,
   });
@@ -198,6 +200,7 @@ export default function AcademicAndPeriodsSection() {
         startDate: null,
         endDate: null,
         isActive: false,
+        isClosed: false,
       };
 
       setSelectedAcademicCalendar(defaultCalendar);
@@ -255,6 +258,28 @@ export default function AcademicAndPeriodsSection() {
       });
     } finally {
       setLoading((prev) => ({ ...prev, activating: false }));
+    }
+  };
+
+  const onCloseAcademicCalendar = async (calendarId: string) => {
+    setLoading((prev) => ({ ...prev, closing: true }));
+    try {
+      await academicCalendarService.closeAcademicCalendar(calendarId, token!);
+
+      toast({
+        title: "Success",
+        description: "Academic calendar closed successfully",
+      });
+
+      await fetchAcademicData();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to close academic calendar",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading((prev) => ({ ...prev, closing: false }));
     }
   };
 
@@ -516,6 +541,7 @@ export default function AcademicAndPeriodsSection() {
                   startDate: null,
                   endDate: null,
                   isActive: false,
+                  isClosed: false,
                 });
                 setShowNewCalendarForm(true);
               }}
@@ -667,6 +693,10 @@ export default function AcademicAndPeriodsSection() {
                               <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
                                 Active
                               </span>
+                            ) : calendar.isClosed ? (
+                              <span className="px-2 py-1 bg-red-100 text-red-800 text-xs rounded-full">
+                                Closed
+                              </span>
                             ) : (
                               <span className="px-2 py-1 bg-gray-100 text-gray-800 text-xs rounded-full">
                                 Inactive
@@ -675,7 +705,37 @@ export default function AcademicAndPeriodsSection() {
                           </TableCell>
                           <TableCell>
                             <div className="flex gap-2">
-                              {calendar.id !== activeAcademicCalendar?.id && (
+                              {calendar.id === activeAcademicCalendar?.id && !calendar.isClosed ? (
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button
+                                      variant="destructive"
+                                      size="sm"
+                                      disabled={loading.closing || !calendar.id}
+                                    >
+                                      {loading.closing ? "Closing..." : "Close"}
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>Close Academic Calendar</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        Are you sure you want to close the academic calendar "{calendar.term}"? 
+                                        This action cannot be undone and will mark the calendar as completed.
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                      <AlertDialogAction
+                                        onClick={() => calendar.id && onCloseAcademicCalendar(calendar.id)}
+                                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                      >
+                                        Close Calendar
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
+                              ) : calendar.id !== activeAcademicCalendar?.id && !calendar.isClosed && !activeAcademicCalendar ? (
                                 <Button
                                   variant="outline"
                                   size="sm"
@@ -684,7 +744,15 @@ export default function AcademicAndPeriodsSection() {
                                 >
                                   {loading.activating ? "Activating..." : "Activate"}
                                 </Button>
-                              )}
+                              ) : calendar.isClosed ? (
+                                <span className="text-sm text-muted-foreground">
+                                  No actions available
+                                </span>
+                              ) : calendar.id !== activeAcademicCalendar?.id && activeAcademicCalendar && !calendar.isClosed ? (
+                                <span className="text-sm text-muted-foreground">
+                                  Cannot activate while another calendar is active
+                                </span>
+                              ) : null}
                             </div>
                           </TableCell>
                         </TableRow>
@@ -703,6 +771,7 @@ export default function AcademicAndPeriodsSection() {
                         startDate: null,
                         endDate: null,
                         isActive: false,
+                        isClosed: false,
                       });
                     }}
                   >

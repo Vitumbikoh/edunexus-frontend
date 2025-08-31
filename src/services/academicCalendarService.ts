@@ -9,6 +9,7 @@ export interface AcademicCalendar {
   startDate?: string | null;
   endDate?: string | null;
   isActive?: boolean;
+  isClosed?: boolean;
 }
 
 export const academicCalendarService = {
@@ -85,6 +86,22 @@ export const academicCalendarService = {
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       throw new Error(errorData.message || 'Failed to set active academic calendar');
+    }
+  },
+
+  // Close an academic calendar
+  closeAcademicCalendar: async (id: string, token: string): Promise<void> => {
+    const response = await fetch(`${API_BASE}/settings/close-academic-calendar/${id}`, {
+      method: 'PATCH',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || 'Failed to close academic calendar');
     }
   },
 
