@@ -60,6 +60,7 @@ export type TermPeriod = {
   startDate: string;
   endDate: string;
   isCurrent: boolean;
+  isCompleted?: boolean;
 };
 
 export default function AcademicAndPeriodsSection() {
@@ -85,6 +86,7 @@ export default function AcademicAndPeriodsSection() {
     startDate: "",
     endDate: "",
     isCurrent: false,
+    isCompleted: false,
   });
 
   const [loading, setLoading] = useState({
@@ -161,6 +163,7 @@ export default function AcademicAndPeriodsSection() {
         startDate: current.startDate || "",
         endDate: current.endDate || "",
         isCurrent: current.isCurrent || false,
+        isCompleted: current.isCompleted || false,
       });
     } catch (error) {
       console.error("Failed to fetch term periods:", error);
@@ -400,6 +403,7 @@ export default function AcademicAndPeriodsSection() {
       startDate: "",
       endDate: "",
       isCurrent: false,
+      isCompleted: false,
     });
   };
 
@@ -422,6 +426,7 @@ export default function AcademicAndPeriodsSection() {
       startDate: "",
       endDate: "",
       isCurrent: false,
+      isCompleted: false,
     });
     setShowNewPeriodForm(true);
   };
@@ -900,7 +905,11 @@ export default function AcademicAndPeriodsSection() {
                           <TableCell>{formatDateForDisplay(period.startDate)}</TableCell>
                           <TableCell>{formatDateForDisplay(period.endDate)}</TableCell>
                           <TableCell>
-                            {period.isCurrent ? (
+                            {period.isCompleted ? (
+                              <span className="px-2 py-1 bg-red-100 text-red-800 text-xs rounded-full">
+                                Completed
+                              </span>
+                            ) : period.isCurrent ? (
                               <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
                                 Current
                               </span>
@@ -912,14 +921,16 @@ export default function AcademicAndPeriodsSection() {
                           </TableCell>
                           <TableCell>
                             <div className="flex gap-2">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleEditPeriod(period)}
-                              >
-                                Edit
-                              </Button>
-                              {!period.isCurrent && (
+                              {!period.isCompleted && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleEditPeriod(period)}
+                                >
+                                  Edit
+                                </Button>
+                              )}
+                              {!period.isCurrent && !period.isCompleted && (
                                 <Button
                                   variant="outline"
                                   size="sm"
@@ -929,7 +940,7 @@ export default function AcademicAndPeriodsSection() {
                                   {loading.activatingPeriod ? "Activating..." : "Activate"}
                                 </Button>
                               )}
-                              {period.isCurrent && (
+                              {period.isCurrent && !period.isCompleted && (
                                 <AlertDialog>
                                   <AlertDialogTrigger asChild>
                                     <Button
@@ -942,10 +953,10 @@ export default function AcademicAndPeriodsSection() {
                                   </AlertDialogTrigger>
                                   <AlertDialogContent>
                                     <AlertDialogHeader>
-                                      <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                      <AlertDialogTitle>Complete Term</AlertDialogTitle>
                                       <AlertDialogDescription>
-                                        This action will mark the term "{period.periodName}" as completed. 
-                                        This action cannot be undone.
+                                        Are you sure you want to complete the term "{period.periodName}"? 
+                                        This action cannot be undone and will mark the term as completed.
                                       </AlertDialogDescription>
                                     </AlertDialogHeader>
                                     <AlertDialogFooter>
@@ -959,6 +970,11 @@ export default function AcademicAndPeriodsSection() {
                                     </AlertDialogFooter>
                                   </AlertDialogContent>
                                 </AlertDialog>
+                              )}
+                              {period.isCompleted && (
+                                <span className="text-sm text-muted-foreground">
+                                  No actions available
+                                </span>
                               )}
                             </div>
                           </TableCell>
