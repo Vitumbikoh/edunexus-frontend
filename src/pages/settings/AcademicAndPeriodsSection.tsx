@@ -801,7 +801,7 @@ export default function AcademicAndPeriodsSection() {
         <div className="flex justify-between items-center">
           <h3 className="font-medium">Term Management</h3>
           <div className="text-sm text-muted-foreground">
-            <span>Academic Year: </span>
+            <span>Academic Calendar: </span>
             <span className="font-medium">
               {selectedAcademicCalendar.term || "Not selected"}
             </span>
