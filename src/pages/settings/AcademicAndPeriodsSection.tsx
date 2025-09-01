@@ -75,7 +75,7 @@ export default function AcademicAndPeriodsSection() {
     startDate: null,
     endDate: null,
     isActive: false,
-    isClosed: false,
+  isCompleted: false,
   });
 
   const [availablePeriods, setAvailablePeriods] = useState<Period[]>([]);
@@ -200,7 +200,7 @@ export default function AcademicAndPeriodsSection() {
         startDate: null,
         endDate: null,
         isActive: false,
-        isClosed: false,
+  isCompleted: false,
       };
 
       setSelectedAcademicCalendar(defaultCalendar);
@@ -406,9 +406,24 @@ export default function AcademicAndPeriodsSection() {
         description: "Term completed successfully",
       });
 
+      // Refresh periods
       if (selectedAcademicCalendar.id) {
         await fetchTermPeriods(selectedAcademicCalendar.id);
       }
+
+      // After refresh, auto-activate the next available term (first non-completed, non-current)
+      setTermPeriods((prev) => {
+        const updated = [...prev];
+        const hasCurrent = updated.some(p => p.isCurrent && !p.isCompleted);
+        if (hasCurrent) return updated; // another term already active after refresh
+        // pick next term by order in list that is not completed
+        const next = updated.find(p => !p.isCompleted);
+        if (next && next.id) {
+          // fire and forget activation
+          onActivatePeriod(next.id);
+        }
+        return updated;
+      });
     } catch (error) {
       toast({
         title: "Error",
@@ -541,7 +556,7 @@ export default function AcademicAndPeriodsSection() {
                   startDate: null,
                   endDate: null,
                   isActive: false,
-                  isClosed: false,
+                  isCompleted: false,
                 });
                 setShowNewCalendarForm(true);
               }}
@@ -693,9 +708,9 @@ export default function AcademicAndPeriodsSection() {
                               <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
                                 Active
                               </span>
-                            ) : calendar.isClosed ? (
+                            ) : calendar.isCompleted ? (
                               <span className="px-2 py-1 bg-red-100 text-red-800 text-xs rounded-full">
-                                Closed
+                                Completed
                               </span>
                             ) : (
                               <span className="px-2 py-1 bg-gray-100 text-gray-800 text-xs rounded-full">
@@ -705,7 +720,7 @@ export default function AcademicAndPeriodsSection() {
                           </TableCell>
                           <TableCell>
                             <div className="flex gap-2">
-                              {calendar.id === activeAcademicCalendar?.id && !calendar.isClosed ? (
+                              {calendar.id === activeAcademicCalendar?.id && !calendar.isCompleted ? (
                                 <AlertDialog>
                                   <AlertDialogTrigger asChild>
                                     <Button
@@ -735,7 +750,7 @@ export default function AcademicAndPeriodsSection() {
                                     </AlertDialogFooter>
                                   </AlertDialogContent>
                                 </AlertDialog>
-                              ) : calendar.id !== activeAcademicCalendar?.id && !calendar.isClosed && !activeAcademicCalendar ? (
+                              ) : calendar.id !== activeAcademicCalendar?.id && !calendar.isCompleted && !activeAcademicCalendar ? (
                                 <Button
                                   variant="outline"
                                   size="sm"
@@ -744,11 +759,11 @@ export default function AcademicAndPeriodsSection() {
                                 >
                                   {loading.activating ? "Activating..." : "Activate"}
                                 </Button>
-                              ) : calendar.isClosed ? (
-                                <span className="text-sm text-muted-foreground">
-                                  No actions available
+                              ) : calendar.isCompleted ? (
+                                <span className="text-sm text-muted-foreground italic">
+                                  This academic calendar was completed
                                 </span>
-                              ) : calendar.id !== activeAcademicCalendar?.id && activeAcademicCalendar && !calendar.isClosed ? (
+                              ) : calendar.id !== activeAcademicCalendar?.id && activeAcademicCalendar && !calendar.isCompleted ? (
                                 <span className="text-sm text-muted-foreground">
                                   Cannot activate while another calendar is active
                                 </span>
@@ -771,7 +786,7 @@ export default function AcademicAndPeriodsSection() {
                         startDate: null,
                         endDate: null,
                         isActive: false,
-                        isClosed: false,
+                        isCompleted: false,
                       });
                     }}
                   >
@@ -922,19 +937,21 @@ export default function AcademicAndPeriodsSection() {
                       />
                     </div>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="isCurrent"
-                      checked={currentPeriod.isCurrent}
-                      onCheckedChange={(checked) =>
-                        setCurrentPeriod({
-                          ...currentPeriod,
-                          isCurrent: Boolean(checked),
-                        })
-                      }
-                    />
-                    <Label htmlFor="isCurrent">Set as current term</Label>
-                  </div>
+                  {!editingPeriod && (
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="isCurrent"
+                        checked={currentPeriod.isCurrent}
+                        onCheckedChange={(checked) =>
+                          setCurrentPeriod({
+                            ...currentPeriod,
+                            isCurrent: Boolean(checked),
+                          })
+                        }
+                      />
+                      <Label htmlFor="isCurrent">Set as current term</Label>
+                    </div>
+                  )}
                   <div className="flex justify-end gap-2">
                     <Button
                       variant="outline"
@@ -999,7 +1016,8 @@ export default function AcademicAndPeriodsSection() {
                                   Edit
                                 </Button>
                               )}
-                              {!period.isCurrent && !period.isCompleted && (
+                              {/* Show Activate only if no other current term exists */}
+                              {!period.isCurrent && !period.isCompleted && !termPeriods.some(p => p.isCurrent && !p.isCompleted) && (
                                 <Button
                                   variant="outline"
                                   size="sm"
@@ -1008,6 +1026,9 @@ export default function AcademicAndPeriodsSection() {
                                 >
                                   {loading.activatingPeriod ? "Activating..." : "Activate"}
                                 </Button>
+                              )}
+                              {!period.isCurrent && !period.isCompleted && termPeriods.some(p => p.isCurrent && !p.isCompleted) && (
+                                <span className="text-xs text-muted-foreground px-2 py-1">Another term is active</span>
                               )}
                               {period.isCurrent && !period.isCompleted && (
                                 <AlertDialog>

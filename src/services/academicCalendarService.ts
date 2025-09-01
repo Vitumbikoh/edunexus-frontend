@@ -9,7 +9,7 @@ export interface AcademicCalendar {
   startDate?: string | null;
   endDate?: string | null;
   isActive?: boolean;
-  isClosed?: boolean;
+  isCompleted?: boolean;
 }
 
 export const academicCalendarService = {
