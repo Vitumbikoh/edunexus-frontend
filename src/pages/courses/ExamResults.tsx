@@ -86,6 +86,8 @@ const ExamResults = () => {
   const [allStudentsResults, setAllStudentsResults] =
     useState<AllStudentsResults | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [termActionLoading, setTermActionLoading] = useState({ enter:false, publish:false });
+  const [termActionState, setTermActionState] = useState<{enteredExam?:boolean; resultsPublished?:boolean}>({});
 
   // Fetch all initial data
   useEffect(() => {
@@ -163,6 +165,34 @@ const ExamResults = () => {
     setSelectedStudentId("");
     setSearchPeriod("");
   }, [selectedTerm]);
+
+  const handleEnterExamPeriod = async () => {
+    if (!selectedTerm) return;
+    try {
+      setTermActionLoading(p=>({...p, enter:true}));
+      await termService.enterExamPeriod(selectedTerm, token!);
+      setTermActionState(s=>({...s, enteredExam:true}));
+      toast({ title:'Exam Period Started', description:'Term is now in exam period.' });
+    } catch (e:any) {
+      toast({ title:'Error', description:e.message || 'Failed to enter exam period', variant:'destructive' });
+    } finally {
+      setTermActionLoading(p=>({...p, enter:false}));
+    }
+  };
+
+  const handlePublishResults = async () => {
+    if (!selectedTerm) return;
+    try {
+      setTermActionLoading(p=>({...p, publish:true}));
+      await termService.publishResults(selectedTerm, token!);
+      setTermActionState(s=>({...s, resultsPublished:true}));
+      toast({ title:'Results Published', description:'Exam results have been published.' });
+    } catch (e:any) {
+      toast({ title:'Error', description:e.message || 'Failed to publish results', variant:'destructive' });
+    } finally {
+      setTermActionLoading(p=>({...p, publish:false}));
+    }
+  };
 
   // Filter students based on search period
   useEffect(() => {
@@ -766,6 +796,28 @@ const ExamResults = () => {
                   Showing {filteredStudents.length} of {students.length} students
                 </p>
               )}
+            </div>
+          )}
+
+          {/* Term Exam Actions */}
+          {selectedClass && selectedAcademicCalendar && selectedTerm && (
+            <div className="mt-6 flex flex-wrap gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleEnterExamPeriod}
+                disabled={termActionLoading.enter || termActionState.enteredExam}
+              >
+                {termActionLoading.enter ? 'Processing...' : termActionState.enteredExam ? 'Exam Period Active' : 'Enter Exam Period'}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handlePublishResults}
+                disabled={termActionLoading.publish || !termActionState.enteredExam || termActionState.resultsPublished}
+              >
+                {termActionLoading.publish ? 'Publishing...' : termActionState.resultsPublished ? 'Results Published' : 'Publish Results'}
+              </Button>
             </div>
           )}
 

@@ -184,4 +184,34 @@ export const termService = {
       throw new Error(errorData.message || 'Failed to delete academic year');
     }
   },
+
+  // Enter exam period for a term
+  enterExamPeriod: async (termId: string, token: string): Promise<void> => {
+    const response = await fetch(`${API_BASE}/settings/terms/${termId}/enter-exam-period`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || 'Failed to enter exam period');
+    }
+  },
+
+  // Publish results for a term
+  publishResults: async (termId: string, token: string): Promise<void> => {
+    const response = await fetch(`${API_BASE}/settings/terms/${termId}/publish-results`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || 'Failed to publish results');
+    }
+  },
 };
