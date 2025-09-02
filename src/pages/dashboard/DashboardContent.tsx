@@ -125,22 +125,22 @@ export const DashboardContent = () => {
     <div className="space-y-8">
       {/* Professional Header Section */}
       <div className="bg-card border border-border rounded-lg shadow-sm">
-        <div className="p-8">
-          <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
-            <div className="space-y-4">
-              <div className="flex items-center gap-4">
-                <h1 className="text-4xl font-light text-foreground tracking-tight">
+        <div className="p-6">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+            <div className="space-y-2">
+              <div className="flex items-center gap-3">
+                <h1 className="text-3xl font-light text-foreground tracking-tight">
                   Dashboard
                 </h1>
                 {user?.role && (
-                  <Badge variant="secondary" className="px-3 py-1.5 font-medium">
-                    <User className="h-3 w-3 mr-2" />
+                  <Badge variant="secondary" className="px-2 py-1 text-xs font-medium">
+                    <User className="h-3 w-3 mr-1" />
                     {getRoleDisplayName(user.role)}
                   </Badge>
                 )}
               </div>
-              <div className="space-y-1">
-                <p className="text-xl text-muted-foreground">
+              <div>
+                <p className="text-lg text-muted-foreground">
                   Welcome back, <span className="font-medium text-foreground">
                     {getDisplayName()}
                   </span>
@@ -151,12 +151,12 @@ export const DashboardContent = () => {
               </div>
             </div>
             
-            <div className="flex flex-col gap-3">
-              <div className="flex items-center gap-3 text-muted-foreground">
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center gap-2 text-muted-foreground">
                 <CalendarDays className="h-4 w-4" />
                 <span className="text-sm font-medium">{getCurrentDate()}</span>
               </div>
-              <div className="flex items-center gap-3 text-muted-foreground">
+              <div className="flex items-center gap-2 text-muted-foreground">
                 <Clock className="h-4 w-4" />
                 <span className="text-sm font-medium">{getCurrentTime()}</span>
               </div>
