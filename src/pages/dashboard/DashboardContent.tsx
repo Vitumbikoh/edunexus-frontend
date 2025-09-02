@@ -123,36 +123,43 @@ export const DashboardContent = () => {
 
   return (
     <div className="space-y-8">
-      {/* Enhanced Header Section */}
-      <div className="bg-gradient-to-r from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 rounded-lg p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-          <div className="space-y-2">
-            <div className="flex items-center gap-3">
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-gray-100 dark:to-gray-300 bg-clip-text text-transparent">
-                Dashboard
-              </h1>
-              {user?.role && (
-                <Badge variant={getRoleBadgeVariant(user.role) as any} className="px-3 py-1">
-                  <User className="h-3 w-3 mr-1" />
-                  {getRoleDisplayName(user.role)}
-                </Badge>
-              )}
+      {/* Professional Header Section */}
+      <div className="bg-card border border-border rounded-lg shadow-sm">
+        <div className="p-8">
+          <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
+            <div className="space-y-4">
+              <div className="flex items-center gap-4">
+                <h1 className="text-4xl font-light text-foreground tracking-tight">
+                  Dashboard
+                </h1>
+                {user?.role && (
+                  <Badge variant="secondary" className="px-3 py-1.5 font-medium">
+                    <User className="h-3 w-3 mr-2" />
+                    {getRoleDisplayName(user.role)}
+                  </Badge>
+                )}
+              </div>
+              <div className="space-y-1">
+                <p className="text-xl text-muted-foreground">
+                  Welcome back, <span className="font-medium text-foreground">
+                    {getDisplayName()}
+                  </span>
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Manage your institution with confidence and precision
+                </p>
+              </div>
             </div>
-            <p className="text-lg text-gray-600 dark:text-gray-300">
-              Welcome back, <span className="font-semibold text-gray-900 dark:text-gray-100">
-                {getDisplayName()}
-              </span>
-            </p>
-          </div>
-          
-          <div className="flex flex-col sm:flex-row gap-4 lg:text-right">
-            <div className="flex items-center gap-2 text-gray-600 dark:text-gray-300">
-              <CalendarDays className="h-4 w-4" />
-              <span className="font-medium">{getCurrentDate()}</span>
-            </div>
-            <div className="flex items-center gap-2 text-gray-600 dark:text-gray-300">
-              <Clock className="h-4 w-4" />
-              <span className="font-medium">{getCurrentTime()}</span>
+            
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center gap-3 text-muted-foreground">
+                <CalendarDays className="h-4 w-4" />
+                <span className="text-sm font-medium">{getCurrentDate()}</span>
+              </div>
+              <div className="flex items-center gap-3 text-muted-foreground">
+                <Clock className="h-4 w-4" />
+                <span className="text-sm font-medium">{getCurrentTime()}</span>
+              </div>
             </div>
           </div>
         </div>

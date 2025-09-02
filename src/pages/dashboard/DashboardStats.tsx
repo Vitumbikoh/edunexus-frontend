@@ -67,16 +67,16 @@ export const useDashboardStats = () => {
             {
               title: "Total Students",
               value: studentsData.totalStudents?.toLocaleString() || "0",
-              icon: <Users size={24} />,
+              icon: <Users size={20} />,
               trend: { value: 12, isPositive: true },
-              className: "bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-900/10",
+              className: "bg-card border border-card-border hover:shadow-md transition-all duration-200",
             },
             {
               title: "Total Courses",
               value: coursesData.value?.toString() || "0",
-              icon: <BookOpen size={24} />,
+              icon: <BookOpen size={20} />,
               trend: coursesData.trend || { value: 0, isPositive: true },
-              className: "bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-900/10",
+              className: "bg-card border border-card-border hover:shadow-md transition-all duration-200",
             },
             {
               title: "Total Teachers",
@@ -96,16 +96,16 @@ export const useDashboardStats = () => {
                   return '0';
                 }
               })(),
-              icon: <Users size={24} />,
+              icon: <UserCheck size={20} />,
               trend: { value: 100, isPositive: true },
-              className: "bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-900/10",
+              className: "bg-card border border-card-border hover:shadow-md transition-all duration-200",
             },
             {
               title: "Fee Collection",
               value: financesData.totalRevenue || "$0",
-              icon: <DollarSign size={24} />,
+              icon: <DollarSign size={20} />,
               trend: { value: 8, isPositive: false },
-              className: "bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-900/10",
+              className: "bg-card border border-card-border hover:shadow-md transition-all duration-200",
             },
           ]);
         } else if (role === "teacher") {
@@ -311,8 +311,8 @@ export const DashboardStats = () => {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Key Metrics</h2>
-        <div className="text-sm text-gray-500 dark:text-gray-400">
+        <h2 className="text-2xl font-semibold text-foreground tracking-tight">Key Metrics</h2>
+        <div className="text-sm text-muted-foreground">
           Last updated: {new Date().toLocaleDateString('en-US', { 
             month: 'short', 
             day: 'numeric',
@@ -330,7 +330,7 @@ export const DashboardStats = () => {
             icon={
               React.isValidElement(stat.icon)
                 ? stat.icon
-                : React.createElement(stat.icon, { size: 24 })
+                : React.createElement(stat.icon, { size: 20 })
             }
             trend={stat.trend}
             className={stat.className}
