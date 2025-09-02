@@ -1,28 +1,29 @@
 
 import React from 'react';
-import { AppSidebar } from './AppSidebar';
+import Sidebar from './Sidebar';
 import Header from './Header';
-import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
+import { useSidebar } from '@/contexts/SidebarContext';
+import { cn } from '@/lib/utils';
 
 type LayoutProps = {
   children: React.ReactNode;
 };
 
 export default function Layout({ children }: LayoutProps) {
+  const { isOpen } = useSidebar();
+
   return (
-    <SidebarProvider>
-      <div className="flex min-h-screen w-full">
-        <AppSidebar />
-        <div className="flex flex-1 flex-col">
-          <header className="flex h-14 items-center border-b px-4">
-            <SidebarTrigger className="mr-4" />
-            <Header />
-          </header>
-          <main className="flex-1 overflow-y-auto p-6">
-            {children}
-          </main>
-        </div>
+    <div className="flex h-screen bg-background">
+      <Sidebar />
+      <div className={cn(
+        "flex-1 flex flex-col transition-all duration-300",
+        isOpen ? "ml-64" : "ml-20"
+      )}>
+        <Header />
+        <main className="flex-1 overflow-y-auto p-4">
+          {children}
+        </main>
       </div>
-    </SidebarProvider>
+    </div>
   );
 }
