@@ -12,6 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { Link, useNavigate } from 'react-router-dom';
 import { useToast } from "@/components/ui/use-toast";
 
@@ -142,6 +143,9 @@ export default function Header() {
       </div>
       
       <div className="flex items-center space-x-4">
+        {/* Theme Toggle */}
+        <ThemeToggle />
+        
         {isAdmin && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

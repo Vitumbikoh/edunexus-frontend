@@ -200,6 +200,9 @@ export default function PreferencesSection({ variant }: Props) {
                 ? "The system theme will automatically adjust based on your device settings."
                 : `The ${theme ?? 'light'} theme will be applied across the entire system for your account.`}
             </p>
+            <p className="text-xs text-muted-foreground mt-2">
+              Your theme preference will persist across sessions and page refreshes.
+            </p>
           </div>
         </div>
       </CardContent>

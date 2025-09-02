@@ -211,8 +211,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = () => {
+    // Clear authentication data
     localStorage.removeItem('access_token');
     localStorage.removeItem('user_data');
+    
+    // Preserve theme preference for next login
+    const currentTheme = localStorage.getItem('theme');
+    
+    // Clear user-specific theme preferences but keep general theme
+    if (user?.id) {
+      localStorage.removeItem(`theme-${user.id}`);
+    }
+    
     setUser(null);
     setToken(null);
   };

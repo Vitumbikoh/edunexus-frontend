@@ -26,18 +26,41 @@ interface ThemeProviderProps {
 
 export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   const { user, token } = useAuth();
-const [theme, setThemeState] = useState<Theme>(() => {
-  if (typeof window === 'undefined') return 'light';
-  try {
-    const stored = localStorage.getItem('theme') as Theme | null;
-    return stored || 'light';
-  } catch {
-    return 'light';
-  }
-});
-const [actualTheme, setActualTheme] = useState<'light' | 'dark'>(() => {
-  return 'light';
-});
+  
+  // Initialize theme with better fallback logic
+  const [theme, setThemeState] = useState<Theme>(() => {
+    if (typeof window === 'undefined') return 'light';
+    try {
+      // Try to get from localStorage first
+      const stored = localStorage.getItem('theme') as Theme | null;
+      if (stored && ['light', 'dark', 'system'].includes(stored)) {
+        return stored;
+      }
+      // Fallback to system preference if no stored theme
+      return 'system';
+    } catch {
+      return 'system';
+    }
+  });
+
+  // Initialize actual theme based on the current preference
+  const [actualTheme, setActualTheme] = useState<'light' | 'dark'>(() => {
+    if (typeof window === 'undefined') return 'light';
+    
+    const getInitialSystemTheme = (): 'light' | 'dark' => {
+      return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    };
+    
+    try {
+      const stored = localStorage.getItem('theme') as Theme | null;
+      if (stored === 'system' || !stored) {
+        return getInitialSystemTheme();
+      }
+      return stored as 'light' | 'dark';
+    } catch {
+      return getInitialSystemTheme();
+    }
+  });
 
   // Get system theme preference
   const getSystemTheme = (): 'light' | 'dark' => {
@@ -56,16 +79,26 @@ const [actualTheme, setActualTheme] = useState<'light' | 'dark'>(() => {
   useEffect(() => {
     const loadThemePreference = async () => {
       if (!user || !token) {
-        // If no user or unauthenticated, use stored preference or system
-const storedTheme = (localStorage.getItem('theme') as Theme) || 'light';
-const resolved = calculateActualTheme(storedTheme);
-setThemeState(storedTheme);
-setActualTheme(resolved);
+        // If no user or unauthenticated, use stored preference
+        try {
+          const storedTheme = (localStorage.getItem('theme') as Theme) || 'system';
+          if (['light', 'dark', 'system'].includes(storedTheme)) {
+            const resolved = calculateActualTheme(storedTheme);
+            setThemeState(storedTheme);
+            setActualTheme(resolved);
+          }
+        } catch (error) {
+          console.warn('Failed to load theme from localStorage:', error);
+        }
         return;
       }
 
+      // When user logs in, only load from backend if we don't have a valid stored preference
+      const currentStoredTheme = localStorage.getItem('theme') as Theme;
+      const hasValidStoredTheme = currentStoredTheme && ['light', 'dark', 'system'].includes(currentStoredTheme);
+
       try {
-        // First try to get from backend
+        // Try to get from backend
         const response = await fetch(`${API_CONFIG.BASE_URL}/settings`, {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -75,22 +108,47 @@ setActualTheme(resolved);
 
         if (response.ok) {
           const data = await response.json();
-          const userTheme = data.user?.theme || 'system';
-          setThemeState(userTheme);
-          setActualTheme(calculateActualTheme(userTheme));
+          const userTheme = data.user?.theme || data.theme;
+          
+          // Only use backend theme if we don't have a valid stored theme or if backend theme is different
+          if (userTheme && ['light', 'dark', 'system'].includes(userTheme)) {
+            if (!hasValidStoredTheme || userTheme !== currentStoredTheme) {
+              setThemeState(userTheme);
+              setActualTheme(calculateActualTheme(userTheme));
+              // Sync with localStorage
+              localStorage.setItem('theme', userTheme);
+              localStorage.setItem(`theme-${user.id}`, userTheme);
+            }
+          } else if (hasValidStoredTheme) {
+            // Use stored theme if backend doesn't have a valid one
+            setThemeState(currentStoredTheme);
+            setActualTheme(calculateActualTheme(currentStoredTheme));
+          }
         } else {
-          // Fallback to localStorage for this user
-const storageKey = `theme-${user.id}`;
-const storedTheme = localStorage.getItem(storageKey) as Theme || 'light';
-setThemeState(storedTheme);
-setActualTheme(calculateActualTheme(storedTheme));
+          // Backend failed, use stored preferences
+          const storageKey = `theme-${user.id}`;
+          const userSpecificTheme = localStorage.getItem(storageKey) as Theme;
+          const fallbackTheme = userSpecificTheme || currentStoredTheme || 'system';
+          
+          if (['light', 'dark', 'system'].includes(fallbackTheme)) {
+            setThemeState(fallbackTheme);
+            setActualTheme(calculateActualTheme(fallbackTheme));
+          }
         }
       } catch (error) {
-        // Fallback to localStorage for this user
-const storageKey = `theme-${user.id}`;
-const storedTheme = localStorage.getItem(storageKey) as Theme || 'light';
-setThemeState(storedTheme);
-setActualTheme(calculateActualTheme(storedTheme));
+        console.warn('Failed to load theme preference from backend:', error);
+        // Use stored preferences as fallback
+        if (hasValidStoredTheme) {
+          setThemeState(currentStoredTheme);
+          setActualTheme(calculateActualTheme(currentStoredTheme));
+        } else {
+          const storageKey = `theme-${user.id}`;
+          const userSpecificTheme = localStorage.getItem(storageKey) as Theme || 'system';
+          if (['light', 'dark', 'system'].includes(userSpecificTheme)) {
+            setThemeState(userSpecificTheme);
+            setActualTheme(calculateActualTheme(userSpecificTheme));
+          }
+        }
       }
     };
 
@@ -120,26 +178,39 @@ setActualTheme(calculateActualTheme(storedTheme));
   }, [theme]);
 
   const setTheme = async (newTheme: Theme) => {
+    // Validate theme value
+    if (!['light', 'dark', 'system'].includes(newTheme)) {
+      console.warn('Invalid theme value:', newTheme);
+      return;
+    }
+
+    // Update state immediately
     setThemeState(newTheme);
     const newActualTheme = calculateActualTheme(newTheme);
     setActualTheme(newActualTheme);
 
-    // Always persist a generic theme preference
+    // Persist theme preferences immediately and synchronously
     try {
       localStorage.setItem('theme', newTheme);
-    } catch {}
+      console.log('Theme saved to localStorage:', newTheme); // Debug log
+    } catch (error) {
+      console.warn('Failed to save theme to localStorage:', error);
+    }
 
     if (user) {
       // Store per-user preference as backup
       const storageKey = `theme-${user.id}`;
       try {
         localStorage.setItem(storageKey, newTheme);
-      } catch {}
+        console.log('User-specific theme saved:', newTheme); // Debug log
+      } catch (error) {
+        console.warn('Failed to save user-specific theme to localStorage:', error);
+      }
 
-      // Try to save to backend
+      // Try to save to backend (non-blocking)
       if (token) {
         try {
-          await fetch(`${API_CONFIG.BASE_URL}/settings`, {
+          const response = await fetch(`${API_CONFIG.BASE_URL}/settings`, {
             method: 'PATCH',
             headers: {
               Authorization: `Bearer ${token}`,
@@ -147,6 +218,12 @@ setActualTheme(calculateActualTheme(storedTheme));
             },
             body: JSON.stringify({ theme: newTheme }),
           });
+          
+          if (!response.ok) {
+            console.warn('Failed to save theme preference to backend - status:', response.status);
+          } else {
+            console.log('Theme saved to backend:', newTheme); // Debug log
+          }
         } catch (error) {
           console.warn('Failed to save theme preference to backend:', error);
         }
