@@ -223,12 +223,12 @@ export const AdminDashboardCards = () => {
     <div className="space-y-8">
       {/* Primary Analytics Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="bg-card border border-border shadow-sm hover:shadow-md transition-all duration-200 h-96 flex flex-col">
-          <CardHeader className="pb-4 flex-shrink-0 border-b border-border">
+        <Card className="bg-gradient-to-br from-white via-blue-50/30 to-blue-100/50 dark:from-gray-900 dark:via-blue-900/10 dark:to-blue-900/20 border-blue-200/50 shadow-lg h-96 flex flex-col">
+          <CardHeader className="pb-2 flex-shrink-0">
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="text-xl font-semibold text-foreground">Fee Collection Analytics</CardTitle>
-                <CardDescription className="text-muted-foreground mt-1">
+                <CardTitle className="text-xl font-semibold text-gray-900 dark:text-gray-100">Fee Collection Analytics</CardTitle>
+                <CardDescription className="text-gray-600 dark:text-gray-400">
                   Current academic year performance{" "}
                   {loadingAY && (
                     <span className="text-xs text-muted-foreground">
@@ -237,17 +237,17 @@ export const AdminDashboardCards = () => {
                   )}
                 </CardDescription>
               </div>
-              <div className="p-3 bg-muted rounded-lg">
-                <TrendingUp className="h-5 w-5 text-muted-foreground" />
+              <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-full">
+                <TrendingUp className="h-5 w-5 text-blue-600 dark:text-blue-400" />
               </div>
             </div>
           </CardHeader>
-          <CardContent className="pt-6 pb-6 flex-1 flex flex-col justify-between">
+          <CardContent className="pt-0 pb-4 flex-1 flex flex-col justify-between">
             <div className="flex-1 flex items-center justify-center">
               <FeeCollectionChart termId={termId} />
             </div>
             <Button 
-              className="w-full"
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white shadow-md"
               onClick={() => navigate("/finance/reports")}
             >
               View Detailed Report
@@ -256,25 +256,25 @@ export const AdminDashboardCards = () => {
           </CardContent>
         </Card>
 
-        <Card className="bg-card border border-border shadow-sm hover:shadow-md transition-all duration-200 h-96 flex flex-col">
-          <CardHeader className="pb-4 flex-shrink-0 border-b border-border">
+        <Card className="bg-gradient-to-br from-white via-gray-50/30 to-gray-100/50 dark:from-gray-900 dark:via-gray-800/10 dark:to-gray-800/20 border-gray-200/50 shadow-lg h-96 flex flex-col">
+          <CardHeader className="pb-4 flex-shrink-0">
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="text-xl font-semibold text-foreground">Recent Activities</CardTitle>
-                <CardDescription className="text-muted-foreground mt-1">Latest system activities and updates</CardDescription>
+                <CardTitle className="text-xl font-semibold text-gray-900 dark:text-gray-100">Recent Activities</CardTitle>
+                <p className="text-gray-600 dark:text-gray-400 text-sm mt-1">Latest system activities and updates</p>
               </div>
-              <div className="p-3 bg-muted rounded-lg">
-                <Clock className="h-5 w-5 text-muted-foreground" />
+              <div className="p-2 bg-gray-100 dark:bg-gray-800/30 rounded-full">
+                <Clock className="h-5 w-5 text-gray-600 dark:text-gray-400" />
               </div>
             </div>
           </CardHeader>
-          <CardContent className="pt-6 pb-6 flex-1 overflow-hidden">
-            <div className="h-full overflow-y-auto space-y-3">
+          <CardContent className="pt-0 pb-4 flex-1 overflow-hidden">
+            <div className="h-full overflow-y-auto space-y-3 pr-2">
               {isLoadingActivities ? (
                 <div className="flex items-center justify-center h-32">
                   <div className="flex items-center space-x-3">
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary"></div>
-                    <p className="text-muted-foreground">Loading activities...</p>
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
+                    <p className="text-gray-600 dark:text-gray-400">Loading activities...</p>
                   </div>
                 </div>
               ) : activities.length > 0 ? (
@@ -282,38 +282,39 @@ export const AdminDashboardCards = () => {
                   {activities.slice(0,4).map((activity) => (
                     <div
                       key={activity.id}
-                      className={`group flex items-start space-x-3 p-4 rounded-lg border border-border hover:border-accent cursor-pointer transition-all duration-200 ${
+                      className={`group flex items-start space-x-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600 cursor-pointer transition-all duration-200 hover:shadow-md ${
                         unreadIds.has(activity.id) 
-                          ? 'bg-accent/50 border-primary/20' 
-                          : 'bg-card hover:bg-accent/30'
+                          ? 'bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800' 
+                          : 'bg-white dark:bg-gray-800/50 hover:bg-gray-50 dark:hover:bg-gray-800'
                       }`}
                       onClick={() => openActivity(activity.id)}
                     >
-                      <Avatar className="h-9 w-9 ring-2 ring-border flex-shrink-0">
+                      <Avatar className="h-8 w-8 ring-2 ring-gray-200 dark:ring-gray-700 flex-shrink-0">
                         <AvatarImage src={activity.user.avatar} alt={activity.user.name} />
-                        <AvatarFallback className="bg-muted text-muted-foreground font-medium text-sm">
+                        <AvatarFallback className="bg-gradient-to-br from-blue-100 to-blue-200 dark:from-blue-900 dark:to-blue-800 text-blue-700 dark:text-blue-300 font-semibold text-xs">
                           {getInitials(activity.user.name)}
                         </AvatarFallback>
                       </Avatar>
-                      <div className="space-y-2 flex-1 min-w-0">
+                      <div className="space-y-1 flex-1 min-w-0">
                         <div className="flex items-start justify-between">
-                          <p className="text-sm font-medium text-foreground">
+                          <p className="text-sm font-medium leading-snug text-gray-900 dark:text-gray-100">
                             <span className="font-semibold">{activity.user.name}</span>{' '}
-                            <span className="font-medium text-muted-foreground">
+                            <span className={`ml-1 font-medium ${getActionColor(activity.action)}`}>
                               {activity.action.toLowerCase().replace(/_/g,' ')}
                             </span>
                           </p>
                           {unreadIds.has(activity.id) && (
-                            <div className="flex items-center space-x-2 flex-shrink-0">
-                              <span className="w-2 h-2 bg-primary rounded-full"></span>
+                            <div className="flex items-center space-x-1 flex-shrink-0">
+                              <span className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></span>
+                              <span className="text-xs text-blue-600 dark:text-blue-400 font-medium">New</span>
                             </div>
                           )}
                         </div>
-                        <p className="text-sm text-muted-foreground leading-relaxed break-words">
+                        <p className="text-sm text-gray-600 dark:text-gray-400 leading-snug break-words line-clamp-2">
                           {activity.description}
                         </p>
                         <div className="flex items-center justify-between pt-1">
-                          <p className="text-xs text-muted-foreground font-medium">
+                          <p className="text-xs text-gray-500 dark:text-gray-500 font-medium">
                             {new Date(activity.date).toLocaleString('en-US', {
                               month: 'short',
                               day: 'numeric',
@@ -321,22 +322,22 @@ export const AdminDashboardCards = () => {
                               minute: '2-digit'
                             })}
                           </p>
-                          <span className="text-xs px-2 py-1 bg-muted text-muted-foreground rounded-md font-medium">
+                          <span className="text-xs px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-full font-medium">
                             {activity.type}
                           </span>
                         </div>
                       </div>
                       <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex-shrink-0">
-                        <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                        <ChevronRight className="h-4 w-4 text-gray-400" />
                       </div>
                     </div>
                   ))}
                   {activities.length > 4 && (
-                    <div className="pt-4 border-t border-border">
+                    <div className="pt-3 border-t border-gray-200 dark:border-gray-700">
                       <Button
                         variant="outline"
                         size="sm"
-                        className="w-full"
+                        className="w-full bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300"
                         onClick={() => navigate('/activities')}
                       >
                         View All Activities
@@ -347,11 +348,11 @@ export const AdminDashboardCards = () => {
                 </>
               ) : (
                 <div className="flex flex-col items-center justify-center h-32 text-center">
-                  <div className="p-3 bg-muted rounded-full mb-3">
-                    <Clock className="h-6 w-6 text-muted-foreground" />
+                  <div className="p-3 bg-gray-100 dark:bg-gray-800 rounded-full mb-3">
+                    <Clock className="h-6 w-6 text-gray-400" />
                   </div>
-                  <p className="text-muted-foreground font-medium">No recent activities</p>
-                  <p className="text-xs text-muted-foreground mt-1">Check back later for updates</p>
+                  <p className="text-gray-500 dark:text-gray-400 font-medium">No recent activities found</p>
+                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Check back later for updates</p>
                 </div>
               )}
             </div>
@@ -361,12 +362,12 @@ export const AdminDashboardCards = () => {
 
       {/* Academic Performance Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="bg-card border border-border shadow-sm hover:shadow-md transition-all duration-200 h-96 flex flex-col">
-          <CardHeader className="pb-4 flex-shrink-0 border-b border-border">
+        <Card className="bg-gradient-to-br from-white via-green-50/30 to-green-100/50 dark:from-gray-900 dark:via-green-900/10 dark:to-green-900/20 border-green-200/50 shadow-lg h-96 flex flex-col">
+          <CardHeader className="pb-2 flex-shrink-0">
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="text-xl font-semibold text-foreground">Academic Performance</CardTitle>
-                <CardDescription className="text-muted-foreground mt-1">
+                <CardTitle className="text-xl font-semibold text-gray-900 dark:text-gray-100">Academic Performance</CardTitle>
+                <CardDescription className="text-gray-600 dark:text-gray-400">
                   Average scores by course{" "}
                   {loadingAY && (
                     <span className="text-xs text-muted-foreground">
@@ -375,40 +376,43 @@ export const AdminDashboardCards = () => {
                   )}
                 </CardDescription>
               </div>
-              <div className="p-3 bg-muted rounded-lg">
-                <GraduationCap className="h-5 w-5 text-muted-foreground" />
+              <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-full">
+                <GraduationCap className="h-5 w-5 text-green-600 dark:text-green-400" />
               </div>
             </div>
           </CardHeader>
-          <CardContent className="pt-6 pb-6 flex-1 flex flex-col justify-between">
-            <div className="flex-1 space-y-6">
+          <CardContent className="pt-0 pb-4 flex-1 flex flex-col justify-between">
+            <div className="flex-1 space-y-4">
               {/* Academic Statistics */}
-              <div className="grid grid-cols-3 gap-4 text-center">
-                <div className="space-y-2">
-                  <div className="text-2xl font-semibold text-foreground">
+              <div className="grid grid-cols-3 gap-3 text-center">
+                <div className="space-y-1">
+                  <div className="text-xl font-bold text-gray-900 dark:text-gray-100">
                     {academicStats.loading ? "..." : academicStats.totalStudents.toLocaleString()}
                   </div>
-                  <div className="text-xs text-muted-foreground font-medium">Total Students</div>
+                  <div className="text-xs text-gray-600 dark:text-gray-400">Total Students</div>
                 </div>
-                <div className="space-y-2">
-                  <div className="text-2xl font-semibold text-foreground">
-                    {academicStats.loading ? "..." : academicStats.totalCourses.toLocaleString()}
+                <div className="space-y-1">
+                  <div className="text-xl font-bold text-gray-900 dark:text-gray-100">
+                    {academicStats.loading ? "..." : academicStats.totalCourses}
                   </div>
-                  <div className="text-xs text-muted-foreground font-medium">Active Courses</div>
+                  <div className="text-xs text-gray-600 dark:text-gray-400">Total Courses</div>
                 </div>
-                <div className="space-y-2">
-                  <div className="text-2xl font-semibold text-foreground">85%</div>
-                  <div className="text-xs text-muted-foreground font-medium">Pass Rate</div>
+                <div className="space-y-1">
+                  <div className="text-xl font-bold text-green-600 dark:text-green-400">
+                    {academicStats.loading ? "..." : "85%"}
+                  </div>
+                  <div className="text-xs text-gray-600 dark:text-gray-400">Avg Performance</div>
                 </div>
               </div>
+
               {/* Performance Chart */}
               <div className="flex-1 flex items-center justify-center">
                 <ClassPerformanceChart termId={termId} />
               </div>
             </div>
             <Button 
-              variant="outline"
-              className="w-full"
+              variant="outline" 
+              className="w-full border-green-200 hover:bg-green-50 dark:border-green-800 dark:hover:bg-green-900/20"
               onClick={() => navigate("/reports/academic")}
             >
               View Academic Reports
@@ -417,63 +421,180 @@ export const AdminDashboardCards = () => {
           </CardContent>
         </Card>
 
-        <Card className="bg-card border border-border shadow-sm hover:shadow-md transition-all duration-200 h-96 flex flex-col">
-          <CardHeader className="pb-4 flex-shrink-0 border-b border-border">
+        <Card className="bg-gradient-to-br from-white via-purple-50/30 to-purple-100/50 dark:from-gray-900 dark:via-purple-900/10 dark:to-purple-900/20 border-purple-200/50 shadow-lg h-96 flex flex-col">
+          <CardHeader className="pb-2 flex-shrink-0">
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="text-xl font-semibold text-foreground">System Overview</CardTitle>
-                <CardDescription className="text-muted-foreground mt-1">
-                  Real-time system status and health metrics
+                <CardTitle className="text-xl font-semibold text-gray-900 dark:text-gray-100">Attendance Insights</CardTitle>
+                <CardDescription className="text-gray-600 dark:text-gray-400">
+                  Current month attendance by class{" "}
+                  {loadingAY && (
+                    <span className="text-xs text-muted-foreground">
+                      (loading year...)
+                    </span>
+                  )}
                 </CardDescription>
               </div>
-              <div className="p-3 bg-muted rounded-lg">
-                <Users2 className="h-5 w-5 text-muted-foreground" />
+              <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-full">
+                <Users2 className="h-5 w-5 text-purple-600 dark:text-purple-400" />
               </div>
             </div>
           </CardHeader>
-          <CardContent className="pt-6 pb-6 flex-1">
-            <div className="space-y-6">
-              {/* System Status */}
+          <CardContent className="pt-0 pb-4 flex-1 flex flex-col justify-center">
+            <div className="flex-1 flex items-center justify-center">
+              <AttendanceOverview termId={termId} />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* New Additional Cards Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* System Health Monitoring Card */}
+        <Card className="bg-gradient-to-br from-white via-emerald-50/30 to-emerald-100/50 dark:from-gray-900 dark:via-emerald-900/10 dark:to-emerald-900/20 border-emerald-200/50 shadow-lg h-96 flex flex-col">
+          <CardHeader className="pb-2 flex-shrink-0">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-xl font-semibold text-gray-900 dark:text-gray-100">System Health</CardTitle>
+                <CardDescription className="text-gray-600 dark:text-gray-400">
+                  Real-time system monitoring & status
+                </CardDescription>
+              </div>
+              <div className="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-full">
+                <CheckCircle className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="pt-0 pb-4 flex-1 flex flex-col justify-between">
+            <div className="flex-1 space-y-6">
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-3">
+                <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">System Uptime</span>
-                    <span className="text-sm font-medium text-foreground">{systemHealth.uptime}</span>
+                    <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Uptime</span>
+                    <Badge variant="default" className="bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300">
+                      {systemHealth.uptime}
+                    </Badge>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Active Users</span>
-                    <span className="text-sm font-medium text-foreground">{systemHealth.activeUsers}</span>
+                    <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Active Users</span>
+                    <span className="text-lg font-bold text-gray-900 dark:text-gray-100">{systemHealth.activeUsers}</span>
                   </div>
                 </div>
-                <div className="space-y-3">
+                <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Server Status</span>
-                    <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400">
-                      Operational
-                    </span>
+                    <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Server Status</span>
+                    <div className="flex items-center space-x-2">
+                      <div className="h-2 w-2 bg-emerald-500 rounded-full animate-pulse"></div>
+                      <span className="text-sm font-medium text-emerald-600 dark:text-emerald-400 capitalize">
+                        {systemHealth.serverStatus}
+                      </span>
+                    </div>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Last Backup</span>
-                    <span className="text-sm font-medium text-foreground">{systemHealth.lastBackup}</span>
+                    <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Last Backup</span>
+                    <span className="text-sm text-gray-700 dark:text-gray-300">{systemHealth.lastBackup}</span>
                   </div>
                 </div>
               </div>
               
-              {/* Quick Actions */}
-              <div className="space-y-4">
-                <h4 className="text-sm font-semibold text-foreground">Quick Actions</h4>
-                <div className="grid grid-cols-2 gap-3">
-                  <Button variant="outline" size="sm" onClick={() => navigate('/admin/system')}>
-                    <UserCog className="h-4 w-4 mr-2" />
-                    System Settings
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={() => navigate('/admin/users')}>
-                    <Users2 className="h-4 w-4 mr-2" />
-                    User Management  
-                  </Button>
+              <div className="space-y-3">
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600 dark:text-gray-400">Database Performance</span>
+                  <span className="text-gray-900 dark:text-gray-100 font-medium">97%</span>
+                </div>
+                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                  <div className="bg-emerald-500 h-2 rounded-full" style={{ width: '97%' }}></div>
+                </div>
+              </div>
+              
+              <div className="space-y-3">
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600 dark:text-gray-400">Storage Usage</span>
+                  <span className="text-gray-900 dark:text-gray-100 font-medium">73%</span>
+                </div>
+                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                  <div className="bg-blue-500 h-2 rounded-full" style={{ width: '73%' }}></div>
                 </div>
               </div>
             </div>
+            <Button 
+              variant="outline" 
+              className="w-full mt-4 border-emerald-200 hover:bg-emerald-50 dark:border-emerald-800 dark:hover:bg-emerald-900/20"
+              onClick={() => navigate("/admin/system-monitoring")}
+            >
+              View System Details
+              <ChevronRight className="ml-2 h-4 w-4" />
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* Staff Performance & Management Card */}
+        <Card className="bg-gradient-to-br from-white via-orange-50/30 to-orange-100/50 dark:from-gray-900 dark:via-orange-900/10 dark:to-orange-900/20 border-orange-200/50 shadow-lg h-96 flex flex-col">
+          <CardHeader className="pb-2 flex-shrink-0">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-xl font-semibold text-gray-900 dark:text-gray-100">Staff Overview</CardTitle>
+                <CardDescription className="text-gray-600 dark:text-gray-400">
+                  Performance metrics and staff management
+                </CardDescription>
+              </div>
+              <div className="p-2 bg-orange-100 dark:bg-orange-900/30 rounded-full">
+                <UserCog className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="pt-0 pb-4 flex-1 flex flex-col justify-between">
+            <div className="flex-1 space-y-4">
+              <div className="grid grid-cols-3 gap-3 text-center">
+                <div className="space-y-1">
+                  <div className="text-xl font-bold text-gray-900 dark:text-gray-100">24</div>
+                  <div className="text-xs text-gray-600 dark:text-gray-400">Teachers</div>
+                </div>
+                <div className="space-y-1">
+                  <div className="text-xl font-bold text-gray-900 dark:text-gray-100">8</div>
+                  <div className="text-xs text-gray-600 dark:text-gray-400">Admin</div>
+                </div>
+                <div className="space-y-1">
+                  <div className="text-xl font-bold text-gray-900 dark:text-gray-100">3</div>
+                  <div className="text-xs text-gray-600 dark:text-gray-400">Support</div>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <div className="flex justify-between items-center p-2 rounded-lg bg-background/50 border border-orange-100 dark:border-orange-900/30">
+                  <div className="flex items-center space-x-2">
+                    <div className="h-6 w-6 bg-gradient-to-br from-orange-400 to-orange-600 rounded-full flex items-center justify-center">
+                      <Star className="h-3 w-3 text-white" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Top Performer</p>
+                      <p className="text-xs text-gray-600 dark:text-gray-400">Dr. Sarah Johnson</p>
+                    </div>
+                  </div>
+                  <Badge variant="default" className="bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300 text-xs">
+                    98.5%
+                  </Badge>
+                </div>
+
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600 dark:text-gray-400">Attendance Rate</span>
+                  <span className="text-sm font-bold text-gray-900 dark:text-gray-100">96.2%</span>
+                </div>
+
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600 dark:text-gray-400">Active Staff</span>
+                  <span className="text-sm font-bold text-green-600 dark:text-green-400">28/35</span>
+                </div>
+              </div>
+            </div>
+            <Button 
+              variant="outline" 
+              className="w-full border-orange-200 hover:bg-orange-50 dark:border-orange-800 dark:hover:bg-orange-900/20"
+              onClick={() => navigate("/admin/staff-management")}
+            >
+              Manage Staff
+              <ChevronRight className="ml-2 h-4 w-4" />
+            </Button>
           </CardContent>
         </Card>
       </div>

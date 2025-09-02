@@ -18,47 +18,6 @@
   </head>
 
   <body>
-    <script>
-      // Prevent flash of incorrect theme on page load
-      (function() {
-        try {
-          // Get stored theme preference
-          const stored = localStorage.getItem('theme');
-          const theme = stored || 'light';
-          
-          // Calculate actual theme to apply
-          let actualTheme = 'light';
-          if (theme === 'system') {
-            actualTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-          } else if (theme === 'dark') {
-            actualTheme = 'dark';
-          }
-          
-          // Apply theme immediately to prevent flash
-          const html = document.documentElement;
-          html.classList.remove('light', 'dark');
-          html.classList.add(actualTheme);
-          html.style.colorScheme = actualTheme;
-          
-          // Set background color immediately - use pure white/dark
-          if (actualTheme === 'dark') {
-            html.style.backgroundColor = '#0f172a'; // Dark slate
-            document.body && (document.body.style.backgroundColor = '#0f172a');
-          } else {
-            html.style.backgroundColor = '#ffffff'; // Pure white
-            document.body && (document.body.style.backgroundColor = '#ffffff');
-          }
-        } catch (error) {
-          // Fallback to light theme if anything fails
-          const html = document.documentElement;
-          html.classList.remove('light', 'dark');
-          html.classList.add('light');
-          html.style.colorScheme = 'light';
-          html.style.backgroundColor = '#ffffff';
-          document.body && (document.body.style.backgroundColor = '#ffffff');
-        }
-      })();
-    </script>
     <div id="root"></div>
     <!-- IMPORTANT: DO NOT REMOVE THIS SCRIPT TAG OR THIS VERY COMMENT! -->
     <script src="https://cdn.gpteng.co/gptengineer.js" type="module"></script>
