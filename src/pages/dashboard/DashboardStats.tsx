@@ -137,7 +137,7 @@ export const useDashboardStats = () => {
               title: "Today's Classes",
               value: "3",
               icon: <Calendar size={24} />,
-              className: "bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-900/10",
+              className: "bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-900/10",
             },
           ]);
         } else {
@@ -166,7 +166,7 @@ export const useDashboardStats = () => {
                 title: "Today's Classes",
                 value: "4",
                 icon: <Calendar size={24} />,
-                className: "bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-900/10",
+                className: "bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-900/10",
               },
             ],
             finance: [
@@ -182,7 +182,7 @@ export const useDashboardStats = () => {
                 value: "$12,450",
                 icon: <DollarSign size={24} />,
                 trend: { value: 8, isPositive: false },
-                className: "bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-900/10",
+                className: "bg-gradient-to-br from-yellow-50 to-yellow-100 dark:from-yellow-900/20 dark:to-yellow-900/10",
               },
               {
                 title: "Payments Today",
@@ -221,7 +221,7 @@ export const useDashboardStats = () => {
                 title: `${child.name}'s Fees Due`,
                 value: `$${child.fees?.pending || 0}`,
                 icon: <DollarSign size={24} />,
-                className: "bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-900/10",
+                className: "bg-gradient-to-br from-yellow-50 to-yellow-100 dark:from-yellow-900/20 dark:to-yellow-900/10",
               },
             ]) || [
               {
@@ -246,7 +246,7 @@ export const useDashboardStats = () => {
                 title: "Total Fees Due",
                 value: "$450",
                 icon: <DollarSign size={24} />,
-                className: "bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-900/10",
+                className: "bg-gradient-to-br from-yellow-50 to-yellow-100 dark:from-yellow-900/20 dark:to-yellow-900/10",
               },
             ],
           };

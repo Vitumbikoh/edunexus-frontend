@@ -170,7 +170,7 @@ export default function StudentMaterials() {
   const fileTypeIcons = {
     'PDF': <FileText className="h-4 w-4 text-red-500" />,
     'DOCX': <FileText className="h-4 w-4 text-blue-500" />,
-    'PPTX': <FileText className="h-4 w-4 text-orange-500" />,
+    'PPTX': <FileText className="h-4 w-4 text-green-500" />,
   };
 
   const formatDate = (dateString: string) => {

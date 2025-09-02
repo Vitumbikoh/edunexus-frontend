@@ -333,7 +333,7 @@ const ExamResults = () => {
       case "C":
         return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300";
       case "D":
-        return "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300";
+        return "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300";
       case "F":
         return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300";
       default:
