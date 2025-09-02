@@ -59,78 +59,66 @@ interface AllStudentsResults {
   students: StudentResult[];
 }
 
-interface AllStudentsResults {
-  classInfo: Class;
-  students: StudentResult[];
-}
-
 const ExamResults = () => {
   const { token } = useAuth();
   const { toast } = useToast();
 
+  // Data collections
   const [classes, setClasses] = useState<Class[]>([]);
   const [academicCalendars, setAcademicCalendars] = useState<AcademicCalendar[]>([]);
   const [terms, setTerms] = useState<Term[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [filteredStudents, setFilteredStudents] = useState<Student[]>([]);
 
-  const [selectedClass, setSelectedClass] = useState<string>("");
-  const [selectedAcademicCalendar, setSelectedAcademicCalendar] = useState<string>("");
-  const [selectedTerm, setSelectedTerm] = useState<string>("");
-  const [selectedStudentId, setSelectedStudentId] = useState<string>("");
-  const [searchPeriod, setSearchPeriod] = useState<string>("");
+  // Filter selections
+  const [selectedClass, setSelectedClass] = useState("");
+  const [selectedAcademicCalendar, setSelectedAcademicCalendar] = useState("");
+  const [selectedTerm, setSelectedTerm] = useState("");
+  const [selectedStudentId, setSelectedStudentId] = useState("");
+  const [searchPeriod, setSearchPeriod] = useState("");
 
-  const [studentResults, setStudentResults] = useState<StudentResult | null>(
-    null
-  );
-  const [allStudentsResults, setAllStudentsResults] =
-    useState<AllStudentsResults | null>(null);
+  // Global publish selection (independent of filters)
+  const [publishTermId, setPublishTermId] = useState("");
+  const [publishedTerms, setPublishedTerms] = useState<Record<string, boolean>>({});
+  const [publishLoading, setPublishLoading] = useState(false);
+
+  // Results state
+  const [studentResults, setStudentResults] = useState<StudentResult | null>(null);
+  const [allStudentsResults, setAllStudentsResults] = useState<AllStudentsResults | null>(null);
+
   const [isLoading, setIsLoading] = useState(false);
-  const [termActionLoading, setTermActionLoading] = useState({ enter:false, publish:false });
-  const [termActionState, setTermActionState] = useState<{enteredExam?:boolean; resultsPublished?:boolean}>({});
 
-  // Fetch all initial data
+  // Initial load
   useEffect(() => {
-    const fetchInitialData = async () => {
+    const load = async () => {
+      if (!token) return;
       try {
         setIsLoading(true);
-
-        // Fetch classes
-        const classesResponse = await classService.getClasses(token!);
-        setClasses(classesResponse);
-
-        // Fetch academic calendars
-        const calendarsResponse = await academicCalendarService.getAcademicCalendars(token!);
-        setAcademicCalendars(calendarsResponse);
-
-        // Fetch academic years
-        const yearsResponse = await termService.getTerms(token!);
-        setTerms(yearsResponse);
-
-      } catch (error) {
-        console.error('Error fetching initial data:', error);
+        const [classesResp, calendarsResp, termsResp] = await Promise.all([
+          classService.getClasses(token),
+          academicCalendarService.getAcademicCalendars(token),
+          termService.getTerms(token),
+        ]);
+        setClasses(classesResp);
+        setAcademicCalendars(calendarsResp);
+        setTerms(termsResp);
+      } catch (e) {
+        console.error("Error loading initial exam results data", e);
         toast({
           title: "Error",
-          description: "Failed to fetch initial data",
+            description: "Failed to load initial data.",
           variant: "destructive",
         });
       } finally {
         setIsLoading(false);
       }
     };
-
-    if (token) {
-      fetchInitialData();
-    }
+    load();
   }, [token, toast]);
 
-  // Filter academic years based on selected calendar
-  const filteredTerms = selectedAcademicCalendar 
-    ? terms.filter(year => {
-        // If you have a relationship between calendar and years, filter here
-        // For now, show all academic years when a calendar is selected
-        return true;
-      })
+  // Terms filtered by chosen academic calendar (currently all if calendar selected)
+  const filteredTerms = selectedAcademicCalendar
+    ? terms.filter(() => true)
     : [];
 
   // Auto-select active/current academic year when calendar changes
@@ -166,31 +154,25 @@ const ExamResults = () => {
     setSearchPeriod("");
   }, [selectedTerm]);
 
-  const handleEnterExamPeriod = async () => {
-    if (!selectedTerm) return;
-    try {
-      setTermActionLoading(p=>({...p, enter:true}));
-      await termService.enterExamPeriod(selectedTerm, token!);
-      setTermActionState(s=>({...s, enteredExam:true}));
-      toast({ title:'Exam Period Started', description:'Term is now in exam period.' });
-    } catch (e:any) {
-      toast({ title:'Error', description:e.message || 'Failed to enter exam period', variant:'destructive' });
-    } finally {
-      setTermActionLoading(p=>({...p, enter:false}));
-    }
-  };
-
+  // Global publish (independent of filters)
   const handlePublishResults = async () => {
-    if (!selectedTerm) return;
+    if (!publishTermId || !token) return;
     try {
-      setTermActionLoading(p=>({...p, publish:true}));
-      await termService.publishResults(selectedTerm, token!);
-      setTermActionState(s=>({...s, resultsPublished:true}));
-      toast({ title:'Results Published', description:'Exam results have been published.' });
-    } catch (e:any) {
-      toast({ title:'Error', description:e.message || 'Failed to publish results', variant:'destructive' });
+      setPublishLoading(true);
+      await termService.publishResults(publishTermId, token);
+      setPublishedTerms((prev) => ({ ...prev, [publishTermId]: true }));
+      toast({
+        title: "Results Published",
+        description: "Exam results have been published for the selected academic year.",
+      });
+    } catch (e: any) {
+      toast({
+        title: "Error",
+        description: e.message || "Failed to publish results",
+        variant: "destructive",
+      });
     } finally {
-      setTermActionLoading(p=>({...p, publish:false}));
+      setPublishLoading(false);
     }
   };
 
@@ -657,14 +639,45 @@ const ExamResults = () => {
       <div className="flex items-center gap-4">
         <GraduationCap className="h-8 w-8 text-primary" />
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">
-            View Exam Results
-          </h1>
-          <p className="text-muted-foreground">
-            Select filters to view student examination results
-          </p>
+          <h1 className="text-3xl font-bold tracking-tight">View Exam Results</h1>
+          <p className="text-muted-foreground">Select filters to view student examination results</p>
         </div>
       </div>
+
+      {/* Global Publish Results (always visible, independent of class selection) */}
+      <Card className="border-primary/30">
+        <CardHeader>
+          <CardTitle className="text-base">Global Exam Results Publishing</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col md:flex-row gap-4 md:items-end">
+          <div className="flex-1 space-y-2">
+            <label className="text-sm font-medium">Academic Year (Term)</label>
+            <Select value={publishTermId} onValueChange={setPublishTermId}>
+              <SelectTrigger className="w-full md:w-[240px]">
+                <SelectValue placeholder="Select academic year" />
+              </SelectTrigger>
+              <SelectContent>
+                {terms.map((t) => (
+                  <SelectItem key={t.id} value={t.id}>
+                    {t.name} {(t.isActive || t.isCurrent || (t as any).current) && "(Current)"}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <Button
+            variant="outline"
+            onClick={handlePublishResults}
+            disabled={!publishTermId || publishLoading || publishedTerms[publishTermId]}
+          >
+            {publishLoading
+              ? "Publishing..."
+              : publishedTerms[publishTermId]
+              ? "Results Published"
+              : "Publish Results"}
+          </Button>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
@@ -799,27 +812,7 @@ const ExamResults = () => {
             </div>
           )}
 
-          {/* Term Exam Actions */}
-          {selectedClass && selectedAcademicCalendar && selectedTerm && (
-            <div className="mt-6 flex flex-wrap gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleEnterExamPeriod}
-                disabled={termActionLoading.enter || termActionState.enteredExam}
-              >
-                {termActionLoading.enter ? 'Processing...' : termActionState.enteredExam ? 'Exam Period Active' : 'Enter Exam Period'}
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handlePublishResults}
-                disabled={termActionLoading.publish || !termActionState.enteredExam || termActionState.resultsPublished}
-              >
-                {termActionLoading.publish ? 'Publishing...' : termActionState.resultsPublished ? 'Results Published' : 'Publish Results'}
-              </Button>
-            </div>
-          )}
+          {/* (Per-filter publish removed; global publish lives above) */}
 
           {/* Reset Filters Button */}
           {(selectedClass || selectedAcademicCalendar || selectedTerm || selectedStudentId || searchPeriod) && (

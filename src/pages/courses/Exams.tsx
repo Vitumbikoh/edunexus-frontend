@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { termService } from '@/services/termService';
 
 // Import the custom hook
 import { useExamManagement } from '@/hooks/useExamManagement';
@@ -52,6 +53,23 @@ export default function Exams() {
     resetFilters,
     refreshData,
   } = useExamManagement();
+
+  // Local state for term-level actions
+  const [enterExamLoading, setEnterExamLoading] = React.useState(false);
+  const [enteredExam, setEnteredExam] = React.useState(false);
+
+  const handleEnterExamPeriod = async () => {
+    if (!selectedTerm) return;
+    try {
+      setEnterExamLoading(true);
+      await termService.enterExamPeriod(selectedTerm, token!);
+      setEnteredExam(true);
+    } catch (e:any) {
+      console.error(e);
+    } finally {
+      setEnterExamLoading(false);
+    }
+  };
 
   // Calculate statistics
   const totalExams = exams.length;
@@ -170,6 +188,18 @@ export default function Exams() {
             <CardTitle>Filter Exams</CardTitle>
             {isLoading && (
               <RefreshCw className="h-4 w-4 animate-spin text-muted-foreground" />
+            )}
+            {selectedTerm && (
+              <div className="ml-auto flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleEnterExamPeriod}
+                  disabled={enterExamLoading || enteredExam}
+                >
+                  {enterExamLoading ? 'Processing...' : enteredExam ? 'Exam Period Active' : 'Enter Exam Period'}
+                </Button>
+              </div>
             )}
           </div>
         </CardHeader>
