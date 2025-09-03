@@ -3,6 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/components/ui/use-toast';
 import { Loader2, Download } from 'lucide-react';
 
@@ -180,15 +181,21 @@ const GradesReport: React.FC = () => {
           <CardTitle>Grades Report</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="bg-gray-50 p-4 rounded-lg">
+      <div className="rounded-lg p-4 bg-muted/40 dark:bg-muted/30 border border-border/50 transition-colors">
             <h4 className="text-sm font-semibold mb-3">Filter Options</h4>
             <div className="grid gap-4 md:grid-cols-4">
               <div className="flex flex-col gap-1">
                 <label className="text-sm font-medium">Academic Calendar *</label>
-                <select className="border rounded px-2 py-1 text-sm" value={selectedAcademicCalendarId} onChange={e=>{ setSelectedAcademicCalendarId(e.target.value); setGradesData([]); }}>
-                  <option value="">Select...</option>
-                  {academicCalendars.map(ac=> <option key={ac.id} value={ac.id}>{formatAcademicCalendar(ac)}</option>)}
-                </select>
+                <Select value={selectedAcademicCalendarId} onValueChange={(val)=>{ setSelectedAcademicCalendarId(val); setGradesData([]); }}>
+                  <SelectTrigger className="h-9">
+                    <SelectValue placeholder="Select..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {academicCalendars.map(ac => (
+                      <SelectItem key={ac.id} value={ac.id}>{formatAcademicCalendar(ac)}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="flex flex-col gap-1">
                 <div className="flex items-center justify-between">
@@ -201,8 +208,8 @@ const GradesReport: React.FC = () => {
                     </div>
                   )}
                 </div>
-                <div className="border rounded px-3 py-2 max-h-32 overflow-y-auto bg-gray-50">
-                  {terms.length===0 ? <p className="text-sm text-gray-500">Select an Academic Calendar first</p> : (
+                <div className="border rounded px-3 py-2 max-h-32 overflow-y-auto bg-background/60 dark:bg-muted/20 backdrop-blur-sm scrollbar-thin scrollbar-thumb-muted-foreground/30">
+                  {terms.length===0 ? <p className="text-sm text-muted-foreground">Select an Academic Calendar first</p> : (
                     <div className="space-y-2">
                       {terms.map(term=> (
                         <div key={term.id} className="flex items-center space-x-2">
@@ -216,17 +223,49 @@ const GradesReport: React.FC = () => {
               </div>
               <div className="flex flex-col gap-1">
                 <label className="text-sm font-medium">Class (optional)</label>
-                <select className="border rounded px-2 py-1 text-sm" value={selectedClassId} onChange={e=>{ setSelectedClassId(e.target.value); setGradesData([]); }}>
-                  <option value="">All</option>
-                  {classes.map(c=> <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
+                <Select value={selectedClassId} onValueChange={(val)=>{ setSelectedClassId(val); setGradesData([]); }}>
+                  <SelectTrigger className="h-9">
+                    <SelectValue placeholder="All Classes" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">All Classes</SelectItem>
+                    {classes.map(c => (
+                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="flex flex-col gap-1">
-                <label className="text-sm font-medium">Students (optional)</label>
-                <select multiple className="border rounded px-2 py-1 text-sm h-32" value={selectedStudentIds} onChange={e=>{ const opts = Array.from(e.target.selectedOptions).map(o=>o.value); setSelectedStudentIds(opts); setGradesData([]); }} title="Hold Ctrl/Cmd and click to select multiple students">
-                  {students.map(s=> <option key={s.id} value={s.id}>{s.firstName} {s.lastName}</option>)}
-                </select>
-                <p className="text-xs text-gray-500">Hold Ctrl/Cmd to multi-select</p>
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-medium">Students (optional)</label>
+                  {students.length>0 && (
+                    <div className="flex gap-1">
+                      <button type="button" className="text-xs text-primary hover:underline" onClick={()=>{ setSelectedStudentIds(students.map(s=>s.id)); setGradesData([]); }}>All</button>
+                      <span className="text-xs text-muted-foreground">|</span>
+                      <button type="button" className="text-xs text-primary hover:underline" onClick={()=>{ setSelectedStudentIds([]); setGradesData([]); }}>Clear</button>
+                    </div>
+                  )}
+                </div>
+                <div className="border rounded px-3 py-2 max-h-32 overflow-y-auto bg-background/60 dark:bg-muted/20 backdrop-blur-sm space-y-2 scrollbar-thin scrollbar-thumb-muted-foreground/30">
+                  {students.length===0 ? (
+                    <p className="text-sm text-muted-foreground">No students loaded</p>
+                  ) : (
+                    students.map(s => {
+                      const checked = selectedStudentIds.includes(s.id);
+                      return (
+                        <div key={s.id} className="flex items-center space-x-2">
+                          <Checkbox id={s.id} checked={checked} onCheckedChange={(val)=>{
+                            if (val) setSelectedStudentIds(prev=>[...prev, s.id]); else setSelectedStudentIds(prev=> prev.filter(id=>id!==s.id)); setGradesData([]);
+                          }} />
+                          <label htmlFor={s.id} className="text-sm leading-none cursor-pointer select-none truncate">{s.firstName} {s.lastName}</label>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+                {selectedStudentIds.length>0 && (
+                  <p className="text-xs text-muted-foreground">{selectedStudentIds.length} selected</p>
+                )}
               </div>
             </div>
             <div className="flex flex-wrap gap-2 mt-4">
@@ -236,9 +275,9 @@ const GradesReport: React.FC = () => {
           </div>
 
           {selectedAcademicCalendarId && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <h4 className="text-sm font-semibold text-blue-900 mb-2">Current Selection</h4>
-              <div className="space-y-1 text-sm text-blue-800">
+            <div className="rounded-lg p-4 bg-primary/5 dark:bg-primary/10 border border-primary/20 transition-colors">
+              <h4 className="text-sm font-semibold mb-2 text-primary">Current Selection</h4>
+              <div className="space-y-1 text-sm text-foreground/90">
                 <p><span className="font-medium">Academic Calendar:</span> {formatAcademicCalendar(academicCalendars.find(a=>a.id===selectedAcademicCalendarId)! )}</p>
                 {selectedTermIds.length>0 && <p><span className="font-medium">Terms:</span> {selectedTermIds.map(id=> terms.find(t=>t.id===id)?.name).filter(Boolean).join(', ')}</p>}
                 {selectedClassId && <p><span className="font-medium">Class:</span> {classes.find(c=>c.id===selectedClassId)?.name}</p>}
@@ -274,14 +313,14 @@ const GradesReport: React.FC = () => {
                   </thead>
                   <tbody>
                     {gradesData.map(g=> (
-                      <tr key={g.id} className="border-b last:border-0 hover:bg-muted/30">
+                      <tr key={g.id} className="border-b last:border-0 hover:bg-muted/40 transition-colors">
                         <td className="px-3 py-2 whitespace-nowrap">{g.studentName}</td>
                         <td className="px-3 py-2">{g.className||'-'}</td>
                         <td className="px-3 py-2">{g.courseName|| (g.aggregated? 'All Subjects':'-')}</td>
                         <td className="px-3 py-2">{g.termName}</td>
                         <td className="px-3 py-2">{g.score ?? '-'}</td>
                         <td className="px-3 py-2">{g.grade ?? '-'}</td>
-                        <td className="px-3 py-2">{g.aggregated ? <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">Yes</span>: ''}</td>
+                        <td className="px-3 py-2">{g.aggregated ? <span className="text-xs px-2 py-0.5 rounded bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">Yes</span>: ''}</td>
                       </tr>
                     ))}
                   </tbody>
