@@ -74,6 +74,7 @@ import ActivityDetail from "./pages/activities/ActivityDetail";
 // Admin specific pages
 import SystemMonitoring from "./pages/admin/SystemMonitoring";
 import StaffManagement from "./pages/admin/StaffManagement";
+import GradingFormat from "./pages/admin/GradingFormat";
 
 // Protected route component - immediately redirects if not authenticated
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -714,6 +715,19 @@ const AppRoutes = () => {
             <AdminRoute>
               <Layout>
                 <StaffManagement />
+              </Layout>
+            </AdminRoute>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/admin/grading-format"
+        element={
+          <ProtectedRoute>
+            <AdminRoute>
+              <Layout>
+                <GradingFormat />
               </Layout>
             </AdminRoute>
           </ProtectedRoute>
