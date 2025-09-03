@@ -16,6 +16,10 @@ import {
   Cell,
   LineChart,
   Line,
+  AreaChart,
+  Area,
+  ComposedChart,
+  Legend,
 } from "recharts";
 import { Loader2, FileSpreadsheet, FileDown, Users, BookOpen, DollarSign, GraduationCap, TrendingUp, FileText, Download } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
@@ -47,7 +51,30 @@ interface AcademicCalendar {
 
 // (Grades reporting interfaces removed – feature moved to /courses/grades-report)
 
-const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884d8"];
+// Professional color palette using design system
+const CHART_COLORS = {
+  primary: "hsl(222.2, 47.4%, 11.2%)",
+  secondary: "hsl(210, 40%, 96.1%)",
+  accent: "hsl(217.2, 91.2%, 59.8%)",
+  success: "hsl(142, 76%, 36%)",
+  warning: "hsl(38, 92%, 50%)",
+  info: "hsl(199, 89%, 48%)",
+  neutral: "hsl(215.4, 16.3%, 46.9%)",
+  gradient: {
+    primary: "url(#primaryGradient)",
+    secondary: "url(#secondaryGradient)",
+    accent: "url(#accentGradient)",
+  }
+};
+
+const COLORS = [
+  CHART_COLORS.accent,
+  CHART_COLORS.success, 
+  CHART_COLORS.warning,
+  CHART_COLORS.info,
+  CHART_COLORS.primary,
+  CHART_COLORS.neutral
+];
 
 export default function Reports() {
   const { user, token } = useAuth();
@@ -490,29 +517,61 @@ export default function Reports() {
 
         <TabsContent value="overview" className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Enrollments by Month</CardTitle>
+            <Card className="shadow-sm">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg font-semibold text-foreground">Monthly Enrollment Trend</CardTitle>
+                <p className="text-sm text-muted-foreground">Student enrollment patterns over time</p>
               </CardHeader>
               <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <LineChart data={reportData.enrollmentsByMonth}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="month" />
-                    <YAxis />
-                    <Tooltip />
-                    <Line type="monotone" dataKey="count" stroke="#8884d8" />
-                  </LineChart>
+                <ResponsiveContainer width="100%" height={320}>
+                  <AreaChart data={reportData.enrollmentsByMonth} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="enrollmentGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor={CHART_COLORS.accent} stopOpacity={0.8}/>
+                        <stop offset="95%" stopColor={CHART_COLORS.accent} stopOpacity={0.1}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.neutral} strokeOpacity={0.2} />
+                    <XAxis 
+                      dataKey="month" 
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fill: CHART_COLORS.neutral, fontSize: 12 }}
+                    />
+                    <YAxis 
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fill: CHART_COLORS.neutral, fontSize: 12 }}
+                    />
+                    <Tooltip 
+                      contentStyle={{
+                        backgroundColor: 'hsl(var(--card))',
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '8px',
+                        boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+                      }}
+                      labelStyle={{ color: 'hsl(var(--foreground))' }}
+                    />
+                    <Area 
+                      type="monotone" 
+                      dataKey="count" 
+                      stroke={CHART_COLORS.accent}
+                      strokeWidth={2}
+                      fillOpacity={1}
+                      fill="url(#enrollmentGradient)" 
+                    />
+                  </AreaChart>
                 </ResponsiveContainer>
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Students by Grade</CardTitle>
+            <Card className="shadow-sm">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg font-semibold text-foreground">Student Distribution by Grade</CardTitle>
+                <p className="text-sm text-muted-foreground">Current grade-level breakdown</p>
               </CardHeader>
               <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
+                <ResponsiveContainer width="100%" height={320}>
                   <PieChart>
                     <Pie
                       data={reportData.studentsByGrade}
@@ -520,11 +579,14 @@ export default function Reports() {
                       cy="50%"
                       labelLine={false}
                       label={({ grade, percent }) =>
-                        `${grade} (${(percent * 100).toFixed(0)}%)`
+                        `${grade} ${(percent * 100).toFixed(0)}%`
                       }
-                      outerRadius={80}
+                      outerRadius={100}
+                      innerRadius={40}
                       fill="#8884d8"
                       dataKey="count"
+                      stroke="hsl(var(--background))"
+                      strokeWidth={2}
                     >
                       {reportData.studentsByGrade.map((entry, index) => (
                         <Cell
@@ -533,7 +595,19 @@ export default function Reports() {
                         />
                       ))}
                     </Pie>
-                    <Tooltip />
+                    <Tooltip 
+                      contentStyle={{
+                        backgroundColor: 'hsl(var(--card))',
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '8px',
+                        boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+                      }}
+                      formatter={(value: number, name: string) => [value, 'Students']}
+                    />
+                    <Legend 
+                      wrapperStyle={{ paddingTop: '20px' }}
+                      iconType="circle"
+                    />
                   </PieChart>
                 </ResponsiveContainer>
               </CardContent>
@@ -542,18 +616,52 @@ export default function Reports() {
         </TabsContent>
 
         <TabsContent value="students" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Student Distribution by Grade</CardTitle>
+          <Card className="shadow-sm">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg font-semibold text-foreground">Student Population Analysis</CardTitle>
+              <p className="text-sm text-muted-foreground">Detailed breakdown of students across all grade levels</p>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={400}>
-                <BarChart data={reportData.studentsByGrade}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="grade" />
-                  <YAxis />
-                  <Tooltip />
-                  <Bar dataKey="count" fill="#8884d8" />
+              <ResponsiveContainer width="100%" height={420}>
+                <BarChart 
+                  data={reportData.studentsByGrade} 
+                  margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                >
+                  <defs>
+                    <linearGradient id="studentBarGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor={CHART_COLORS.success} stopOpacity={0.9}/>
+                      <stop offset="95%" stopColor={CHART_COLORS.success} stopOpacity={0.6}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.neutral} strokeOpacity={0.2} />
+                  <XAxis 
+                    dataKey="grade" 
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fill: CHART_COLORS.neutral, fontSize: 12, fontWeight: 500 }}
+                  />
+                  <YAxis 
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fill: CHART_COLORS.neutral, fontSize: 12 }}
+                  />
+                  <Tooltip 
+                    contentStyle={{
+                      backgroundColor: 'hsl(var(--card))',
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '8px',
+                      boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+                    }}
+                    formatter={(value: number) => [value, 'Students']}
+                    labelFormatter={(label) => `Grade: ${label}`}
+                  />
+                  <Bar 
+                    dataKey="count" 
+                    fill="url(#studentBarGradient)"
+                    radius={[4, 4, 0, 0]}
+                    stroke={CHART_COLORS.success}
+                    strokeWidth={1}
+                  />
                 </BarChart>
               </ResponsiveContainer>
             </CardContent>
@@ -561,23 +669,56 @@ export default function Reports() {
         </TabsContent>
 
         <TabsContent value="courses" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Course Popularity (Top 10)</CardTitle>
+          <Card className="shadow-sm">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg font-semibold text-foreground">Most Popular Courses</CardTitle>
+              <p className="text-sm text-muted-foreground">Top 10 courses ranked by enrollment numbers</p>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={400}>
-                <BarChart data={reportData.coursePopularity.slice(0, 10)}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis
-                    dataKey="courseName"
-                    angle={-45}
-                    textAnchor="end"
-                    height={100}
+              <ResponsiveContainer width="100%" height={450}>
+                <BarChart 
+                  data={reportData.coursePopularity.slice(0, 10)}
+                  layout="horizontal"
+                  margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                >
+                  <defs>
+                    <linearGradient id="courseBarGradient" x1="0" y1="0" x2="1" y2="0">
+                      <stop offset="5%" stopColor={CHART_COLORS.info} stopOpacity={0.9}/>
+                      <stop offset="95%" stopColor={CHART_COLORS.info} stopOpacity={0.6}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.neutral} strokeOpacity={0.2} />
+                  <XAxis 
+                    type="number"
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fill: CHART_COLORS.neutral, fontSize: 12 }}
                   />
-                  <YAxis />
-                  <Tooltip />
-                  <Bar dataKey="enrollments" fill="#00C49F" />
+                  <YAxis 
+                    type="category"
+                    dataKey="courseName"
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fill: CHART_COLORS.neutral, fontSize: 11 }}
+                    width={150}
+                  />
+                  <Tooltip 
+                    contentStyle={{
+                      backgroundColor: 'hsl(var(--card))',
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '8px',
+                      boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+                    }}
+                    formatter={(value: number) => [value, 'Enrollments']}
+                    labelFormatter={(label) => `Course: ${label}`}
+                  />
+                  <Bar 
+                    dataKey="enrollments" 
+                    fill="url(#courseBarGradient)"
+                    radius={[0, 4, 4, 0]}
+                    stroke={CHART_COLORS.info}
+                    strokeWidth={1}
+                  />
                 </BarChart>
               </ResponsiveContainer>
             </CardContent>
@@ -585,24 +726,63 @@ export default function Reports() {
         </TabsContent>
 
         <TabsContent value="finance" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Fee Payments by Month</CardTitle>
+          <Card className="shadow-sm">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg font-semibold text-foreground">Monthly Revenue Analysis</CardTitle>
+              <p className="text-sm text-muted-foreground">Fee payment trends and financial performance</p>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={400}>
-                <BarChart data={reportData.paymentsByMonth}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="month" />
-                  <YAxis />
+              <ResponsiveContainer width="100%" height={420}>
+                <ComposedChart 
+                  data={reportData.paymentsByMonth}
+                  margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                >
+                  <defs>
+                    <linearGradient id="revenueGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor={CHART_COLORS.warning} stopOpacity={0.8}/>
+                      <stop offset="95%" stopColor={CHART_COLORS.warning} stopOpacity={0.1}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.neutral} strokeOpacity={0.2} />
+                  <XAxis 
+                    dataKey="month" 
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fill: CHART_COLORS.neutral, fontSize: 12 }}
+                  />
+                  <YAxis 
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fill: CHART_COLORS.neutral, fontSize: 12 }}
+                    tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
+                  />
                   <Tooltip
+                    contentStyle={{
+                      backgroundColor: 'hsl(var(--card))',
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '8px',
+                      boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+                    }}
                     formatter={(value: number) => [
                       `$${value.toLocaleString()}`,
-                      "Amount",
+                      "Revenue",
                     ]}
+                    labelFormatter={(label) => `Month: ${label}`}
                   />
-                  <Bar dataKey="amount" fill="#FF8042" />
-                </BarChart>
+                  <Area 
+                    type="monotone" 
+                    dataKey="amount" 
+                    fill="url(#revenueGradient)" 
+                    stroke={CHART_COLORS.warning}
+                    strokeWidth={2}
+                  />
+                  <Bar 
+                    dataKey="amount" 
+                    fill={CHART_COLORS.warning}
+                    fillOpacity={0.6}
+                    radius={[4, 4, 0, 0]}
+                  />
+                </ComposedChart>
               </ResponsiveContainer>
             </CardContent>
           </Card>
