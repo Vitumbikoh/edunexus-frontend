@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -17,17 +17,7 @@ import {
   LineChart,
   Line,
 } from "recharts";
-import {
-  Users,
-  BookOpen,
-  DollarSign,
-  GraduationCap,
-  TrendingUp,
-  FileText,
-  Download,
-  FileSpreadsheet,
-  FileDown,
-} from "lucide-react";
+import { Loader2, FileSpreadsheet, FileDown, Users, BookOpen, DollarSign, GraduationCap, TrendingUp, FileText, Download } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { reportService, ReportData } from "@/services/reportService";
 
@@ -44,336 +34,113 @@ interface ReportDataAPI {
   coursePopularity: Array<{ courseName: string; enrollments: number }>;
 }
 
+interface AcademicCalendar {
+  id: string;
+  name?: string; // optional – backend uses 'term'
+  year?: string; // legacy support
+  term: string; // backend provided label (e.g. 2024-2025)
+  startDate?: string;
+  endDate?: string;
+  isActive?: boolean;
+  isCompleted?: boolean;
+}
+
+// (Grades reporting interfaces removed – feature moved to /courses/grades-report)
+
 const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884d8"];
 
 export default function Reports() {
   const { user, token } = useAuth();
   const { toast } = useToast();
+
+  // Existing state
   const [reportData, setReportData] = useState<ReportDataAPI | null>(null);
   const [detailedReportData, setDetailedReportData] =
     useState<Partial<ReportData> | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
-const fetchReportData = async () => {
-  try {
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  // Fetch high-level report data
+  const fetchReportData = useCallback(async () => {
+    if (!token) return;
     setIsLoading(true);
     setError(null);
-    const response = await fetch('http://localhost:5000/api/v1/admin/reports', {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-    });
-    if (!response.ok) {
-      throw new Error(`Failed to fetch report data: ${response.statusText}`);
-    }
-    const data = await response.json();
-    setReportData(data);
-  } catch (err) {
-    const errorMessage = err instanceof Error ? err.message : 'An error occurred';
-    setError(errorMessage);
-    toast({
-      title: "Error",
-      description: errorMessage,
-      variant: "destructive",
-    });
-  } finally {
-    setIsLoading(false);
-  }
-};
-
-  const fetchDetailedReportData = async (
-    category:
-      | "students"
-      | "teachers"
-      | "courses"
-      | "enrollments"
-      | "feePayments"
-      | "comprehensive"
-  ) => {
     try {
-      setIsGenerating(true);
-
-      const endpoints = {
-        students: "http://localhost:5000/api/v1/student/students",
-        teachers: "http://localhost:5000/api/v1/teacher/teachers",
-        courses: "http://localhost:5000/api/v1/course",
-        enrollments: "http://localhost:5000/api/v1/enrollments",
-        feePayments: "http://localhost:5000/api/v1/finance/fee-payments",
-      };
-
-      // For comprehensive report, fetch all endpoints
-      if (category === "comprehensive") {
-        const [
-          studentsRes,
-          teachersRes,
-          coursesRes,
-          enrollmentsRes,
-          feePaymentsRes,
-        ] = await Promise.all([
-          fetch(endpoints.students, {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-          }),
-          fetch(endpoints.teachers, {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-          }),
-          fetch(endpoints.courses, {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-          }),
-          fetch(endpoints.enrollments, {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-          }),
-          fetch(endpoints.feePayments, {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-          }),
-        ]);
-
-        const responses = [
-          studentsRes,
-          teachersRes,
-          coursesRes,
-          enrollmentsRes,
-          feePaymentsRes,
-        ];
-        for (const res of responses) {
-          if (!res.ok) {
-            throw new Error(
-              `Failed to fetch data from ${res.url}: ${res.statusText}`
-            );
-          }
-        }
-
-        const [
-          studentsData,
-          teachersData,
-          coursesData,
-          enrollmentsData,
-          feePaymentsData,
-        ] = await Promise.all([
-          studentsRes.json(),
-          teachersRes.json(),
-          coursesRes.json(),
-          enrollmentsRes.json(),
-          feePaymentsRes.json(),
-        ]);
-
-        setDetailedReportData({
-          students: studentsData.students.map((s: any) => ({
-            id: s.id,
-            name: `${s.firstName} ${s.lastName}`,
-            email: s.user?.email || s.email,
-            grade: s.gradeLevel, // Adjusted to match backend field
-            enrollmentDate: s.createdAt,
-            status: s.status || "Active",
-          })),
-          teachers: teachersData.teachers.map((t: any) => ({
-            id: t.id,
-            name: `${t.firstName} ${t.lastName}`,
-            email: t.user?.email || t.email,
-            department: t.subjectSpecialization || "Unknown", // Adjusted to match backend field
-            joinDate: t.hireDate || t.createdAt,
-            status: t.status || "Active",
-          })),
-          courses: coursesData.courses.map((c: any) => ({
-            id: c.id,
-            name: c.name,
-            code: c.code,
-            department: c.department || "Unknown", // Fallback if department is not provided
-            credits: c.credits || 0, // Fallback if credits is not provided
-            enrollmentCount: c.enrollmentCount || 0,
-          })),
-          enrollments: enrollmentsData.enrollments.map((e: any) => ({
-            id: e.id,
-            studentName:
-              e.studentName || `${e.student?.firstName} ${e.student?.lastName}`,
-            courseName: e.courseName || e.course?.name,
-            enrollmentDate: e.enrollmentDate || e.createdAt,
-            status: e.status || "Active",
-            grade: e.grade || "N/A",
-          })),
-          feePayments: feePaymentsData.payments.map((f: any) => ({
-            id: f.id,
-            studentName:
-              f.studentName || `${f.student?.firstName} ${f.student?.lastName}`,
-            amount: f.amount,
-            paymentDate: f.processedAt || f.createdAt,
-            paymentMethod: f.paymentMethod || "Unknown",
-            status: f.status || "Pending",
-          })),
-        });
-      } else {
-        // Fetch only the data for the selected category
-        const response = await fetch(endpoints[category], {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        });
-
-        if (!response.ok) {
-          throw new Error(
-            `Failed to fetch ${category} data: ${response.statusText}`
-          );
-        }
-
-        const data = await response.json();
-        const newData = {
-          [category]: data[
-            category === "feePayments" ? "payments" : category
-          ].map((item: any) => {
-            if (category === "students") {
-              return {
-                id: item.id,
-                name: `${item.firstName} ${item.lastName}`,
-                email: item.user?.email || item.email,
-                grade: item.gradeLevel, // Adjusted to match backend field
-                enrollmentDate: item.createdAt,
-                status: item.status || "Active",
-              };
-            } else if (category === "teachers") {
-              return {
-                id: item.id,
-                name: `${item.firstName} ${item.lastName}`,
-                email: item.user?.email || item.email,
-                department: item.subjectSpecialization || "Unknown", // Adjusted to match backend field
-                joinDate: item.hireDate || item.createdAt,
-                status: item.status || "Active",
-              };
-            } else if (category === "courses") {
-              return {
-                id: item.id,
-                name: item.name,
-                code: item.code,
-                department: item.department || "Unknown", // Fallback if department is not provided
-                credits: item.credits || 0, // Fallback if credits is not provided
-                enrollmentCount: item.enrollmentCount || 0,
-              };
-            } else if (category === "enrollments") {
-              return {
-                id: item.id,
-                studentName:
-                  item.studentName ||
-                  `${item.student?.firstName} ${item.student?.lastName}`,
-                courseName: item.courseName || item.course?.name,
-                enrollmentDate: item.enrollmentDate || item.createdAt,
-                status: item.status || "Active",
-                grade: item.grade || "N/A",
-              };
-            } else if (category === "feePayments") {
-              return {
-                id: item.id,
-                studentName:
-                  item.studentName ||
-                  `${item.student?.firstName} ${item.student?.lastName}`,
-                amount: item.amount,
-                paymentDate: item.processedAt || item.createdAt,
-                paymentMethod: item.paymentMethod || "Unknown",
-                status: item.status || "Pending",
-              };
-            }
-          }),
-        };
-
-        setDetailedReportData((prev) => ({
-          ...prev,
-          ...newData,
-        }));
-      }
-    } catch (err) {
-      const errorMessage =
-        err instanceof Error
-          ? err.message
-          : `Failed to fetch ${category} report data`;
-      toast({
-        title: "Error",
-        description: errorMessage,
-        variant: "destructive",
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api/v1'}/admin/reports`, {
+        headers: { 'Authorization': `Bearer ${token}` }
       });
+      if (!res.ok) throw new Error('Failed to fetch report data');
+      const data = await res.json();
+      setReportData(data);
+    } catch (e) {
+      console.error(e);
+      setError(e instanceof Error ? e.message : 'Failed to load reports');
     } finally {
-      setIsGenerating(false);
+      setIsLoading(false);
+    }
+  }, [token]);
+
+  // Fetch detailed data for generating reports (one endpoint per category assumed)
+  const fetchDetailedData = useCallback(async () => {
+    if (!token) return;
+    try {
+      const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api/v1';
+      const [studentsRes, teachersRes, coursesRes, enrollmentsRes, feePaymentsRes] = await Promise.all([
+        fetch(`${base}/admin/reports/students`, { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(`${base}/admin/reports/teachers`, { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(`${base}/admin/reports/courses`, { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(`${base}/admin/reports/enrollments`, { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(`${base}/admin/reports/fee-payments`, { headers: { Authorization: `Bearer ${token}` } }),
+      ]);
+      if (![studentsRes, teachersRes, coursesRes, enrollmentsRes, feePaymentsRes].every(r => r.ok)) {
+        throw new Error('Failed to fetch detailed report data');
+      }
+      const [students, teachers, courses, enrollments, feePayments] = await Promise.all([
+        studentsRes.json(),
+        teachersRes.json(),
+        coursesRes.json(),
+        enrollmentsRes.json(),
+        feePaymentsRes.json(),
+      ]);
+      setDetailedReportData({ students, teachers, courses, enrollments, feePayments });
+    } catch (e) {
+      console.error(e);
+      toast({ title: 'Error', description: 'Failed to load detailed report data', variant: 'destructive' });
+    }
+  }, [token, toast]);
+
+  const ensureDetailedData = async () => {
+    if (!detailedReportData || !detailedReportData.students) {
+      await fetchDetailedData();
     }
   };
 
-  const handleGenerateReport = async (
-    type: "excel" | "pdf",
-    category:
-      | "students"
-      | "teachers"
-      | "courses"
-      | "enrollments"
-      | "feePayments"
-      | "comprehensive"
-  ) => {
+  const handleGenerateReport = async (format: 'excel' | 'pdf', category: 'students' | 'teachers' | 'courses' | 'enrollments' | 'feePayments' | 'comprehensive') => {
     try {
-      setIsGenerating(true); // Set loading state
-
-      // Fetch data if not already loaded for the category or comprehensive report
-      if (
-        !detailedReportData ||
-        !detailedReportData[category] ||
-        category === "comprehensive"
-      ) {
-        await fetchDetailedReportData(category);
-      }
-
-      // Wait briefly to ensure state is updated (workaround for React state update timing)
-      await new Promise((resolve) => setTimeout(resolve, 0));
-
-      // Re-check detailedReportData after awaiting fetch
-      if (
-        !detailedReportData ||
-        (!detailedReportData[category] && category !== "comprehensive")
-      ) {
-        throw new Error(`No ${category} data available for report generation`);
-      }
-
-      if (type === "excel") {
+      setIsGenerating(true);
+      await ensureDetailedData();
+      if (!detailedReportData) throw new Error('Detailed data unavailable');
+      if (format === 'excel') {
         switch (category) {
-          case "students":
-            reportService.generateStudentsExcel(detailedReportData!.students!);
+          case 'students':
+            reportService.generateStudentsExcel(detailedReportData.students!);
             break;
-          case "teachers":
-            reportService.generateTeachersExcel(detailedReportData!.teachers!);
+          case 'teachers':
+            reportService.generateTeachersExcel(detailedReportData.teachers!);
             break;
-          case "courses":
-            reportService.generateCoursesExcel(detailedReportData!.courses!);
+          case 'courses':
+            reportService.generateCoursesExcel(detailedReportData.courses!);
             break;
-          case "enrollments":
-            reportService.generateEnrollmentsExcel(
-              detailedReportData!.enrollments!
-            );
+          case 'enrollments':
+            reportService.generateEnrollmentsExcel(detailedReportData.enrollments!);
             break;
-          case "feePayments":
-            reportService.generateFeePaymentsExcel(
-              detailedReportData!.feePayments!
-            );
+          case 'feePayments':
+            reportService.generateFeePaymentsExcel(detailedReportData.feePayments!);
             break;
-          case "comprehensive":
-            if (
-              !detailedReportData ||
-              !detailedReportData.students ||
-              !detailedReportData.teachers ||
-              !detailedReportData.courses ||
-              !detailedReportData.enrollments ||
-              !detailedReportData.feePayments
-            ) {
-              throw new Error("Comprehensive report data is incomplete");
+          case 'comprehensive':
+            if (!detailedReportData.students || !detailedReportData.teachers || !detailedReportData.courses || !detailedReportData.enrollments || !detailedReportData.feePayments) {
+              throw new Error('Comprehensive report data is incomplete');
             }
             reportService.generateComprehensiveExcel({
               students: detailedReportData.students,
@@ -385,57 +152,41 @@ const fetchReportData = async () => {
             break;
         }
       } else {
+        // PDF generation (reuse Excel for now or implement real PDF via service if available)
         switch (category) {
-          case "students":
-            reportService.generateStudentsExcel(detailedReportData!.students!); // Use generateStudentsExcel for PDF
+          case 'students':
+            reportService.generateStudentsPDF?.(detailedReportData.students as any);
             break;
-          case "teachers":
-            reportService.generateTeachersExcel(detailedReportData!.teachers!); // Use generateTeachersExcel for PDF
+          case 'teachers':
+            reportService.generateTeachersPDF?.(detailedReportData.teachers as any);
             break;
-          case "courses":
-            reportService.generateCoursesExcel(detailedReportData!.courses!); // Use generateCoursesExcel for PDF
+          case 'courses':
+            reportService.generateCoursesPDF?.(detailedReportData.courses as any);
             break;
-          case "enrollments":
-            reportService.generateEnrollmentsExcel(
-              detailedReportData!.enrollments!
-            ); // Use generateEnrollmentsExcel for PDF
+          case 'enrollments':
+            reportService.generateEnrollmentsPDF?.(detailedReportData.enrollments as any);
             break;
-          case "feePayments":
-            reportService.generateFeePaymentsExcel(
-              detailedReportData!.feePayments!
-            ); // Use generateFeePaymentsExcel for PDF
+          case 'feePayments':
+            reportService.generateFeePaymentsPDF?.(detailedReportData.feePayments as any);
             break;
-          case "comprehensive":
-            throw new Error("Comprehensive PDF report is not supported");
+          case 'comprehensive':
+            throw new Error('Comprehensive PDF report not supported');
         }
       }
-
-      toast({
-        title: "Success",
-        description: `${
-          category.charAt(0).toUpperCase() + category.slice(1)
-        } report generated successfully`,
-      });
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error
-          ? error.message
-          : `Failed to generate ${category} report`;
-      toast({
-        title: "Error",
-        description: errorMessage,
-        variant: "destructive",
-      });
+      toast({ title: 'Success', description: `${category.charAt(0).toUpperCase() + category.slice(1)} report generated` });
+    } catch (e) {
+      toast({ title: 'Error', description: e instanceof Error ? e.message : 'Failed to generate report', variant: 'destructive' });
     } finally {
       setIsGenerating(false);
     }
   };
 
+  // Effects
   useEffect(() => {
-    if (token && user?.role === "admin") {
+    if (token && user?.role === 'admin') {
       fetchReportData();
     }
-  }, [token, user]);
+  }, [token, user, fetchReportData]);
 
   if (!user || user.role !== "admin") {
     return (
@@ -490,9 +241,7 @@ const fetchReportData = async () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Total Students
-            </CardTitle>
+            <CardTitle className="text-sm font-medium">Total Students</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -502,9 +251,7 @@ const fetchReportData = async () => {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Total Teachers
-            </CardTitle>
+            <CardTitle className="text-sm font-medium">Total Teachers</CardTitle>
             <GraduationCap className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -524,15 +271,11 @@ const fetchReportData = async () => {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Total Enrollments
-            </CardTitle>
+            <CardTitle className="text-sm font-medium">Total Enrollments</CardTitle>
             <FileText className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {reportData.totalEnrollments}
-            </div>
+            <div className="text-2xl font-bold">{reportData.totalEnrollments}</div>
           </CardContent>
         </Card>
 
@@ -542,9 +285,7 @@ const fetchReportData = async () => {
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {reportData.totalFeePayments}
-            </div>
+            <div className="text-2xl font-bold">{reportData.totalFeePayments}</div>
           </CardContent>
         </Card>
 
@@ -560,6 +301,8 @@ const fetchReportData = async () => {
           </CardContent>
         </Card>
       </div>
+
+  {/* (Grades Report section removed – moved to dedicated page) */}
 
       {/* Report Generation Section */}
       <Card>
@@ -577,7 +320,7 @@ const fetchReportData = async () => {
                 Students Report
               </h3>
               <p className="text-sm text-muted-foreground mb-3">
-                Detailed list of all students with their information
+                Detailed list of all students
               </p>
               <div className="flex gap-2">
                 <Button
@@ -606,7 +349,7 @@ const fetchReportData = async () => {
                 Teachers Report
               </h3>
               <p className="text-sm text-muted-foreground mb-3">
-                Complete list of teachers and their details
+                Complete list of teachers
               </p>
               <div className="flex gap-2">
                 <Button
@@ -693,7 +436,7 @@ const fetchReportData = async () => {
                 Fee Payments Report
               </h3>
               <p className="text-sm text-muted-foreground mb-3">
-                Complete payment history and financial data
+                Complete payment history
               </p>
               <div className="flex gap-2">
                 <Button
@@ -722,7 +465,7 @@ const fetchReportData = async () => {
                 Comprehensive Report
               </h3>
               <p className="text-sm text-muted-foreground mb-3">
-                All data in one Excel file with multiple sheets
+                All data in one Excel file
               </p>
               <Button
                 onClick={() => handleGenerateReport("excel", "comprehensive")}

@@ -26,6 +26,7 @@ import PaymentForm from "./pages/finance/PaymentForm";
 import Settings from "./pages/settings/Settings";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
+const GradesReportLazy = React.lazy(() => import('./pages/courses/GradesReport'));
 
 // Teacher specific pages
 import TeacherStudents from "./pages/teacher/TeacherStudents";
@@ -453,6 +454,21 @@ const AppRoutes = () => {
             <AdminRoute>
               <Layout>
                 <ExamResults />
+              </Layout>
+            </AdminRoute>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/courses/grades-report"
+        element={
+          <ProtectedRoute>
+            <AdminRoute>
+              <Layout>
+                <React.Suspense fallback={<div>Loading...</div>}>
+                  <GradesReportLazy />
+                </React.Suspense>
               </Layout>
             </AdminRoute>
           </ProtectedRoute>
