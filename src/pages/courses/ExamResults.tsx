@@ -117,8 +117,9 @@ const ExamResults = () => {
   }, [token, toast]);
 
   // Terms filtered by chosen academic calendar (currently all if calendar selected)
+  // Filter terms by selected academic calendar id if provided
   const filteredTerms = selectedAcademicCalendar
-    ? terms.filter(() => true)
+    ? terms.filter(t => !t.academicCalendarId || t.academicCalendarId === selectedAcademicCalendar)
     : [];
 
   // Auto-select active/current academic year when calendar changes
@@ -341,6 +342,16 @@ const ExamResults = () => {
     }
   };
 
+  // Normalize term display (convert Period N -> Term N, prefer numeric termNumber)
+  const formatTerm = (t: Term): string => {
+    if (t.termNumber != null) return `Term ${t.termNumber}`;
+    const pick = t.periodName || t.name || t.term || "";
+    if (!pick) return "Unnamed Term";
+    const periodMatch = pick.match(/period\s*(\d+)/i);
+    if (periodMatch) return `Term ${periodMatch[1]}`;
+    return pick; // Fallback if it already maybe says Term
+  };
+
   const generateReportCard = () => {
     if (!studentResults || !studentResults.results.length) {
       toast({
@@ -537,8 +548,8 @@ const ExamResults = () => {
                   <span>${academicCalendars.find((c) => c.id === selectedAcademicCalendar)?.term || "N/A"}</span>
                 </div>
                 <div class="info-item">
-                  <span class="info-label">Academic Year:</span>
-                  <span>${terms.find((y) => y.id === selectedTerm)?.name || "N/A"}</span>
+                  <span class="info-label">Term:</span>
+                  <span>${(() => { const termObj = terms.find((y) => y.id === selectedTerm); if(!termObj) return "N/A"; const num = (termObj as any).termNumber; if(num!=null) return `Term ${num}`; const pick = termObj.periodName || termObj.name || termObj.term || ''; const m = pick.match(/period\s*(\d+)/i); if(m) return `Term ${m[1]}`; return pick || 'N/A'; })()}</span>
                 </div>
                 <div class="info-item">
                   <span class="info-label">Generated:</span>
@@ -651,15 +662,15 @@ const ExamResults = () => {
         </CardHeader>
         <CardContent className="flex flex-col md:flex-row gap-4 md:items-end">
           <div className="flex-1 space-y-2">
-            <label className="text-sm font-medium">Academic Year (Term)</label>
+            <label className="text-sm font-medium">Term</label>
             <Select value={publishTermId} onValueChange={setPublishTermId}>
               <SelectTrigger className="w-full md:w-[240px]">
-                <SelectValue placeholder="Select academic year" />
+                <SelectValue placeholder="Select term" />
               </SelectTrigger>
               <SelectContent>
                 {terms.map((t) => (
                   <SelectItem key={t.id} value={t.id}>
-                    {t.name} {(t.isActive || t.isCurrent || (t as any).current) && "(Current)"}
+                    {formatTerm(t)} {(t.isActive || t.isCurrent || (t as any).current) && "(Current)"}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -736,19 +747,19 @@ const ExamResults = () => {
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium">Academic Year</label>
+              <label className="text-sm font-medium">Term</label>
               <Select 
                 value={selectedTerm} 
                 onValueChange={setSelectedTerm}
                 disabled={!selectedAcademicCalendar}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select academic year" />
+                  <SelectValue placeholder="Select term" />
                 </SelectTrigger>
                 <SelectContent>
-                  {filteredTerms.map((year) => (
-                    <SelectItem key={year.id} value={year.id}>
-                      {year.name} {(year.isActive || year.isCurrent || year.current) && "(Current)"}
+                  {filteredTerms.map((term) => (
+                    <SelectItem key={term.id} value={term.id}>
+                      {formatTerm(term)} {(term.isActive || term.isCurrent || term.current) && "(Current)"}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -869,8 +880,8 @@ const ExamResults = () => {
           <CardContent className="py-8">
             <div className="text-center text-muted-foreground">
               <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <h3 className="text-lg font-medium mb-2">Select Academic Year</h3>
-              <p>Choose an academic year to continue</p>
+              <h3 className="text-lg font-medium mb-2">Select Term</h3>
+              <p>Choose a term to continue</p>
             </div>
           </CardContent>
         </Card>

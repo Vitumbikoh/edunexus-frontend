@@ -10,6 +10,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Plus, Edit, Trash2, Save, AlertCircle, GraduationCap } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { apiClient } from "@/services/apiClient";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface GradeFormat {
   id: string;
@@ -17,7 +18,7 @@ interface GradeFormat {
   description: string;
   minPercentage: number;
   maxPercentage: number;
-  gpa: number;
+  gpa: number; // always coerced to number in state
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -44,6 +45,8 @@ const defaultGradeFormats: Omit<GradeFormat, 'id' | 'createdAt' | 'updatedAt'>[]
 ];
 
 export default function GradingFormat() {
+  // Auth for JWT token
+  const { token } = useAuth();
   const [gradeFormats, setGradeFormats] = useState<GradeFormat[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -63,14 +66,22 @@ export default function GradingFormat() {
     try {
       setIsLoading(true);
       setError(null);
-      const response = await apiClient.get('/api/admin/grading-formats');
-      
-      if (response.data && Array.isArray(response.data)) {
-        setGradeFormats(response.data);
-      } else {
-        // If no formats exist, use default formats
-        setGradeFormats([]);
-      }
+      // NOTE: BASE_URL already includes /api/v1 so we call the relative /admin path
+      const response = await apiClient.get('/admin/grading-formats', token || undefined);
+      // Backend may return array directly or wrapped in { data: [] }
+      const data = Array.isArray(response) ? response : (response?.data && Array.isArray(response.data) ? response.data : []);
+      const normalized: GradeFormat[] = data.map((f: any, idx: number) => ({
+        id: f.id || f._id || String(idx),
+        grade: String(f.grade ?? ''),
+        description: String(f.description ?? ''),
+        minPercentage: Number(f.minPercentage ?? f.min ?? 0),
+        maxPercentage: Number(f.maxPercentage ?? f.max ?? 0),
+        gpa: Number(f.gpa ?? 0),
+        isActive: f.isActive !== undefined ? !!f.isActive : true,
+        createdAt: f.createdAt || new Date().toISOString(),
+        updatedAt: f.updatedAt || new Date().toISOString(),
+      }));
+      setGradeFormats(normalized);
     } catch (err: any) {
       console.error('Error fetching grade formats:', err);
       setError('Failed to load grading formats');
@@ -84,9 +95,9 @@ export default function GradingFormat() {
   const initializeDefaultFormats = async () => {
     try {
       setIsSubmitting(true);
-      const response = await apiClient.post('/api/admin/grading-formats/initialize', {
+      await apiClient.post('/admin/grading-formats/initialize', {
         formats: defaultGradeFormats
-      });
+      }, token || undefined);
       
       toast({
         title: "Success",
@@ -158,16 +169,23 @@ export default function GradingFormat() {
     try {
       setIsSubmitting(true);
       
+      const payload = {
+        ...formData,
+        minPercentage: Number(formData.minPercentage),
+        maxPercentage: Number(formData.maxPercentage),
+        gpa: Number(formData.gpa),
+      };
+
       if (editingGrade) {
-        // Update existing grade format
-        await apiClient.put(`/api/admin/grading-formats/${editingGrade.id}`, formData);
+        // Update existing grade format (relative path, token provided)
+        await apiClient.put(`/admin/grading-formats/${editingGrade.id}`, payload, token || undefined);
         toast({
           title: "Success",
           description: "Grading format updated successfully",
         });
       } else {
         // Create new grade format
-        await apiClient.post('/api/admin/grading-formats', formData);
+        await apiClient.post('/admin/grading-formats', payload, token || undefined);
         toast({
           title: "Success",
           description: "Grading format created successfully",
@@ -195,7 +213,7 @@ export default function GradingFormat() {
     }
 
     try {
-      await apiClient.delete(`/api/admin/grading-formats/${id}`);
+  await apiClient.delete(`/admin/grading-formats/${id}`, token || undefined);
       toast({
         title: "Success",
         description: "Grading format deleted successfully",
@@ -218,6 +236,11 @@ export default function GradingFormat() {
     if (grade.includes('D')) return 'bg-orange-100 text-orange-800';
     if (grade.includes('F')) return 'bg-red-100 text-red-800';
     return 'bg-gray-100 text-gray-800';
+  };
+
+  const formatGPA = (gpa: any) => {
+    const num = Number(gpa);
+    return isNaN(num) ? '0.0' : num.toFixed(1);
   };
 
   if (isLoading) {
@@ -425,7 +448,7 @@ export default function GradingFormat() {
                             {format.minPercentage}% - {format.maxPercentage}%
                           </p>
                           <p className="text-sm font-medium">
-                            GPA: {format.gpa.toFixed(1)}
+                            GPA: {formatGPA(format.gpa)}
                           </p>
                         </div>
                       </CardContent>
@@ -462,7 +485,7 @@ export default function GradingFormat() {
                             <TableCell>
                               {format.minPercentage}% - {format.maxPercentage}%
                             </TableCell>
-                            <TableCell>{format.gpa.toFixed(1)}</TableCell>
+                            <TableCell>{formatGPA(format.gpa)}</TableCell>
                             <TableCell>
                               <div className="flex gap-2">
                                 <Button

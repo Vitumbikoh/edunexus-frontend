@@ -11,6 +11,13 @@ export interface Term {
   isCurrent?: boolean;
   current?: boolean;
   description?: string;
+  // Additional fields returned by backend (harmonize naming)
+  term?: string; // e.g. "2023-2024"
+  periodName?: string; // e.g. "Period 1"
+  termNumber?: number;
+  isCompleted?: boolean;
+  academicCalendarId?: string;
+  periodId?: string;
 }
 
 export interface TermResponse {
