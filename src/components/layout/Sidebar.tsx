@@ -140,6 +140,11 @@ const adminNavItems: NavItem[] = [
         href: "/classes/view",
         roles: ["admin", "teacher", "student"],
       },
+      {
+        label: "Academic Calendar",
+        href: "/setups/academic-calendar",
+        roles: ["admin"],
+      },
       // { label: 'Add Classes', href: '/classes/add', roles: ['admin'] },
       {
         label: "View Schedules",

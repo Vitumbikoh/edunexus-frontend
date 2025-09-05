@@ -26,6 +26,7 @@ import PaymentForm from "./pages/finance/PaymentForm";
 import Settings from "./pages/settings/Settings";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
+import AcademicCalendar from "./pages/setups/AcademicCalendar";
 const GradesReportLazy = React.lazy(() => import('./pages/courses/GradesReport'));
 
 // Teacher specific pages
@@ -512,6 +513,18 @@ const AppRoutes = () => {
           </ProtectedRoute>
         }
       />
+        <Route
+          path="/setups/academic-calendar"
+          element={
+            <ProtectedRoute>
+              <AdminRoute>
+                <Layout>
+                  <AcademicCalendar />
+                </Layout>
+              </AdminRoute>
+            </ProtectedRoute>
+          }
+        />
 
       {/* Finance Routes */}
       <Route

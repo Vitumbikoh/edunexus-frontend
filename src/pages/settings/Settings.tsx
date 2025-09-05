@@ -2,7 +2,6 @@
 import React from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/contexts/AuthContext";
-import SchoolAcademicSection from "./AcademicAndPeriodsSection";
 import AccountSecuritySection from "./AccountSecuritySection";
 import PreferencesSection from "./PreferencesSection";
 import SchoolInfoSection from "./SchoolInfoSection";
@@ -47,7 +46,6 @@ export default function Settings() {
 
         {isAdmin && (
           <TabsContent value="school" className="space-y-6">
-            <SchoolAcademicSection />
             <SchoolInfoSection />
           </TabsContent>
         )}
