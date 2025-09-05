@@ -3,6 +3,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   BarChart,
   Bar,
@@ -20,6 +22,9 @@ import {
 import { Loader2, FileSpreadsheet, FileDown, Users, BookOpen, DollarSign, GraduationCap, TrendingUp, FileText, Download } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { reportService, ReportData } from "@/services/reportService";
+import { classService } from "@/services/classService";
+import { academicCalendarService } from "@/services/academicCalendarService";
+import { termService } from "@/services/termService";
 
 interface ReportDataAPI {
   totalStudents: number;
@@ -61,13 +66,108 @@ export default function Reports() {
   const [error, setError] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
 
+  // Filter state
+  const [filters, setFilters] = useState({
+    // Students
+    studentGender: "",
+    studentClassId: "",
+    // Teachers
+    teacherGender: "",
+    teacherClassId: "",
+    // Courses
+    courseClassId: "",
+    courseTeacherId: "",
+    // Enrollments
+    enrollmentClassId: "",
+    enrollmentCourseId: "",
+    enrollmentTeacherId: "",
+    enrollmentAcademicCalendarId: "",
+    // Fee Payments
+    paymentAcademicCalendarId: "",
+    paymentStudentId: "",
+    paymentTermId: "",
+    paymentClassId: "",
+  });
+
+  // Options state
+  const [classes, setClasses] = useState<Array<{ id: string; name: string }>>([]);
+  const [teachers, setTeachers] = useState<Array<{ id: string; name: string }>>([]);
+  const [courses, setCourses] = useState<Array<{ id: string; name: string }>>([]);
+  const [students, setStudents] = useState<Array<{ id: string; name: string }>>([]);
+  const [academicCalendars, setAcademicCalendars] = useState<AcademicCalendar[]>([]);
+  const [terms, setTerms] = useState<Array<{ id: string; name: string }>>([]);
+
+  const buildQuery = (params: Record<string, string | undefined | null>) => {
+    const search = new URLSearchParams();
+    Object.entries(params).forEach(([k, v]) => {
+      if (v && String(v).trim() !== "") search.append(k, String(v));
+    });
+    const s = search.toString();
+    return s ? `?${s}` : "";
+  };
+
+  const loadFilterOptions = useCallback(async () => {
+    if (!token) return;
+    try {
+      // Load in parallel
+      const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api/v1';
+      const [cls, acads, trs, stds, crs] = await Promise.all([
+        classService.getClasses(token).catch(() => []),
+        academicCalendarService.getAcademicCalendars(token).catch(() => []),
+        fetch(`${base}/admin/reports/teachers`, { headers: { Authorization: `Bearer ${token}` } })
+          .then(r => r.ok ? r.json() : [])
+          .catch(() => []),
+        fetch(`${base}/admin/reports/students`, { headers: { Authorization: `Bearer ${token}` } })
+          .then(r => r.ok ? r.json() : [])
+          .catch(() => []),
+        fetch(`${base}/admin/reports/courses`, { headers: { Authorization: `Bearer ${token}` } })
+          .then(r => r.ok ? r.json() : [])
+          .catch(() => []),
+      ]);
+
+      const safeName = (p: any) => p?.name || [p?.firstName, p?.lastName].filter(Boolean).join(' ') || p?.email || p?.code || p?.id;
+      setClasses((cls || []).map((c: any) => ({ id: c.id, name: c.name || String(c.numericalName) || c.id })));
+      setAcademicCalendars(acads as AcademicCalendar[]);
+      setTeachers((trs || []).map((t: any) => ({ id: t.id, name: safeName(t) })));
+      setStudents((stds || []).map((s: any) => ({ id: s.id, name: safeName(s) })));
+      setCourses((crs || []).map((c: any) => ({ id: c.id, name: safeName(c) })));
+
+      // Terms
+      const ts = await termService.getTerms(token).catch(() => []);
+      setTerms((ts || []).map((t: any) => ({ id: t.id, name: t.name || t.periodName || `Term ${t.termNumber ?? ''}`.trim() })));
+    } catch (e) {
+      console.warn('Failed to load filter options', e);
+    }
+  }, [token]);
+
   // Fetch high-level report data
   const fetchReportData = useCallback(async () => {
     if (!token) return;
     setIsLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api/v1'}/admin/reports`, {
+      const query = buildQuery({
+        // Students
+        studentGender: filters.studentGender || undefined,
+        studentClassId: filters.studentClassId || undefined,
+        // Teachers
+        teacherGender: filters.teacherGender || undefined,
+        teacherClassId: filters.teacherClassId || undefined,
+        // Courses
+        courseClassId: filters.courseClassId || undefined,
+        courseTeacherId: filters.courseTeacherId || undefined,
+        // Enrollments
+        enrollmentClassId: filters.enrollmentClassId || undefined,
+        enrollmentCourseId: filters.enrollmentCourseId || undefined,
+        enrollmentTeacherId: filters.enrollmentTeacherId || undefined,
+        enrollmentAcademicCalendarId: filters.enrollmentAcademicCalendarId || undefined,
+        // Payments
+        paymentAcademicCalendarId: filters.paymentAcademicCalendarId || undefined,
+        paymentStudentId: filters.paymentStudentId || undefined,
+        paymentTermId: filters.paymentTermId || undefined,
+        paymentClassId: filters.paymentClassId || undefined,
+      });
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api/v1'}/admin/reports${query}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (!res.ok) throw new Error('Failed to fetch report data');
@@ -79,75 +179,82 @@ export default function Reports() {
     } finally {
       setIsLoading(false);
     }
-  }, [token]);
+  }, [token, filters]);
 
   // Fetch detailed data for generating reports (one endpoint per category assumed)
   const fetchDetailedData = useCallback(async () => {
     if (!token) return;
     try {
       const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api/v1';
+      const studentsQuery = buildQuery({ gender: filters.studentGender || undefined, classId: filters.studentClassId || undefined });
+      const teachersQuery = buildQuery({ gender: filters.teacherGender || undefined, classId: filters.teacherClassId || undefined });
+      const coursesQuery = buildQuery({ classId: filters.courseClassId || undefined, teacherId: filters.courseTeacherId || undefined });
+      const enrollmentsQuery = buildQuery({ classId: filters.enrollmentClassId || undefined, courseId: filters.enrollmentCourseId || undefined, teacherId: filters.enrollmentTeacherId || undefined, academicCalendarId: filters.enrollmentAcademicCalendarId || undefined });
+      const paymentsQuery = buildQuery({ academicCalendarId: filters.paymentAcademicCalendarId || undefined, studentId: filters.paymentStudentId || undefined, termId: filters.paymentTermId || undefined, classId: filters.paymentClassId || undefined });
       const [studentsRes, teachersRes, coursesRes, enrollmentsRes, feePaymentsRes] = await Promise.all([
-        fetch(`${base}/admin/reports/students`, { headers: { Authorization: `Bearer ${token}` } }),
-        fetch(`${base}/admin/reports/teachers`, { headers: { Authorization: `Bearer ${token}` } }),
-        fetch(`${base}/admin/reports/courses`, { headers: { Authorization: `Bearer ${token}` } }),
-        fetch(`${base}/admin/reports/enrollments`, { headers: { Authorization: `Bearer ${token}` } }),
-        fetch(`${base}/admin/reports/fee-payments`, { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(`${base}/admin/reports/students${studentsQuery}`, { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(`${base}/admin/reports/teachers${teachersQuery}`, { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(`${base}/admin/reports/courses${coursesQuery}`, { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(`${base}/admin/reports/enrollments${enrollmentsQuery}`, { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(`${base}/admin/reports/fee-payments${paymentsQuery}`, { headers: { Authorization: `Bearer ${token}` } }),
       ]);
       if (![studentsRes, teachersRes, coursesRes, enrollmentsRes, feePaymentsRes].every(r => r.ok)) {
         throw new Error('Failed to fetch detailed report data');
       }
-      const [students, teachers, courses, enrollments, feePayments] = await Promise.all([
+  const [students, teachers, courses, enrollments, feePayments] = await Promise.all([
         studentsRes.json(),
         teachersRes.json(),
         coursesRes.json(),
         enrollmentsRes.json(),
         feePaymentsRes.json(),
       ]);
-      setDetailedReportData({ students, teachers, courses, enrollments, feePayments });
+  const payload = { students, teachers, courses, enrollments, feePayments };
+  setDetailedReportData(payload);
+  return payload;
     } catch (e) {
       console.error(e);
       toast({ title: 'Error', description: 'Failed to load detailed report data', variant: 'destructive' });
     }
-  }, [token, toast]);
+  }, [token, toast, filters]);
 
   const ensureDetailedData = async () => {
-    if (!detailedReportData || !detailedReportData.students) {
-      await fetchDetailedData();
-    }
+    // Always refresh to respect current filters
+    const fresh = await fetchDetailedData();
+    return fresh || detailedReportData;
   };
 
   const handleGenerateReport = async (format: 'excel' | 'pdf', category: 'students' | 'teachers' | 'courses' | 'enrollments' | 'feePayments' | 'comprehensive') => {
     try {
       setIsGenerating(true);
-      await ensureDetailedData();
-      if (!detailedReportData) throw new Error('Detailed data unavailable');
+      const data = await ensureDetailedData();
+      if (!data) throw new Error('Detailed data unavailable');
       if (format === 'excel') {
         switch (category) {
           case 'students':
-            reportService.generateStudentsExcel(detailedReportData.students!);
+            reportService.generateStudentsExcel(data.students!);
             break;
           case 'teachers':
-            reportService.generateTeachersExcel(detailedReportData.teachers!);
+            reportService.generateTeachersExcel(data.teachers!);
             break;
           case 'courses':
-            reportService.generateCoursesExcel(detailedReportData.courses!);
+            reportService.generateCoursesExcel(data.courses!);
             break;
           case 'enrollments':
-            reportService.generateEnrollmentsExcel(detailedReportData.enrollments!);
+            reportService.generateEnrollmentsExcel(data.enrollments!);
             break;
           case 'feePayments':
-            reportService.generateFeePaymentsExcel(detailedReportData.feePayments!);
+            reportService.generateFeePaymentsExcel(data.feePayments!);
             break;
           case 'comprehensive':
-            if (!detailedReportData.students || !detailedReportData.teachers || !detailedReportData.courses || !detailedReportData.enrollments || !detailedReportData.feePayments) {
+            if (!data.students || !data.teachers || !data.courses || !data.enrollments || !data.feePayments) {
               throw new Error('Comprehensive report data is incomplete');
             }
             reportService.generateComprehensiveExcel({
-              students: detailedReportData.students,
-              teachers: detailedReportData.teachers,
-              courses: detailedReportData.courses,
-              enrollments: detailedReportData.enrollments,
-              feePayments: detailedReportData.feePayments,
+              students: data.students,
+              teachers: data.teachers,
+              courses: data.courses,
+              enrollments: data.enrollments,
+              feePayments: data.feePayments,
             });
             break;
         }
@@ -155,19 +262,19 @@ export default function Reports() {
         // PDF generation (reuse Excel for now or implement real PDF via service if available)
         switch (category) {
           case 'students':
-            reportService.generateStudentsPDF?.(detailedReportData.students as any);
+            reportService.generateStudentsPDF?.(data.students as any);
             break;
           case 'teachers':
-            reportService.generateTeachersPDF?.(detailedReportData.teachers as any);
+            reportService.generateTeachersPDF?.(data.teachers as any);
             break;
           case 'courses':
-            reportService.generateCoursesPDF?.(detailedReportData.courses as any);
+            reportService.generateCoursesPDF?.(data.courses as any);
             break;
           case 'enrollments':
-            reportService.generateEnrollmentsPDF?.(detailedReportData.enrollments as any);
+            reportService.generateEnrollmentsPDF?.(data.enrollments as any);
             break;
           case 'feePayments':
-            reportService.generateFeePaymentsPDF?.(detailedReportData.feePayments as any);
+            reportService.generateFeePaymentsPDF?.(data.feePayments as any);
             break;
           case 'comprehensive':
             throw new Error('Comprehensive PDF report not supported');
@@ -184,9 +291,10 @@ export default function Reports() {
   // Effects
   useEffect(() => {
     if (token && user?.role === 'admin') {
+    loadFilterOptions();
       fetchReportData();
     }
-  }, [token, user, fetchReportData]);
+  }, [token, user, fetchReportData, loadFilterOptions]);
 
   if (!user || user.role !== "admin") {
     return (
@@ -236,6 +344,8 @@ export default function Reports() {
           </Button>
         </div>
       </div>
+
+  {/* Filters are now colocated within each report section below */}
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
@@ -319,9 +429,35 @@ export default function Reports() {
                 <Users className="h-4 w-4 mr-2" />
                 Students Report
               </h3>
-              <p className="text-sm text-muted-foreground mb-3">
-                Detailed list of all students
-              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+                <div>
+                  <Label>Gender</Label>
+                  <Select value={filters.studentGender} onValueChange={(v) => setFilters(prev => ({ ...prev, studentGender: v }))}>
+                    <SelectTrigger><SelectValue placeholder="Any" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">Any</SelectItem>
+                      <SelectItem value="male">Male</SelectItem>
+                      <SelectItem value="female">Female</SelectItem>
+                      <SelectItem value="other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Class</Label>
+                  <Select value={filters.studentClassId} onValueChange={(v) => setFilters(prev => ({ ...prev, studentClassId: v }))}>
+                    <SelectTrigger><SelectValue placeholder="All classes" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">All</SelectItem>
+                      {classes.map(c => (
+                        <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="flex gap-2 mb-3 justify-end">
+                <Button size="sm" variant="outline" onClick={async () => { await fetchReportData(); await fetchDetailedData(); }}>Apply</Button>
+              </div>
               <div className="flex gap-2">
                 <Button
                   size="sm"
@@ -348,9 +484,35 @@ export default function Reports() {
                 <GraduationCap className="h-4 w-4 mr-2" />
                 Teachers Report
               </h3>
-              <p className="text-sm text-muted-foreground mb-3">
-                Complete list of teachers
-              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+                <div>
+                  <Label>Gender</Label>
+                  <Select value={filters.teacherGender} onValueChange={(v) => setFilters(prev => ({ ...prev, teacherGender: v }))}>
+                    <SelectTrigger><SelectValue placeholder="Any" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">Any</SelectItem>
+                      <SelectItem value="male">Male</SelectItem>
+                      <SelectItem value="female">Female</SelectItem>
+                      <SelectItem value="other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Class</Label>
+                  <Select value={filters.teacherClassId} onValueChange={(v) => setFilters(prev => ({ ...prev, teacherClassId: v }))}>
+                    <SelectTrigger><SelectValue placeholder="All classes" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">All</SelectItem>
+                      {classes.map(c => (
+                        <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="flex gap-2 mb-3 justify-end">
+                <Button size="sm" variant="outline" onClick={async () => { await fetchReportData(); await fetchDetailedData(); }}>Apply</Button>
+              </div>
               <div className="flex gap-2">
                 <Button
                   size="sm"
@@ -377,9 +539,35 @@ export default function Reports() {
                 <BookOpen className="h-4 w-4 mr-2" />
                 Courses Report
               </h3>
-              <p className="text-sm text-muted-foreground mb-3">
-                All courses with enrollment statistics
-              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+                <div>
+                  <Label>Class</Label>
+                  <Select value={filters.courseClassId} onValueChange={(v) => setFilters(prev => ({ ...prev, courseClassId: v }))}>
+                    <SelectTrigger><SelectValue placeholder="All classes" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">All</SelectItem>
+                      {classes.map(c => (
+                        <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Teacher</Label>
+                  <Select value={filters.courseTeacherId} onValueChange={(v) => setFilters(prev => ({ ...prev, courseTeacherId: v }))}>
+                    <SelectTrigger><SelectValue placeholder="All teachers" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">All</SelectItem>
+                      {teachers.map(t => (
+                        <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="flex gap-2 mb-3 justify-end">
+                <Button size="sm" variant="outline" onClick={async () => { await fetchReportData(); await fetchDetailedData(); }}>Apply</Button>
+              </div>
               <div className="flex gap-2">
                 <Button
                   size="sm"
@@ -406,9 +594,59 @@ export default function Reports() {
                 <FileText className="h-4 w-4 mr-2" />
                 Enrollments Report
               </h3>
-              <p className="text-sm text-muted-foreground mb-3">
-                Student course enrollments and grades
-              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+                <div>
+                  <Label>Class</Label>
+                  <Select value={filters.enrollmentClassId} onValueChange={(v) => setFilters(prev => ({ ...prev, enrollmentClassId: v }))}>
+                    <SelectTrigger><SelectValue placeholder="All classes" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">All</SelectItem>
+                      {classes.map(c => (
+                        <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Course</Label>
+                  <Select value={filters.enrollmentCourseId} onValueChange={(v) => setFilters(prev => ({ ...prev, enrollmentCourseId: v }))}>
+                    <SelectTrigger><SelectValue placeholder="All courses" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">All</SelectItem>
+                      {courses.map(c => (
+                        <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Teacher</Label>
+                  <Select value={filters.enrollmentTeacherId} onValueChange={(v) => setFilters(prev => ({ ...prev, enrollmentTeacherId: v }))}>
+                    <SelectTrigger><SelectValue placeholder="All teachers" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">All</SelectItem>
+                      {teachers.map(t => (
+                        <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Academic Calendar</Label>
+                  <Select value={filters.enrollmentAcademicCalendarId} onValueChange={(v) => setFilters(prev => ({ ...prev, enrollmentAcademicCalendarId: v }))}>
+                    <SelectTrigger><SelectValue placeholder="All calendars" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">All</SelectItem>
+                      {academicCalendars.map(a => (
+                        <SelectItem key={a.id} value={a.id}>{a.term || a.name || a.id}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="flex gap-2 mb-3 justify-end">
+                <Button size="sm" variant="outline" onClick={async () => { await fetchReportData(); await fetchDetailedData(); }}>Apply</Button>
+              </div>
               <div className="flex gap-2">
                 <Button
                   size="sm"
@@ -435,9 +673,59 @@ export default function Reports() {
                 <DollarSign className="h-4 w-4 mr-2" />
                 Fee Payments Report
               </h3>
-              <p className="text-sm text-muted-foreground mb-3">
-                Complete payment history
-              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+                <div>
+                  <Label>Academic Calendar</Label>
+                  <Select value={filters.paymentAcademicCalendarId} onValueChange={(v) => setFilters(prev => ({ ...prev, paymentAcademicCalendarId: v }))}>
+                    <SelectTrigger><SelectValue placeholder="All calendars" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">All</SelectItem>
+                      {academicCalendars.map(a => (
+                        <SelectItem key={a.id} value={a.id}>{a.term || a.name || a.id}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Student</Label>
+                  <Select value={filters.paymentStudentId} onValueChange={(v) => setFilters(prev => ({ ...prev, paymentStudentId: v }))}>
+                    <SelectTrigger><SelectValue placeholder="All students" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">All</SelectItem>
+                      {students.map(s => (
+                        <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Term</Label>
+                  <Select value={filters.paymentTermId} onValueChange={(v) => setFilters(prev => ({ ...prev, paymentTermId: v }))}>
+                    <SelectTrigger><SelectValue placeholder="All terms" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">All</SelectItem>
+                      {terms.map(t => (
+                        <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Class</Label>
+                  <Select value={filters.paymentClassId} onValueChange={(v) => setFilters(prev => ({ ...prev, paymentClassId: v }))}>
+                    <SelectTrigger><SelectValue placeholder="All classes" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">All</SelectItem>
+                      {classes.map(c => (
+                        <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="flex gap-2 mb-3 justify-end">
+                <Button size="sm" variant="outline" onClick={async () => { await fetchReportData(); await fetchDetailedData(); }}>Apply</Button>
+              </div>
               <div className="flex gap-2">
                 <Button
                   size="sm"
