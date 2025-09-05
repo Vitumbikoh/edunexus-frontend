@@ -148,6 +148,27 @@ export default function AcademicAndPeriodsSection() {
     return date.toLocaleDateString();
   };
 
+  // Derive a default holiday name from the selected term
+  const generateHolidayName = (period?: TermPeriod) => {
+    if (!period) return "End Term Holiday";
+    const name = (period.periodName || '').trim();
+    // Prefer numeric extraction to build "End Term X Holiday"
+    const num = name.match(/\d+/)?.[0];
+    if (num) {
+      return `End Term ${num} Holiday`;
+    }
+    // If label contains Period or Term, normalize to Term
+    if (/period/i.test(name) || /term/i.test(name)) {
+      const normalized = name.replace(/period/gi, 'Term');
+      return `End ${normalized} Holiday`;
+    }
+    // Fallback to explicit order if provided
+    if (typeof period.order === 'number' && !Number.isNaN(period.order)) {
+      return `End Term ${period.order} Holiday`;
+    }
+    return "End Term Holiday";
+  };
+
   const canActivateTerm = (period: TermPeriod): boolean => {
     if (period.isCurrent || period.isCompleted) return false;
     if (termPeriods.some(p => p.isCurrent && !p.isCompleted)) return false;
@@ -515,7 +536,7 @@ export default function AcademicAndPeriodsSection() {
   const resetHolidayForm = () => {
     setCurrentHoliday({
       id: "",
-      name: "",
+      name: generateHolidayName(currentPeriod),
       termId: currentPeriod.id || "",
       startDate: "",
       endDate: "",
@@ -688,6 +709,15 @@ export default function AcademicAndPeriodsSection() {
         ...ch,
         termId: currentPeriod.id || "",
       }));
+      // If creating a new holiday and the form is open, prefill name when empty
+      if (showHolidayForm && !editingHoliday) {
+        setCurrentHoliday(ch => {
+          if (!ch.name || ch.name.trim() === "") {
+            return { ...ch, name: generateHolidayName(currentPeriod) };
+          }
+          return ch;
+        });
+      }
     } else {
       setTermHolidays([]);
     }
@@ -1197,7 +1227,7 @@ export default function AcademicAndPeriodsSection() {
                         onChange={(e) =>
                           setCurrentHoliday({ ...currentHoliday, name: e.target.value })
                         }
-                        placeholder="Mid Term Break"
+                        placeholder={generateHolidayName(currentPeriod)}
                       />
                     </div>
                     <div className="space-y-2">
