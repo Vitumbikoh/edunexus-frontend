@@ -179,7 +179,7 @@ export default function Reports() {
     } finally {
       setIsLoading(false);
     }
-  }, [token, filters]);
+  }, [token]);
 
   // Fetch detailed data for generating reports (one endpoint per category assumed)
   const fetchDetailedData = useCallback(async () => {
@@ -345,7 +345,232 @@ export default function Reports() {
         </div>
       </div>
 
-  {/* Filters are now colocated within each report section below */}
+      {/* Filters */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Filters</CardTitle>
+          <p className="text-sm text-muted-foreground">Apply filters to refine the report data below and in exports.</p>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {/* Students */}
+            <div className="p-3 border rounded-md">
+              <h3 className="font-semibold mb-2">Students</h3>
+              <div className="space-y-3">
+                <div className="space-y-1">
+                  <Label>Gender</Label>
+                  <Select value={filters.studentGender} onValueChange={(v) => setFilters(prev => ({ ...prev, studentGender: v }))}>
+                    <SelectTrigger><SelectValue placeholder="Any" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">Any</SelectItem>
+                      <SelectItem value="male">Male</SelectItem>
+                      <SelectItem value="female">Female</SelectItem>
+                      <SelectItem value="other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label>Class</Label>
+                  <Select value={filters.studentClassId} onValueChange={(v) => setFilters(prev => ({ ...prev, studentClassId: v }))}>
+                    <SelectTrigger><SelectValue placeholder="All classes" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">All</SelectItem>
+                      {classes.map(c => (
+                        <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+
+            {/* Teachers */}
+            <div className="p-3 border rounded-md">
+              <h3 className="font-semibold mb-2">Teachers</h3>
+              <div className="space-y-3">
+                <div className="space-y-1">
+                  <Label>Gender</Label>
+                  <Select value={filters.teacherGender} onValueChange={(v) => setFilters(prev => ({ ...prev, teacherGender: v }))}>
+                    <SelectTrigger><SelectValue placeholder="Any" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">Any</SelectItem>
+                      <SelectItem value="male">Male</SelectItem>
+                      <SelectItem value="female">Female</SelectItem>
+                      <SelectItem value="other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label>Class</Label>
+                  <Select value={filters.teacherClassId} onValueChange={(v) => setFilters(prev => ({ ...prev, teacherClassId: v }))}>
+                    <SelectTrigger><SelectValue placeholder="All classes" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">All</SelectItem>
+                      {classes.map(c => (
+                        <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+
+            {/* Courses */}
+            <div className="p-3 border rounded-md">
+              <h3 className="font-semibold mb-2">Courses</h3>
+              <div className="space-y-3">
+                <div className="space-y-1">
+                  <Label>Class</Label>
+                  <Select value={filters.courseClassId} onValueChange={(v) => setFilters(prev => ({ ...prev, courseClassId: v }))}>
+                    <SelectTrigger><SelectValue placeholder="All classes" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">All</SelectItem>
+                      {classes.map(c => (
+                        <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label>Teacher</Label>
+                  <Select value={filters.courseTeacherId} onValueChange={(v) => setFilters(prev => ({ ...prev, courseTeacherId: v }))}>
+                    <SelectTrigger><SelectValue placeholder="All teachers" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">All</SelectItem>
+                      {teachers.map(t => (
+                        <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+
+            {/* Enrollments */}
+            <div className="p-3 border rounded-md">
+              <h3 className="font-semibold mb-2">Enrollments</h3>
+              <div className="space-y-3">
+                <div className="space-y-1">
+                  <Label>Class</Label>
+                  <Select value={filters.enrollmentClassId} onValueChange={(v) => setFilters(prev => ({ ...prev, enrollmentClassId: v }))}>
+                    <SelectTrigger><SelectValue placeholder="All classes" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">All</SelectItem>
+                      {classes.map(c => (
+                        <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label>Course</Label>
+                  <Select value={filters.enrollmentCourseId} onValueChange={(v) => setFilters(prev => ({ ...prev, enrollmentCourseId: v }))}>
+                    <SelectTrigger><SelectValue placeholder="All courses" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">All</SelectItem>
+                      {courses.map(c => (
+                        <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label>Teacher</Label>
+                  <Select value={filters.enrollmentTeacherId} onValueChange={(v) => setFilters(prev => ({ ...prev, enrollmentTeacherId: v }))}>
+                    <SelectTrigger><SelectValue placeholder="All teachers" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">All</SelectItem>
+                      {teachers.map(t => (
+                        <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label>Academic Calendar</Label>
+                  <Select value={filters.enrollmentAcademicCalendarId} onValueChange={(v) => setFilters(prev => ({ ...prev, enrollmentAcademicCalendarId: v }))}>
+                    <SelectTrigger><SelectValue placeholder="All calendars" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">All</SelectItem>
+                      {academicCalendars.map(a => (
+                        <SelectItem key={a.id} value={a.id}>{a.term || a.name || a.id}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+
+            {/* Fee Payments */}
+            <div className="p-3 border rounded-md">
+              <h3 className="font-semibold mb-2">Fee Payments</h3>
+              <div className="space-y-3">
+                <div className="space-y-1">
+                  <Label>Academic Calendar</Label>
+                  <Select value={filters.paymentAcademicCalendarId} onValueChange={(v) => setFilters(prev => ({ ...prev, paymentAcademicCalendarId: v }))}>
+                    <SelectTrigger><SelectValue placeholder="All calendars" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">All</SelectItem>
+                      {academicCalendars.map(a => (
+                        <SelectItem key={a.id} value={a.id}>{a.term || a.name || a.id}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label>Student</Label>
+                  <Select value={filters.paymentStudentId} onValueChange={(v) => setFilters(prev => ({ ...prev, paymentStudentId: v }))}>
+                    <SelectTrigger><SelectValue placeholder="All students" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">All</SelectItem>
+                      {students.map(s => (
+                        <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label>Term</Label>
+                  <Select value={filters.paymentTermId} onValueChange={(v) => setFilters(prev => ({ ...prev, paymentTermId: v }))}>
+                    <SelectTrigger><SelectValue placeholder="All terms" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">All</SelectItem>
+                      {terms.map(t => (
+                        <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label>Class</Label>
+                  <Select value={filters.paymentClassId} onValueChange={(v) => setFilters(prev => ({ ...prev, paymentClassId: v }))}>
+                    <SelectTrigger><SelectValue placeholder="All classes" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">All</SelectItem>
+                      {classes.map(c => (
+                        <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex gap-2 justify-end">
+            <Button variant="outline" onClick={() => { setFilters({
+              studentGender: "", studentClassId: "", teacherGender: "", teacherClassId: "", courseClassId: "", courseTeacherId: "",
+              enrollmentClassId: "", enrollmentCourseId: "", enrollmentTeacherId: "", enrollmentAcademicCalendarId: "",
+              paymentAcademicCalendarId: "", paymentStudentId: "", paymentTermId: "", paymentClassId: "",
+            }); }}>
+              Reset
+            </Button>
+            <Button onClick={async () => { await fetchReportData(); await fetchDetailedData(); }}>
+              Apply Filters
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
@@ -429,35 +654,9 @@ export default function Reports() {
                 <Users className="h-4 w-4 mr-2" />
                 Students Report
               </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
-                <div>
-                  <Label>Gender</Label>
-                  <Select value={filters.studentGender} onValueChange={(v) => setFilters(prev => ({ ...prev, studentGender: v }))}>
-                    <SelectTrigger><SelectValue placeholder="Any" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="">Any</SelectItem>
-                      <SelectItem value="male">Male</SelectItem>
-                      <SelectItem value="female">Female</SelectItem>
-                      <SelectItem value="other">Other</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label>Class</Label>
-                  <Select value={filters.studentClassId} onValueChange={(v) => setFilters(prev => ({ ...prev, studentClassId: v }))}>
-                    <SelectTrigger><SelectValue placeholder="All classes" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="">All</SelectItem>
-                      {classes.map(c => (
-                        <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <div className="flex gap-2 mb-3 justify-end">
-                <Button size="sm" variant="outline" onClick={async () => { await fetchReportData(); await fetchDetailedData(); }}>Apply</Button>
-              </div>
+              <p className="text-sm text-muted-foreground mb-3">
+                Detailed list of all students
+              </p>
               <div className="flex gap-2">
                 <Button
                   size="sm"
@@ -484,35 +683,9 @@ export default function Reports() {
                 <GraduationCap className="h-4 w-4 mr-2" />
                 Teachers Report
               </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
-                <div>
-                  <Label>Gender</Label>
-                  <Select value={filters.teacherGender} onValueChange={(v) => setFilters(prev => ({ ...prev, teacherGender: v }))}>
-                    <SelectTrigger><SelectValue placeholder="Any" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="">Any</SelectItem>
-                      <SelectItem value="male">Male</SelectItem>
-                      <SelectItem value="female">Female</SelectItem>
-                      <SelectItem value="other">Other</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label>Class</Label>
-                  <Select value={filters.teacherClassId} onValueChange={(v) => setFilters(prev => ({ ...prev, teacherClassId: v }))}>
-                    <SelectTrigger><SelectValue placeholder="All classes" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="">All</SelectItem>
-                      {classes.map(c => (
-                        <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <div className="flex gap-2 mb-3 justify-end">
-                <Button size="sm" variant="outline" onClick={async () => { await fetchReportData(); await fetchDetailedData(); }}>Apply</Button>
-              </div>
+              <p className="text-sm text-muted-foreground mb-3">
+                Complete list of teachers
+              </p>
               <div className="flex gap-2">
                 <Button
                   size="sm"
@@ -539,35 +712,9 @@ export default function Reports() {
                 <BookOpen className="h-4 w-4 mr-2" />
                 Courses Report
               </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
-                <div>
-                  <Label>Class</Label>
-                  <Select value={filters.courseClassId} onValueChange={(v) => setFilters(prev => ({ ...prev, courseClassId: v }))}>
-                    <SelectTrigger><SelectValue placeholder="All classes" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="">All</SelectItem>
-                      {classes.map(c => (
-                        <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label>Teacher</Label>
-                  <Select value={filters.courseTeacherId} onValueChange={(v) => setFilters(prev => ({ ...prev, courseTeacherId: v }))}>
-                    <SelectTrigger><SelectValue placeholder="All teachers" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="">All</SelectItem>
-                      {teachers.map(t => (
-                        <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <div className="flex gap-2 mb-3 justify-end">
-                <Button size="sm" variant="outline" onClick={async () => { await fetchReportData(); await fetchDetailedData(); }}>Apply</Button>
-              </div>
+              <p className="text-sm text-muted-foreground mb-3">
+                All courses with enrollment statistics
+              </p>
               <div className="flex gap-2">
                 <Button
                   size="sm"
@@ -594,59 +741,9 @@ export default function Reports() {
                 <FileText className="h-4 w-4 mr-2" />
                 Enrollments Report
               </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
-                <div>
-                  <Label>Class</Label>
-                  <Select value={filters.enrollmentClassId} onValueChange={(v) => setFilters(prev => ({ ...prev, enrollmentClassId: v }))}>
-                    <SelectTrigger><SelectValue placeholder="All classes" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="">All</SelectItem>
-                      {classes.map(c => (
-                        <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label>Course</Label>
-                  <Select value={filters.enrollmentCourseId} onValueChange={(v) => setFilters(prev => ({ ...prev, enrollmentCourseId: v }))}>
-                    <SelectTrigger><SelectValue placeholder="All courses" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="">All</SelectItem>
-                      {courses.map(c => (
-                        <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label>Teacher</Label>
-                  <Select value={filters.enrollmentTeacherId} onValueChange={(v) => setFilters(prev => ({ ...prev, enrollmentTeacherId: v }))}>
-                    <SelectTrigger><SelectValue placeholder="All teachers" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="">All</SelectItem>
-                      {teachers.map(t => (
-                        <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label>Academic Calendar</Label>
-                  <Select value={filters.enrollmentAcademicCalendarId} onValueChange={(v) => setFilters(prev => ({ ...prev, enrollmentAcademicCalendarId: v }))}>
-                    <SelectTrigger><SelectValue placeholder="All calendars" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="">All</SelectItem>
-                      {academicCalendars.map(a => (
-                        <SelectItem key={a.id} value={a.id}>{a.term || a.name || a.id}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <div className="flex gap-2 mb-3 justify-end">
-                <Button size="sm" variant="outline" onClick={async () => { await fetchReportData(); await fetchDetailedData(); }}>Apply</Button>
-              </div>
+              <p className="text-sm text-muted-foreground mb-3">
+                Student course enrollments and grades
+              </p>
               <div className="flex gap-2">
                 <Button
                   size="sm"
@@ -673,59 +770,9 @@ export default function Reports() {
                 <DollarSign className="h-4 w-4 mr-2" />
                 Fee Payments Report
               </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
-                <div>
-                  <Label>Academic Calendar</Label>
-                  <Select value={filters.paymentAcademicCalendarId} onValueChange={(v) => setFilters(prev => ({ ...prev, paymentAcademicCalendarId: v }))}>
-                    <SelectTrigger><SelectValue placeholder="All calendars" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="">All</SelectItem>
-                      {academicCalendars.map(a => (
-                        <SelectItem key={a.id} value={a.id}>{a.term || a.name || a.id}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label>Student</Label>
-                  <Select value={filters.paymentStudentId} onValueChange={(v) => setFilters(prev => ({ ...prev, paymentStudentId: v }))}>
-                    <SelectTrigger><SelectValue placeholder="All students" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="">All</SelectItem>
-                      {students.map(s => (
-                        <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label>Term</Label>
-                  <Select value={filters.paymentTermId} onValueChange={(v) => setFilters(prev => ({ ...prev, paymentTermId: v }))}>
-                    <SelectTrigger><SelectValue placeholder="All terms" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="">All</SelectItem>
-                      {terms.map(t => (
-                        <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label>Class</Label>
-                  <Select value={filters.paymentClassId} onValueChange={(v) => setFilters(prev => ({ ...prev, paymentClassId: v }))}>
-                    <SelectTrigger><SelectValue placeholder="All classes" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="">All</SelectItem>
-                      {classes.map(c => (
-                        <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <div className="flex gap-2 mb-3 justify-end">
-                <Button size="sm" variant="outline" onClick={async () => { await fetchReportData(); await fetchDetailedData(); }}>Apply</Button>
-              </div>
+              <p className="text-sm text-muted-foreground mb-3">
+                Complete payment history
+              </p>
               <div className="flex gap-2">
                 <Button
                   size="sm"

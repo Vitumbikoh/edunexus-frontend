@@ -141,6 +141,23 @@ export default function AcademicAndPeriodsSection() {
     const date = new Date(dateString);
     return date.toISOString().split('T')[0];
   };
+
+  // Display helper: normalize any backend "Period X" labels into "Term X"
+  const normalizeTermLabel = (name?: string, order?: number) => {
+    const raw = (name || '').trim();
+    // Extract a number if present
+    const num = raw.match(/\d+/)?.[0];
+    if (num) return `Term ${num}`;
+    // If it already mentions period/term, convert to Term
+    if (/period|term/i.test(raw)) {
+      return raw.replace(/period/gi, 'Term').replace(/term/gi, 'Term');
+    }
+    if (typeof order === 'number' && !Number.isNaN(order)) {
+      return `Term ${order}`;
+    }
+    // Fallback
+    return raw || 'Term';
+  };
   
   const formatDateForDisplay = (dateString?: string | null) => {
     if (!dateString) return "Not set";
@@ -1006,7 +1023,7 @@ export default function AcademicAndPeriodsSection() {
                   <SelectContent>
                     {termPeriods.map(period => (
                       <SelectItem key={period.id} value={period.id || ""}>
-                        {period.periodName} ({formatDateForDisplay(period.startDate)} - {formatDateForDisplay(period.endDate)})
+                        {normalizeTermLabel(period.periodName, period.order)} ({formatDateForDisplay(period.startDate)} - {formatDateForDisplay(period.endDate)})
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -1030,7 +1047,7 @@ export default function AcademicAndPeriodsSection() {
                 <div className="space-y-4 mt-4">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="space-y-2">
-                      <Label>Select Period</Label>
+                      <Label>Select Term</Label>
                       <Select
                         value={currentPeriod.periodId}
                         onValueChange={(value) => {
@@ -1053,7 +1070,7 @@ export default function AcademicAndPeriodsSection() {
                               value={p.id}
                               disabled={!editingPeriod && termPeriods.some(t => t.periodId === p.id)}
                             >
-                              {p.name}
+                              {normalizeTermLabel(p.name, p.order as any)}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -1119,7 +1136,7 @@ export default function AcademicAndPeriodsSection() {
                     <TableBody>
                       {termPeriods.map(period => (
                         <TableRow key={period.id}>
-                          <TableCell>{period.periodName}</TableCell>
+                          <TableCell>{normalizeTermLabel(period.periodName, period.order)}</TableCell>
                           <TableCell>{formatDateForDisplay(period.startDate)}</TableCell>
                           <TableCell>{formatDateForDisplay(period.endDate)}</TableCell>
                           <TableCell>
@@ -1198,13 +1215,13 @@ export default function AcademicAndPeriodsSection() {
                 <h3 className="font-medium">Holiday Management (Selected Term)</h3>
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-muted-foreground">
-                    Term: {currentPeriod.periodName || "None selected"}
+                    Term: {normalizeTermLabel(currentPeriod.periodName, currentPeriod.order)}
                   </span>
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={handleCreateHoliday}
-                    disabled={!currentPeriod.id || showHolidayForm}
+                    disabled={!currentPeriod.id || showHolidayForm || termHolidays.length > 0}
                   >
                     New Holiday
                   </Button>
@@ -1288,7 +1305,7 @@ export default function AcademicAndPeriodsSection() {
               {currentPeriod.id && (
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <Label>Holidays for {currentPeriod.periodName}</Label>
+                    <Label>Holidays for {normalizeTermLabel(currentPeriod.periodName, currentPeriod.order)}</Label>
                     {termHolidays.length === 0 && (
                       <Button
                         variant="outline"
@@ -1426,7 +1443,10 @@ export default function AcademicAndPeriodsSection() {
                             <TableCell className="font-medium">{holiday.name}</TableCell>
                             <TableCell>
                               <Badge variant="outline">
-                                {holiday.termName || termPeriods.find(t => t.id === holiday.termId)?.periodName || 'Unknown Term'}
+                                {normalizeTermLabel(
+                                  holiday.termName || termPeriods.find(t => t.id === holiday.termId)?.periodName,
+                                  termPeriods.find(t => t.id === holiday.termId)?.order
+                                ) || 'Unknown Term'}
                               </Badge>
                             </TableCell>
                             <TableCell>{format(startDate, 'MMM dd, yyyy')}</TableCell>
