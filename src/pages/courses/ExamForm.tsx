@@ -48,6 +48,29 @@ export default function ExamForm() {
   const [isLoadingCourse, setIsLoadingCourse] = useState(!state?.course);
   const [courseError, setCourseError] = useState<string | null>(null);
 
+  // Ensure teacher info is set as soon as auth context loads
+  useEffect(() => {
+    if (user?.id) {
+      setFormData((prev) => ({
+        ...prev,
+        teacherId: user.id,
+        teacherName: user.name || prev.teacherName,
+      }));
+    }
+  }, [user?.id, user?.name]);
+
+  // If the course is provided via route state, ensure IDs are set immediately
+  useEffect(() => {
+    if (state?.course) {
+      setFormData((prev) => ({
+        ...prev,
+        classId: state.course.class?.id || prev.classId,
+        className: state.course.class?.name || prev.className,
+        subject: state.course.name || prev.subject,
+      }));
+    }
+  }, [state?.course]);
+
   useEffect(() => {
     console.log("Initial state.course:", state?.course);
     console.log("User from useAuth:", { id: user?.id, name: user?.name });
@@ -121,9 +144,6 @@ export default function ExamForm() {
       "totalMarks",
       "date",
       "duration",
-      "subject",
-      "classId",
-      "teacherId",
       "courseId",
     ];
 
@@ -152,7 +172,7 @@ export default function ExamForm() {
     setIsSubmitting(true);
 
     try {
-      const payload = {
+  const payload: any = {
         title: formData.title,
         description: formData.description,
         examType: formData.examType,
@@ -160,15 +180,16 @@ export default function ExamForm() {
         date: formData.date,
         duration: formData.duration,
         instructions: formData.instructions,
-        subject: formData.subject,
-        classId: formData.classId,
-        teacherId: formData.teacherId,
         status: formData.status,
         studentsEnrolled: formData.studentsEnrolled,
         studentsCompleted: formData.studentsCompleted,
         term: formData.term,
         courseId: formData.courseId,
       };
+  // Include optional fields only when present
+  if (formData.subject) payload.subject = formData.subject;
+  if (formData.classId) payload.classId = formData.classId;
+  if (formData.teacherId) payload.teacherId = formData.teacherId;
 
       console.log("Submitting payload:", payload);
 
@@ -230,12 +251,7 @@ export default function ExamForm() {
         </div>
       </div>
 
-      {(!formData.classId || !formData.teacherId) && (
-        <div className="p-4 rounded-lg bg-yellow-50 border border-yellow-200 text-yellow-700">
-          Warning: Missing {formData.classId ? "" : "class ID"}{" "}
-          {formData.teacherId ? "" : "teacher ID"}. Submission will fail without these IDs.
-        </div>
-      )}
+  {/* IDs will be inferred server-side when possible */}
 
       <Card className="max-w-2xl">
         <CardHeader>
@@ -376,7 +392,7 @@ export default function ExamForm() {
               </Button>
               <Button
                 type="submit"
-                disabled={isSubmitting || !formData.classId || !formData.teacherId}
+                disabled={isSubmitting}
                 className="gap-2"
               >
                 <Save className="h-4 w-4" />
