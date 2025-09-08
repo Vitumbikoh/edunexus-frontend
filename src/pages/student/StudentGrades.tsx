@@ -11,7 +11,7 @@ import ReportCard from "@/components/reports/ReportCard";
 import { API_CONFIG } from '@/config/api';
 export default function StudentGrades() {
   const { user, token } = useAuth();
-const [selectedPeriod, setSelectedPeriod] = useState<string>("all");
+const [selectedTerm, setSelectedTerm] = useState<string>("all");
 const [grades, setGrades] = useState<any[]>([]);
 const [courses, setCourses] = useState<string[]>([]);
 const [isLoading, setIsLoading] = useState(true);
@@ -52,8 +52,8 @@ const [error, setError] = useState<string | null>(null);
     const transformedGrades = data.results.map(grade => ({
       course: grade.subject || grade.examTitle, // Use subject or examTitle
       grade: grade.grade,
-      period: grade.examType === 'midperiod' ? 'Midperiod' : 
-            grade.examType === 'endperiod' ? 'Final' : 
+      term: grade.examType === 'midterm' ? 'Midterm' : 
+            grade.examType === 'endterm' ? 'Final' : 
             grade.examType.charAt(0).toUpperCase() + grade.examType.slice(1),
     }));
     
@@ -76,10 +76,10 @@ setCourses(uniqueCourses);
     fetchGrades();
   }, [token]);
 
-const periods = ["Midperiod", "Final"];
-const filteredGrades = selectedPeriod === "all" 
+const terms = ["Midterm", "Final"];
+const filteredGrades = selectedTerm === "all" 
   ? grades 
-  : grades.filter((grade: any) => grade.period === selectedPeriod);
+  : grades.filter((grade: any) => grade.term === selectedTerm);
 
 const getGradeClass = (grade: string) => {
   if (grade.startsWith('A')) return "text-primary";
@@ -92,7 +92,7 @@ const handlePrint = () => {
   if (!filteredGrades.length) {
     toast({
       title: 'No grades to print',
-      description: 'Please select a period with grades.',
+      description: 'Please select a term with grades.',
       variant: 'destructive',
     });
     return;
@@ -102,14 +102,14 @@ const handlePrint = () => {
   if (!printWindow) return;
 
   const studentName = user?.name || user?.email?.split('@')[0] || 'Student';
-  const periodLabel = selectedPeriod === 'all' ? 'All Periods' : selectedPeriod;
+  const termLabel = selectedTerm === 'all' ? 'All Terms' : selectedTerm;
   const today = new Date().toLocaleDateString();
 
   const rowsHtml = filteredGrades
     .map((g: any) => `
     <tr>
       <td>${g.course}</td>
-      <td>${g.period}</td>
+      <td>${g.term}</td>
       <td><span class="grade-badge grade-${String(g.grade).charAt(0).toLowerCase()}">${g.grade}</span></td>
     </tr>
   `)
@@ -161,18 +161,18 @@ const handlePrint = () => {
             <div class="grid">
               <div class="row"><span class="label">Student Name:</span><span>${studentName}</span></div>
               <div class="row"><span class="label">Generated:</span><span>${today}</span></div>
-              <div class="row"><span class="label">Period:</span><span>${periodLabel}</span></div>
+              <div class="row"><span class="label">Term:</span><span>${termLabel}</span></div>
               <div class="row"><span class="label">Total Courses:</span><span>${new Set(grades.map((g: any)=>g.course)).size}</span></div>
             </div>
           </div>
           <div class="section">
             <div class="section-title">Grades</div>
             <table>
-              <thead><tr><th>Course</th><th>Period</th><th>Grade</th></tr></thead>
+              <thead><tr><th>Course</th><th>Term</th><th>Grade</th></tr></thead>
               <tbody>${rowsHtml}</tbody>
             </table>
             <div class="badges">
-              <div class="badge">Selected Period: ${periodLabel}</div>
+              <div class="badge">Selected Term: ${termLabel}</div>
               <div class="badge">Report Date: ${today}</div>
               <div class="badge">Courses: ${new Set(grades.map((g: any)=>g.course)).size}</div>
             </div>
@@ -231,15 +231,15 @@ return (
       title="Grade Report"
       action={
         <div className="flex items-center gap-2">
-          <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
+          <Select value={selectedTerm} onValueChange={setSelectedTerm}>
             <SelectTrigger className="w-[160px]">
-              <SelectValue placeholder="Filter by period" />
+              <SelectValue placeholder="Filter by term" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Periods</SelectItem>
-              {periods.map((period) => (
-                <SelectItem key={period} value={period}>
-                  {period}
+              <SelectItem value="all">All Terms</SelectItem>
+              {terms.map((term) => (
+                <SelectItem key={term} value={term}>
+                  {term}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -252,19 +252,19 @@ return (
       }
       summary={[
         { label: "Total Courses", value: new Set(grades.map((g: any) => g.course)).size },
-        { label: "Selected Period", value: selectedPeriod === "all" ? "All Periods" : selectedPeriod },
+        { label: "Selected Term", value: selectedTerm === "all" ? "All Terms" : selectedTerm },
         { label: "Report Date", value: new Date().toLocaleDateString() },
       ]}
-      columns={["Course", "Period", "Grade"]}
+      columns={["Course", "Term", "Grade"]}
       rows={filteredGrades.map((g: any, idx: number) => ({
         key: idx,
         cells: [
           g.course,
-          g.period,
+          g.term,
           <span className={`text-right font-bold ${getGradeClass(g.grade)}`}>{g.grade}</span>
         ],
       }))}
-      emptyMessage="No grades found for the selected period."
+      emptyMessage="No grades found for the selected term."
     />
 
     <Card>

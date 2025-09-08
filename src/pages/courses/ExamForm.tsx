@@ -263,7 +263,7 @@ export default function ExamForm() {
               <Label htmlFor="title">Exam Title *</Label>
               <Input
                 id="title"
-                placeholder="e.g., Mathematics Mid-period Exam"
+                placeholder="e.g., Mathematics Mid-Term Exam"
                 value={formData.title}
                 onChange={(e) => handleInputChange("title", e.target.value)}
                 required
@@ -282,8 +282,8 @@ export default function ExamForm() {
                   <SelectValue placeholder="Select exam type" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="midperiod">Mid-Term Exam</SelectItem>
-                  <SelectItem value="endperiod">End-Term Exam</SelectItem>
+                  <SelectItem value="midterm">Mid-Term Exam</SelectItem>
+                  <SelectItem value="endterm">End-Term Exam</SelectItem>
                   <SelectItem value="quiz">Quiz</SelectItem>
                   <SelectItem value="assignment">Assignment</SelectItem>
                   <SelectItem value="practical">Practical Exam</SelectItem>

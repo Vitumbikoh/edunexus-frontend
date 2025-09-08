@@ -92,13 +92,13 @@ export default function ExamDetails() {
           description: 'Invalid exam ID or not authenticated',
           variant: 'destructive',
         });
-        navigate('/exams');
+  navigate('/courses/exams');
         return;
       }
 
       try {
         setIsLoading(true);
-        const examData = await fetchWithAuth(`http://localhost:5000/api/v1/exams/${examId}`);
+  const examData = await fetchWithAuth(`http://localhost:5000/api/v1/exams/${examId}`);
         console.log('Exam details API response:', examData);
         
         // Validate the exam data structure
@@ -111,7 +111,12 @@ export default function ExamDetails() {
           throw new Error('Incomplete exam data received from server');
         }
         
-        setExam(examData);
+        // Normalize server response to ensure term is accessible and course present
+        const normalized = {
+          ...examData,
+          term: examData.term || examData.Term || null,
+        };
+        setExam(normalized);
       } catch (error: any) {
         const errorMessage = error.message || 'Failed to fetch exam details';
         toast({
@@ -122,7 +127,7 @@ export default function ExamDetails() {
         if (errorMessage.includes('Unauthorized')) {
           navigate('/login');
         } else {
-          navigate('/exams');
+          navigate('/courses/exams');
         }
       } finally {
         setIsLoading(false);
@@ -181,7 +186,13 @@ export default function ExamDetails() {
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => navigate('/exams')}
+          onClick={() => {
+            if (exam?.course?.id) {
+              navigate(`/my-exams?courseId=${exam.course.id}`);
+            } else {
+              navigate('/courses/exams');
+            }
+          }}
           className="gap-2"
         >
           <ArrowLeft className="h-4 w-4" />
@@ -209,8 +220,8 @@ export default function ExamDetails() {
                 <p className="text-sm">{exam.title}</p>
               </div>
               <div>
-                <h3 className="font-semibold">Subject</h3>
-                <p className="text-sm">{exam.subject}</p>
+                <h3 className="font-semibold">Course</h3>
+                <p className="text-sm">{exam.course?.name || 'Unknown Course'}</p>
               </div>
               <div>
                 <h3 className="font-semibold">Class</h3>
@@ -220,10 +231,7 @@ export default function ExamDetails() {
                 <h3 className="font-semibold">Teacher</h3>
                 <p className="text-sm">{exam.teacher ? `${exam.teacher.firstName} ${exam.teacher.lastName}` : 'Unknown Teacher'}</p>
               </div>
-              <div>
-                <h3 className="font-semibold">Course</h3>
-                <p className="text-sm">{exam.course?.name || 'Unknown Course'}</p>
-              </div>
+              {/* Course already displayed above */}
               <div>
                 <h3 className="font-semibold">Date</h3>
                 <p className="text-sm">{exam.date ? new Date(exam.date).toLocaleDateString() : 'Not scheduled'}</p>
@@ -248,9 +256,11 @@ export default function ExamDetails() {
                 </p>
               </div>
               <div>
-                <h3 className="font-semibold">Academic Year</h3>
+                <h3 className="font-semibold">Term</h3>
                 <p className="text-sm">
-                  {exam.term?.name || `${new Date(exam.term?.startDate).getFullYear()} - ${new Date(exam.term?.endDate).getFullYear()}`}
+                  {exam.term?.name || (exam.term?.startDate && exam.term?.endDate
+                    ? `${new Date(exam.term.startDate).toLocaleDateString()} - ${new Date(exam.term.endDate).toLocaleDateString()}`
+                    : 'Unknown Term')}
                 </p>
               </div>
               <div>

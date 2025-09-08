@@ -19,6 +19,7 @@ export default function TeacherExams() {
   const [exams, setExams] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
+  const courseName = exams?.[0]?.course?.name || '';
 
   const fetchExams = async () => {
     if (!courseId || !token) return;
@@ -48,7 +49,7 @@ export default function TeacherExams() {
     const q = search.toLowerCase();
     return (
       (e.title || '').toLowerCase().includes(q) ||
-      (e.subject || '').toLowerCase().includes(q) ||
+      (e.course?.name || '').toLowerCase().includes(q) ||
       (e.examType || '').toLowerCase().includes(q)
     );
   });
@@ -58,7 +59,7 @@ export default function TeacherExams() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Course Exams</h1>
-          <p className="text-muted-foreground">All exams for this course (you as the teacher)</p>
+          <p className="text-muted-foreground">All exams for this course{courseName ? `: ${courseName}` : ''} (you as the teacher)</p>
         </div>
         <Button variant="outline" onClick={fetchExams} className="gap-2" disabled={loading}>
           <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
@@ -80,7 +81,7 @@ export default function TeacherExams() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Title</TableHead>
-                  <TableHead>Subject</TableHead>
+                  <TableHead>Course</TableHead>
                   <TableHead>Date</TableHead>
                   <TableHead>Total Marks</TableHead>
                   <TableHead>Status</TableHead>
@@ -100,7 +101,7 @@ export default function TeacherExams() {
                   filtered.map(exam => (
                     <TableRow key={exam.id}>
                       <TableCell className="font-medium">{exam.title}</TableCell>
-                      <TableCell>{exam.subject}</TableCell>
+                      <TableCell>{exam.course?.name || '-'}</TableCell>
                       <TableCell>{exam.date ? new Date(exam.date).toLocaleDateString() : 'N/A'}</TableCell>
                       <TableCell>{exam.totalMarks}</TableCell>
                       <TableCell>
