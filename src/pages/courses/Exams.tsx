@@ -256,12 +256,12 @@ export default function Exams() {
               disabled={isLoading}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Select academic year" />
+                <SelectValue placeholder="Select term" />
               </SelectTrigger>
               <SelectContent>
-                {terms.map((year, index) => (
-                  <SelectItem key={year.id} value={year.id}>
-                    {year.name} {index === 0 ? '(Current)' : ''}
+                {terms.map((t, index) => (
+                  <SelectItem key={t.id} value={t.id}>
+                    {t.name} {index === 0 ? '(Current)' : ''}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -297,6 +297,7 @@ export default function Exams() {
                   <TableHead>Exam Title</TableHead>
                   <TableHead>Subject</TableHead>
                   <TableHead>Class</TableHead>
+                  <TableHead>Term</TableHead>
                   <TableHead>Teacher</TableHead>
                   <TableHead>Date</TableHead>
                   <TableHead>Duration</TableHead>
@@ -308,7 +309,7 @@ export default function Exams() {
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center py-12">
+                    <TableCell colSpan={10} className="text-center py-12">
                       <div className="flex flex-col items-center gap-2">
                         <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
                         <span className="text-muted-foreground">Loading exams...</span>
@@ -317,12 +318,12 @@ export default function Exams() {
                   </TableRow>
                 ) : exams.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center py-12">
+                    <TableCell colSpan={10} className="text-center py-12">
                       <div className="flex flex-col items-center gap-2">
                         <FileText className="h-8 w-8 text-muted-foreground" />
                         <span className="text-muted-foreground font-medium">No exams found</span>
                         <span className="text-sm text-muted-foreground">
-                          {searchPeriod || selectedClass !== 'All Classes' || selectedTeacher !== 'All Teachers' || selectedTerm !== 'All Years'
+                          {searchPeriod || selectedClass !== 'All Classes' || selectedTeacher !== 'All Teachers' || !selectedTerm
                             ? 'Try adjusting your filters or search criteria'
                             : 'No exams have been created yet'
                           }
@@ -338,6 +339,18 @@ export default function Exams() {
                       <TableCell>
                         <Badge variant="outline" className="font-normal">
                           {exam.class?.name || 'Unknown Class'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="secondary" className="font-normal">
+                          {(() => {
+                            const t: any = (exam as any).term || (exam as any).Term;
+                            const id = (exam as any).termId || (exam as any).TermId;
+                            const raw = (t && t.name) || '';
+                            const numFromName = typeof raw === 'string' ? raw.match(/\d+/)?.[0] : undefined;
+                            const num = (t && (t.termNumber || t.period?.order)) || (numFromName ? parseInt(numFromName) : undefined);
+                            return num ? `Term ${num}` : (raw || 'Term');
+                          })()}
                         </Badge>
                       </TableCell>
                       <TableCell>{`${exam.teacher.firstName} ${exam.teacher.lastName}`}</TableCell>

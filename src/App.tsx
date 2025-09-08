@@ -49,6 +49,7 @@ import ParentAttendance from "./pages/parent/ParentAttendance";
 import ParentMessages from "./pages/parent/ParentMessages";
 import ParentFinance from "./pages/parent/ParentFinance";
 import TeacherCourses from "./pages/teacher/TeacherCourses";
+import TeacherExams from "./pages/teacher/TeacherExams";
 import CourseEnrollments from "./pages/courses/CourseEnrollments";
 import StudentDetails from "./pages/student/StudentDetails";
 import FinanceOfficers from "./pages/finance/FinanceOfficers";
@@ -787,6 +788,17 @@ const AppRoutes = () => {
           <TeacherRoute>
             <Layout>
               <TeacherCourses />
+            </Layout>
+          </TeacherRoute>
+        }
+      />
+
+      <Route
+        path="/my-exams"
+        element={
+          <TeacherRoute>
+            <Layout>
+              <TeacherExams />
             </Layout>
           </TeacherRoute>
         }

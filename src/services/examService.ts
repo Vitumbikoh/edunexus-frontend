@@ -52,6 +52,8 @@ export interface Exam {
 export interface ExamFilters {
   searchPeriod?: string;
   classId?: string;
+  // Optional class name; when provided we pass it as 'class' to the backend
+  className?: string;
   teacherId?: string;
   termId?: string;
   status?: string;
@@ -72,14 +74,14 @@ export interface ExamResponse {
 export const examService = {
   // Get all exams with optional filters
   getExams: async (token: string, filters?: ExamFilters): Promise<Exam[]> => {
+    // Map our local filter names to backend expected query params
     const queryParams = new URLSearchParams();
-    
     if (filters) {
-      Object.entries(filters).forEach(([key, value]) => {
-        if (value !== undefined && value !== null && value !== '') {
-          queryParams.append(key, value);
-        }
-      });
+      if (filters.searchPeriod) queryParams.append('searchText', filters.searchPeriod);
+      if (filters.className) queryParams.append('class', filters.className);
+      if (filters.teacherId) queryParams.append('teacherId', filters.teacherId);
+      if (filters.termId) queryParams.append('Term', filters.termId); // backend expects 'Term'
+      if (filters.status) queryParams.append('status', filters.status);
     }
 
     const queryString = queryParams.toString();
@@ -111,20 +113,55 @@ export const examService = {
 
     try {
       const data = JSON.parse(text);
-      
+
+      const normalize = (e: any): Exam => {
+        // Normalize term fields: support backend 'Term' relation and 'TermId'
+        const termRel = e.term || e.Term || null;
+        const normalizedTermId: string | undefined = e.termId || e.TermId || (termRel && typeof termRel === 'object' ? termRel.id : undefined);
+        let normalizedTerm: any = undefined;
+        if (termRel && typeof termRel === 'object') {
+          const n = termRel.termNumber || termRel.term || termRel.period?.order;
+          let name: string | undefined;
+          if (typeof n === 'number') name = `Term ${n}`;
+          else if (typeof n === 'string') {
+            const num = n.match(/\d+/)?.[0];
+            if (num) name = `Term ${num}`;
+          } else if (termRel.name) {
+            const num = String(termRel.name).match(/\d+/)?.[0];
+            if (num) name = `Term ${num}`;
+          }
+          normalizedTerm = {
+            id: normalizedTermId,
+            name,
+            startDate: termRel.startDate,
+            endDate: termRel.endDate,
+            academicCalendar: termRel.academicCalendar,
+            period: termRel.period,
+          };
+        } else if (normalizedTermId) {
+          normalizedTerm = { id: normalizedTermId } as any;
+        }
+
+        return {
+          ...e,
+          termId: normalizedTermId,
+          term: normalizedTerm || e.term,
+        } as Exam;
+      };
+
       // Handle different response formats from backend
       if (Array.isArray(data)) {
-        return data;
+        return data.map(normalize);
       }
-      
+
       if (data.exams && Array.isArray(data.exams)) {
-        return data.exams;
+        return data.exams.map(normalize);
       }
-      
+
       if (data.success && data.exams) {
-        return data.exams;
+        return data.exams.map(normalize);
       }
-      
+
       return [];
     } catch (error) {
       console.error('Failed to parse exams response:', text);

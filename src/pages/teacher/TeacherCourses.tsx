@@ -229,46 +229,7 @@ export default function TeacherCourses() {
                     </div>
                   </div>
 
-                  {course.exams && course.exams.length > 0 && (
-                    <div>
-                      <h4 className="text-sm font-medium text-muted-foreground mb-2">
-                        Recent Exams
-                      </h4>
-                      <div className="space-y-2">
-                        {course.exams.slice(0, 3).map((exam: any) => (
-                          <div
-                            key={exam.id}
-                            className="bg-muted/50 rounded-md p-3 text-sm"
-                          >
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-2">
-                                <Calendar className="h-4 w-4 text-muted-foreground" />
-                                <span className="font-medium">
-                                  {exam.title}
-                                </span>
-                                <Badge variant="outline" className="text-xs">
-                                  {exam.examType}
-                                </Badge>
-                              </div>
-                              <div className="flex items-center gap-1 text-muted-foreground">
-                                <Clock className="h-3 w-3" />
-                                <span className="text-xs">{exam.duration}</span>
-                              </div>
-                            </div>
-                            <div className="mt-1 text-xs text-muted-foreground">
-                              {new Date(exam.date).toLocaleDateString()} •{" "}
-                              {exam.totalMarks} marks
-                            </div>
-                          </div>
-                        ))}
-                        {course.exams.length > 3 && (
-                          <div className="text-xs text-muted-foreground text-center">
-                            +{course.exams.length - 3} more exams
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
+                  {/* Recent Exams removed; exams are visible on the View Exams page */}
 
                   <div className="pt-4 flex flex-wrap gap-2">
                     <Button
@@ -282,7 +243,7 @@ export default function TeacherCourses() {
                       <Upload className="h-4 w-4" />
                       Upload Materials
                     </Button>
-                    {/* In your TeacherCourses component */}
+                    {/* Grade students only when there are exams */}
                     {course.examsCount > 0 && (
                       <Button
                         variant="outline"
@@ -294,6 +255,17 @@ export default function TeacherCourses() {
                       >
                         <FileText className="h-4 w-4" />
                         Grade Students
+                      </Button>
+                    )}
+                    {course.examsCount > 0 && (
+                      <Button
+                        variant="default"
+                        size="sm"
+                        className="gap-2"
+                        onClick={() => navigate(`/my-exams?courseId=${course.id}`)}
+                      >
+                        <FileText className="h-4 w-4" />
+                        View Exams
                       </Button>
                     )}
                     <Button

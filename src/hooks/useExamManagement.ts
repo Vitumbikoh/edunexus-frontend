@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
 import { useNavigate } from 'react-router-dom';
+import { API_CONFIG } from '@/config/api';
 
 // Import services
 import { classService, Class } from '@/services/classService';
@@ -64,7 +65,19 @@ export const useExamManagement = (): UseExamManagementReturn => {
   const [searchPeriod, setSearchPeriod] = useState('');
   const [selectedClass, setSelectedClass] = useState('All Classes');
   const [selectedTeacher, setSelectedTeacher] = useState('All Teachers');
-  const [selectedTerm, setSelectedTerm] = useState('All Years');
+  const [selectedTerm, setSelectedTerm] = useState('');
+
+  // Helper to display consistent Term labels (Term 1, Term 2, Term 3)
+  const normalizeTermLabel = (name?: string, order?: number) => {
+    const raw = (name || '').trim();
+    const num = raw.match(/\d+/)?.[0];
+    if (num) return `Term ${num}`;
+    if (/period|term/i.test(raw)) {
+      return raw.replace(/period/gi, 'Term').replace(/term/gi, 'Term');
+    }
+    if (typeof order === 'number' && !Number.isNaN(order)) return `Term ${order}`;
+    return raw || 'Term';
+  };
 
   // Fetch teachers separately as it might use a different endpoint
   const fetchTeachers = async (authToken: string): Promise<Teacher[]> => {
@@ -93,7 +106,7 @@ export const useExamManagement = (): UseExamManagementReturn => {
     }
   };
 
-  // Fetch all initial data (classes, academic years, teachers)
+  // Fetch all initial data (classes, terms from active academic calendar, teachers)
   const fetchInitialData = useCallback(async () => {
     if (!token) {
       toast({
@@ -129,29 +142,7 @@ export const useExamManagement = (): UseExamManagementReturn => {
         console.error('Class fetch error details:', errorText);
       }
 
-      // Fetch academic years and get ONLY the active one by default
-      const yearResponse = await fetch('http://localhost:5000/api/v1/setting/terms', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      let activeYear = null;
-      let allYears = [];
-      if (yearResponse.ok) {
-        const yearData = await yearResponse.json();
-        console.log('Raw academic years from API:', yearData);
-        allYears = Array.isArray(yearData) ? yearData : (yearData.terms || []);
-        
-        // Find the active year
-        activeYear = allYears.find(year => year.isActive || year.isCurrent || year.current);
-        if (!activeYear && allYears.length > 0) {
-          activeYear = allYears[0]; // Fallback to first year
-        }
-      }
-
-      // Fetch teachers
+  // Fetch teachers
       const teachersData = await fetchTeachers(token);
 
       // Set the data
@@ -170,15 +161,41 @@ export const useExamManagement = (): UseExamManagementReturn => {
         });
       }
 
-      // Set academic years - show active year by default, but allow selection of others
-      if (activeYear) {
-        setTerms([activeYear, ...allYears.filter(y => y.id !== activeYear.id)]);
-        setSelectedTerm(activeYear.id);
-        console.log('Active academic year set:', activeYear.name);
-      } else {
-        const allYearsOption = { id: 'all', name: 'All Years' };
-        setTerms([allYearsOption, ...allYears]);
-        console.log('No active year found, showing all years');
+      // Populate terms dropdown from real Terms endpoint to ensure IDs match backend filtering
+      try {
+        // Get current active term id (for default selection)
+        let currentTermId: string | undefined;
+        try {
+          const currRes = await fetch(`${API_CONFIG.BASE_URL}/analytics/current-term`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          if (currRes.ok) {
+            const curr = await currRes.json();
+            currentTermId = curr?.id || curr?.termId || curr?.currentTerm?.id;
+          }
+        } catch {}
+
+        // Fetch actual Term instances
+        const realTerms = await termService.getTerms(token);
+        let termOptions: Term[] = realTerms.map((t: any) => ({
+          id: t.id,
+          name: normalizeTermLabel(t.periodName, t.termNumber),
+          isCurrent: Boolean(t.isCurrent || t.current || t.isActive),
+        }));
+        // Sort with current first, then by numeric order in name
+        termOptions.sort((a: any, b: any) => {
+          if (a.isCurrent && !b.isCurrent) return -1;
+          if (!a.isCurrent && b.isCurrent) return 1;
+          const an = Number(a.name.match(/\d+/)?.[0] || 0);
+          const bn = Number(b.name.match(/\d+/)?.[0] || 0);
+          return an - bn;
+        });
+        setTerms(termOptions);
+        const defaultTermId = currentTermId || termOptions.find(t => (t as any).isCurrent)?.id || termOptions[0]?.id;
+        setSelectedTerm(defaultTermId || '');
+      } catch (e) {
+        setTerms([]);
+        setSelectedTerm('');
       }
 
       // Set teachers
@@ -216,7 +233,7 @@ export const useExamManagement = (): UseExamManagementReturn => {
       setIsLoading(true);
       setError(null);
 
-      const filters: ExamFilters = {};
+  const filters: ExamFilters = {};
 
       // Apply filters
       if (searchPeriod.trim()) {
@@ -224,7 +241,14 @@ export const useExamManagement = (): UseExamManagementReturn => {
       }
 
       if (selectedClass !== 'All Classes' && selectedClass !== 'all') {
-        filters.classId = selectedClass;
+        // Derive class name for backend filter (expects 'class' = class name)
+        const cls = classes.find(c => c.id === selectedClass);
+        if (cls?.name) {
+          filters.className = cls.name;
+        } else {
+          // Fallback: still pass classId for potential future support
+          filters.classId = selectedClass;
+        }
       }
 
       if (selectedTeacher !== 'All Teachers') {
@@ -234,7 +258,7 @@ export const useExamManagement = (): UseExamManagementReturn => {
         }
       }
 
-      if (selectedTerm !== 'All Years' && selectedTerm !== 'all' && selectedTerm) {
+      if (selectedTerm && selectedTerm !== 'all') {
         filters.termId = selectedTerm;
       }
 
@@ -278,7 +302,7 @@ export const useExamManagement = (): UseExamManagementReturn => {
     setSearchPeriod('');
     setSelectedClass('All Classes');
     setSelectedTeacher('All Teachers');
-    // Reset to the first academic year (which should be active) instead of "All Years"
+  // Reset to the first term (which should be current)
     if (terms.length > 0) {
       setSelectedTerm(terms[0].id);
     }

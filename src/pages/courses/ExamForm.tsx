@@ -266,8 +266,8 @@ export default function ExamForm() {
                   <SelectValue placeholder="Select exam type" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="midperiod">Mid-period Exam</SelectItem>
-                  <SelectItem value="endperiod">End-period Exam</SelectItem>
+                  <SelectItem value="midperiod">Mid-Term Exam</SelectItem>
+                  <SelectItem value="endperiod">End-Term Exam</SelectItem>
                   <SelectItem value="quiz">Quiz</SelectItem>
                   <SelectItem value="assignment">Assignment</SelectItem>
                   <SelectItem value="practical">Practical Exam</SelectItem>
