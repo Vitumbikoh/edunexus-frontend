@@ -102,7 +102,21 @@ export default function Finance() {
   const [fetchingSummary, setFetchingSummary] = useState(false);
   const [expectedFeesAmount, setExpectedFeesAmount] = useState<number>(0); // fallback / legacy
 
-  // Fetch current academic year (single)
+  // Normalize any backend label like "Period 1" or arbitrary names to a uniform "Term X" display
+  const normalizeTermLabel = (name?: string | null, order?: number | null) => {
+    const raw = (name || '').toString().trim();
+    const num = raw.match(/\d+/)?.[0];
+    if (num) return `Term ${num}`;
+    if (/period|term/i.test(raw)) {
+      return raw.replace(/period/gi, 'Term').replace(/term/gi, 'Term');
+    }
+    if (typeof order === 'number' && !Number.isNaN(order)) {
+      return `Term ${order}`;
+    }
+    return raw || 'Term';
+  };
+
+  // Fetch current term (single)
   useEffect(() => {
     const fetchTerm = async () => {
       if (!token) return;
@@ -114,9 +128,7 @@ export default function Finance() {
           const data = await res.json();
             const id = data?.id || data?.termId || data?.currentTerm?.id;
             const rawName = data?.name || data?.currentTerm?.name;
-            const hasRange = (data?.startYear || data?.endYear);
-            const rangeName = hasRange ? `${data?.startYear || ''}${hasRange ? '-' : ''}${data?.endYear || ''}` : '';
-            const computedName = (rawName && rawName.trim()) || (rangeName && rangeName !== '-' ? rangeName : '') || 'Current Academic Year';
+            const computedName = normalizeTermLabel(rawName, data?.order || data?.termNumber || data?.currentTerm?.order);
             if (id) {
               setTermId(id);
               if (!uniformTermId) setUniformTermId(id);
@@ -133,7 +145,7 @@ export default function Finance() {
     fetchTerm();
   }, [token]);
 
-  // Fetch all academic years
+  // Fetch all terms
   useEffect(() => {
     const fetchAllYears = async () => {
       if (!token) return;
@@ -145,11 +157,8 @@ export default function Finance() {
           const data = await res.json();
           const list = Array.isArray(data) ? data : (data.terms || []);
           const mapped = list.map((y: any) => {
-            const rawName = y.name && y.name.trim();
-            const hasRange = (y.startYear || y.endYear);
-            const rangeName = hasRange ? `${y.startYear || ''}${hasRange ? '-' : ''}${y.endYear || ''}` : '';
-            let name = rawName || (rangeName && rangeName !== '-' ? rangeName : '') || 'Academic Year';
-            if (name === '-') name = 'Academic Year';
+            const rawName = (y.name?.trim?.() || y.periodName?.trim?.() || '') as string;
+            let name = normalizeTermLabel(rawName, y.order ?? y.termNumber);
             return {
               id: y.id || y.termId || y.uuid,
               name,
@@ -427,7 +436,7 @@ export default function Finance() {
         </div>
         <div className="flex flex-col sm:flex-row gap-2 sm:items-center sm:mt-0">
           <div className="flex items-center gap-2">
-            <Label htmlFor="term" className="text-xs">Academic Year</Label>
+            <Label htmlFor="term" className="text-xs">Term</Label>
             <select
               id="term"
               className="border rounded-md h-9 px-2 bg-background text-sm"
@@ -460,7 +469,7 @@ export default function Finance() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="uniformYear">Academic Year</Label>
+                      <Label htmlFor="uniformYear">Term</Label>
                       <select
                         id="uniformYear"
                         className="w-full border rounded-md h-9 px-2 bg-background"
@@ -471,7 +480,7 @@ export default function Finance() {
                       </select>
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      Sets a uniform expected fee for all enrolled students in the selected academic year.
+                      Sets a uniform expected fee for all enrolled students in the selected term.
                     </p>
                   </div>
                   <DialogFooter>
