@@ -53,6 +53,7 @@ import TeacherExams from "./pages/teacher/TeacherExams";
 import TeacherAllExams from "./pages/teacher/TeacherAllExams";
 import CourseTermScheme from "./pages/teacher/CourseTermScheme";
 import AggregatedResults from "./pages/teacher/AggregatedResults";
+import AggregatedResultsAdmin from "./pages/admin/AggregatedResultsAdmin";
 import CourseEnrollments from "./pages/courses/CourseEnrollments";
 import StudentDetails from "./pages/student/StudentDetails";
 import FinanceOfficers from "./pages/finance/FinanceOfficers";
@@ -834,6 +835,17 @@ const AppRoutes = () => {
               <AggregatedResults />
             </Layout>
           </TeacherRoute>
+        }
+      />
+
+      <Route
+        path="/admin/aggregated-results"
+        element={
+          <AdminRoute>
+            <Layout>
+              <AggregatedResultsAdmin />
+            </Layout>
+          </AdminRoute>
         }
       />
 
