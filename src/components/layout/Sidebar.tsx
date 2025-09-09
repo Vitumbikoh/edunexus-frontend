@@ -186,6 +186,16 @@ const teacherNavItems: NavItem[] = [
         href: "/teacher/exams",
         roles: ["teacher"],
       },
+      {
+        label: "Weighting Scheme",
+        href: "/teacher/course-scheme",
+        roles: ["teacher"],
+      },
+      {
+        label: "Aggregated Results",
+        href: "/teacher/aggregated-results",
+        roles: ["teacher"],
+      },
       
       { label: "Submit Grades", href: "/submit-grades", roles: ["teacher"] },
     ],

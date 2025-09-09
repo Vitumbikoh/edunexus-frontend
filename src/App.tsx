@@ -51,6 +51,8 @@ import ParentFinance from "./pages/parent/ParentFinance";
 import TeacherCourses from "./pages/teacher/TeacherCourses";
 import TeacherExams from "./pages/teacher/TeacherExams";
 import TeacherAllExams from "./pages/teacher/TeacherAllExams";
+import CourseTermScheme from "./pages/teacher/CourseTermScheme";
+import AggregatedResults from "./pages/teacher/AggregatedResults";
 import CourseEnrollments from "./pages/courses/CourseEnrollments";
 import StudentDetails from "./pages/student/StudentDetails";
 import FinanceOfficers from "./pages/finance/FinanceOfficers";
@@ -810,6 +812,26 @@ const AppRoutes = () => {
           <TeacherRoute>
             <Layout>
               <TeacherAllExams />
+            </Layout>
+          </TeacherRoute>
+        }
+      />
+      <Route
+        path="/teacher/course-scheme"
+        element={
+          <TeacherRoute>
+            <Layout>
+              <CourseTermScheme />
+            </Layout>
+          </TeacherRoute>
+        }
+      />
+      <Route
+        path="/teacher/aggregated-results"
+        element={
+          <TeacherRoute>
+            <Layout>
+              <AggregatedResults />
             </Layout>
           </TeacherRoute>
         }
