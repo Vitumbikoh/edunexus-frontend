@@ -250,7 +250,16 @@ export default function TeacherCourses() {
                         size="sm"
                         className="gap-2"
                         onClick={() =>
-                          navigate(`/submit-grades?courseId=${course.id}`)
+                          navigate(`/submit-grades?courseId=${course.id}` , {
+                            state: {
+                              prefill: {
+                                courseId: course.id,
+                                classId: course.class?.id,
+                                courseName: course.name,
+                                className: course.class?.name,
+                              }
+                            }
+                          })
                         }
                       >
                         <FileText className="h-4 w-4" />

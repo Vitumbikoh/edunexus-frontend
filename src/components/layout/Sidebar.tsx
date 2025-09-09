@@ -182,10 +182,11 @@ const teacherNavItems: NavItem[] = [
         roles: ["admin", "teacher"],
       },
       {
-        label: "Create Exams",
-        href: "/my-courses",
-        roles: ["admin", "teacher"],
+        label: "View Exams",
+        href: "/teacher/exams",
+        roles: ["teacher"],
       },
+      
       { label: "Submit Grades", href: "/submit-grades", roles: ["teacher"] },
     ],
   },

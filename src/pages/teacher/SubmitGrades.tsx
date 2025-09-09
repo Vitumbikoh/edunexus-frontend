@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Save, BookOpen, Upload } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import * as XLSX from 'xlsx';
 import { API_CONFIG } from '@/config/api';
 
@@ -41,6 +41,10 @@ interface ExamInfo {
 export default function SubmitGrades() {
   const { user, token } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const routeState = location.state as any;
+  const params = new URLSearchParams(location.search);
+  const courseIdFromQuery = params.get('courseId');
   const [classes, setClasses] = useState<ClassInfo[]>([]);
   const [courses, setCourses] = useState<CourseInfo[]>([]);
   const [selectedClass, setSelectedClass] = useState<string>("");
@@ -267,6 +271,32 @@ export default function SubmitGrades() {
       fetchClasses();
     }
   }, [user, token]);
+
+  // Prefill class & course if provided via navigation state or query param
+  useEffect(() => {
+    const prefill = routeState?.prefill;
+    if (prefill?.courseId) {
+      // Set class first (triggers course fetch) then course
+      if (prefill.classId) setSelectedClass(prefill.classId);
+      // Delay setting course until classes fetched if class provided
+      if (!prefill.classId) {
+        setSelectedCourse(prefill.courseId);
+      } else {
+        // Poll for courses list to contain the course
+        const interval = setInterval(() => {
+          const found = courses.find(c => c.id === prefill.courseId);
+          if (found) {
+            setSelectedCourse(prefill.courseId);
+            clearInterval(interval);
+          }
+        }, 200);
+        setTimeout(() => clearInterval(interval), 4000);
+      }
+    } else if (courseIdFromQuery) {
+      setSelectedCourse(courseIdFromQuery);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [routeState, courseIdFromQuery, courses]);
 
   useEffect(() => {
     if (selectedClass) {
