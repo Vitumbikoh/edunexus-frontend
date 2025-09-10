@@ -7,8 +7,195 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ChevronRight, TrendingUp, AlertTriangle, CheckCircle, Clock, Users2, UserCog, GraduationCap, Star } from "lucide-react";
+import { ChevronRight, TrendingUp, AlertTriangle, CheckCircle, Clock, Users2, UserCog, GraduationCap, Star, RefreshCcw, Loader2, Filter } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { API_CONFIG } from "@/config/api";
+import { useAuth } from "@/contexts/AuthContext";
+
+// In‑memory simple cache to avoid repeated loads within session
+const teacherPerfCache: Record<string, any> = {};
+
+// New Teacher Performance Card with filtering & pagination
+const TeacherPerformanceCard: React.FC = () => {
+  const navigate = useNavigate();
+  const { token } = useAuth();
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState<string | null>(null);
+  const [data, setData] = React.useState<any | null>(null);
+  const [expanded, setExpanded] = React.useState(false);
+  const [termId, setTermId] = React.useState<string | undefined>();
+  const [passThreshold, setPassThreshold] = React.useState<number>(50);
+  const [page, setPage] = React.useState(1);
+  const pageSize = 5;
+  const [allTeachers, setAllTeachers] = React.useState<any[]>([]);
+  const cacheKey = `${termId||'current'}:${passThreshold}`;
+
+  const paginated = React.useMemo(()=> {
+    const start = (page-1)*pageSize;
+    return allTeachers.slice(0, expanded ? allTeachers.length : start + pageSize);
+  }, [allTeachers, page, pageSize, expanded]);
+
+  const fetchData = React.useCallback(async () => {
+    if (!token) return;
+    setLoading(true); setError(null);
+    try {
+      if (teacherPerfCache[cacheKey]) {
+        setData(teacherPerfCache[cacheKey]);
+        setAllTeachers(teacherPerfCache[cacheKey].teachers || []);
+        setLoading(false);
+        return;
+      }
+      const params = new URLSearchParams();
+      if (termId) params.append('termId', termId);
+      params.append('passThreshold', passThreshold.toString());
+      // get more than first page for local pagination
+      params.append('limit', '100');
+      const res = await fetch(`${API_CONFIG.BASE_URL}/analytics/teacher-performance?${params.toString()}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!res.ok) throw new Error('Failed to load');
+      const json = await res.json();
+      teacherPerfCache[cacheKey] = json; // cache
+      setData(json);
+      setAllTeachers(json.teachers || []);
+      setPage(1);
+    } catch (e:any) {
+      setError(e.message);
+    } finally { setLoading(false); }
+  }, [token, termId, passThreshold, cacheKey]);
+
+  React.useEffect(()=> { fetchData(); }, [fetchData]);
+
+  const teachers = allTeachers;
+  const top = data?.topPerformer;
+
+  return (
+    <Card className="bg-gradient-to-br from-white via-orange-50/30 to-orange-100/50 dark:from-gray-900 dark:via-orange-900/10 dark:to-orange-900/20 border-orange-200/50 shadow-lg h-96 flex flex-col">
+      <CardHeader className="pb-2 flex-shrink-0">
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="text-xl font-semibold text-gray-900 dark:text-gray-100">Teacher Performance</CardTitle>
+            <CardDescription className="text-gray-600 dark:text-gray-400 flex items-center space-x-2">
+              <span>Student outcome metrics</span>
+            </CardDescription>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Button size="icon" variant="ghost" onClick={fetchData} className="h-8 w-8" title="Refresh">
+              <RefreshCcw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+            </Button>
+            <div className="flex items-center space-x-1">
+              <input
+                type="number"
+                min={0}
+                max={100}
+                value={passThreshold}
+                onChange={(e)=> setPassThreshold(Number(e.target.value)||0)}
+                onBlur={()=> fetchData()}
+                className="w-16 h-8 text-xs border rounded px-1 bg-white dark:bg-gray-900"
+                title="Pass % threshold"
+              />
+              <Button size="icon" variant="ghost" onClick={()=> fetchData()} className="h-8 w-8" title="Apply Filters">
+                <Filter className="h-4 w-4" />
+              </Button>
+            </div>
+            <div className="p-2 bg-orange-100 dark:bg-orange-900/30 rounded-full">
+              <UserCog className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+            </div>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="pt-0 pb-4 flex-1 flex flex-col overflow-hidden">
+        {loading && (
+          <div className="flex-1 flex items-center justify-center"><Loader2 className="h-5 w-5 animate-spin text-orange-500" /></div>
+        )}
+        {error && !loading && (
+          <div className="flex-1 flex flex-col items-center justify-center text-sm text-muted-foreground space-y-2">
+            <AlertTriangle className="h-5 w-5" />
+            <span>{error}</span>
+            <Button size="sm" variant="outline" onClick={fetchData}>Retry</Button>
+          </div>
+        )}
+        {!loading && !error && (
+          <div className="flex flex-col h-full">
+            {top ? (
+              <div className="flex justify-between items-center p-2 mb-3 rounded-lg bg-background/50 border border-orange-100 dark:border-orange-900/30">
+                <div className="flex items-center space-x-2">
+                  <div className="h-6 w-6 bg-gradient-to-br from-orange-400 to-orange-600 rounded-full flex items-center justify-center">
+                    <Star className="h-3 w-3 text-white" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Top Performer</p>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">{top.firstName} {top.lastName}</p>
+                  </div>
+                </div>
+                <Badge variant="default" className="bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300 text-xs">
+                  {top.avgGrade}%
+                </Badge>
+              </div>
+            ) : (
+              <div className="text-xs text-muted-foreground mb-2">No performance data yet</div>
+            )}
+            <div className="text-xs text-muted-foreground mb-2 flex justify-between items-center">
+              <span>Showing {paginated.length} / {teachers.length} teachers</span>
+              <div className="flex items-center space-x-2">
+                <select
+                  value={termId || ''}
+                  onChange={(e)=> setTermId(e.target.value || undefined)}
+                  onBlur={()=> fetchData()}
+                  className="h-7 text-xs border rounded px-1 bg-white dark:bg-gray-900"
+                >
+                  <option value="">Current Term</option>
+                  {/* Additional term options can be dynamically loaded later */}
+                </select>
+                {data?.metadata?.termId && <span className="truncate">Term scope</span>}
+              </div>
+            </div>
+            <div className="flex-1 overflow-auto pr-1 space-y-2">
+              {paginated.map((t:any) => (
+                <div key={t.teacherId} className="p-2 border rounded-md bg-white/60 dark:bg-gray-900/40 border-orange-100 dark:border-orange-900/30">
+                  <div className="flex justify-between text-sm">
+                    <span className="font-medium text-gray-800 dark:text-gray-200">{t.firstName} {t.lastName}</span>
+                    <span className="text-xs text-orange-700 dark:text-orange-300">Avg {t.avgGrade}%</span>
+                  </div>
+                  <div className="mt-1 grid grid-cols-3 gap-2 text-[10px] text-gray-600 dark:text-gray-400">
+                    <div><span className="font-semibold text-gray-700 dark:text-gray-300">Pass</span> {t.passRate}%</div>
+                    <div><span className="font-semibold text-gray-700 dark:text-gray-300">Students</span> {t.studentCount}</div>
+                    <div><span className="font-semibold text-gray-700 dark:text-gray-300">Grades</span> {t.gradeCount}</div>
+                  </div>
+                  <div className="w-full h-1 bg-gray-200 dark:bg-gray-700 rounded mt-2">
+                    <div className="h-1 rounded bg-gradient-to-r from-orange-400 to-orange-600" style={{ width: `${Math.min(t.avgGrade,100)}%` }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="mt-2 flex justify-between items-center">
+              {teachers.length > pageSize && (
+                <div className="flex items-center space-x-2 text-xs">
+                  <Button variant="ghost" size="sm" disabled={page===1} onClick={()=> setPage(p=> Math.max(1,p-1))}>Prev</Button>
+                  <span>Page {page} / {Math.max(1, Math.ceil(teachers.length / pageSize))}</span>
+                  <Button variant="ghost" size="sm" disabled={page>=Math.ceil(teachers.length / pageSize)} onClick={()=> setPage(p=> p+1)}>Next</Button>
+                </div>
+              )}
+              {teachers.length > pageSize && (
+                <Button variant="ghost" size="sm" className="h-7" onClick={()=> setExpanded(e=> !e)}>
+                  {expanded ? 'Collapse All' : 'Expand All'}
+                </Button>
+              )}
+            </div>
+            <Button 
+              variant="outline" 
+              className="w-full mt-2 border-orange-200 hover:bg-orange-50 dark:border-orange-800 dark:hover:bg-orange-900/20"
+              onClick={() => navigate('/admin/staff-management')}
+            >
+              Manage Staff
+              <ChevronRight className="ml-2 h-4 w-4" />
+            </Button>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
 import {
   AttendanceOverview,
   ClassPerformanceChart,
@@ -19,8 +206,6 @@ import {
   generateAssignmentStatusData,
   generateStudentPerformanceData,
 } from "./DashboardCharts";
-import { API_CONFIG } from "@/config/api";
-import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -528,75 +713,8 @@ export const AdminDashboardCards = () => {
           </CardContent>
         </Card>
 
-        {/* Staff Performance & Management Card */}
-        <Card className="bg-gradient-to-br from-white via-orange-50/30 to-orange-100/50 dark:from-gray-900 dark:via-orange-900/10 dark:to-orange-900/20 border-orange-200/50 shadow-lg h-96 flex flex-col">
-          <CardHeader className="pb-2 flex-shrink-0">
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="text-xl font-semibold text-gray-900 dark:text-gray-100">Staff Overview</CardTitle>
-                <CardDescription className="text-gray-600 dark:text-gray-400">
-                  Performance metrics and staff management
-                </CardDescription>
-              </div>
-              <div className="p-2 bg-orange-100 dark:bg-orange-900/30 rounded-full">
-                <UserCog className="h-5 w-5 text-orange-600 dark:text-orange-400" />
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="pt-0 pb-4 flex-1 flex flex-col justify-between">
-            <div className="flex-1 space-y-4">
-              <div className="grid grid-cols-3 gap-3 text-center">
-                <div className="space-y-1">
-                  <div className="text-xl font-bold text-gray-900 dark:text-gray-100">24</div>
-                  <div className="text-xs text-gray-600 dark:text-gray-400">Teachers</div>
-                </div>
-                <div className="space-y-1">
-                  <div className="text-xl font-bold text-gray-900 dark:text-gray-100">8</div>
-                  <div className="text-xs text-gray-600 dark:text-gray-400">Admin</div>
-                </div>
-                <div className="space-y-1">
-                  <div className="text-xl font-bold text-gray-900 dark:text-gray-100">3</div>
-                  <div className="text-xs text-gray-600 dark:text-gray-400">Support</div>
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                <div className="flex justify-between items-center p-2 rounded-lg bg-background/50 border border-orange-100 dark:border-orange-900/30">
-                  <div className="flex items-center space-x-2">
-                    <div className="h-6 w-6 bg-gradient-to-br from-orange-400 to-orange-600 rounded-full flex items-center justify-center">
-                      <Star className="h-3 w-3 text-white" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Top Performer</p>
-                      <p className="text-xs text-gray-600 dark:text-gray-400">Dr. Sarah Johnson</p>
-                    </div>
-                  </div>
-                  <Badge variant="default" className="bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300 text-xs">
-                    98.5%
-                  </Badge>
-                </div>
-
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600 dark:text-gray-400">Attendance Rate</span>
-                  <span className="text-sm font-bold text-gray-900 dark:text-gray-100">96.2%</span>
-                </div>
-
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600 dark:text-gray-400">Active Staff</span>
-                  <span className="text-sm font-bold text-green-600 dark:text-green-400">28/35</span>
-                </div>
-              </div>
-            </div>
-            <Button 
-              variant="outline" 
-              className="w-full border-orange-200 hover:bg-orange-50 dark:border-orange-800 dark:hover:bg-orange-900/20"
-              onClick={() => navigate("/admin/staff-management")}
-            >
-              Manage Staff
-              <ChevronRight className="ml-2 h-4 w-4" />
-            </Button>
-          </CardContent>
-        </Card>
+  {/* Teacher Performance Card (dynamic) */}
+  <TeacherPerformanceCard />
       </div>
     </div>
   );

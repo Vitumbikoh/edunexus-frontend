@@ -34,20 +34,7 @@ interface Student {
   updatedAt?: string;
 }
 
-interface PaymentType {
-  id: string;
-  name: string;
-}
-
-const paymentTypes: PaymentType[] = [
-  { id: "tuition", name: "Tuition Fee" },
-  { id: "exam", name: "Examination Fee" },
-  { id: "transport", name: "Transport Fee" },
-  { id: "library", name: "Library Fee" },
-  { id: "hostel", name: "Hostel Fee" },
-  { id: "uniform", name: "Uniform Fee" },
-  { id: "other", name: "Other Fee" },
-];
+interface FeeTypeOption { value: string; label: string }
 
 export default function PaymentForm() {
   const navigate = useNavigate();
@@ -58,12 +45,14 @@ export default function PaymentForm() {
   const [isLoadingStudents, setIsLoadingStudents] = useState(true);
   const [students, setStudents] = useState<Student[]>([]);
   const [selectedStudent, setSelectedStudent] = useState("");
-  const [selectedPaymentType, setSelectedPaymentType] = useState("tuition");
+  const [selectedPaymentType, setSelectedPaymentType] = useState("Tuition");
   const [paymentMethod, setPaymentMethod] = useState("cash");
   const [amount, setAmount] = useState("");
   const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split('T')[0]);
   const [receiptNumber, setReceiptNumber] = useState("");
   const [notes, setNotes] = useState("");
+  const [feeTypes, setFeeTypes] = useState<FeeTypeOption[]>([{ value: 'Tuition', label: 'Tuition' }]);
+  const [studentSearch, setStudentSearch] = useState("");
 
   // Check permissions
   const canRecordPayment = user?.role === "admin" || user?.role === "finance";
@@ -107,7 +96,7 @@ export default function PaymentForm() {
 
         const result = await response.json();
         console.log('Students API Response:', result); // Debug log
-        const studentList = Array.isArray(result.students)
+  const studentList = Array.isArray(result.students)
           ? result.students.map((s: any) => ({
               id: s.id || 'unknown',
               firstName: s.firstName || 'Unknown',
@@ -149,6 +138,27 @@ export default function PaymentForm() {
 
     fetchStudents();
   }, [token, navigate, toast]);
+
+  // Fetch dynamic fee types
+  useEffect(() => {
+    const fetchFeeTypes = async () => {
+      if (!token) return;
+      try {
+        const res = await fetch(`${API_CONFIG.BASE_URL}/finance/fee-types`, { headers: { Authorization: `Bearer ${token}` }});
+        if (res.ok) {
+          const data = await res.json();
+          const list: string[] = Array.isArray(data) ? data : (data.feeTypes || []);
+          if (list.length) {
+            setFeeTypes(list.map(ft => ({ value: ft, label: ft })));
+            if (!list.includes(selectedPaymentType)) {
+              setSelectedPaymentType(list[0]);
+            }
+          }
+        }
+      } catch {/* ignore */}
+    };
+    fetchFeeTypes();
+  }, [token]);
 
   // Token refresh logic (if supported by backend)
   const refreshToken = async (): Promise<string | null> => {
@@ -300,27 +310,35 @@ export default function PaymentForm() {
           <CardContent className="space-y-6">
             <div className="space-y-2">
               <Label htmlFor="student">Student</Label>
-              <Select 
-                value={selectedStudent} 
-                onValueChange={setSelectedStudent}
-                required
-                disabled={isLoadingStudents}
-              >
-                <SelectTrigger id="student">
-                  <SelectValue placeholder={isLoadingStudents ? "Loading students..." : "Select student"} />
-                </SelectTrigger>
-                <SelectContent>
-                  {students.length > 0 ? (
-                    students.map(student => (
-                      <SelectItem key={student.id} value={student.id}>
-                        {`${student.firstName} ${student.lastName}`} ({student.class.numericalName})
-                      </SelectItem>
-                    ))
-                  ) : (
-                    <SelectItem value="none" disabled>No students found</SelectItem>
+              <div className="space-y-2">
+                <Input
+                  placeholder="Search student..."
+                  value={studentSearch}
+                  onChange={e => setStudentSearch(e.target.value)}
+                  disabled={isLoadingStudents}
+                />
+                <div className="max-h-48 overflow-y-auto border rounded-md p-2 bg-background">
+                  {isLoadingStudents ? (
+                    <div className="text-sm text-muted-foreground">Loading...</div>
+                  ) : students.filter(s => (
+                      `${s.firstName} ${s.lastName}`.toLowerCase().includes(studentSearch.toLowerCase()) ||
+                      (s.studentId || '').toLowerCase().includes(studentSearch.toLowerCase())
+                    )).map(s => (
+                      <button
+                        type="button"
+                        key={s.id}
+                        onClick={() => setSelectedStudent(s.id)}
+                        className={`w-full text-left text-sm px-2 py-1 rounded-md hover:bg-muted ${selectedStudent === s.id ? 'bg-muted' : ''}`}
+                      >
+                        {s.firstName} {s.lastName} {s.studentId ? `(${s.studentId})` : ''}
+                      </button>
+                    ))}
+                  {students.length === 0 && !isLoadingStudents && (
+                    <div className="text-xs text-muted-foreground">No students found</div>
                   )}
-                </SelectContent>
-              </Select>
+                </div>
+                <input type="hidden" required value={selectedStudent} onChange={()=>{}} />
+              </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -335,8 +353,8 @@ export default function PaymentForm() {
                     <SelectValue placeholder="Select payment type" />
                   </SelectTrigger>
                   <SelectContent>
-                    {paymentTypes.map(type => (
-                      <SelectItem key={type.id} value={type.id}>{type.name}</SelectItem>
+                    {feeTypes.map(type => (
+                      <SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>

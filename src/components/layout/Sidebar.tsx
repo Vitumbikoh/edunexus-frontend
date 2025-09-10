@@ -119,6 +119,11 @@ const adminNavItems: NavItem[] = [
         roles: ["admin", "parent"],
       },
       {
+        label: "Financial Reports",
+        href: "/finance/reports",
+        roles: ["admin"],
+      },
+      {
         label: "View Financial Officers",
         href: "/finance/officers/view",
         roles: ["admin"],

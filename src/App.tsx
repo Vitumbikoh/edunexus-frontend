@@ -62,6 +62,7 @@ import FinanceOfficerDetails from "./pages/finance/FinanceOfficerDetails";
 import Transactions from "./pages/finance/Transactions";
 import Invoices from "./pages/finance/Invoices";
 import FinanceReports from "./pages/finance/FinanceReports";
+import FeeManagement from "./pages/finance/FeeManagement";
 import Courses from "./pages/courses/Courses";
 import EnrollStudents from "./pages/courses/EnrollStudents";
 import ClassManagement from "./pages/Classes";
@@ -539,6 +540,19 @@ const AppRoutes = () => {
             <Layout>
               <Finance />
             </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/finance/fees"
+        element={
+          <ProtectedRoute>
+            <FinanceRoute>
+              <Layout>
+                <FeeManagement />
+              </Layout>
+            </FinanceRoute>
           </ProtectedRoute>
         }
       />

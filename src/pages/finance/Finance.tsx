@@ -17,6 +17,8 @@ import {
   DollarSign,
   CreditCard,
   Receipt,
+  Printer,
+  Settings as SettingsIcon
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
@@ -38,6 +40,7 @@ import { API_CONFIG } from '@/config/api';
 interface Transaction {
   id: string;
   studentName: string;
+  studentId?: string;
   amount: number;
   paymentDate: string;
   paymentType: string;
@@ -55,6 +58,7 @@ interface FeeStatusItem {
   status: string; // paid | pending | overdue | partial | unpaid
   isOverdue?: boolean;
   overdueAmount?: number;
+  humanId?: string;
 }
 
 interface FeeSummaryResponse {
@@ -101,6 +105,7 @@ export default function Finance() {
   const [summaryData, setSummaryData] = useState<FeeSummaryResponse | null>(null);
   const [fetchingSummary, setFetchingSummary] = useState(false);
   const [expectedFeesAmount, setExpectedFeesAmount] = useState<number>(0); // fallback / legacy
+  const [statusSearch, setStatusSearch] = useState("");
 
   // Normalize any backend label like "Period 1" or arbitrary names to a uniform "Term X" display
   const normalizeTermLabel = (name?: string | null, order?: number | null) => {
@@ -226,7 +231,7 @@ export default function Finance() {
         if (!res.ok) throw new Error('Failed to fetch fee statuses');
         const data = await res.json();
         const list = Array.isArray(data) ? data : (data.statuses || data.items || data.students || []);
-        const mapped: FeeStatusItem[] = list.map((s: any) => {
+    const mapped: FeeStatusItem[] = list.map((s: any) => {
           const expected = Number(
             s.totalExpected ??
             s.expectedFees ??
@@ -259,6 +264,7 @@ export default function Finance() {
             status: computedStatus,
             isOverdue,
             overdueAmount: isOverdue ? outstanding : 0,
+      humanId: s.humanId || s.studentCode || s.student_id || s.studentID || s.student_id_number || undefined,
           };
         });
         setFeeStatuses(mapped);
@@ -327,6 +333,7 @@ export default function Finance() {
         const mappedTransactions: Transaction[] = (transactionsData.transactions || transactionsData.items || []).map((t: any) => ({
           id: t.id,
           studentName: t.studentName,
+          studentId: t.studentId || t.student_id || t.student_id_number,
           amount: Number(t.amount),
           paymentDate: t.paymentDate,
           paymentType: t.paymentType,
@@ -386,12 +393,16 @@ export default function Finance() {
     ? Math.round((effectivePaid / effectiveExpected) * 100)
     : 0;
 
+  const filteredFeeStatuses = feeStatuses.filter(s => {
+    const q = statusSearch.toLowerCase();
+    return s.studentName.toLowerCase().includes(q) || (s.studentId || '').toLowerCase().includes(q);
+  });
+
   // Transaction filtering
-  const filteredTransactions = transactions.filter(transaction =>
-    transaction.studentName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    transaction.paymentType.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    transaction.receiptNumber?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredTransactions = transactions.filter(transaction => {
+    const q = searchQuery.toLowerCase();
+    return transaction.studentName.toLowerCase().includes(q) || (transaction.studentId || '').toLowerCase().includes(q);
+  });
 
   // Save uniform fee expectation (restored)
   const saveUniformFeeExpectation = async () => {
@@ -410,7 +421,7 @@ export default function Finance() {
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error(err.message || 'Failed to set uniform fee expectation');
+        throw new Error(err.message || 'Failed to set tuition fee expectation');
       }
       await res.json().catch(() => ({}));
       // Trigger re-fetch summary
@@ -450,11 +461,11 @@ export default function Finance() {
             <div className="flex gap-2">
               <Dialog open={showSetUniformDialog} onOpenChange={setShowSetUniformDialog}>
                 <DialogTrigger asChild>
-                  <Button variant="outline" size="sm">Set Uniform Fee</Button>
+                  <Button variant="outline" size="sm">Set Tuition Fee</Button>
                 </DialogTrigger>
                 <DialogContent className="sm:max-w-md">
                   <DialogHeader>
-                    <DialogTitle>Set Uniform Fee Expectation</DialogTitle>
+                    <DialogTitle>Set Tuition Fee Expectation</DialogTitle>
                   </DialogHeader>
                   <div className="space-y-4 py-2">
                     <div className="space-y-2">
@@ -491,6 +502,10 @@ export default function Finance() {
                   </DialogFooter>
                 </DialogContent>
               </Dialog>
+              <Button variant="outline" onClick={() => navigate("/finance/fees")}> 
+                <SettingsIcon className="mr-2 h-4 w-4" />
+                Manage Fees
+              </Button>
               <Button onClick={() => navigate("/finance/record")}> 
                 <PlusCircle className="mr-2 h-4 w-4" />
                 Record Payment
@@ -568,10 +583,10 @@ export default function Finance() {
           </div>
 
           {/* Tabs */}
-            <Tabs defaultValue="transactions">
+            <Tabs defaultValue="statuses">
               <TabsList>
-                <TabsTrigger value="transactions">Transaction History</TabsTrigger>
                 <TabsTrigger value="statuses">Fee Statuses</TabsTrigger>
+                <TabsTrigger value="transactions">Transaction History</TabsTrigger>
               </TabsList>
 
               <TabsContent value="transactions" className="space-y-4">
@@ -584,7 +599,7 @@ export default function Finance() {
                           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                           <Input
                             type="search"
-                            placeholder="Search transactions..."
+                            placeholder="Search student..."
                             className="pl-8 w-[200px] md:w-[300px]"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
@@ -603,12 +618,14 @@ export default function Finance() {
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead>Transaction ID</TableHead>
+                          <TableHead>Txn ID</TableHead>
                           <TableHead>Date</TableHead>
                           <TableHead>{isParent ? "Child" : "Student"}</TableHead>
-                          <TableHead>Description</TableHead>
+                          <TableHead>Student ID</TableHead>
+                          <TableHead>Fee</TableHead>
                           <TableHead className="text-right">Amount</TableHead>
                           <TableHead className="text-right">Method</TableHead>
+                          <TableHead className="text-right">Receipt</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -617,9 +634,37 @@ export default function Finance() {
                             <TableCell className="font-medium">{transaction.id}</TableCell>
                             <TableCell>{transaction.paymentDate}</TableCell>
                             <TableCell>{transaction.studentName}</TableCell>
+                            <TableCell>{transaction.studentId || '-'}</TableCell>
                             <TableCell>{transaction.paymentType}</TableCell>
                             <TableCell className="text-right">${transaction.amount.toFixed(2)}</TableCell>
-                            <TableCell className="text-right">{transaction.paymentMethod}</TableCell>
+                            <TableCell className="text-right capitalize">{transaction.paymentMethod}</TableCell>
+                            <TableCell className="text-right">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={async () => {
+                                      if (!token) return;
+                                      try {
+                                        const res = await fetch(`${API_CONFIG.BASE_URL}/receipts/${transaction.id}`, {
+                                          headers: { Authorization: `Bearer ${token}` }
+                                        });
+                                        if (!res.ok) {
+                                          const text = await res.text();
+                                          console.error('Receipt fetch error', text);
+                                          return;
+                                        }
+                                        const blob = await res.blob();
+                                        const url = URL.createObjectURL(blob);
+                                        window.open(url, '_blank');
+                                        setTimeout(() => URL.revokeObjectURL(url), 60_000);
+                                      } catch (e) {
+                                        console.error('Receipt error', e);
+                                      }
+                                    }}
+                                  >
+                                    <Printer className="h-4 w-4" />
+                                  </Button>
+                            </TableCell>
                           </TableRow>
                         ))}
                       </TableBody>
@@ -635,13 +680,22 @@ export default function Finance() {
                       <CardTitle>Fee Statuses</CardTitle>
                       <CardDescription>Per-student expected vs paid amounts</CardDescription>
                     </div>
+                    <div className="relative w-full md:w-64">
+                      <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        placeholder="Search student..."
+                        className="pl-8"
+                        value={statusSearch}
+                        onChange={e => setStatusSearch(e.target.value)}
+                      />
+                    </div>
                   </CardHeader>
                   <CardContent>
                     {loadingStatuses ? (
                       <div className="py-6 text-sm text-muted-foreground">Loading statuses...</div>
                     ) : statusesError ? (
                       <div className="py-6 text-sm text-red-600">{statusesError}</div>
-                    ) : feeStatuses.length === 0 ? (
+                    ) : filteredFeeStatuses.length === 0 ? (
                       <div className="py-6 text-sm text-muted-foreground">No fee statuses available.</div>
                     ) : (
                       <div className="overflow-x-auto">
@@ -649,6 +703,7 @@ export default function Finance() {
                           <TableHeader>
                             <TableRow>
                               <TableHead>Student</TableHead>
+                              <TableHead>Student ID</TableHead>
                               <TableHead className="text-right">Expected</TableHead>
                               <TableHead className="text-right">Paid</TableHead>
                               <TableHead className="text-right">Outstanding</TableHead>
@@ -656,9 +711,10 @@ export default function Finance() {
                             </TableRow>
                           </TableHeader>
                           <TableBody>
-                            {feeStatuses.map(s => (
+              {filteredFeeStatuses.map(s => (
                               <TableRow key={s.studentId}>
                                 <TableCell className="font-medium">{s.studentName}</TableCell>
+                                <TableCell>{s.humanId || s.studentId || '-'}</TableCell>
                                 <TableCell className="text-right">${s.expectedAmount.toFixed(2)}</TableCell>
                                 <TableCell className="text-right">${s.paidAmount.toFixed(2)}</TableCell>
                                 <TableCell className="text-right">${s.outstandingAmount.toFixed(2)}</TableCell>
