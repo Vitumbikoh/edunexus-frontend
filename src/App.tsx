@@ -77,6 +77,9 @@ import CourseView from "./pages/courses/CourseView";
 import ExamResults from "./pages/courses/ExamResults";
 import Activities from "./pages/activities/Activities";
 import ActivityDetail from "./pages/activities/ActivityDetail";
+import LibraryCatalog from "./pages/library/LibraryCatalog";
+import Borrowings from "./pages/library/Borrowings";
+import LibraryReports from "./pages/library/LibraryReports";
 
 // Admin specific pages
 import SystemMonitoring from "./pages/admin/SystemMonitoring";
@@ -367,6 +370,36 @@ const AppRoutes = () => {
         }
       />
 
+        <Route
+          path="/library/catalog"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <LibraryCatalog />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/library/borrowings"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <Borrowings />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/library/reports"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <LibraryReports />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
       <Route
         path="/courses/add"
         element={
