@@ -22,6 +22,9 @@ interface Notification {
   description: string;
   time: string;
   unread?: boolean;
+  actor?: string;
+  target?: string;
+  verb?: string;
 }
 
 export default function Header() {
@@ -75,39 +78,53 @@ export default function Header() {
   };
 
   const transformActivitiesToNotifications = (activities: any[]): Notification[] => {
-    return activities.map(activity => {
-      const { action, level, newValues, metadata } = activity;
-      let title = getNotificationTitle(action, level);
-      let description = getNotificationDescription(activity, newValues, metadata, level);
-      return {
-        id: activity.id,
-        title,
-        description,
-        time: formatTime(activity.timestamp || activity.date),
-      };
-    });
+    // Only keep the first 3 activities after transformation and sorting by timestamp desc
+    return activities
+      .sort((a,b) => new Date(b.timestamp || b.date).getTime() - new Date(a.timestamp || a.date).getTime())
+      .slice(0,3)
+      .map(activity => {
+        const { action, level, newValues, metadata, performedBy, module, entityType } = activity;
+        const actor = performedBy?.name || performedBy?.username || performedBy?.email?.split('@')[0] || 'System';
+        const verb = deriveVerb(action, level);
+        const target = deriveTarget(activity, entityType, newValues, metadata);
+        const description = `${actor} ${verb.toLowerCase()} ${target.toLowerCase()}`;
+        return {
+          id: activity.id,
+          title: `${verb} ${target}`,
+            description,
+          time: formatTime(activity.timestamp || activity.date),
+          actor,
+          target,
+          verb,
+        };
+      });
   };
 
-  const getNotificationTitle = (action: string, level?: string): string => {
-    if (level === 'error') return 'Error Event';
-    if (action.includes('fee payment')) return 'Fee Payment';
-    switch(action) {
-      case 'CREATE_STUDENT': return 'New Student Registration';
-      case 'ENROLL_STUDENT': return 'Student Enrollment';
-      default: return 'System Activity';
-    }
+  const deriveVerb = (action: string, level?: string): string => {
+    if (level === 'error') return 'Error';
+    const a = action?.toUpperCase() || '';
+    if (a.startsWith('CREATE')) return 'Created';
+    if (a.startsWith('UPDATE')) return 'Updated';
+    if (a.startsWith('DELETE')) return 'Deleted';
+    if (a.includes('ENROLL')) return 'Enrolled';
+    if (a.includes('LOGIN')) return 'Logged In';
+    if (a.includes('LOGOUT')) return 'Logged Out';
+    if (a.includes('PAYMENT') || a.includes('FEE')) return 'Processed Payment';
+    if (a.includes('APPROVE')) return 'Approved';
+    if (a.includes('REJECT')) return 'Rejected';
+    return action.replace(/_/g, ' ');
   };
 
-  const getNotificationDescription = (activity: any, newValues: any, metadata: any, level?: string): string => {
-    if (level === 'error') return metadata?.errorMessage || metadata?.description || 'System error occurred';
-    if (activity.action.includes('fee payment')) {
-      const amount = newValues?.amount || metadata?.dto?.amount;
-      const student = newValues?.studentName || metadata?.dto?.studentId || 'student';
-      return `Payment of ${amount} for ${student}`;
-    }
-    if (activity.studentCreated) return `Student: ${activity.studentCreated.fullName}`;
-    return metadata?.description || `By ${activity.performedBy?.username || activity.performedBy?.email || 'system'}`;
+  const deriveTarget = (activity: any, entityType?: string, newValues?: any, metadata?: any): string => {
+    if (metadata?.entityName) return metadata.entityName;
+    if (metadata?.studentName) return `Student ${metadata.studentName}`;
+    if (newValues?.studentName) return `Student ${newValues.studentName}`;
+    if (entityType) return entityType;
+    if (activity.action?.includes('PAYMENT')) return 'Fee Payment';
+    return 'Record';
   };
+
+  // Old helpers removed in favour of deriveVerb/deriveTarget above
 
   const formatTime = (timestamp: string): string => {
     const now = new Date();
@@ -172,7 +189,7 @@ export default function Header() {
                   <span className="text-sm text-muted-foreground">No recent activities</span>
                 </DropdownMenuItem>
               ) : (
-                notifications.map((note) => (
+                notifications.slice(0,3).map((note) => (
                   <DropdownMenuItem
                     key={note.id}
                     className={`flex flex-col items-start py-3 hover:bg-accent cursor-pointer transition-all relative ${note.unread ? 'bg-accent/40' : ''}`}
@@ -181,14 +198,25 @@ export default function Header() {
                       navigate(`/activities/${note.id}`);
                     }}
                   >
-                    <span className="font-medium text-foreground flex items-center gap-2">
-                      {note.title}
+                    <span className="font-medium text-foreground flex items-center gap-2 w-full">
+                      <span className="truncate">{note.title}</span>
                       {note.unread && <span className="w-2 h-2 bg-blue-500 rounded-full" />}
                     </span>
-                    <span className="text-xs text-muted-foreground line-clamp-2 w-full text-left">{note.description}</span>
+                    <span className="text-xs text-muted-foreground line-clamp-2 w-full text-left">
+                      {note.description}
+                    </span>
                     <span className="text-[10px] text-muted-foreground mt-1">{note.time}</span>
                   </DropdownMenuItem>
                 ))
+              )}
+              {notifications.length > 3 && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={() => navigate('/activities')}
+                    className="text-center justify-center text-xs font-medium"
+                  >View all activities</DropdownMenuItem>
+                </>
               )}
             </DropdownMenuContent>
           </DropdownMenu>

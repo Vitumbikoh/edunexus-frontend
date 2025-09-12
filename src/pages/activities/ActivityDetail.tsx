@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { toFriendlyActivity, buildFieldChanges, RawActivityLog } from '@/lib/activityFormatter';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -22,27 +23,15 @@ import {
 import { useAuth } from '@/contexts/AuthContext';
 import { API_CONFIG } from '@/config/api';
 
-interface ActivityLog {
-  id: string;
-  action: string;
-  module?: string;
-  level?: string;
-  performedBy?: { id?: string; email?: string; role?: string; name?: string; username?: string } | null;
-  entityId?: string | null;
-  entityType?: string | null;
-  newValues?: any;
-  oldValues?: any;
-  metadata?: any;
-  timestamp: string;
-  ipAddress?: string | null;
-  userAgent?: string | null;
-}
+type ActivityLog = RawActivityLog;
 
 const ActivityDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { token } = useAuth();
   const [activity, setActivity] = useState<ActivityLog | null>(null);
+  const [friendly, setFriendly] = useState<any>(null);
+  const [showTechnical, setShowTechnical] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -63,9 +52,11 @@ const ActivityDetail: React.FC = () => {
           const arr: ActivityLog[] = await res.json();
           const found = arr.find(a => a.id === id) || null;
           setActivity(found);
+          if (found) setFriendly(toFriendlyActivity(found));
         } else if (res.ok) {
           const data = await res.json();
           setActivity(data);
+          setFriendly(toFriendlyActivity(data));
         } else {
           throw new Error('Failed to load activity');
         }
@@ -177,6 +168,8 @@ const ActivityDetail: React.FC = () => {
     );
   }
 
+  const fieldChanges = buildFieldChanges(activity.oldValues, activity.newValues);
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -217,11 +210,11 @@ const ActivityDetail: React.FC = () => {
             <div className="space-y-2">
               <CardTitle className="text-2xl font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-3">
                 {getLevelIcon(activity.level || 'info')}
-                {activity.action}
+                {friendly?.verb || activity.action}
               </CardTitle>
               <div className="flex items-center gap-2">
                 <Badge className={getActionColor(activity.action)}>
-                  {activity.action.toLowerCase().replace(/_/g, ' ')}
+                  {friendly?.verb || activity.action}
                 </Badge>
                 {activity.module && (
                   <Badge variant="outline">
@@ -234,7 +227,7 @@ const ActivityDetail: React.FC = () => {
         </CardHeader>
         
         <CardContent className="space-y-6">
-          {/* User Information */}
+          {/* Actor & Primary Summary */}
           {activity.performedBy && (
             <div className="flex items-center space-x-4 p-4 bg-white dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700">
               <Avatar className="h-12 w-12 ring-2 ring-gray-200 dark:ring-gray-700">
@@ -247,7 +240,7 @@ const ActivityDetail: React.FC = () => {
                 <div className="flex items-center gap-2">
                   <User className="h-4 w-4 text-gray-400" />
                   <span className="font-medium text-gray-900 dark:text-gray-100">
-                    {activity.performedBy.name || activity.performedBy.username || activity.performedBy.email || 'System'}
+                    {friendly?.actor || activity.performedBy.name || activity.performedBy.username || activity.performedBy.email || 'System'}
                   </span>
                 </div>
                 {(activity.performedBy.email || activity.performedBy.username) && (
@@ -258,13 +251,16 @@ const ActivityDetail: React.FC = () => {
                     {activity.performedBy.role}
                   </Badge>
                 )}
+                {friendly?.summary && (
+                  <p className="text-xs text-gray-500 dark:text-gray-400 pt-1">{friendly.summary}</p>
+                )}
               </div>
             </div>
           )}
 
           <Separator />
 
-          {/* Activity Details Grid */}
+          {/* Human Friendly Details */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-4">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
@@ -276,6 +272,14 @@ const ActivityDetail: React.FC = () => {
                 <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
                   <span className="font-medium text-gray-700 dark:text-gray-300">Module</span>
                   <span className="text-gray-900 dark:text-gray-100">{activity.module || 'System'}</span>
+                </div>
+                <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
+                  <span className="font-medium text-gray-700 dark:text-gray-300">Action</span>
+                  <span className="text-gray-900 dark:text-gray-100">{friendly?.verb || activity.action}</span>
+                </div>
+                <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
+                  <span className="font-medium text-gray-700 dark:text-gray-300">Performed On</span>
+                  <span className="text-gray-900 dark:text-gray-100">{friendly?.target || activity.entityType || '—'}</span>
                 </div>
                 
                 <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
@@ -302,38 +306,33 @@ const ActivityDetail: React.FC = () => {
 
             <div className="space-y-4">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-                <Shield className="h-5 w-5" />
-                Technical Details
+                <Database className="h-5 w-5" />
+                Changed Fields
               </h3>
-              
-              <div className="space-y-3">
-                {activity.entityType && (
-                  <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
-                    <span className="font-medium text-gray-700 dark:text-gray-300">Entity Type</span>
-                    <div className="flex items-center gap-2">
-                      <Database className="h-4 w-4 text-gray-400" />
-                      <span className="text-gray-900 dark:text-gray-100">{activity.entityType}</span>
-                    </div>
-                  </div>
-                )}
-                
-                {activity.entityId && (
-                  <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
-                    <span className="font-medium text-gray-700 dark:text-gray-300">Entity ID</span>
-                    <span className="text-gray-900 dark:text-gray-100 font-mono text-sm">{activity.entityId}</span>
-                  </div>
-                )}
-                
-                <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
-                  <span className="font-medium text-gray-700 dark:text-gray-300">IP Address</span>
-                  <div className="flex items-center gap-2">
-                    <Globe className="h-4 w-4 text-gray-400" />
-                    <span className="text-gray-900 dark:text-gray-100 font-mono text-sm">
-                      {activity.ipAddress || 'N/A'}
-                    </span>
-                  </div>
+              {fieldChanges.length === 0 ? (
+                <div className="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700 text-sm text-gray-500 dark:text-gray-400 italic">No data changes captured</div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                    <thead className="bg-gray-100 dark:bg-gray-800/70 text-gray-700 dark:text-gray-300">
+                      <tr>
+                        <th className="text-left px-3 py-2 font-medium">Field</th>
+                        <th className="text-left px-3 py-2 font-medium">Previous</th>
+                        <th className="text-left px-3 py-2 font-medium">New</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {fieldChanges.map(fc => (
+                        <tr key={fc.field} className="border-t border-gray-200 dark:border-gray-700">
+                          <td className="px-3 py-2 font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">{fc.field}</td>
+                          <td className="px-3 py-2 text-gray-500 dark:text-gray-400 max-w-xs truncate">{fc.oldValue ?? '—'}</td>
+                          <td className="px-3 py-2 text-gray-900 dark:text-gray-100 max-w-xs truncate">{fc.newValue ?? '—'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
-              </div>
+              )}
             </div>
           </div>
 
@@ -365,40 +364,39 @@ const ActivityDetail: React.FC = () => {
             </div>
           )}
 
-          {/* Data Changes */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="space-y-3">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-                <Database className="h-5 w-5" />
-                New Values
-              </h3>
-              {renderJSON(activity.newValues, 'new values')}
-            </div>
-            
-            <div className="space-y-3">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-                <Database className="h-5 w-5" />
-                Previous Values
-              </h3>
-              {renderJSON(activity.oldValues, 'previous values')}
-            </div>
+          {/* Technical details toggle */}
+          <div className="pt-2">
+            <Button variant="outline" size="sm" onClick={() => setShowTechnical(s => !s)}>
+              {showTechnical ? 'Hide Technical Details' : 'Show Technical Details'}
+            </Button>
+            {showTechnical && (
+              <div className="mt-4 space-y-6">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div className="space-y-3">
+                    <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 flex items-center gap-2">
+                      <Shield className="h-4 w-4" /> Raw New Values
+                    </h3>
+                    {renderJSON(activity.newValues, 'new values')}
+                  </div>
+                  <div className="space-y-3">
+                    <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 flex items-center gap-2">
+                      <Shield className="h-4 w-4" /> Raw Old Values
+                    </h3>
+                    {renderJSON(activity.oldValues, 'previous values')}
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs text-gray-500 dark:text-gray-400">
+                  {activity.entityId && <div><span className="font-semibold">Entity ID:</span> {activity.entityId}</div>}
+                  {activity.metadata?.ipAddress && <div><span className="font-semibold">IP:</span> {activity.metadata?.ipAddress}</div>}
+                  {activity.metadata?.userAgent && <div className="col-span-2 md:col-span-3 break-all"><span className="font-semibold">Agent:</span> {activity.metadata?.userAgent}</div>}
+                </div>
+              </div>
+            )}
           </div>
 
-          {/* User Agent */}
-          {activity.userAgent && (
-            <div className="space-y-3">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-                <Monitor className="h-5 w-5" />
-                User Agent
-              </h3>
-              <div className="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700">
-                <p className="text-sm text-gray-700 dark:text-gray-300 font-mono break-all">{activity.userAgent}</p>
-              </div>
-            </div>
-          )}
+          {/* User agent now inside technical toggle */}
 
-          {/* Stack Trace */}
-          {activity.metadata?.stackTrace && (
+          {showTechnical && activity.metadata?.stackTrace && (
             <div className="space-y-3">
               <h3 className="text-lg font-semibold text-red-700 dark:text-red-400 flex items-center gap-2">
                 <AlertTriangle className="h-5 w-5" />

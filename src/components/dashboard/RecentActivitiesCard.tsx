@@ -1,5 +1,6 @@
 // RecentActivitiesCard.tsx
 import React, { useEffect, useState, useCallback } from 'react';
+import { toFriendlyActivity, RawActivityLog } from '@/lib/activityFormatter';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -9,39 +10,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { useNavigate } from 'react-router-dom';
 import { API_CONFIG } from '@/config/api';
 
-type LogEntry = {
-  id: string;
-  action: string;
-  performedBy: {
-    id?: string;
-    email: string;
-    role: string;
-    name?: string;
-    username?: string;
-  };
-  studentCreated?: {
-    id: string;
-    fullName: string;
-  };
-  timestamp: string;
-  ipAddress: string;
-  userAgent: string;
-  metadata?: {
-    errorMessage?: string;
-    description?: string;
-    dto?: {
-      amount?: number | string;
-      studentId?: string;
-    };
-  };
-  newValues?: {
-    amount?: number | string;
-    studentName?: string;
-  };
-  entityId?: string;
-  module?: string;
-  level?: string;
-};
+type LogEntry = RawActivityLog; // reuse shared type
 
 type Activity = {
   id: string;
@@ -78,20 +47,32 @@ export default function RecentActivitiesCard() {
       });
       if (!response.ok) throw new Error(`Failed to fetch activities`);
       const data: LogEntry[] = await response.json();
-      const transformedActivities = data.map(log => ({
-        id: log.id,
-        type: log.module || 'System',
-        action: log.action,
-        description: buildDescription(log),
-        entityId: log.entityId || undefined,
-        date: log.timestamp,
-        user: {
-          id: log.performedBy?.id,
-          name: (log.performedBy?.name || log.performedBy?.username || log.performedBy?.email?.split('@')[0] || 'System'),
-          email: log.performedBy?.email || 'system',
-          role: log.performedBy?.role || 'SYSTEM',
-        }
-      }));
+      
+      // DEBUG: Log the raw data to see what we're actually getting
+      console.log('Raw activity data:', data.slice(0, 3));
+      
+      const transformedActivities = data
+        .sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+        .slice(0, 8) // keep only first 8 for performance
+        .map(raw => {
+          const friendly = toFriendlyActivity(raw);
+          console.log('Raw log:', raw);
+          console.log('Friendly result:', friendly);
+          return {
+            id: friendly.id,
+            type: friendly.module,
+            action: friendly.verb,
+            description: friendly.summary,
+            entityId: raw.entityId || undefined,
+            date: friendly.time,
+            user: {
+              id: raw.performedBy?.id,
+              name: friendly.actor,
+              email: raw.performedBy?.email || 'system',
+              role: raw.performedBy?.role || 'SYSTEM'
+            }
+          };
+        });
       setActivities(transformedActivities);
       setUnreadIds(prev => {
         const next = new Set(prev);
@@ -110,21 +91,7 @@ export default function RecentActivitiesCard() {
     }
   }, [token, toast]);
 
-  const buildDescription = (log: LogEntry): string => {
-    // Attempt richer finance-related messages
-    if (log.action.includes('fee payment') && log.newValues) {
-      const amount = log.newValues.amount || log.metadata?.dto?.amount;
-      const student = log.newValues.studentName || log.metadata?.dto?.studentId || 'student';
-      return `processed fee payment of ${amount} for ${student}`;
-    }
-    if (log.level === 'error') {
-      return log.metadata?.errorMessage || log.metadata?.description || 'system error occurred';
-    }
-    if (log.studentCreated?.fullName) {
-      return `${log.action.toLowerCase().replace(/_/g,' ')}: ${log.studentCreated.fullName}`;
-    }
-    return log.metadata?.description || log.action.toLowerCase().replace(/_/g,' ');
-  };
+  // buildDescription moved to shared util (toFriendlyActivity); kept minimal here.
 
   useEffect(() => {
   fetchActivities();
@@ -208,7 +175,7 @@ export default function RecentActivitiesCard() {
                     <p className="text-sm font-medium leading-snug text-gray-900 dark:text-gray-100">
                       <span className="font-semibold">{activity.user.name}</span>{' '}
                       <span className={`ml-1 font-medium ${getActionColor(activity.action)}`}>
-                        {activity.action.toLowerCase().replace(/_/g,' ')}
+                        {activity.action}
                       </span>
                     </p>
                     {unreadIds.has(activity.id) && (
