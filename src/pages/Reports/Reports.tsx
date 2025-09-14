@@ -22,6 +22,23 @@ interface ReportDataAPI {
   enrollmentsByMonth: Array<{ month: string; count: number }>;
   paymentsByMonth: Array<{ month: string; amount: number }>;
   coursePopularity: Array<{ courseName: string; enrollments: number }>;
+  schoolInfo?: {
+    school?: {
+      id: string;
+      name: string;
+      code: string;
+      status: string;
+    };
+    settings?: {
+      id: string;
+      schoolId: string;
+      schoolName?: string;
+      schoolEmail?: string;
+      schoolPhone?: string;
+      schoolAddress?: string;
+      schoolAbout?: string;
+    };
+  };
 }
 
 interface AcademicCalendar {
@@ -253,19 +270,19 @@ export default function Reports() {
       } else {
         switch (category) {
           case 'students':
-            reportService.generateStudentsPDF?.(data.students as any);
+            reportService.generateStudentsPDF?.(data.students as any, reportData?.schoolInfo);
             break;
           case 'teachers':
-            reportService.generateTeachersPDF?.(data.teachers as any);
+            reportService.generateTeachersPDF?.(data.teachers as any, reportData?.schoolInfo);
             break;
           case 'courses':
-            reportService.generateCoursesPDF?.(data.courses as any);
+            reportService.generateCoursesPDF?.(data.courses as any, reportData?.schoolInfo);
             break;
           case 'enrollments':
-            reportService.generateEnrollmentsPDF?.(data.enrollments as any);
+            reportService.generateEnrollmentsPDF?.(data.enrollments as any, reportData?.schoolInfo);
             break;
           case 'financial':
-            reportService.generateFeePaymentsPDF?.(data.feePayments as any);
+            reportService.generateFeePaymentsPDF?.(data.feePayments as any, reportData?.schoolInfo);
             break;
           case 'attendance':
             toast({ title: 'Attendance PDF', description: 'Attendance PDF reporting will be implemented soon', variant: 'default' });
@@ -280,6 +297,7 @@ export default function Reports() {
               courses: data.courses,
               enrollments: data.enrollments,
               feePayments: data.feePayments,
+              schoolInfo: reportData?.schoolInfo, // Pass school info from comprehensive report
             });
         }
       }
