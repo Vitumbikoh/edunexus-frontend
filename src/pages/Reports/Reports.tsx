@@ -87,6 +87,12 @@ export default function Reports() {
     paymentStudentId: "",
     paymentTermId: "",
     paymentClassId: "",
+    // Attendance
+    attendanceClassId: "",
+    attendanceStudentId: "",
+    attendanceTermId: "",
+    attendanceDateFrom: "",
+    attendanceDateTo: "",
   });
 
   // Options state
@@ -217,7 +223,7 @@ export default function Reports() {
     }
   }, [token, toast, filters]);
 
-  const getRelevantFilters = (category: 'students' | 'teachers' | 'courses' | 'enrollments' | 'feePayments' | 'comprehensive') => {
+  const getRelevantFilters = (category: 'students' | 'teachers' | 'courses' | 'enrollments' | 'feePayments' | 'attendance' | 'comprehensive') => {
     switch (category) {
       case 'students':
         return {
@@ -248,6 +254,14 @@ export default function Reports() {
           paymentTermId: filters.paymentTermId,
           paymentClassId: filters.paymentClassId,
         };
+      case 'attendance':
+        return {
+          attendanceClassId: filters.attendanceClassId,
+          attendanceStudentId: filters.attendanceStudentId,
+          attendanceTermId: filters.attendanceTermId,
+          attendanceDateFrom: filters.attendanceDateFrom,
+          attendanceDateTo: filters.attendanceDateTo,
+        };
       case 'comprehensive':
         return filters; // Use all filters for comprehensive report
       default:
@@ -255,12 +269,12 @@ export default function Reports() {
     }
   };
 
-  const getActiveFiltersCount = (category: 'students' | 'teachers' | 'courses' | 'enrollments' | 'feePayments' | 'comprehensive') => {
+  const getActiveFiltersCount = (category: 'students' | 'teachers' | 'courses' | 'enrollments' | 'feePayments' | 'attendance' | 'comprehensive') => {
     const relevantFilters = getRelevantFilters(category);
     return Object.values(relevantFilters).filter(value => value && value !== '').length;
   };
 
-  const fetchDetailedDataWithFilters = async (category: 'students' | 'teachers' | 'courses' | 'enrollments' | 'feePayments' | 'comprehensive') => {
+  const fetchDetailedDataWithFilters = async (category: 'students' | 'teachers' | 'courses' | 'enrollments' | 'feePayments' | 'attendance' | 'comprehensive') => {
     const relevantFilters = getRelevantFilters(category);
     const query = buildQuery(relevantFilters);
     
@@ -282,7 +296,7 @@ export default function Reports() {
     return fresh || detailedReportData;
   };
 
-  const handleGenerateReport = async (format: 'excel' | 'pdf', category: 'students' | 'teachers' | 'courses' | 'enrollments' | 'feePayments' | 'comprehensive') => {
+  const handleGenerateReport = async (format: 'excel' | 'pdf', category: 'students' | 'teachers' | 'courses' | 'enrollments' | 'feePayments' | 'attendance' | 'comprehensive') => {
     try {
       setIsGenerating(true);
       
@@ -310,6 +324,11 @@ export default function Reports() {
           case 'feePayments':
             reportService.generateFeePaymentsExcel(data.feePayments!);
             break;
+          case 'attendance':
+            // For now, use a generic Excel export for attendance data
+            // You can implement a specific attendance Excel export later
+            toast({ title: 'Attendance Report', description: 'Attendance reporting will be implemented soon', variant: 'default' });
+            return;
           case 'comprehensive':
             if (!data.students || !data.teachers || !data.courses || !data.enrollments || !data.feePayments) {
               throw new Error('Comprehensive report data is incomplete');
@@ -341,6 +360,9 @@ export default function Reports() {
           case 'feePayments':
             reportService.generateFeePaymentsPDF?.(data.feePayments as any);
             break;
+          case 'attendance':
+            toast({ title: 'Attendance PDF', description: 'Attendance PDF reporting will be implemented soon', variant: 'default' });
+            return;
           case 'comprehensive':
             throw new Error('Comprehensive PDF report not supported');
         }
@@ -963,6 +985,113 @@ export default function Reports() {
                 </CardContent>
               </Card>
 
+              {/* Attendance Report Card */}
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center gap-3">
+                    <TrendingUp className="h-5 w-5 text-primary" />
+                    <div>
+                      <CardTitle>Attendance Report</CardTitle>
+                      <p className="text-muted-foreground text-sm">Student attendance tracking</p>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="p-4 space-y-4">
+                  <p className="text-muted-foreground text-sm">
+                    Comprehensive attendance records with daily tracking, absence summaries, and attendance analytics.
+                  </p>
+                  
+                  {/* Attendance Filters */}
+                  <div className="space-y-3 bg-muted/50 p-4 rounded-lg">
+                    <h4 className="font-medium text-foreground flex items-center gap-2">
+                      <FileText className="h-4 w-4" />
+                      Filter Options
+                    </h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <Label className="text-foreground">Class</Label>
+                        <Select value={filters.attendanceClassId} onValueChange={(v) => setFilters(prev => ({ ...prev, attendanceClassId: v }))}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="All classes" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="">All classes</SelectItem>
+                            {classes.map(c => (
+                              <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-foreground">Student</Label>
+                        <Select value={filters.attendanceStudentId} onValueChange={(v) => setFilters(prev => ({ ...prev, attendanceStudentId: v }))}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="All students" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="">All students</SelectItem>
+                            {students.map(s => (
+                              <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-foreground">Term</Label>
+                        <Select value={filters.attendanceTermId} onValueChange={(v) => setFilters(prev => ({ ...prev, attendanceTermId: v }))}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="All terms" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="">All terms</SelectItem>
+                            {terms.map(t => (
+                              <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-foreground">Date Range</Label>
+                        <div className="flex gap-2">
+                          <input
+                            type="date"
+                            value={filters.attendanceDateFrom}
+                            onChange={(e) => setFilters(prev => ({ ...prev, attendanceDateFrom: e.target.value }))}
+                            className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                          />
+                          <input
+                            type="date"
+                            value={filters.attendanceDateTo}
+                            onChange={(e) => setFilters(prev => ({ ...prev, attendanceDateTo: e.target.value }))}
+                            className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2 pt-2">
+                    <Button
+                      onClick={() => handleGenerateReport("excel", "attendance")}
+                      disabled={isGenerating}
+                      className="flex-1"
+                    >
+                      <FileSpreadsheet className="h-4 w-4 mr-2" />
+                      {isGenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : "Excel"}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => handleGenerateReport("pdf", "attendance")}
+                      disabled={isGenerating}
+                      className="flex-1"
+                    >
+                      <FileDown className="h-4 w-4 mr-2" />
+                      PDF
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
               {/* Comprehensive Report Card - Full Width */}
               <Card className="lg:col-span-2">
                 <CardHeader>
@@ -1074,42 +1203,62 @@ export default function Reports() {
                     <CardHeader className="pb-4">
                       <CardTitle className="flex items-center gap-2 text-foreground">
                         <Users className="h-5 w-5 text-primary" />
-                        Students by Grade
+                        Students by Class
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <ResponsiveContainer width="100%" height={300}>
-                        <PieChart>
-                          <Pie
-                            data={reportData.studentsByGrade}
-                            cx="50%"
-                            cy="50%"
-                            labelLine={false}
-                            label={({ grade, percent }) =>
-                              `${grade} (${(percent * 100).toFixed(0)}%)`
-                            }
-                            outerRadius={80}
-                            fill="hsl(var(--primary))"
-                            dataKey="count"
-                          >
-                            {reportData.studentsByGrade.map((entry, index) => (
-                              <Cell
-                                key={`cell-${index}`}
-                                fill={COLORS[index % COLORS.length]}
-                              />
-                            ))}
-                          </Pie>
-                          <Tooltip 
-                            contentStyle={{ 
-                              backgroundColor: 'hsl(var(--background))', 
-                              border: '1px solid hsl(var(--border))', 
-                              borderRadius: '8px',
-                              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-                              color: 'hsl(var(--foreground))'
-                            }} 
-                          />
-                        </PieChart>
-                      </ResponsiveContainer>
+                      {reportData.studentsByGrade && reportData.studentsByGrade.length > 0 ? (
+                        <ResponsiveContainer width="100%" height={300}>
+                          <PieChart>
+                            <Pie
+                              data={reportData.studentsByGrade.map(item => ({
+                                ...item,
+                                displayName: item.grade || 'Unassigned',
+                                grade: item.grade || 'Unassigned'
+                              }))}
+                              cx="50%"
+                              cy="50%"
+                              labelLine={false}
+                              label={({ displayName, percent }) =>
+                                `${displayName} (${(percent * 100).toFixed(0)}%)`
+                              }
+                              outerRadius={80}
+                              fill="hsl(var(--primary))"
+                              dataKey="count"
+                            >
+                              {reportData.studentsByGrade.map((entry, index) => (
+                                <Cell
+                                  key={`cell-${index}`}
+                                  fill={COLORS[index % COLORS.length]}
+                                />
+                              ))}
+                            </Pie>
+                            <Tooltip 
+                              contentStyle={{ 
+                                backgroundColor: 'hsl(var(--background))', 
+                                border: '1px solid hsl(var(--border))', 
+                                borderRadius: '8px',
+                                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                                color: 'hsl(var(--foreground))'
+                              }} 
+                              formatter={(value, name) => [value, name === 'count' ? 'Students' : name]}
+                            />
+                          </PieChart>
+                        </ResponsiveContainer>
+                      ) : (
+                        <div className="flex items-center justify-center h-[300px] text-muted-foreground">
+                          <div className="text-center">
+                            <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                            <p>Loading student distribution...</p>
+                            <p className="text-sm">Chart will appear once data is loaded</p>
+                            {process.env.NODE_ENV === 'development' && (
+                              <p className="text-xs mt-2 text-muted-foreground">
+                                Debug: {reportData.studentsByGrade ? `Found ${reportData.studentsByGrade.length} items` : 'No studentsByGrade data'}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 </div>
