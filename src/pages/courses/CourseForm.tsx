@@ -35,12 +35,6 @@ interface Class {
   numericalName: number;
 }
 
-interface Schedule {
-  days: string[];
-  time: string;
-  location: string;
-}
-
 export default function CourseForm() {
   const { id } = useParams();
   const isEditMode = Boolean(id);
@@ -64,9 +58,6 @@ export default function CourseForm() {
     endDate: "",
     teacherId: "",
     classId: "",
-    scheduleDays: [] as string[],
-    scheduleTime: "",
-    scheduleLocation: "",
   });
 
   // Check permissions
@@ -101,12 +92,6 @@ export default function CourseForm() {
         const data = await response.json();
         const course = data;
 
-        // Handle schedule - ensure it's always an object
-        const schedule = course.schedule || {};
-        const scheduleDays = Array.isArray(schedule.days) ? schedule.days : [];
-        const scheduleTime = schedule.time || "";
-        const scheduleLocation = schedule.location || "";
-
         setFormData({
           code: course.code || "",
           name: course.name || "",
@@ -116,9 +101,6 @@ export default function CourseForm() {
           endDate: course.endDate ? course.endDate.split("T")[0] : "",
           teacherId: course.teacherId || "",
           classId: course.classId || "",
-          scheduleDays,
-          scheduleTime,
-          scheduleLocation,
         });
       } catch (error) {
         setApiError(
@@ -216,13 +198,6 @@ export default function CourseForm() {
     }));
   };
 
-  const handleMultiSelectChange = (values: string[]) => {
-    setFormData((prev) => ({
-      ...prev,
-      scheduleDays: values,
-    }));
-  };
-
   const handleAssignTeacher = async (courseId: string, teacherId: string) => {
     try {
       const response = await fetch(
@@ -260,18 +235,6 @@ export default function CourseForm() {
         throw new Error("Authentication token not found. Please log in again.");
       }
 
-      // Prepare schedule object if any schedule fields are filled
-      const schedule: Schedule | undefined =
-        formData.scheduleDays.length > 0 ||
-        formData.scheduleTime ||
-        formData.scheduleLocation
-          ? {
-              days: formData.scheduleDays,
-              time: formData.scheduleTime,
-              location: formData.scheduleLocation,
-            }
-          : undefined;
-
       if (isEditMode && id) {
         // Update existing course
         const updateResponse = await fetch(
@@ -294,7 +257,6 @@ export default function CourseForm() {
                 ? new Date(formData.endDate).toISOString()
                 : undefined,
               classId: formData.classId,
-              schedule: schedule ? JSON.stringify(schedule) : undefined,
             }),
           }
         );
@@ -342,7 +304,6 @@ export default function CourseForm() {
                 ? new Date(formData.endDate).toISOString()
                 : undefined,
               classId: formData.classId,
-              schedule: schedule ? JSON.stringify(schedule) : undefined,
             }),
           }
         );
@@ -570,48 +531,6 @@ export default function CourseForm() {
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label>Schedule (Optional)</Label>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <Label htmlFor="scheduleDays">Days</Label>
-                  <Select
-                    value={formData.scheduleDays[0] || ""}
-                    onValueChange={(value) => handleMultiSelectChange([value])}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select days" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Monday">Monday</SelectItem>
-                      <SelectItem value="Tuesday">Tuesday</SelectItem>
-                      <SelectItem value="Wednesday">Wednesday</SelectItem>
-                      <SelectItem value="Thursday">Thursday</SelectItem>
-                      <SelectItem value="Friday">Friday</SelectItem>
-                      <SelectItem value="Saturday">Saturday</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="scheduleTime">Time</Label>
-                  <Input
-                    id="scheduleTime"
-                    type="time"
-                    value={formData.scheduleTime}
-                    onChange={handleChange}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="scheduleLocation">Location</Label>
-                  <Input
-                    id="scheduleLocation"
-                    value={formData.scheduleLocation}
-                    onChange={handleChange}
-                    placeholder="Room number"
-                  />
-                </div>
-              </div>
-            </div>
           </CardContent>
           <CardFooter className="flex justify-end">
             <Button type="submit" disabled={isSubmitting}>
