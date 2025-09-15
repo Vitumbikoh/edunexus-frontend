@@ -71,6 +71,7 @@ export default function Students() {
   const [apiError, setApiError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadErrors, setUploadErrors] = useState<Array<{ line: number; error: string }>>([]);
 
   // Permission checks
   const canAddStudent = user?.role === "admin" || user?.role === "teacher";
@@ -195,46 +196,36 @@ export default function Students() {
                   onChange={handleSearchChange}
                 />
               </div>
-              <input id="bulk-upload" type="file" accept=".xlsx,.xls" className="hidden" onChange={async (e) => {
+              <input id="bulk-upload" type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={async (e) => {
                 const file = e.target.files?.[0];
                 if (!file) return;
                 setIsUploading(true);
+                setUploadErrors([]);
                 try {
-                  const data = await file.arrayBuffer();
-                  const workbook = XLSX.read(data);
-                  const sheetName = workbook.SheetNames[0];
-                  const sheet = workbook.Sheets[sheetName];
-                  const rows: any[] = XLSX.utils.sheet_to_json(sheet);
-
-                  let success = 0; let failed = 0;
-                  for (const row of rows) {
-                    const payload: any = {
-                      username: row.username,
-                      email: row.email,
-                      password: row.password,
-                      firstName: row.firstName,
-                      lastName: row.lastName,
-                      phoneNumber: row.phoneNumber || undefined,
-                      address: row.address || undefined,
-                      dateOfBirth: row.dateOfBirth || undefined,
-                      gender: row.gender || undefined,
-                    };
-                    const res = await fetch(`${API_CONFIG.BASE_URL}/student/students`, {
-                      method: 'POST',
-                      headers: {
-                        'Content-Type': 'application/json',
-                        Authorization: `Bearer ${token}`,
-                      },
-                      body: JSON.stringify(payload),
-                    });
-                    if (res.ok) success++; else failed++;
+                  if (!token) throw new Error('Not authenticated');
+                  const formData = new FormData();
+                  formData.append('file', file);
+                  const res = await fetch(`${API_CONFIG.BASE_URL}/student/students/bulk-upload`, {
+                    method: 'POST',
+                    headers: {
+                      Authorization: `Bearer ${token}`,
+                    },
+                    body: formData,
+                  });
+                  if (!res.ok) {
+                    const text = await res.text();
+                    throw new Error(text || 'Bulk upload failed');
                   }
-
-                  toast({ title: 'Upload complete', description: `${success} added, ${failed} failed` });
+                  const result = await res.json();
+                  const created = result?.summary?.created ?? 0;
+                  const failed = result?.summary?.failed ?? 0;
+                  const errs = (result?.errors || []) as Array<{ line: number; error: string }>;
+                  setUploadErrors(errs);
+                  toast({ title: 'Upload complete', description: `${created} added, ${failed} failed` });
                   // refresh list
                   fetchStudents(currentPage, itemsPerPage, searchPeriod);
-                } catch (err) {
-                  toast({ title: 'Upload failed', description: 'Could not process the file', variant: 'destructive' });
+                } catch (err: any) {
+                  toast({ title: 'Upload failed', description: err?.message || 'Could not process the file', variant: 'destructive' });
                 } finally {
                   setIsUploading(false);
                   (e.target as HTMLInputElement).value = '';
@@ -243,16 +234,51 @@ export default function Students() {
               <Button variant="outline" onClick={() => document.getElementById('bulk-upload')?.click()} disabled={isUploading}>
                 <Upload className="h-4 w-4 mr-2" /> {isUploading ? 'Uploading...' : 'Bulk Upload'}
               </Button>
+              <Button
+                variant="secondary"
+                disabled={isUploading}
+                onClick={async () => {
+                  try {
+                    const url = `${API_CONFIG.BASE_URL}/student/students/template`;
+                    const resp = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+                    if (!resp.ok) throw new Error('Failed to download template');
+                    const blob = await resp.blob();
+                    const blobUrl = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = blobUrl;
+                    a.download = 'student-bulk-template.xlsx';
+                    a.click();
+                    URL.revokeObjectURL(blobUrl);
+                  } catch (e: any) {
+                    toast({ title: 'Download failed', description: e?.message || 'Could not download template', variant: 'destructive' });
+                  }
+                }}
+              >
+                Download Template
+              </Button>
             </div>
           </div>
         </CardHeader>
         <CardContent>
+          <div className="mb-4 text-sm text-muted-foreground">
+            Use the Excel template for bulk upload. The column "class" is required and must match the class name in the system (e.g., Form one, Form two, Form Three). Rows without a class will fail with "class not provided".
+          </div>
           {isLoading ? (
             <div className="flex justify-center items-center h-64">
               <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
             </div>
           ) : (
             <>
+              {uploadErrors.length > 0 && (
+                <div className="mb-4 p-3 rounded border border-yellow-300 bg-yellow-50 text-yellow-900 text-sm max-h-48 overflow-auto">
+                  <div className="font-semibold mb-1">Upload issues ({uploadErrors.length}):</div>
+                  <ul className="list-disc pl-5 space-y-1">
+                    {uploadErrors.map((e, idx) => (
+                      <li key={idx}>Row {e.line}: {e.error}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
               <Table>
                 <TableHeader>
                   <TableRow>
