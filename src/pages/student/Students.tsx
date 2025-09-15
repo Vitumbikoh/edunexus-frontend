@@ -72,6 +72,7 @@ export default function Students() {
   const [isLoading, setIsLoading] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadErrors, setUploadErrors] = useState<Array<{ line: number; error: string }>>([]);
+  const [classes, setClasses] = useState<Class[]>([]);
 
   // Permission checks
   const canAddStudent = user?.role === "admin" || user?.role === "teacher";
@@ -124,11 +125,32 @@ export default function Students() {
     }
   };
 
+  const fetchClasses = async () => {
+    try {
+      if (!token) return;
+      const response = await fetch(`${API_CONFIG.BASE_URL}/classes`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (response.ok) {
+        const classesData = await response.json();
+        setClasses(classesData);
+      }
+    } catch (error) {
+      console.error("Failed to fetch classes:", error);
+    }
+  };
+
   useEffect(() => {
     if (canView) {
       fetchStudents(currentPage, itemsPerPage, searchPeriod);
     }
   }, [currentPage, searchPeriod, formFilter, canView, token]);
+
+  useEffect(() => {
+    fetchClasses();
+  }, [token]);
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchPeriod(e.target.value);
@@ -180,10 +202,11 @@ export default function Students() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="">All Forms</SelectItem>
-                  <SelectItem value="Form 1">Form 1</SelectItem>
-                  <SelectItem value="Form 2">Form 2</SelectItem>
-                  <SelectItem value="Form 3">Form 3</SelectItem>
-                  <SelectItem value="Form 4">Form 4</SelectItem>
+                  {classes.map((cls) => (
+                    <SelectItem key={cls.id} value={cls.name}>
+                      {cls.name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
               <div className="relative">
