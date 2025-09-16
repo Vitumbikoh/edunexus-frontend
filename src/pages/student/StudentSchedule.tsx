@@ -133,6 +133,68 @@ export default function StudentSchedule() {
     }
   };
 
+  // Helper function to format time strings
+  const formatTime = (timeString: any) => {
+    if (!timeString) return '00:00';
+
+    // Handle different time formats and data types
+    if (typeof timeString === 'string') {
+      // Handle different time formats: HH:mm:ss, HH:mm, or full ISO string
+      if (timeString.includes('T') || timeString.includes(' ')) {
+        // It's a full date-time string, extract time part
+        try {
+          const date = new Date(timeString);
+          if (!isNaN(date.getTime())) {
+            return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+          }
+        } catch (e) {
+          // Ignore and continue
+        }
+      }
+      // It's already a time string, just take the first 5 characters
+      return timeString.slice(0, 5);
+    } else if (timeString instanceof Date) {
+      // It's a Date object
+      return timeString.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+
+    return '00:00';
+  };
+
+  // Helper function to format date
+  const formatDate = (dateValue: any) => {
+    if (!dateValue) return 'Ongoing';
+
+    try {
+      let date: Date;
+
+      if (typeof dateValue === 'string') {
+        date = new Date(dateValue);
+      } else if (dateValue instanceof Date) {
+        date = dateValue;
+      } else {
+        return 'Ongoing';
+      }
+
+      if (isNaN(date.getTime())) return 'Ongoing';
+
+      // Check if it's today's date or a future date
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      date.setHours(0, 0, 0, 0);
+
+      if (date.getTime() === today.getTime()) {
+        return 'Today';
+      } else if (date > today) {
+        return date.toLocaleDateString();
+      } else {
+        return 'Ongoing';
+      }
+    } catch (e) {
+      return 'Ongoing';
+    }
+  };
+
   // Organize schedules by day
   const organizeSchedules = (schedulesData) => {
     const daysOrder = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
@@ -151,11 +213,13 @@ export default function StudentSchedule() {
         days[dayIndex].hasClasses = true;
         days[dayIndex].periods.push({
           id: schedule.id,
-          time: `${new Date(schedule.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - ${new Date(schedule.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
-          course: schedule.course?.name || 'Unassigned',
-          teacher: schedule.teacher?.name || 'Staff',
+          time: `${formatTime(schedule.startTime)} - ${formatTime(schedule.endTime)}`,
+          course: schedule.course?.name || schedule.course?.code || 'Unassigned',
+          teacher: schedule.teacher?.firstName && schedule.teacher?.lastName 
+            ? `${schedule.teacher.firstName} ${schedule.teacher.lastName}`.trim() 
+            : schedule.teacher?.name || 'Staff',
           room: schedule.classroom?.name || 'TBD',
-          date: schedule.date ? new Date(schedule.date).toLocaleDateString() : 'Ongoing',
+          date: formatDate(schedule.date),
           isActive: schedule.isActive !== false
         });
       }
