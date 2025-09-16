@@ -109,6 +109,49 @@ export const useDashboardStats = () => {
             },
           ]);
         } else if (role === "teacher") {
+          // Fetch teacher profile to get teacherId
+          const profileResponse = await fetch(`http://localhost:5000/api/v1/profile`, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
+
+          if (!profileResponse.ok) {
+            throw new Error("Failed to fetch teacher profile");
+          }
+
+          const profile = await profileResponse.json();
+          const teacherId = profile.teacherId || user.id;
+
+          // Fetch weekly schedule
+          const scheduleResponse = await fetch(`http://localhost:5000/api/v1/schedules/teacher/${teacherId}/weekly`, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
+
+          let weeklyCount = 0;
+          let todayCount = 0;
+
+          if (scheduleResponse.ok) {
+            const scheduleData = await scheduleResponse.json();
+            const weeklySchedule = scheduleData.days || [];
+
+            // Get current day name
+            const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+            const today = days[new Date().getDay()];
+
+            // Calculate counts
+            weeklySchedule.forEach((day: any) => {
+              if (day.items && Array.isArray(day.items)) {
+                weeklyCount += day.items.length;
+                if (day.day === today) {
+                  todayCount = day.items.length;
+                }
+              }
+            });
+          }
+
           const [studentsCountData, coursesData] = await Promise.all([
             fetchData("/teacher/my-students/count"),
             fetchData("/teacher/my-courses/count"),
@@ -129,13 +172,13 @@ export const useDashboardStats = () => {
             },
             {
               title: "My Classes",
-              value: user?.teacherData?.classes?.length?.toString() || "5",
+              value: weeklyCount.toString(),
               icon: <Calendar size={24} />,
               className: "bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-900/10",
             },
             {
               title: "Today's Classes",
-              value: "3",
+              value: todayCount.toString(),
               icon: <Calendar size={24} />,
               className: "bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-900/10",
             },

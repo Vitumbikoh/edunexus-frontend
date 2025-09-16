@@ -971,6 +971,7 @@ export const TeacherDashboardCards = () => {
   const navigate = useNavigate();
   const [classes, setClasses] = useState([]);
   const [attendance, setAttendance] = useState([]);
+  const [weeklySchedule, setWeeklySchedule] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -997,6 +998,79 @@ export const TeacherDashboardCards = () => {
     }
   };
 
+  // Get current day name
+  const getCurrentDayName = () => {
+    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const today = new Date().getDay();
+    const dayName = days[today];
+    console.log('Current day calculation:', { todayIndex: today, dayName, fullDate: new Date().toISOString() });
+    return dayName;
+  };
+
+  // Normalize day name for comparison
+  const normalizeDayName = (dayName: string) => {
+    if (!dayName) return '';
+    // Handle both full names and abbreviations
+    const dayMap: { [key: string]: string } = {
+      'mon': 'Monday', 'monday': 'Monday',
+      'tue': 'Tuesday', 'tuesday': 'Tuesday',
+      'wed': 'Wednesday', 'wednesday': 'Wednesday',
+      'thu': 'Thursday', 'thursday': 'Thursday',
+      'fri': 'Friday', 'friday': 'Friday',
+      'sat': 'Saturday', 'saturday': 'Saturday',
+      'sun': 'Sunday', 'sunday': 'Sunday'
+    };
+    return dayMap[dayName.toLowerCase()] || dayName;
+  };
+
+  // Calculate weekly and today's class counts
+  const getClassCounts = () => {
+    if (!weeklySchedule.length) {
+      console.log('No weekly schedule data available');
+      return { weekly: 0, today: 0 };
+    }
+
+    const today = getCurrentDayName();
+    console.log('Current day:', today);
+    console.log('Weekly schedule:', weeklySchedule);
+
+    let weeklyCount = 0;
+    let todayCount = 0;
+
+    weeklySchedule.forEach(day => {
+      console.log(`Day: ${day.day}, Items:`, day.items);
+      if (day.items && Array.isArray(day.items)) {
+        weeklyCount += day.items.length;
+        if (normalizeDayName(day.day) === today) {
+          todayCount = day.items.length;
+          console.log(`Found ${todayCount} classes for today (${today})`);
+        }
+      }
+    });
+
+    console.log(`Total weekly: ${weeklyCount}, Today: ${todayCount}`);
+    return { weekly: weeklyCount, today: todayCount };
+  };
+
+  // Get today's classes
+  const getTodaysClasses = () => {
+    if (!weeklySchedule.length) {
+      console.log('No weekly schedule data for today\'s classes');
+      return [];
+    }
+
+    const today = getCurrentDayName();
+    console.log('Getting classes for today:', today);
+
+    const todayData = weeklySchedule.find(day => normalizeDayName(day.day) === today);
+    console.log('Today\'s data:', todayData);
+
+    const classes = todayData?.items || [];
+    console.log('Today\'s classes:', classes);
+
+    return classes;
+  };
+
   useEffect(() => {
     const fetchTeacherData = async () => {
       try {
@@ -1005,6 +1079,31 @@ export const TeacherDashboardCards = () => {
 
         if (!token) {
           throw new Error("Authentication token not found");
+        }
+
+        // Fetch profile to get teacherId
+        const profileResponse = await fetch(`${API_CONFIG.BASE_URL}/profile`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (!profileResponse.ok) {
+          throw new Error('Failed to load profile');
+        }
+
+        const profile = await profileResponse.json();
+        const teacherId = profile.teacherId || user.id;
+
+        // Fetch weekly schedule
+        const scheduleResponse = await fetch(`${API_CONFIG.BASE_URL}/schedules/teacher/${teacherId}/weekly`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (scheduleResponse.ok) {
+          const scheduleData = await scheduleResponse.json();
+          console.log('Weekly schedule data:', scheduleData); // Debug log
+          setWeeklySchedule(scheduleData.days || []);
+        } else {
+          console.error('Failed to fetch weekly schedule:', scheduleResponse.status, scheduleResponse.statusText);
         }
 
         const [classesData, attendanceData] = await Promise.all([
@@ -1060,60 +1159,200 @@ export const TeacherDashboardCards = () => {
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       <Card className="bg-gradient-to-br from-white to-slate-50 dark:from-gray-900 dark:to-gray-900/50">
         <CardHeader>
-          <CardTitle>Class Attendance</CardTitle>
-          <CardDescription>Today's attendance overview</CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>My Classes</CardTitle>
+              <CardDescription>Weekly schedule overview</CardDescription>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setLoading(true);
+                setError(null);
+                // Re-fetch data
+                if (user?.role === "teacher") {
+                  const fetchTeacherData = async () => {
+                    try {
+                      if (!token) {
+                        throw new Error("Authentication token not found");
+                      }
+
+                      // Fetch profile to get teacherId
+                      const profileResponse = await fetch(`${API_CONFIG.BASE_URL}/profile`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                      });
+
+                      if (!profileResponse.ok) {
+                        throw new Error('Failed to load profile');
+                      }
+
+                      const profile = await profileResponse.json();
+                      const teacherId = profile.teacherId || user.id;
+
+                      // Fetch weekly schedule
+                      const scheduleResponse = await fetch(`${API_CONFIG.BASE_URL}/schedules/teacher/${teacherId}/weekly`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                      });
+
+                      if (scheduleResponse.ok) {
+                        const scheduleData = await scheduleResponse.json();
+                        console.log('Refreshed weekly schedule data:', scheduleData);
+                        setWeeklySchedule(scheduleData.days || []);
+                      }
+
+                      const [classesData, attendanceData] = await Promise.all([
+                        fetchData("/teacher/my-upcoming-classes"),
+                        fetchData("/teacher/my-attendance-today"),
+                      ]);
+
+                      setClasses(classesData.classes || []);
+                      setAttendance(attendanceData.attendance || []);
+                    } catch (err) {
+                      const errorMessage =
+                        err instanceof Error
+                          ? err.message
+                          : "Failed to refresh teacher dashboard data";
+                      setError(errorMessage);
+                      toast({
+                        title: "Error",
+                        description: errorMessage,
+                        variant: "destructive",
+                      });
+                    } finally {
+                      setLoading(false);
+                    }
+                  };
+                  fetchTeacherData();
+                }
+              }}
+              disabled={loading}
+            >
+              <RefreshCcw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {attendance.map((record, index) => (
-              <div
-                key={index}
-                className="flex justify-between items-center p-3 rounded-lg bg-background/50"
-              >
-                <div>
-                  <p className="font-medium">
-                    {record.className} - {record.courseName}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    {record.enrolledStudents} students enrolled
-                  </p>
+          <div className="space-y-6">
+            {/* Day breakdown */}
+            <div className="space-y-2">
+              <h4 className="text-sm font-medium text-muted-foreground">This Week:</h4>
+              {weeklySchedule.map((day) => (
+                <div key={day.day} className="flex justify-between items-center text-sm">
+                  <span className={`font-medium ${normalizeDayName(day.day) === getCurrentDayName() ? 'text-blue-600 dark:text-blue-400' : ''}`}>
+                    {day.day}
+                  </span>
+                  <Badge variant={normalizeDayName(day.day) === getCurrentDayName() ? "default" : "outline"}>
+                    {day.items?.length || 0} {day.items?.length === 1 ? 'class' : 'classes'}
+                  </Badge>
                 </div>
-                <Badge
-                  variant={
-                    record.presentStudents >= record.enrolledStudents * 0.9
-                      ? "default"
-                      : "secondary"
-                  }
-                >
-                  {record.presentStudents} present
-                </Badge>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </CardContent>
       </Card>
 
       <Card className="bg-gradient-to-br from-white to-slate-50 dark:from-gray-900 dark:to-gray-900/50">
         <CardHeader>
-          <CardTitle>Upcoming Classes</CardTitle>
-          <CardDescription>Your schedule for today</CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Today's Classes</CardTitle>
+              <CardDescription>
+                {getCurrentDayName()}'s schedule
+              </CardDescription>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                // Same refresh logic as above
+                setLoading(true);
+                setError(null);
+                if (user?.role === "teacher") {
+                  const fetchTeacherData = async () => {
+                    try {
+                      if (!token) {
+                        throw new Error("Authentication token not found");
+                      }
+
+                      const profileResponse = await fetch(`${API_CONFIG.BASE_URL}/profile`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                      });
+
+                      if (!profileResponse.ok) {
+                        throw new Error('Failed to load profile');
+                      }
+
+                      const profile = await profileResponse.json();
+                      const teacherId = profile.teacherId || user.id;
+
+                      const scheduleResponse = await fetch(`${API_CONFIG.BASE_URL}/schedules/teacher/${teacherId}/weekly`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                      });
+
+                      if (scheduleResponse.ok) {
+                        const scheduleData = await scheduleResponse.json();
+                        console.log('Refreshed weekly schedule data:', scheduleData);
+                        setWeeklySchedule(scheduleData.days || []);
+                      }
+
+                      const [classesData, attendanceData] = await Promise.all([
+                        fetchData("/teacher/my-upcoming-classes"),
+                        fetchData("/teacher/my-attendance-today"),
+                      ]);
+
+                      setClasses(classesData.classes || []);
+                      setAttendance(attendanceData.attendance || []);
+                    } catch (err) {
+                      const errorMessage =
+                        err instanceof Error
+                          ? err.message
+                          : "Failed to refresh teacher dashboard data";
+                      setError(errorMessage);
+                      toast({
+                        title: "Error",
+                        description: errorMessage,
+                        variant: "destructive",
+                      });
+                    } finally {
+                      setLoading(false);
+                    }
+                  };
+                  fetchTeacherData();
+                }
+              }}
+              disabled={loading}
+            >
+              <RefreshCcw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {classes.map((cls) => (
-              <div
-                key={cls.id}
-                className="flex justify-between items-center p-3 rounded-lg bg-background/50"
-              >
-                <div>
-                  <p className="font-medium">{cls.courseName}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {cls.className} • {cls.room}
-                  </p>
+            {getTodaysClasses().length > 0 ? (
+              getTodaysClasses().map((cls) => (
+                <div
+                  key={cls.id}
+                  className="flex justify-between items-center p-3 rounded-lg bg-background/50"
+                >
+                  <div>
+                    <p className="font-medium">{cls.course?.name || 'Course'}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {cls.class?.name || 'Class'} • {cls.classroom?.name || 'Room TBA'}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-sm font-medium">{cls.startTime} - {cls.endTime}</span>
+                  </div>
                 </div>
-                <span className="text-sm font-medium">{cls.startTime}</span>
+              ))
+            ) : (
+              <div className="text-center py-8">
+                <div className="text-muted-foreground">
+                  <p className="text-sm">No classes scheduled for {getCurrentDayName()}</p>
+                </div>
               </div>
-            ))}
+            )}
           </div>
         </CardContent>
         <div className="px-6 pb-6">
