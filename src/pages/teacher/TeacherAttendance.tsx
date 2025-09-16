@@ -5,7 +5,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Check, Calendar, Clock, MapPin } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Check, Calendar, Clock, MapPin, Search } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useNavigate } from 'react-router-dom';
 import { API_CONFIG } from '@/config/api';
@@ -40,6 +41,7 @@ export default function TeacherAttendance() {
   const [attendanceStatus, setAttendanceStatus] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState<string>("");
 
   if (!user || user.role !== 'teacher') {
     return (
@@ -243,6 +245,7 @@ export default function TeacherAttendance() {
   const handleScheduleSelect = (scheduleId: string) => {
     setSelectedSchedule(scheduleId);
     setAttendanceStatus({});
+    setSearchTerm(""); // Clear search when selecting new schedule
   };
 
   const handleAttendanceChange = (studentId: string, isPresent: boolean) => {
@@ -254,7 +257,7 @@ export default function TeacherAttendance() {
 
   const handleSelectAllPresent = () => {
     const newStatus: Record<string, boolean> = {};
-    students.forEach((student) => {
+    filteredStudents.forEach((student) => {
       newStatus[student.id] = true;
     });
     setAttendanceStatus(newStatus);
@@ -262,11 +265,17 @@ export default function TeacherAttendance() {
 
   const handleSelectAllAbsent = () => {
     const newStatus: Record<string, boolean> = {};
-    students.forEach((student) => {
+    filteredStudents.forEach((student) => {
       newStatus[student.id] = false;
     });
     setAttendanceStatus(newStatus);
   };
+
+  // Filter students based on search term
+  const filteredStudents = students.filter((student) =>
+    student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    student.grade.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   const handleSubmitAttendance = async () => {
     if (!selectedSchedule) {
@@ -437,24 +446,42 @@ export default function TeacherAttendance() {
 
           {selectedSchedule && students.length > 0 ? (
             <div className="space-y-4">
-              <div className="flex justify-end gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleSelectAllPresent}
-                  className="gap-2"
-                >
-                  <Check className="h-4 w-4" />
-                  Mark All Present
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleSelectAllAbsent}
-                  className="gap-2"
-                >
-                  Mark All Absent
-                </Button>
+              <div className="flex justify-between items-center gap-4">
+                <div className="flex items-center gap-4">
+                  <div className="relative flex-1 max-w-sm">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                    <Input
+                      placeholder="Search students..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                  {students.length > 0 && (
+                    <div className="text-sm text-muted-foreground">
+                      {filteredStudents.length} of {students.length} students
+                    </div>
+                  )}
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleSelectAllPresent}
+                    className="gap-2"
+                  >
+                    <Check className="h-4 w-4" />
+                    Mark All Present
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleSelectAllAbsent}
+                    className="gap-2"
+                  >
+                    Mark All Absent
+                  </Button>
+                </div>
               </div>
               <Table>
                 <TableHeader>
@@ -466,7 +493,7 @@ export default function TeacherAttendance() {
                   </TableRow>
                 </TableHeader>
               <TableBody>
-                {students.map((student) => (
+                {filteredStudents.map((student) => (
                   <TableRow key={student.id}>
                     <TableCell className="font-medium">{student.name}</TableCell>
                     <TableCell>{student.grade}</TableCell>
@@ -492,6 +519,11 @@ export default function TeacherAttendance() {
                 ))}
               </TableBody>
               </Table>
+              {filteredStudents.length === 0 && students.length > 0 && (
+                <div className="text-center py-8 text-muted-foreground">
+                  No students found matching "{searchTerm}".
+                </div>
+              )}
             </div>
           ) : selectedSchedule ? (
             <div className="text-center py-8 text-muted-foreground">
@@ -506,7 +538,7 @@ export default function TeacherAttendance() {
         <CardFooter className="flex justify-end">
           <Button
             onClick={handleSubmitAttendance}
-            disabled={!selectedSchedule || students.length === 0}
+            disabled={!selectedSchedule || filteredStudents.length === 0}
             className="gap-2"
           >
             <Check className="h-4 w-4" />
