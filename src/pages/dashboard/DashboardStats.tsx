@@ -185,33 +185,71 @@ export const useDashboardStats = () => {
           ]);
         } else {
           // Handle other roles (student, finance, parent)
+          let studentStats: any[] = [];
+          if (role === 'student') {
+            try {
+              // My Courses count
+              const coursesRes = await fetch(`http://localhost:5000/api/v1/student/${user?.id}/courses`, { headers: { Authorization: `Bearer ${token}` } });
+              let coursesCount = 0;
+              if (coursesRes.ok) {
+                const c = await coursesRes.json();
+                if (c?.courses) {
+                  const all = [ ...(c.courses.active||[]), ...(c.courses.completed||[]), ...(c.courses.upcoming||[]) ];
+                  coursesCount = all.length;
+                } else if (Array.isArray(c)) {
+                  coursesCount = c.length;
+                }
+              }
+
+              // Today's Classes via weekly schedule
+              const schedRes = await fetch(`http://localhost:5000/api/v1/schedules/student/${user?.id}/weekly`, { headers: { Authorization: `Bearer ${token}` } });
+              let todaysClasses = 0;
+              if (schedRes.ok) {
+                const sd = await schedRes.json();
+                const days = sd?.days || [];
+                const dayNames = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+                const todayName = dayNames[new Date().getDay()];
+                const today = days.find((d: any) => d.day === todayName);
+                if (today?.items && Array.isArray(today.items)) todaysClasses = today.items.length;
+              }
+
+              // Assignments count (if endpoint exists); fallback to 0
+              let assignmentsCount = 0;
+              try {
+                const asgRes = await fetch(`http://localhost:5000/api/v1/student/${user?.id}/assignments/count`, { headers: { Authorization: `Bearer ${token}` } });
+                if (asgRes.ok) {
+                  const a = await asgRes.json();
+                  assignmentsCount = a?.count ?? 0;
+                }
+              } catch {}
+
+              // Class Rank (requires backend support); fallback to '-'
+              let classRank: string = '-';
+              try {
+                const rankRes = await fetch(`http://localhost:5000/api/v1/grades/student/${user?.id}/rank`, { headers: { Authorization: `Bearer ${token}` } });
+                if (rankRes.ok) {
+                  const r = await rankRes.json();
+                  if (r && (r.rank || r.position)) classRank = String(r.rank || r.position);
+                }
+              } catch {}
+
+              studentStats = [
+                { title: 'My Courses', value: String(coursesCount), icon: <BookOpen size={24} />, className: "bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-900/10" },
+                { title: 'Assignments', value: String(assignmentsCount), icon: <FileText size={24} />, className: "bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-900/10" },
+                { title: 'Class Rank', value: classRank, icon: <Award size={24} />, className: "bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-900/10" },
+                { title: "Today's Classes", value: String(todaysClasses), icon: <Calendar size={24} />, className: "bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-900/10" },
+              ];
+            } catch (e) {
+              studentStats = [
+                { title: 'My Courses', value: user?.studentData?.courses?.length?.toString() || '0', icon: <BookOpen size={24} />, className: "bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-900/10" },
+                { title: 'Assignments', value: user?.studentData?.assignments?.length?.toString() || '0', icon: <FileText size={24} />, className: "bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-900/10" },
+                { title: 'Class Rank', value: '-', icon: <Award size={24} />, className: "bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-900/10" },
+                { title: "Today's Classes", value: '0', icon: <Calendar size={24} />, className: "bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-900/10" },
+              ];
+            }
+          }
           const roleStats = {
-            student: [
-              {
-                title: "My Courses",
-                value: user?.studentData?.courses?.length?.toString() || "6",
-                icon: <BookOpen size={24} />,
-                className: "bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-900/10",
-              },
-              {
-                title: "Assignments",
-                value: user?.studentData?.assignments?.length?.toString() || "8",
-                icon: <FileText size={24} />,
-                className: "bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-900/10",
-              },
-              {
-                title: "Class Rank",
-                value: "3",
-                icon: <Award size={24} />,
-                className: "bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-900/10",
-              },
-              {
-                title: "Today's Classes",
-                value: "4",
-                icon: <Calendar size={24} />,
-                className: "bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-900/10",
-              },
-            ],
+            student: studentStats,
             finance: [
               {
                 title: "Monthly Revenue",
