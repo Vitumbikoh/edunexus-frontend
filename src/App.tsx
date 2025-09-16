@@ -21,6 +21,7 @@ import TeacherForm from "./pages/teacher/TeacherForm";
 import TeacherDetails from "./pages/teacher/TeacherDetails";
 import CourseForm from "./pages/courses/CourseForm";
 import Schedule from "./pages/Schedule";
+import EnhancedScheduleManagement from "./pages/schedule/EnhancedScheduleManagement";
 import Finance from "./pages/finance/Finance";
 import PaymentForm from "./pages/finance/PaymentForm";
 import Settings from "./pages/settings/Settings";
@@ -66,7 +67,6 @@ import FeeManagement from "./pages/finance/FeeManagement";
 import Courses from "./pages/courses/Courses";
 import EnrollStudents from "./pages/courses/EnrollStudents";
 import ClassManagement from "./pages/Classes";
-import ScheduleManagement from "./pages/schedules";
 import Exams from "./pages/courses/Exams";
 import ExamForm from "./pages/courses/ExamForm";
 
@@ -192,7 +192,7 @@ const AdminRoute = ({ children }: { children: React.ReactNode }) => {
   }
 
   // Immediately redirect if authenticated but wrong role
-  if (!loading && user && user.role !== "admin") {
+  if (!loading && user && user.role !== "admin" && user.role !== "super_admin") {
     return <Navigate to="/dashboard" replace />;
   }
 
@@ -200,6 +200,31 @@ const AdminRoute = ({ children }: { children: React.ReactNode }) => {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-lg">Verifying permissions...</div>
+      </div>
+    );
+  }
+
+  return <>{children}</>;
+};
+
+// Schedule route component - accessible by admin, super_admin, and teacher roles
+const ScheduleRoute = ({ children }: { children: React.ReactNode }) => {
+  const { user, loading, isAuthenticated } = useAuth();
+
+  // Immediately redirect if not authenticated
+  if (!loading && !isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  // Allow admin, super_admin, and teacher roles
+  if (!loading && user && !['admin', 'super_admin', 'teacher'].includes(user.role)) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-lg">Loading schedule...</div>
       </div>
     );
   }
@@ -544,9 +569,22 @@ const AppRoutes = () => {
         path="/schedules/view"
         element={
           <ProtectedRoute>
+            <ScheduleRoute>
+              <Layout>
+                <EnhancedScheduleManagement />
+              </Layout>
+            </ScheduleRoute>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/schedules/enhanced"
+        element={
+          <ProtectedRoute>
             <AdminRoute>
               <Layout>
-                <ScheduleManagement />
+                <EnhancedScheduleManagement />
               </Layout>
             </AdminRoute>
           </ProtectedRoute>

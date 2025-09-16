@@ -162,7 +162,7 @@ const adminNavItems: NavItem[] = [
       },
       // { label: 'Add Classes', href: '/classes/add', roles: ['admin'] },
       {
-        label: "View Schedules",
+        label: "Schedule Management",
         href: "/schedules/view",
         roles: ["admin", "teacher", "student"],
       },

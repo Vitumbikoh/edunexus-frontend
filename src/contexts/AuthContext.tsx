@@ -145,11 +145,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const response = await authApi.verifyToken(storedToken);
           if (response.valid && response.user) {
             const normalizedRole = normalizeRole(response.user.role);
-            setUser({
+            // The /auth/verify endpoint returns the JWT payload which typically has `sub` for user id.
+            // Ensure we always populate `id` for downstream consumers.
+            const verifiedUser = {
               ...response.user,
+              id: (response.user as any).id || (response.user as any).sub,
+            } as any;
+
+            setUser({
+              ...verifiedUser,
               role: normalizedRole,
-              name: response.user.username || response.user.firstName || response.user.email?.split('@')[0] || 'User',
-              avatar: `https://ui-avatars.com/api/?name=${response.user.username || response.user.firstName || 'User'}&background=0D8ABC&color=fff`
+              name: verifiedUser.username || verifiedUser.firstName || verifiedUser.email?.split('@')[0] || 'User',
+              avatar: `https://ui-avatars.com/api/?name=${verifiedUser.username || verifiedUser.firstName || 'User'}&background=0D8ABC&color=fff`
             });
             setToken(storedToken);
           } else {
