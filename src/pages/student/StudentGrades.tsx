@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Award, Printer } from "lucide-react";
@@ -9,6 +8,7 @@ import { toast } from "@/hooks/use-toast";
 import { exportReportToPdf } from "@/components/reports/reportExport";
 import ReportCard from "@/components/reports/ReportCard";
 import { API_CONFIG } from '@/config/api';
+import { termService, Term } from '@/services/termService';
 export default function StudentGrades() {
   const { user, token } = useAuth();
 const [selectedTerm, setSelectedTerm] = useState<string>("all");
@@ -16,6 +16,8 @@ const [grades, setGrades] = useState<any[]>([]);
 const [courses, setCourses] = useState<string[]>([]);
 const [isLoading, setIsLoading] = useState(true);
 const [error, setError] = useState<string | null>(null);
+const [activeTerm, setActiveTerm] = useState<Term | null>(null);
+const [previousTerm, setPreviousTerm] = useState<Term | null>(null);
   if (!user || user.role !== 'student') {
     return (
       <div className="flex items-center justify-center h-96">
@@ -31,6 +33,45 @@ const [error, setError] = useState<string | null>(null);
   try {
     setIsLoading(true);
     setError(null);
+    // Get active and previous term first
+    let act: Term | null = null;
+    let prev: Term | null = null;
+    try {
+      const [active, terms] = await Promise.all([
+        termService.getActiveTerm(token!),
+        termService.getTerms(token!)
+      ]);
+      act = active;
+      if (active && Array.isArray(terms) && terms.length > 0) {
+        // Try to find previous by termNumber if available
+        const withNumbers = terms.filter(t => typeof t.termNumber === 'number');
+        if (withNumbers.length === terms.length) {
+          const current = terms.find(t => t.id === active.id);
+          if (current && typeof current.termNumber === 'number') {
+            const candidate = terms
+              .filter(t => (t.termNumber as number) < (current.termNumber as number))
+              .sort((a, b) => (b.termNumber! - a.termNumber!))[0];
+            prev = candidate || null;
+          }
+        }
+        // Fallback: try by startDate
+        if (!prev) {
+          const sortable = terms
+            .filter(t => !!t.startDate)
+            .sort((a, b) => new Date(a.startDate as string).getTime() - new Date(b.startDate as string).getTime());
+          const idx = sortable.findIndex(t => t.id === active.id);
+          prev = idx > 0 ? sortable[idx - 1] : null;
+        }
+        // Final fallback: use order as given
+        if (!prev) {
+          const idx = terms.findIndex(t => t.id === active.id);
+          prev = idx > 0 ? terms[idx - 1] : null;
+        }
+      }
+    } catch (e) {
+      // Non-fatal: proceed without term scoping if terms endpoints fail
+    }
+
     const response = await fetch(`${API_CONFIG.BASE_URL}/grades/students`, {
       headers: {
         Authorization: `Bearer ${token}`,
@@ -48,18 +89,30 @@ const [error, setError] = useState<string | null>(null);
       throw new Error('No grades data available');
     }
 
+    // Filter to active or previous term if possible
+    const allowedTermIds = new Set<string>();
+    if (act?.id) allowedTermIds.add(act.id);
+    if (prev?.id) allowedTermIds.add(prev.id);
+
+    const scopedResults = allowedTermIds.size
+      ? data.results.filter((r: any) => !r.termId || allowedTermIds.has(r.termId))
+      : data.results;
+
     // Transform backend data to match the expected structure
-    const transformedGrades = data.results.map(grade => ({
+    const transformedGrades = scopedResults.map((grade: any) => ({
       course: grade.subject || grade.examTitle, // Use subject or examTitle
       grade: grade.grade,
       term: grade.examType === 'midterm' ? 'Midterm' : 
             grade.examType === 'endterm' ? 'Final' : 
-            grade.examType.charAt(0).toUpperCase() + grade.examType.slice(1),
+            (grade.examType ? grade.examType.charAt(0).toUpperCase() + grade.examType.slice(1) : '—'),
+      termId: grade.termId,
     }));
     
 const uniqueCourses: string[] = Array.from(new Set(transformedGrades.map((g: any) => String(g.course))));
 setGrades(transformedGrades);
 setCourses(uniqueCourses);
+setActiveTerm(act || null);
+setPreviousTerm(prev || null);
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : 'Failed to load grades';
     setError(errorMessage);
@@ -192,8 +245,8 @@ const handlePrint = () => {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">My Grades</h1>
-          <p className="text-muted-foreground">View your academic performance</p>
+          <h1 className="text-2xl font-bold text-foreground">Exam Results</h1>
+          <p className="text-muted-foreground">View your results for the active or previous term</p>
         </div>
         <Card>
           <CardHeader>
@@ -223,12 +276,15 @@ const handlePrint = () => {
 return (
   <div className="space-y-6">
     <div>
-      <h1 className="text-2xl font-bold text-foreground">My Grades</h1>
-      <p className="text-muted-foreground">View your academic performance</p>
+      <h1 className="text-2xl font-bold text-foreground">Exam Results</h1>
+      <p className="text-muted-foreground">
+        Showing results for {activeTerm?.name || 'current'}
+        {previousTerm?.name ? ` (and previous: ${previousTerm.name})` : ''}
+      </p>
     </div>
 
     <ReportCard
-      title="Grade Report"
+      title="Exam Results"
       action={
         <div className="flex items-center gap-2">
           <Select value={selectedTerm} onValueChange={setSelectedTerm}>
@@ -246,7 +302,7 @@ return (
           </Select>
           <Button onClick={handlePrint} disabled={isLoading || !grades.length}>
             <Printer className="mr-2 h-4 w-4" />
-            Print Report Card
+            Print Results
           </Button>
         </div>
       }
@@ -264,13 +320,13 @@ return (
           <span className={`text-right font-bold ${getGradeClass(g.grade)}`}>{g.grade}</span>
         ],
       }))}
-      emptyMessage="No grades found for the selected term."
+      emptyMessage="No exam results found for the selected term."
     />
 
     <Card>
       <CardHeader>
         <CardTitle>Performance Summary</CardTitle>
-        <CardDescription>Overview of your academic performance</CardDescription>
+        <CardDescription>Overview of your performance</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

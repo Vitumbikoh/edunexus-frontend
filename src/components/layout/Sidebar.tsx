@@ -240,20 +240,8 @@ const teacherNavItems: NavItem[] = [
 const studentNavItems: NavItem[] = [
   { label: "Dashboard", icon: Home, href: "/dashboard", roles: ["student"] },
   { label: "My Courses", icon: BookOpen, href: "/courses", roles: ["student"] },
-  {
-    label: "Assignments",
-    icon: FileText,
-    href: "/assignments",
-    roles: ["student"],
-  },
-  { label: "Grades", icon: Award, href: "/grades", roles: ["student"] },
+  { label: "Exam Results", icon: Award, href: "/grades", roles: ["student"] },
   { label: "Schedule", icon: Calendar, href: "/schedule", roles: ["student"] },
-  {
-    label: "Learning Materials",
-    icon: Download,
-    href: "/materials",
-    roles: ["student"],
-  },
   { label: "Settings", icon: Settings, href: "/settings", roles: ["student"] },
 ];
 
