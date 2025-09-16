@@ -5,19 +5,38 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Check, Calendar } from "lucide-react";
+import { Check, Calendar, Clock, MapPin } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useNavigate } from 'react-router-dom';
 import { API_CONFIG } from '@/config/api';
 
+interface ScheduledClass {
+  id: string;
+  day: string;
+  startTime: string;
+  endTime: string;
+  course: {
+    id: string;
+    name: string;
+    code: string;
+  };
+  classroom?: {
+    id: string;
+    name: string;
+  };
+  class: {
+    id: string;
+    name: string;
+  };
+}
+
 export default function TeacherAttendance() {
   const { user, token } = useAuth();
   const navigate = useNavigate();
-  const [classes, setClasses] = useState<any[]>([]);
-  const [courses, setCourses] = useState<any[]>([]);
-  const [selectedClass, setSelectedClass] = useState<string>("");
-  const [selectedCourse, setSelectedCourse] = useState<string>("");
+  const [scheduledClasses, setScheduledClasses] = useState<ScheduledClass[]>([]);
+  const [selectedSchedule, setSelectedSchedule] = useState<string>("");
   const [students, setStudents] = useState<any[]>([]);
+  const [courses, setCourses] = useState<any[]>([]);
   const [attendanceStatus, setAttendanceStatus] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -32,11 +51,31 @@ export default function TeacherAttendance() {
     );
   }
 
-  const fetchClasses = async () => {
+  const fetchTodaysScheduledClasses = async () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await fetch(`${API_CONFIG.BASE_URL}/teacher/my-classes`, {
+
+      // Get current day of the week
+      const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      const today = daysOfWeek[new Date().getDay()];
+
+      // First get teacher's profile to get teacherId
+      const profileResponse = await fetch(`${API_CONFIG.BASE_URL}/profile`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!profileResponse.ok) {
+        throw new Error('Failed to fetch profile');
+      }
+
+      const profile = await profileResponse.json();
+      const teacherId = profile.teacherId || user?.id;
+
+      // Fetch teacher's weekly schedule
+      const response = await fetch(`${API_CONFIG.BASE_URL}/schedules/teacher/${teacherId}/weekly`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -47,17 +86,46 @@ export default function TeacherAttendance() {
       }
 
       if (!response.ok) {
-        throw new Error('Failed to fetch classes');
+        throw new Error('Failed to fetch schedule');
       }
 
       const data = await response.json();
-      if (!data.success) {
-        throw new Error('Failed to fetch classes');
-      }
 
-      setClasses(data.classes);
+      // Filter schedules for today and current/future time slots
+      const now = new Date();
+      const currentTime = now.getHours() * 100 + now.getMinutes(); // Convert to HHMM format for comparison
+
+      const todaysSchedules = (data?.days || [])
+        .filter((day: any) => day.day === today)
+        .flatMap((day: any) => (day?.items || []))
+        .filter((schedule: any) => {
+          const startTime = parseInt(schedule.startTime.replace(':', ''));
+          // Include current class or future classes (within next 2 hours)
+          return startTime >= currentTime - 100; // Allow some buffer for ongoing classes
+        })
+        .map((schedule: any) => ({
+          id: schedule.id,
+          day: schedule.day,
+          startTime: schedule.startTime,
+          endTime: schedule.endTime,
+          course: {
+            id: schedule.course?.id,
+            name: schedule.course?.name,
+            code: schedule.course?.code || schedule.course?.id,
+          },
+          classroom: schedule.classroom ? {
+            id: schedule.classroom.id,
+            name: schedule.classroom.name,
+          } : undefined,
+          class: {
+            id: schedule.class?.id,
+            name: schedule.class?.name,
+          },
+        }));
+
+      setScheduledClasses(todaysSchedules);
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to load classes';
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load scheduled classes';
       setError(errorMessage);
       toast({
         title: 'Error',
@@ -106,11 +174,18 @@ export default function TeacherAttendance() {
     }
   };
 
-  const fetchStudents = async (courseId: string) => {
+  const fetchStudentsForSchedule = async (scheduleId: string) => {
     try {
       setLoading(true);
       setError(null);
-      const response = await fetch(`${API_CONFIG.BASE_URL}/teacher/my-students/by-course/${courseId}`, {
+
+      // Find the selected schedule to get course and class info
+      const selectedScheduleData = scheduledClasses.find(s => s.id === scheduleId);
+      if (!selectedScheduleData) {
+        throw new Error('Selected schedule not found');
+      }
+
+      const response = await fetch(`${API_CONFIG.BASE_URL}/teacher/my-students/by-course/${selectedScheduleData.course.id}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -133,7 +208,7 @@ export default function TeacherAttendance() {
         data.students.map((student: any) => ({
           id: student.id,
           name: `${student.firstName} ${student.lastName}`,
-          grade: student.class?.name || '',
+          grade: selectedScheduleData.class?.name || '',
           attendance: [],
         })),
       );
@@ -151,32 +226,22 @@ export default function TeacherAttendance() {
   };
 
   useEffect(() => {
-    fetchClasses();
-  }, [token]);
-
-  useEffect(() => {
-    if (selectedClass) {
-      fetchCourses(selectedClass);
-    } else {
-      setCourses([]);
-      setSelectedCourse('');
-      setStudents([]);
-      setAttendanceStatus({});
+    if (token && user?.role === 'teacher') {
+      fetchTodaysScheduledClasses();
     }
-  }, [selectedClass, token]);
+  }, [token, user]);
 
   useEffect(() => {
-    if (selectedCourse) {
-      fetchStudents(selectedCourse);
+    if (selectedSchedule) {
+      fetchStudentsForSchedule(selectedSchedule);
     } else {
       setStudents([]);
       setAttendanceStatus({});
     }
-  }, [selectedCourse, token]);
+  }, [selectedSchedule, scheduledClasses]);
 
-  const handleClassSelect = (value: string) => {
-    setSelectedClass(value);
-    setSelectedCourse('');
+  const handleScheduleSelect = (scheduleId: string) => {
+    setSelectedSchedule(scheduleId);
     setAttendanceStatus({});
   };
 
@@ -187,12 +252,28 @@ export default function TeacherAttendance() {
     }));
   };
 
+  const handleSelectAllPresent = () => {
+    const newStatus: Record<string, boolean> = {};
+    students.forEach((student) => {
+      newStatus[student.id] = true;
+    });
+    setAttendanceStatus(newStatus);
+  };
+
+  const handleSelectAllAbsent = () => {
+    const newStatus: Record<string, boolean> = {};
+    students.forEach((student) => {
+      newStatus[student.id] = false;
+    });
+    setAttendanceStatus(newStatus);
+  };
+
   const handleSubmitAttendance = async () => {
-    if (!selectedClass || !selectedCourse) {
+    if (!selectedSchedule) {
       toast({
         variant: 'destructive',
         title: 'Missing information',
-        description: 'Please select both class and course before submitting attendance.',
+        description: 'Please select a scheduled class before submitting attendance.',
       });
       return;
     }
@@ -206,10 +287,22 @@ export default function TeacherAttendance() {
       return;
     }
 
+    const selectedScheduleData = scheduledClasses.find(s => s.id === selectedSchedule);
+    if (!selectedScheduleData) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Selected schedule not found.',
+      });
+      return;
+    }
+
     const payload = {
-      classId: selectedClass,
-      courseId: selectedCourse,
+      scheduleId: selectedSchedule,
+      classId: selectedScheduleData.class.id,
+      courseId: selectedScheduleData.course.id,
       date: new Date().toISOString(),
+      schoolId: user?.schoolId,
       attendanceStatus,
     };
 
@@ -240,12 +333,11 @@ export default function TeacherAttendance() {
       const data = await response.json();
       toast({
         title: 'Attendance submitted successfully',
-        description: `Attendance for ${selectedClass} - ${selectedCourse} has been recorded.`,
+        description: `Attendance for ${selectedScheduleData.course.name} - ${selectedScheduleData.class.name} has been recorded.`,
       });
 
       // Reset form
-      setSelectedClass('');
-      setSelectedCourse('');
+      setSelectedSchedule('');
       setStudents([]);
       setAttendanceStatus({});
     } catch (err) {
@@ -313,33 +405,29 @@ export default function TeacherAttendance() {
           <CardDescription>Select class and course to take attendance</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+          <div className="space-y-4 mb-6">
             <div className="space-y-2">
-              <label className="text-sm font-medium">Class</label>
-              <Select value={selectedClass} onValueChange={handleClassSelect}>
+              <label className="text-sm font-medium">Scheduled Class</label>
+              <Select value={selectedSchedule} onValueChange={handleScheduleSelect}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select a class" />
+                  <SelectValue placeholder="Select a scheduled class" />
                 </SelectTrigger>
                 <SelectContent>
-                  {classes.map((classItem) => (
-                    <SelectItem key={classItem.id} value={classItem.id}>
-                      Class {classItem.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Course</label>
-              <Select value={selectedCourse} onValueChange={setSelectedCourse}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a course" />
-                </SelectTrigger>
-                <SelectContent>
-                  {courses.map((course) => (
-                    <SelectItem key={course.id} value={course.id}>
-                      {course.name}
+                  {scheduledClasses.map((schedule) => (
+                    <SelectItem key={schedule.id} value={schedule.id}>
+                      <div className="flex items-center gap-2">
+                        <Clock className="h-4 w-4" />
+                        <span>
+                          {schedule.course.name} - {schedule.class.name}
+                          ({schedule.startTime} - {schedule.endTime})
+                          {schedule.classroom && (
+                            <>
+                              <MapPin className="h-3 w-3 inline ml-2" />
+                              {schedule.classroom.name}
+                            </>
+                          )}
+                        </span>
+                      </div>
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -347,16 +435,36 @@ export default function TeacherAttendance() {
             </div>
           </div>
 
-          {selectedCourse && students.length > 0 ? (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Class</TableHead>
-                  <TableHead className="text-center">Present</TableHead>
-                  <TableHead className="text-center">Absent</TableHead>
-                </TableRow>
-              </TableHeader>
+          {selectedSchedule && students.length > 0 ? (
+            <div className="space-y-4">
+              <div className="flex justify-end gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleSelectAllPresent}
+                  className="gap-2"
+                >
+                  <Check className="h-4 w-4" />
+                  Mark All Present
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleSelectAllAbsent}
+                  className="gap-2"
+                >
+                  Mark All Absent
+                </Button>
+              </div>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Class</TableHead>
+                    <TableHead className="text-center">Present</TableHead>
+                    <TableHead className="text-center">Absent</TableHead>
+                  </TableRow>
+                </TableHeader>
               <TableBody>
                 {students.map((student) => (
                   <TableRow key={student.id}>
@@ -383,25 +491,22 @@ export default function TeacherAttendance() {
                   </TableRow>
                 ))}
               </TableBody>
-            </Table>
-          ) : selectedCourse ? (
-            <div className="text-center py-8 text-muted-foreground">
-              No students found for this course.
+              </Table>
             </div>
-          ) : selectedClass ? (
+          ) : selectedSchedule ? (
             <div className="text-center py-8 text-muted-foreground">
-              Please select a course to view students.
+              No students found for this scheduled class.
             </div>
           ) : (
             <div className="text-center py-8 text-muted-foreground">
-              Please select a class to view courses.
+              Please select a scheduled class to view students.
             </div>
           )}
         </CardContent>
         <CardFooter className="flex justify-end">
           <Button
             onClick={handleSubmitAttendance}
-            disabled={!selectedClass || !selectedCourse || students.length === 0}
+            disabled={!selectedSchedule || students.length === 0}
             className="gap-2"
           >
             <Check className="h-4 w-4" />
