@@ -10,7 +10,12 @@ import {
   Tooltip,
   ResponsiveContainer,
   LineChart,
-  Line
+  Line,
+  AreaChart,
+  Area,
+  LabelList,
+  ReferenceLine,
+  Legend
 } from 'recharts';
 import { 
   ChartContainer, 
@@ -195,25 +200,59 @@ export const AttendanceOverview = ({ termId }: { termId?: string }) => {
   }
 
   return (
-    <div className="space-y-6">
-      {attendanceData.map((item: any) => (
-        <div key={item.courseName || item.name} className="space-y-2">
-          <div className="flex justify-between items-center">
-            <span className="text-sm font-medium">{item.courseName || item.name}</span>
-            <span className="text-sm font-medium">{Math.round(item.attendanceRate || item.value)}%</span>
-          </div>
-          <Progress 
-            value={item.attendanceRate || item.value} 
-            className="h-2" 
-            indicatorClassName={`bg-gradient-to-r ${
-              (item.attendanceRate || item.value) >= 90 ? 'from-green-400 to-green-500' :
-              (item.attendanceRate || item.value) >= 80 ? 'from-blue-400 to-blue-500' :
-              'from-orange-400 to-orange-500'
-            }`}
+    <ResponsiveContainer width="100%" height={300}>
+      <BarChart
+        data={attendanceData}
+        margin={{
+          top: 20,
+          right: 30,
+          left: 20,
+          bottom: 5,
+        }}
+      >
+        <XAxis
+          dataKey="name"
+          tick={{ fontSize: 12 }}
+          angle={-45}
+          textAnchor="end"
+          height={60}
+        />
+        <YAxis
+          domain={[0, 100]}
+          tick={{ fontSize: 12 }}
+          label={{ value: 'Attendance %', angle: -90, position: 'insideLeft' }}
+        />
+        <Tooltip
+          formatter={(value: number) => [`${value}%`, 'Attendance Rate']}
+          labelStyle={{ color: '#000' }}
+        />
+        <Bar
+          dataKey="attendanceRate"
+          fill="#8b5cf6"
+          radius={[4, 4, 0, 0]}
+        >
+          {attendanceData.map((entry, index) => {
+            const percentage = Math.round(entry.attendanceRate || entry.value);
+            return (
+              <Cell
+                key={`cell-${index}`}
+                fill={
+                  percentage >= 90 ? '#10b981' : // green for excellent
+                  percentage >= 80 ? '#3b82f6' : // blue for good
+                  '#f59e0b' // amber for needs improvement
+                }
+              />
+            );
+          })}
+          <LabelList
+            dataKey="attendanceRate"
+            position="top"
+            formatter={(value: number) => `${Math.round(value)}%`}
+            style={{ fontSize: '12px', fill: '#374151' }}
           />
-        </div>
-      ))}
-    </div>
+        </Bar>
+      </BarChart>
+    </ResponsiveContainer>
   );
 };
 
@@ -298,19 +337,51 @@ export const ClassPerformanceChart = ({ termId }: { termId?: string }) => {
   return (
     <ChartContainer
       config={{
-        students: { theme: { light: "#0ea5e9", dark: "#0ea5e9" } },
-        average: { theme: { light: "#f97316", dark: "#f97316" } },
+        students: { theme: { light: "#374151", dark: "#374151" } },
+        average: { theme: { light: "#6b7280", dark: "#6b7280" } },
       }}
     >
       <BarChart
         data={performanceData}
-        margin={{ top: 10, right: 30, left: 0, bottom: 20 }}
+        margin={{ top: 20, right: 30, left: 20, bottom: 80 }}
       >
-        <XAxis dataKey="courseName" />
-        <YAxis />
-        <ChartTooltip content={<ChartTooltipContent />} />
-        <Bar dataKey="studentsCount" fill="var(--color-students)" name="Students" radius={[4, 4, 0, 0]} />
-        <Bar dataKey="averageScore" fill="var(--color-average)" name="Class Average" radius={[4, 4, 0, 0]} />
+        <XAxis 
+          dataKey="courseName" 
+          axisLine={false}
+          tickLine={false}
+          tick={{ fontSize: 11, fill: '#6b7280' }}
+          angle={-45}
+          textAnchor="end"
+          height={80}
+          interval={0}
+        />
+        <YAxis 
+          axisLine={false}
+          tickLine={false}
+          tick={{ fontSize: 12, fill: '#6b7280' }}
+        />
+        <ChartTooltip 
+          content={<ChartTooltipContent />}
+          contentStyle={{
+            backgroundColor: '#ffffff',
+            border: '1px solid #e5e7eb',
+            borderRadius: '8px',
+            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+            fontSize: '14px'
+          }}
+        />
+        <Bar 
+          dataKey="studentsCount" 
+          fill="#374151" 
+          name="Students" 
+          radius={[2, 2, 0, 0]}
+        />
+        <Bar 
+          dataKey="averageScore" 
+          fill="#6b7280" 
+          name="Average Score" 
+          radius={[2, 2, 0, 0]}
+        />
       </BarChart>
     </ChartContainer>
   );
@@ -460,23 +531,35 @@ export const FeeCollectionChart = ({ termId }: { termId?: string }) => {
 
   return (
     <ResponsiveContainer width="100%" height="100%">
-      <PieChart>
+      <PieChart margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
         <Pie
           data={feeData}
+          dataKey="amount"
+          nameKey="status"
           cx="50%"
           cy="50%"
-          innerRadius={60}
           outerRadius={80}
-          fill="#8884d8"
-          paddingAngle={feeData.length > 1 ? 5 : 0}
-          dataKey="amount"
-          label={({status, percent, amount}) => `${status} ${amount ? ((percent * 100).toFixed(0) + '%') : ''}`}
+          innerRadius={40}
+          paddingAngle={5}
+          label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(1)}%`}
         >
           {feeData.map((entry, index) => (
-            <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+            <Cell 
+              key={`cell-${index}`} 
+              fill={index === 0 ? '#10B981' : '#F97316'} 
+            />
           ))}
         </Pie>
-        <Tooltip formatter={(value: number) => [`$${value.toLocaleString()}`, 'Amount']} />
+        <Tooltip 
+          formatter={(value: number) => [`$${value.toLocaleString()}`, 'Amount']}
+          contentStyle={{
+            backgroundColor: '#ffffff',
+            border: '1px solid #e5e7eb',
+            borderRadius: '8px',
+            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+            fontSize: '14px'
+          }}
+        />
       </PieChart>
     </ResponsiveContainer>
   );
@@ -485,21 +568,207 @@ export const FeeCollectionChart = ({ termId }: { termId?: string }) => {
 export const FinanceOverviewChart = () => (
   <ChartContainer
     config={{
-      income: { theme: { light: "#10b981", dark: "#10b981" } },
-      expenses: { theme: { light: "#f97316", dark: "#f97316" } },
+      income: { theme: { light: "#1f2937", dark: "#1f2937" } },
+      expenses: { theme: { light: "#6b7280", dark: "#6b7280" } },
     }}
   >
-    <LineChart data={financeData} margin={{ top: 10, right: 30, left: 0, bottom: 20 }}>
-      <XAxis dataKey="month" />
-      <YAxis />
-      <ChartTooltip content={<ChartTooltipContent />} />
-      <Line type="monotone" dataKey="income" stroke="var(--color-income)" strokeWidth={3} name="Income" />
-      <Line type="monotone" dataKey="expenses" stroke="var(--color-expenses)" strokeWidth={3} name="Expenses" />
+    <LineChart data={financeData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
+      <XAxis 
+        dataKey="month" 
+        axisLine={false}
+        tickLine={false}
+        tick={{ fontSize: 12, fill: '#6b7280' }}
+      />
+      <YAxis 
+        axisLine={false}
+        tickLine={false}
+        tick={{ fontSize: 12, fill: '#6b7280' }}
+        tickFormatter={(value) => `$${value.toLocaleString()}`}
+      />
+      <ChartTooltip 
+        content={<ChartTooltipContent />}
+        contentStyle={{
+          backgroundColor: '#ffffff',
+          border: '1px solid #e5e7eb',
+          borderRadius: '8px',
+          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+          fontSize: '14px'
+        }}
+      />
+      <Line 
+        type="monotone" 
+        dataKey="income" 
+        stroke="#1f2937" 
+        strokeWidth={3} 
+        name="Income"
+        dot={{ fill: '#1f2937', strokeWidth: 2, r: 4 }}
+        activeDot={{ r: 6, stroke: '#1f2937', strokeWidth: 2, fill: '#ffffff' }}
+      />
+      <Line 
+        type="monotone" 
+        dataKey="expenses" 
+        stroke="#6b7280" 
+        strokeWidth={3} 
+        name="Expenses"
+        dot={{ fill: '#6b7280', strokeWidth: 2, r: 4 }}
+        activeDot={{ r: 6, stroke: '#6b7280', strokeWidth: 2, fill: '#ffffff' }}
+      />
     </LineChart>
   </ChartContainer>
 );
 
-export const StudentPerformanceChart = ({ data }: { data: any[] }) => (
+export const ClassStudentsRatioChart = ({ termId }: { termId?: string }) => {
+  const [classData, setClassData] = React.useState<any[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState<string | null>(null);
+  const { token } = useAuth();
+
+  const fetchClassData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Use the new class-counts endpoint to get real student counts per class
+      const response = await fetch(`${API_CONFIG.BASE_URL}/student/class-counts`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch class student counts');
+      }
+
+      const data = await response.json();
+      
+      if (data.success && Array.isArray(data.classCounts)) {
+        const formattedData = data.classCounts.map((item: any) => ({
+          className: item.className || 'Unknown Class',
+          studentCount: item.studentCount || 0,
+        }));
+        
+        // Filter out classes with 0 students
+        const filteredData = formattedData.filter(item => item.studentCount > 0);
+        setClassData(filteredData);
+      } else {
+        throw new Error('Invalid response format');
+      }
+      
+    } catch (err) {
+      console.error('Error fetching class data:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load class students data');
+      setClassData([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  React.useEffect(() => {
+    fetchClassData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [termId]);
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-80">
+        <div className="text-muted-foreground">Loading class data...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col justify-center items-center h-80">
+        <p className="text-sm text-red-600 mb-2">{error}</p>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={fetchClassData}
+        >
+          Retry
+        </Button>
+      </div>
+    );
+  }
+
+  if (classData.length === 0) {
+    return (
+      <div className="flex justify-center items-center h-80">
+        <p className="text-sm text-muted-foreground">No class data available</p>
+      </div>
+    );
+  }
+
+  // Prepare data: sort by student count desc, compute percent
+  const total = classData.reduce((s, c) => s + (c.studentCount || 0), 0) || 1;
+  const prepared = [...classData]
+    .map(c => ({ ...c, studentCount: Number(c.studentCount || 0) }))
+    .sort((a, b) => b.studentCount - a.studentCount)
+    .map((c) => ({
+      ...c,
+      percent: Math.round(((c.studentCount || 0) / total) * 1000) / 10, // one decimal
+      label: `${c.studentCount} (${Math.round(((c.studentCount||0)/total)*100)}%)`
+    }));
+
+  return (
+    <ResponsiveContainer width="100%" height="100%">
+      <BarChart
+        data={prepared}
+        margin={{ top: 8, right: 8, left: 8, bottom: 40 }}
+        barCategoryGap="20%"
+      >
+        <defs>
+          <linearGradient id="gradStudents" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#1f2937" stopOpacity={0.95} />
+            <stop offset="100%" stopColor="#6b7280" stopOpacity={0.85} />
+          </linearGradient>
+        </defs>
+        <XAxis
+          dataKey="className"
+          axisLine={false}
+          tickLine={false}
+          tick={{ fontSize: 12, fill: '#374151' }}
+          angle={-30}
+          textAnchor="end"
+          height={72}
+          interval={0}
+        />
+        <YAxis
+          axisLine={false}
+          tickLine={false}
+          tick={{ fontSize: 12, fill: '#374151' }}
+        />
+        <Tooltip
+          formatter={(value: number, name: string, props: any) => [`${value} students`, 'Enrollment']}
+          contentStyle={{
+            backgroundColor: '#ffffff',
+            border: '1px solid #e5e7eb',
+            borderRadius: '8px',
+            boxShadow: '0 6px 12px rgba(0,0,0,0.08)',
+            fontSize: '13px'
+          }}
+        />
+        <Bar
+          dataKey="studentCount"
+          fill="url(#gradStudents)"
+          name="Students"
+          radius={[6, 6, 2, 2]}
+          animationDuration={800}
+        >
+          {prepared.map((entry, idx) => (
+            <Cell key={`cell-${idx}`} fillOpacity={0.95} />
+          ))}
+        </Bar>
+        {/* numeric label on top of bars */}
+        <LabelList dataKey="label" position="top" style={{ fontSize: 11, fill: '#111827' }} />
+        {/* average line */}
+        <ReferenceLine y={Math.round(total / prepared.length)} stroke="#e5e7eb" strokeDasharray="3 3" />
+        <Legend verticalAlign="top" height={24} />
+      </BarChart>
+    </ResponsiveContainer>
+  );
+};export const StudentPerformanceChart = ({ data }: { data: any[] }) => (
   <ChartContainer
     config={{
       score: { theme: { light: "#7c3aed", dark: "#7c3aed" } },
