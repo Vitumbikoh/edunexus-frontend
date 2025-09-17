@@ -82,7 +82,6 @@ import Borrowings from "./pages/library/Borrowings";
 import LibraryReports from "./pages/library/LibraryReports";
 
 // Admin specific pages
-import SystemMonitoring from "./pages/admin/SystemMonitoring";
 import StaffManagement from "./pages/admin/StaffManagement";
 import GradingFormat from "./pages/admin/GradingFormat";
 
@@ -798,19 +797,6 @@ const AppRoutes = () => {
       />
 
       {/* Admin specific routes */}
-      <Route
-        path="/admin/system-monitoring"
-        element={
-          <ProtectedRoute>
-            <AdminRoute>
-              <Layout>
-                <SystemMonitoring />
-              </Layout>
-            </AdminRoute>
-          </ProtectedRoute>
-        }
-      />
-
       <Route
         path="/admin/staff-management"
         element={

@@ -509,14 +509,6 @@ export const AdminDashboardCards = () => {
                 </div>
               </div>
             </div>
-            <Button 
-              variant="outline" 
-              className="w-full mt-4 border-emerald-200 hover:bg-emerald-50 dark:border-emerald-800 dark:hover:bg-emerald-900/20"
-              onClick={() => navigate("/admin/system-monitoring")}
-            >
-              View System Details
-              <ChevronRight className="ml-2 h-4 w-4" />
-            </Button>
           </CardContent>
         </Card>
 
