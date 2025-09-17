@@ -6,6 +6,7 @@ import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { TablePreloader } from '@/components/ui/preloader';
 
 interface ResultRow { id:string; studentId:string; courseId:string; termId:string; finalPercentage?:string|null; finalGradeCode?:string|null; pass?:boolean|null; status:string; breakdown?:any; schemeVersion?:number; }
 interface CourseOption { id:string; name:string; }
@@ -85,7 +86,7 @@ export default function AggregatedResults(){
               </TableHeader>
               <TableBody>
                 {loading ? (
-                  <TableRow><TableCell colSpan={showBreakdown?7:6} className="text-center py-6">Loading...</TableCell></TableRow>
+                  <TablePreloader colSpan={showBreakdown?7:6} text="Loading results..." />
                 ) : filtered.length === 0 ? (
                   <TableRow><TableCell colSpan={showBreakdown?7:6} className="text-center py-6 text-muted-foreground">No results</TableCell></TableRow>
                 ) : (

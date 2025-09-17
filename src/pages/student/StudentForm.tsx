@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
 import { ArrowLeft, Save } from "lucide-react";
+import { PagePreloader } from "@/components/ui/preloader";
 
 interface Class {
   id: string;
@@ -286,11 +287,7 @@ export default function StudentForm() {
   };
 
   if (isLoadingStudent) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
-      </div>
-    );
+    return <PagePreloader text="Loading student details..." />;
   }
 
   return (

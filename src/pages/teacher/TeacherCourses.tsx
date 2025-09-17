@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/pagination";
 import { useToast } from "@/components/ui/use-toast";
 import { API_CONFIG } from '@/config/api';
+import { Preloader } from "@/components/ui/preloader";
 
 export default function TeacherCourses() {
   const { user, token } = useAuth();
@@ -119,22 +120,7 @@ export default function TeacherCourses() {
           <h1 className="text-2xl font-bold">My Courses</h1>
           <p className="text-muted-foreground">Manage your teaching courses</p>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {[...Array(4)].map((_, index) => (
-            <Card key={index}>
-              <CardHeader>
-                <CardTitle className="h-6 bg-gray-200 animate-pulse rounded"></CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="h-4 bg-gray-200 animate-pulse rounded"></div>
-                  <div className="h-4 bg-gray-200 animate-pulse rounded"></div>
-                  <div className="h-4 bg-gray-200 animate-pulse rounded"></div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        <Preloader variant="skeleton" rows={4} className="space-y-6" />
       </div>
     );
   }

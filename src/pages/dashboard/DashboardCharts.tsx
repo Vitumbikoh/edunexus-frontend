@@ -26,6 +26,7 @@ import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { API_CONFIG } from '@/config/api';
+import { Preloader } from '@/components/ui/preloader';
 
 // Sample data for charts
 export const attendanceData = [
@@ -161,17 +162,7 @@ export const AttendanceOverview = ({ termId }: { termId?: string }) => {
 
   if (loading) {
     return (
-      <div className="space-y-6">
-        {[...Array(6)].map((_, index) => (
-          <div key={index} className="space-y-2">
-            <div className="flex justify-between items-center">
-              <div className="h-4 bg-gray-200 rounded w-20 animate-pulse"></div>
-              <div className="h-4 bg-gray-200 rounded w-10 animate-pulse"></div>
-            </div>
-            <div className="h-2 bg-gray-200 rounded animate-pulse"></div>
-          </div>
-        ))}
-      </div>
+      <Preloader variant="skeleton" rows={6} className="space-y-6" />
     );
   }
 
@@ -305,9 +296,7 @@ export const ClassPerformanceChart = ({ termId }: { termId?: string }) => {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-80">
-        <div className="text-muted-foreground">Loading performance data...</div>
-      </div>
+      <Preloader variant="spinner" size="md" text="Loading performance data..." height="20rem" />
     );
   }
 
@@ -494,9 +483,7 @@ export const FeeCollectionChart = ({ termId }: { termId?: string }) => {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <div className="text-muted-foreground">Loading fee data...</div>
-      </div>
+      <Preloader variant="spinner" size="md" text="Loading fee data..." height="16rem" />
     );
   }
 
@@ -671,9 +658,7 @@ export const ClassStudentsRatioChart = ({ termId }: { termId?: string }) => {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-80">
-        <div className="text-muted-foreground">Loading class data...</div>
-      </div>
+      <Preloader variant="spinner" size="md" text="Loading class data..." height="20rem" />
     );
   }
 

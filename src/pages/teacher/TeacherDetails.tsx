@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
+import { PagePreloader } from "@/components/ui/preloader";
 
 interface Teacher {
   id: string;
@@ -88,11 +89,7 @@ export default function TeacherDetails() {
   }, [id, token, navigate, toast]);
 
   if (isLoading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
-      </div>
-    );
+    return <PagePreloader text="Loading teacher details..." />;
   }
 
   if (error || !teacher) {

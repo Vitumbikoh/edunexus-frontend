@@ -10,6 +10,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
 import { Plus, Trash2, Edit, ArrowLeft } from 'lucide-react';
 import { format, parseISO, getDay } from 'date-fns';
+import { Preloader } from '@/components/ui/preloader';
 
 interface Schedule {
   id: string;
@@ -311,7 +312,7 @@ export default function ScheduleManagement() {
     }
   }, [token]);
 
-  if (isLoading) return <div className="flex justify-center p-8">Loading schedules...</div>;
+  if (isLoading) return <Preloader variant="spinner" size="lg" text="Loading schedules..." height="50vh" />;
 
   return (
     <div className="space-y-6 p-6">

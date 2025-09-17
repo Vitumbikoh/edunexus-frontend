@@ -18,6 +18,7 @@ import { Pagination, PaginationContent, PaginationItem, PaginationNext, Paginati
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import * as XLSX from 'xlsx';
 import { API_CONFIG } from '@/config/api';
+import { TablePreloader } from '@/components/ui/preloader';
 
 interface Class {
   id: string;
@@ -287,9 +288,21 @@ export default function Students() {
             Use the Excel template for bulk upload. The column "class" is required and must match the class name in the system (e.g., Form one, Form two, Form Three). Rows without a class will fail with "class not provided".
           </div>
           {isLoading ? (
-            <div className="flex justify-center items-center h-64">
-              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
-            </div>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Class</TableHead>
+                  <TableHead>Student ID</TableHead>
+                  <TableHead>Guardian</TableHead>
+                  <TableHead>Phone</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                <TablePreloader colSpan={6} text="Loading students..." />
+              </TableBody>
+            </Table>
           ) : (
             <>
               {uploadErrors.length > 0 && (

@@ -7,6 +7,7 @@ import { Progress } from "@/components/ui/progress";
 import { BookOpen, Clock, Users, Calendar } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { API_CONFIG } from '@/config/api';
+import { PagePreloader } from "@/components/ui/preloader";
 
 export default function StudentCourses() {
   const { user, token } = useAuth();
@@ -133,11 +134,7 @@ export default function StudentCourses() {
   };
 
   if (loading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
-      </div>
-    );
+    return <PagePreloader text="Loading courses..." />;
   }
 
   if (apiError) {

@@ -18,9 +18,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, Users, Loader2 } from "lucide-react";
+import { Search, Users } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { API_CONFIG } from '@/config/api';
+import { Preloader } from "@/components/ui/preloader";
 
 interface Student {
   id: string;
@@ -181,9 +182,7 @@ export default function TeacherStudents() {
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <div className="flex justify-center items-center h-64">
-              <Loader2 className="h-8 w-8 animate-spin" />
-            </div>
+            <Preloader variant="spinner" size="md" text="Loading students..." height="16rem" />
           ) : error ? (
             <div className="text-center py-8 text-red-600">{error}</div>
           ) : filteredStudents.length > 0 ? (

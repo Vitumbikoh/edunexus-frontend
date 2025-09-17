@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { API_CONFIG } from '@/config/api';
+import { TablePreloader } from '@/components/ui/preloader';
 
 interface TermOption { id: string; name?: string; termNumber?: number; isCurrent?: boolean; }
 interface ExamRow { id:string; title:string; examType:string; date:string; totalMarks:number; status:string; course?:{id:string; name:string}; class?:{id:string; name:string}; Term?:{id:string; name?:string; termNumber?:number}; }
@@ -131,7 +132,7 @@ export default function TeacherAllExams(){
               </TableHeader>
               <TableBody>
                 {loading ? (
-                  <TableRow><TableCell colSpan={7} className="py-8 text-center">Loading...</TableCell></TableRow>
+                  <TablePreloader colSpan={7} text="Loading exams..." />
                 ) : filtered.length === 0 ? (
                   <TableRow><TableCell colSpan={7} className="py-8 text-center text-muted-foreground">No exams found</TableCell></TableRow>
                 ) : filtered.map(exam => (

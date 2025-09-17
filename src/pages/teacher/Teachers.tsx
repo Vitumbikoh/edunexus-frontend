@@ -17,6 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { Pagination, PaginationContent, PaginationItem, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { useToast } from "@/components/ui/use-toast";
 import { API_CONFIG } from '@/config/api';
+import { TablePreloader } from "@/components/ui/preloader";
 
 interface Teacher {
   id: string;
@@ -183,9 +184,21 @@ export default function Teachers() {
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <div className="flex justify-center items-center h-64">
-              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
-            </div>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Contact</TableHead>
+                  <TableHead>Specialization</TableHead>
+                  <TableHead>Experience</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                <TablePreloader colSpan={6} text="Loading teachers..." />
+              </TableBody>
+            </Table>
           ) : (
             <>
               <Table>

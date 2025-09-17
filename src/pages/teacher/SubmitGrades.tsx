@@ -11,6 +11,7 @@ import { toast } from "@/hooks/use-toast";
 import { useNavigate, useLocation } from 'react-router-dom';
 import * as XLSX from 'xlsx';
 import { API_CONFIG } from '@/config/api';
+import { Preloader } from '@/components/ui/preloader';
 
 interface ClassInfo {
   id: string;
@@ -549,19 +550,7 @@ export default function SubmitGrades() {
           <h1 className="text-2xl font-bold">Submit Grades</h1>
           <p className="text-muted-foreground">Record student assessment results</p>
         </div>
-        <Card>
-          <CardHeader>
-            <CardTitle className="h-6 bg-gray-200 animate-pulse rounded"></CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="h-10 bg-gray-200 animate-pulse rounded"></div>
-              <div className="h-10 bg-gray-200 animate-pulse rounded"></div>
-              <div className="h-10 bg-gray-200 animate-pulse rounded"></div>
-              <div className="h-20 bg-gray-200 animate-pulse rounded"></div>
-            </div>
-          </CardContent>
-        </Card>
+        <Preloader variant="skeleton" rows={5} className="space-y-6" />
       </div>
     );
   }

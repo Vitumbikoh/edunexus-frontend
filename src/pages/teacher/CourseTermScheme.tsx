@@ -8,6 +8,7 @@ import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@
 import { Table, TableHeader, TableHead, TableRow, TableBody, TableCell } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/components/ui/use-toast';
+import { TablePreloader } from '@/components/ui/preloader';
 
 interface SchemeComponent { componentType:string; weight:number; required:boolean; }
 interface Scheme { id:string; courseId:string; termId:string; totalWeight:number; passThreshold?:number; components: SchemeComponent[]; isLocked:boolean; version:number; }
@@ -201,7 +202,7 @@ export default function CourseTermScheme(){
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {schemesLoading ? <TableRow><TableCell colSpan={5} className="text-center py-6">Loading...</TableCell></TableRow> : (
+                {schemesLoading ? <TablePreloader colSpan={5} text="Loading schemes..." /> : (
                   schemes.length ===0 ? <TableRow><TableCell colSpan={5} className="text-center py-6 text-muted-foreground">No schemes yet</TableCell></TableRow> : (
                     schemes.map(s=> {
                       const courseName = courses.find(c=> c.id===s.courseId)?.name || s.courseId;
