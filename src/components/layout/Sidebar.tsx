@@ -324,8 +324,8 @@ export default function Sidebar() {
   const toggleDropdown = (label: string) => {
     setOpenDropdowns((prev) =>
       prev.includes(label)
-        ? prev.filter((item) => item !== label)
-        : [...prev, label]
+        ? [] // Close all dropdowns if the clicked one is already open
+        : [label] // Open only the clicked dropdown and close all others
     );
   };
 
