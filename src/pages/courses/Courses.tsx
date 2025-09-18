@@ -59,10 +59,10 @@ export default function Courses() {
     courses: [],
     totalPages: 1,
     totalItems: 0,
-    itemsPerPage: 10,
+    itemsPerPage: 9,
   });
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(10);
+  const [itemsPerPage] = useState(9);
   const [searchPeriod, setSearchPeriod] = useState("");
   const [selectedClass, setSelectedClass] = useState<string>("all");
   const [apiError, setApiError] = useState<string | null>(null);
