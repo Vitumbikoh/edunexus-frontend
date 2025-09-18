@@ -22,9 +22,11 @@ import { Search, Users } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { API_CONFIG } from '@/config/api';
 import { Preloader } from "@/components/ui/preloader";
+import { useNavigate } from "react-router-dom";
 
 interface Student {
   id: string;
+  studentId: string;
   firstName: string;
   lastName: string;
   user: {
@@ -40,6 +42,7 @@ interface Student {
 export default function TeacherStudents() {
   const { user, token } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedClass, setSelectedClass] = useState<string>("");
   const [students, setStudents] = useState<Student[]>([]);
@@ -138,6 +141,12 @@ export default function TeacherStudents() {
     return matchesSearch && matchesClass;
   });
 
+  // Handle view details button click
+  const handleViewDetails = (student: Student) => {
+    // Navigate to student details page with student data
+    navigate(`/teacher/students/${student.id}`, { state: { student } });
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -189,17 +198,20 @@ export default function TeacherStudents() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead>Student ID</TableHead>
                   <TableHead>Name</TableHead>
                   <TableHead>Class</TableHead>
                   <TableHead>Email</TableHead>
                   <TableHead>Attendance</TableHead>
-                  <TableHead>Performance</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredStudents.map((student) => (
                   <TableRow key={student.id}>
+                    <TableCell className="font-medium">
+                      {student.studentId || "N/A"}
+                    </TableCell>
                     <TableCell className="font-medium">
                       {student.firstName} {student.lastName}
                     </TableCell>
@@ -208,9 +220,12 @@ export default function TeacherStudents() {
                     <TableCell>
                       {student.attendance ? `${student.attendance}%` : "-"}
                     </TableCell>
-                    <TableCell>{student.performance || "-"}</TableCell>
                     <TableCell className="text-right">
-                      <Button variant="ghost" size="sm">
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => handleViewDetails(student)}
+                      >
                         View Details
                       </Button>
                     </TableCell>

@@ -31,6 +31,7 @@ import AcademicCalendar from "./pages/setups/AcademicCalendar";
 const GradesReportLazy = React.lazy(() => import('./pages/courses/GradesReport'));
 
 // Teacher specific pages
+import TeacherStudentDetails from "./pages/teacher/TeacherStudentDetails";
 import TeacherStudents from "./pages/teacher/TeacherStudents";
 import TeacherSchedule from "./pages/teacher/TeacherSchedule";
 import TeacherAttendance from "./pages/teacher/TeacherAttendance";
@@ -852,6 +853,17 @@ const AppRoutes = () => {
           <TeacherRoute>
             <Layout>
               <TeacherStudents />
+            </Layout>
+          </TeacherRoute>
+        }
+      />
+
+      <Route
+        path="/teacher/students/:id"
+        element={
+          <TeacherRoute>
+            <Layout>
+              <TeacherStudentDetails />
             </Layout>
           </TeacherRoute>
         }

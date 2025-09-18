@@ -83,7 +83,7 @@ export default function AccountSecuritySection({ variant }: Props) {
       setAccountData({
         username: data.user?.username || "",
         email: data.user?.email || "",
-        phone: data.user?.phone || "",
+        phone: data.user?.phone || "no phone number",
         role: data.user?.role || "",
         image: data.user?.image || "",
       });
@@ -119,7 +119,21 @@ export default function AccountSecuritySection({ variant }: Props) {
 
   const handleAccountInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target;
-    setAccountData((prev) => ({ ...prev, [id]: value }));
+    
+    // Special handling for phone field
+    if (id === 'phone') {
+      // If current value is "no phone number" and user starts typing, clear it
+      if (accountData.phone === 'no phone number' && value !== 'no phone number') {
+        setAccountData((prev) => ({ ...prev, [id]: value }));
+      } else if (value === '') {
+        // If user clears the field, show "no phone number"
+        setAccountData((prev) => ({ ...prev, [id]: 'no phone number' }));
+      } else {
+        setAccountData((prev) => ({ ...prev, [id]: value }));
+      }
+    } else {
+      setAccountData((prev) => ({ ...prev, [id]: value }));
+    }
   };
 
   const handleSecurityInputChange = (
@@ -143,7 +157,7 @@ export default function AccountSecuritySection({ variant }: Props) {
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify({
-          phone: accountData.phone,
+          phone: accountData.phone === "no phone number" ? null : accountData.phone,
         }),
       });
       if (!res.ok) throw new Error(await res.text());
@@ -248,7 +262,7 @@ export default function AccountSecuritySection({ variant }: Props) {
                 type="tel"
                 value={accountData.phone || ""}
                 onChange={handleAccountInputChange}
-                placeholder="Enter your phone number"
+                placeholder={accountData.phone ? "Enter your phone number" : "no phone number"}
               />
             </div>
             <div className="space-y-2">

@@ -36,10 +36,13 @@ export default function Profile() {
         });
 
         if (!response.ok) {
-          throw new Error('Failed to fetch profile');
+          const errorText = await response.text();
+          console.error('Profile fetch failed:', response.status, errorText);
+          throw new Error(`Failed to fetch profile: ${response.status} ${errorText}`);
         }
 
         const profileData = await response.json();
+        console.log('Profile data received:', profileData); // Debug log
         setProfile(profileData);
       } catch (error) {
         console.error('Error fetching profile:', error);
@@ -58,10 +61,10 @@ export default function Profile() {
     fetchProfile();
   }, [token, user, toast]);
   
-  if (!user) return null;
-  
   // Use profile data if available, otherwise fallback to user data
   const displayData = profile || user;
+  console.log('Display data:', displayData); // Debug log
+  console.log('Phone fields:', { phone: displayData.phone, phoneNumber: displayData.phoneNumber }); // Debug log
   
   if (!user) return null;
   
@@ -142,12 +145,20 @@ export default function Profile() {
                 <span className="text-muted-foreground">Joined:</span>
                 <span>{displayData.createdAt ? new Date(displayData.createdAt).toLocaleDateString() : 'March 15, 2023'}</span>
               </div>
-              {displayData.phone && (
-                <div className="flex justify-between items-center border-b pb-2">
-                  <span className="text-muted-foreground">Phone:</span>
-                  <span>{displayData.phone}</span>
-                </div>
-              )}
+              {/* Always show phone section for debugging */}
+              <div className="flex justify-between items-center border-b pb-2">
+                <span className="text-muted-foreground">Phone:</span>
+                <span>{displayData.phone || displayData.phoneNumber || 'no phone number'}</span>
+              </div>
+              {/* Debug: Always show phone section */}
+              <div className="flex justify-between items-center border-b pb-2">
+                <span className="text-muted-foreground">Debug Phone:</span>
+                <span>
+                  phone: "{displayData.phone}", 
+                  phoneNumber: "{displayData.phoneNumber}", 
+                  result: "{displayData.phone || displayData.phoneNumber || 'no phone number'}"
+                </span>
+              </div>
               {displayData.department && (
                 <div className="flex justify-between items-center border-b pb-2">
                   <span className="text-muted-foreground">Department:</span>
