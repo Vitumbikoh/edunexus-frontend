@@ -54,8 +54,6 @@ export default function CourseForm() {
     name: "",
     description: "",
     status: "upcoming",
-    startDate: "",
-    endDate: "",
     teacherId: "",
     classId: "",
   });
@@ -97,8 +95,6 @@ export default function CourseForm() {
           name: course.name || "",
           description: course.description || "",
           status: course.status || "upcoming",
-          startDate: course.startDate ? course.startDate.split("T")[0] : "",
-          endDate: course.endDate ? course.endDate.split("T")[0] : "",
           teacherId: course.teacherId || "",
           classId: course.classId || "",
         });
@@ -250,12 +246,6 @@ export default function CourseForm() {
               name: formData.name,
               description: formData.description,
               status: formData.status,
-              startDate: formData.startDate
-                ? new Date(formData.startDate).toISOString()
-                : undefined,
-              endDate: formData.endDate
-                ? new Date(formData.endDate).toISOString()
-                : undefined,
               classId: formData.classId,
             }),
           }
@@ -297,12 +287,6 @@ export default function CourseForm() {
               name: formData.name,
               description: formData.description,
               status: formData.status,
-              startDate: formData.startDate
-                ? new Date(formData.startDate).toISOString()
-                : undefined,
-              endDate: formData.endDate
-                ? new Date(formData.endDate).toISOString()
-                : undefined,
               classId: formData.classId,
             }),
           }
@@ -507,27 +491,6 @@ export default function CourseForm() {
                     ))}
                   </SelectContent>
                 </Select>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <Label htmlFor="startDate">Start Date</Label>
-                <Input
-                  id="startDate"
-                  type="date"
-                  value={formData.startDate}
-                  onChange={handleChange}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="endDate">End Date</Label>
-                <Input
-                  id="endDate"
-                  type="date"
-                  value={formData.endDate}
-                  onChange={handleChange}
-                />
               </div>
             </div>
 

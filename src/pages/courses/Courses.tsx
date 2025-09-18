@@ -6,6 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
+import { Upload, Download } from "lucide-react";
+import { courseService } from "@/services/courseService";
 import {
   Pagination,
   PaginationContent,
@@ -68,6 +70,8 @@ export default function Courses() {
   const [classes, setClasses] = useState<ClassOption[]>([
     { id: "all", name: "All Classes" },
   ]);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadErrors, setUploadErrors] = useState<Array<{ line: number; error: string }>>([]);
 
   const canAdd = user?.role === "admin" || user?.role === "teacher";
   const canEdit = user?.role === "admin" || user?.role === "teacher";
@@ -244,6 +248,66 @@ export default function Courses() {
     setCurrentPage(1);
   };
 
+  const handleBulkUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    setUploadErrors([]);
+
+    try {
+      if (!token) throw new Error('Not authenticated');
+
+      const result = await courseService.bulkUploadCourses(token, file);
+
+      const created = result.summary.created;
+      const failed = result.summary.failed;
+      const errors = result.errors || [];
+
+      setUploadErrors(errors);
+
+      toast({
+        title: 'Upload complete',
+        description: `${created} courses added, ${failed} failed`,
+        variant: failed > 0 ? 'destructive' : 'default',
+      });
+
+      // Refresh the courses list
+      fetchCourses(currentPage, itemsPerPage, searchPeriod, selectedClass);
+    } catch (err: any) {
+      toast({
+        title: 'Upload failed',
+        description: err?.message || 'Could not upload courses',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsUploading(false);
+      // Reset the file input
+      if (e.target) {
+        e.target.value = '';
+      }
+    }
+  };
+
+  const handleDownloadTemplate = async () => {
+    try {
+      if (!token) throw new Error('Not authenticated');
+
+      await courseService.downloadTemplate(token);
+
+      toast({
+        title: 'Template downloaded',
+        description: 'Course bulk upload template has been downloaded',
+      });
+    } catch (err: any) {
+      toast({
+        title: 'Download failed',
+        description: err?.message || 'Could not download template',
+        variant: 'destructive',
+      });
+    }
+  };
+
   const handleEnrollClick = (courseId: string) => {
     navigate(`/courses/${courseId}/enrollments`);
   };
@@ -281,11 +345,32 @@ export default function Courses() {
               ))}
             </SelectContent>
           </Select>
-          {/* {canAdd && (
-            <Button onClick={() => navigate("/courses/new")}>
-              Add New Course
-            </Button>
-          )} */}
+          {canAdd && (
+            <>
+              <Button variant="outline" onClick={handleDownloadTemplate}>
+                <Download className="h-4 w-4 mr-2" />
+                Template
+              </Button>
+              <div className="relative">
+                <input
+                  id="bulk-upload"
+                  type="file"
+                  accept=".xlsx,.xls,.csv"
+                  className="hidden"
+                  onChange={handleBulkUpload}
+                  disabled={isUploading}
+                />
+                <Button
+                  variant="outline"
+                  onClick={() => document.getElementById('bulk-upload')?.click()}
+                  disabled={isUploading}
+                >
+                  <Upload className="h-4 w-4 mr-2" />
+                  {isUploading ? 'Uploading...' : 'Bulk Upload'}
+                </Button>
+              </div>
+            </>
+          )}
         </div>
       </div>
 
@@ -317,6 +402,10 @@ export default function Courses() {
             d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
           />
         </svg>
+      </div>
+
+      <div className="mb-4 text-sm text-muted-foreground">
+        Use the Excel template for bulk upload. The column "className" is optional but recommended for proper class assignment. Teacher names will be matched automatically.
       </div>
 
       {isLoading ? (

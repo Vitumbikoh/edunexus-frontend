@@ -1,0 +1,278 @@
+// src/services/courseService.ts
+import { API_CONFIG } from '@/config/api';
+
+export interface Course {
+  id: string;
+  code: string;
+  name: string;
+  description?: string;
+  status: 'active' | 'inactive' | 'upcoming';
+  teacherId?: string;
+  classId?: string;
+  teacher?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+  };
+  class?: {
+    id: string;
+    name: string;
+  };
+  enrollmentCount?: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface CreateCourseDto {
+  code: string;
+  name: string;
+  description?: string;
+  status?: 'active' | 'inactive' | 'upcoming';
+  teacherId?: string;
+  classId?: string;
+}
+
+export interface UpdateCourseDto {
+  code?: string;
+  name?: string;
+  description?: string;
+  status?: 'active' | 'inactive' | 'upcoming';
+  teacherId?: string;
+  classId?: string;
+}
+
+export interface BulkUploadResult {
+  success: boolean;
+  summary: {
+    totalRows: number;
+    created: number;
+    failed: number;
+  };
+  created: Array<{
+    line: number;
+    id: string;
+    code: string;
+    name: string;
+  }>;
+  errors: Array<{
+    line: number;
+    error: string;
+  }>;
+  message: string;
+}
+
+class CourseService {
+  private getAuthHeaders(token: string) {
+    return {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    };
+  }
+
+  async getCourses(
+    token: string,
+    page: number = 1,
+    limit: number = 10,
+    search?: string,
+    classId?: string
+  ): Promise<{ courses: Course[]; totalPages: number; totalItems: number }> {
+    try {
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: limit.toString(),
+      });
+
+      if (search) params.append('search', search);
+      if (classId && classId !== 'all') params.append('classId', classId);
+
+      const response = await fetch(
+        `${API_CONFIG.BASE_URL}/course?${params.toString()}`,
+        {
+          headers: this.getAuthHeaders(token),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch courses');
+      }
+
+      const data = await response.json();
+      return {
+        courses: data.courses || data || [],
+        totalPages: data.totalPages || 1,
+        totalItems: data.totalItems || 0,
+      };
+    } catch (error) {
+      console.error('Error fetching courses:', error);
+      throw error;
+    }
+  }
+
+  async getCourse(token: string, id: string): Promise<Course> {
+    try {
+      const response = await fetch(
+        `${API_CONFIG.BASE_URL}/course/${id}`,
+        {
+          headers: this.getAuthHeaders(token),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch course');
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching course:', error);
+      throw error;
+    }
+  }
+
+  async createCourse(token: string, courseData: CreateCourseDto): Promise<Course> {
+    try {
+      const response = await fetch(
+        `${API_CONFIG.BASE_URL}/course`,
+        {
+          method: 'POST',
+          headers: this.getAuthHeaders(token),
+          body: JSON.stringify(courseData),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to create course');
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error creating course:', error);
+      throw error;
+    }
+  }
+
+  async updateCourse(token: string, id: string, courseData: UpdateCourseDto): Promise<Course> {
+    try {
+      const response = await fetch(
+        `${API_CONFIG.BASE_URL}/course/${id}`,
+        {
+          method: 'PUT',
+          headers: this.getAuthHeaders(token),
+          body: JSON.stringify(courseData),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to update course');
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error updating course:', error);
+      throw error;
+    }
+  }
+
+  async deleteCourse(token: string, id: string): Promise<void> {
+    try {
+      const response = await fetch(
+        `${API_CONFIG.BASE_URL}/course/${id}`,
+        {
+          method: 'DELETE',
+          headers: this.getAuthHeaders(token),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to delete course');
+      }
+    } catch (error) {
+      console.error('Error deleting course:', error);
+      throw error;
+    }
+  }
+
+  async assignTeacher(token: string, courseId: string, teacherId: string): Promise<Course> {
+    try {
+      const response = await fetch(
+        `${API_CONFIG.BASE_URL}/course/${courseId}/assign-teacher`,
+        {
+          method: 'POST',
+          headers: this.getAuthHeaders(token),
+          body: JSON.stringify({ teacherId }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to assign teacher');
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error assigning teacher:', error);
+      throw error;
+    }
+  }
+
+  async bulkUploadCourses(token: string, file: File): Promise<BulkUploadResult> {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch(
+        `${API_CONFIG.BASE_URL}/course/bulk-upload`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+          body: formData,
+        }
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || 'Bulk upload failed');
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error bulk uploading courses:', error);
+      throw error;
+    }
+  }
+
+  async downloadTemplate(token: string): Promise<void> {
+    try {
+      const response = await fetch(
+        `${API_CONFIG.BASE_URL}/course/template`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to download template');
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'course-bulk-template.xlsx';
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error('Error downloading template:', error);
+      throw error;
+    }
+  }
+}
+
+export const courseService = new CourseService();
