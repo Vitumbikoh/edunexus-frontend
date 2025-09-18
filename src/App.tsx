@@ -35,6 +35,7 @@ import TeacherStudentDetails from "./pages/teacher/TeacherStudentDetails";
 import TeacherStudents from "./pages/teacher/TeacherStudents";
 import TeacherSchedule from "./pages/teacher/TeacherSchedule";
 import TeacherAttendance from "./pages/teacher/TeacherAttendance";
+import TeacherViewAttendance from "./pages/teacher/TeacherViewAttendance";
 import LearningMaterials from "./pages/LearningMaterials";
 import SubmitGrades from "./pages/teacher/SubmitGrades";
 
@@ -949,6 +950,17 @@ const AppRoutes = () => {
           <TeacherRoute>
             <Layout>
               <TeacherAttendance />
+            </Layout>
+          </TeacherRoute>
+        }
+      />
+
+      <Route
+        path="/teacher/attendance/view"
+        element={
+          <TeacherRoute>
+            <Layout>
+              <TeacherViewAttendance />
             </Layout>
           </TeacherRoute>
         }

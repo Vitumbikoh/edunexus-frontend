@@ -222,10 +222,21 @@ const teacherNavItems: NavItem[] = [
     roles: ["teacher"],
   },
   {
-    label: "Take Attendance",
+    label: "Attendance",
     icon: Check,
-    href: "/take-attendance",
     roles: ["teacher"],
+    subItems: [
+      {
+        label: "Take Attendance",
+        href: "/take-attendance",
+        roles: ["teacher"],
+      },
+      {
+        label: "View Attendance",
+        href: "/teacher/attendance/view",
+        roles: ["teacher"],
+      },
+    ],
   },
   {
     label: "Learning Materials",
