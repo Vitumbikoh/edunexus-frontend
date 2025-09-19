@@ -295,9 +295,9 @@ const financeNavItems: NavItem[] = [
     roles: ["finance"],
   },
   {
-    label: "Invoices",
+    label: "Expenses",
     icon: FileText,
-    href: "/finance/invoices",
+    href: "/finance/expenses",
     roles: ["finance"],
   },
   {

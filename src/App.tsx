@@ -63,7 +63,7 @@ import FinanceOfficers from "./pages/finance/FinanceOfficers";
 import FinanceForm from "./pages/finance/FinanceForm";
 import FinanceOfficerDetails from "./pages/finance/FinanceOfficerDetails";
 import Transactions from "./pages/finance/Transactions";
-import Invoices from "./pages/finance/Invoices";
+import ExpenseManagement from "./pages/finance/ExpenseManagement";
 import FinanceReports from "./pages/finance/FinanceReports";
 import FeeManagement from "./pages/finance/FeeManagement";
 import Courses from "./pages/courses/Courses";
@@ -720,12 +720,12 @@ const AppRoutes = () => {
       />
 
       <Route
-        path="/finance/invoices"
+        path="/finance/expenses"
         element={
           <ProtectedRoute>
             <FinanceRoute>
               <Layout>
-                <Invoices />
+                <ExpenseManagement />
               </Layout>
             </FinanceRoute>
           </ProtectedRoute>

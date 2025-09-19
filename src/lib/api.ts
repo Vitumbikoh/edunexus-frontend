@@ -92,5 +92,27 @@ export const api = {
       console.error('API request failed:', error);
       throw error;
     }
+  },
+  delete: async (endpoint: string) => {
+    try {
+      const baseUrl = API_CONFIG.BASE_URL;
+      const response = await fetch(`${baseUrl}${endpoint}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          `API request failed with status ${response.status}: ${errorData.message || response.statusText}`
+        );
+      }
+      return await response.json().catch(() => ({}));
+    } catch (error) {
+      console.error('API request failed:', error);
+      throw error;
+    }
   }
 };

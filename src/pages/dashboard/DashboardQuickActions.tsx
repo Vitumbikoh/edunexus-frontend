@@ -88,9 +88,9 @@ export const QuickActions = () => {
             <CreditCard className="mr-2 h-4 w-4" />
             View Transactions
           </Button>
-          <Button className="w-full" onClick={() => navigate("/finance/invoices")}>
+          <Button className="w-full" onClick={() => navigate("/finance/expenses")}>
             <FileText className="mr-2 h-4 w-4" />
-            Manage Invoices
+            Manage Expenses
           </Button>
           <Button className="w-full" onClick={() => navigate("/finance/reports")}>
             <ChartPie className="mr-2 h-4 w-4" />
