@@ -534,6 +534,10 @@ export const FinanceDashboardCards = () => {
   const { token } = useAuth();
   const navigate = useNavigate();
   const [financeData, setFinanceData] = useState<any>(null);
+  const [paymentMethodsData, setPaymentMethodsData] = useState<any[]>([]);
+  const [outstandingFeesBreakdown, setOutstandingFeesBreakdown] = useState<any[]>([]);
+  const [revenueTrendsData, setRevenueTrendsData] = useState<any[]>([]);
+  const [analyticsLoading, setAnalyticsLoading] = useState(true);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -573,6 +577,73 @@ export const FinanceDashboardCards = () => {
 
     if (token) {
       fetchFinanceData();
+    }
+  }, [token]);
+
+  // Fetch analytics data for charts
+  useEffect(() => {
+    const fetchAnalyticsData = async () => {
+      try {
+        setAnalyticsLoading(true);
+        
+        // Fetch payment methods distribution
+        const paymentMethodsResponse = await fetch(`${API_CONFIG.BASE_URL}/finance/payment-methods-distribution`, {
+          headers: { 
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+        });
+
+        if (paymentMethodsResponse.ok) {
+          const paymentMethodsResult = await paymentMethodsResponse.json();
+          console.log('Payment methods data:', paymentMethodsResult);
+          
+          // Transform backend data to chart format
+          const chartData = paymentMethodsResult.map((item: any, index: number) => ({
+            name: item.method || item.paymentMethod,
+            value: parseFloat(item.percentage),
+            color: ['#10B981', '#3B82F6', '#F97316', '#8B5CF6', '#EF4444'][index % 5]
+          }));
+          setPaymentMethodsData(chartData);
+        }
+
+        // Fetch outstanding fees breakdown
+        const outstandingFeesResponse = await fetch(`${API_CONFIG.BASE_URL}/finance/outstanding-fees-breakdown`, {
+          headers: { 
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+        });
+
+        if (outstandingFeesResponse.ok) {
+          const outstandingFeesResult = await outstandingFeesResponse.json();
+          console.log('Outstanding fees breakdown:', outstandingFeesResult);
+          setOutstandingFeesBreakdown(outstandingFeesResult);
+        }
+
+        // Fetch revenue trends
+        const revenueTrendsResponse = await fetch(`${API_CONFIG.BASE_URL}/finance/revenue-trends`, {
+          headers: { 
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+        });
+
+        if (revenueTrendsResponse.ok) {
+          const revenueTrendsResult = await revenueTrendsResponse.json();
+          console.log('Revenue trends:', revenueTrendsResult);
+          setRevenueTrendsData(revenueTrendsResult);
+        }
+
+      } catch (err) {
+        console.error('Analytics data fetch error:', err);
+      } finally {
+        setAnalyticsLoading(false);
+      }
+    };
+
+    if (token) {
+      fetchAnalyticsData();
     }
   }, [token]);
 
@@ -629,8 +700,8 @@ export const FinanceDashboardCards = () => {
     );
   }
 
-  // Sample chart data - in a real app, this would come from the API
-  const revenueChartData = [
+  // Use real revenue trends data or fallback
+  const revenueChartData = revenueTrendsData.length > 0 ? revenueTrendsData : [
     { month: 'Jan', revenue: 45000, target: 50000 },
     { month: 'Feb', revenue: 52000, target: 55000 },
     { month: 'Mar', revenue: 48000, target: 50000 },
@@ -639,11 +710,9 @@ export const FinanceDashboardCards = () => {
     { month: 'Jun', revenue: 67000, target: 65000 },
   ];
 
-  const paymentMethodsData = [
-    { name: 'Cash', value: 35, color: '#10B981' },
-    { name: 'Bank Transfer', value: 45, color: '#3B82F6' },
-    { name: 'M-Pesa', value: 15, color: '#F97316' },
-    { name: 'Card', value: 5, color: '#8B5CF6' },
+  // Use fallback data if analytics haven't loaded yet
+  const displayPaymentMethodsData = paymentMethodsData.length > 0 ? paymentMethodsData : [
+    { name: 'Loading...', value: 100, color: '#9CA3AF' }
   ];
 
   return (
@@ -699,14 +768,14 @@ export const FinanceDashboardCards = () => {
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
-                    data={paymentMethodsData}
+                    data={displayPaymentMethodsData}
                     cx="50%"
                     cy="50%"
                     outerRadius={80}
                     dataKey="value"
-                    label={({ name, value }) => `${name}: ${value}%`}
+                    label={({ name, value }) => analyticsLoading ? 'Loading...' : `${name}: ${value}%`}
                   >
-                    {paymentMethodsData.map((entry, index) => (
+                    {displayPaymentMethodsData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
                   </Pie>
@@ -734,29 +803,26 @@ export const FinanceDashboardCards = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600 dark:text-gray-400">$0 - $500</span>
-                <span className="text-sm font-medium">45%</span>
-              </div>
-              <Progress value={45} className="h-2" />
-              
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600 dark:text-gray-400">$501 - $1,000</span>
-                <span className="text-sm font-medium">30%</span>
-              </div>
-              <Progress value={30} className="h-2" />
-              
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600 dark:text-gray-400">$1,001 - $2,000</span>
-                <span className="text-sm font-medium">20%</span>
-              </div>
-              <Progress value={20} className="h-2" />
-              
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600 dark:text-gray-400">$2,000+</span>
-                <span className="text-sm font-medium">5%</span>
-              </div>
-              <Progress value={5} className="h-2" />
+              {analyticsLoading ? (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600 mx-auto"></div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">Loading breakdown...</p>
+                </div>
+              ) : outstandingFeesBreakdown.length > 0 ? (
+                outstandingFeesBreakdown.map((range, index) => (
+                  <div key={index}>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600 dark:text-gray-400">{range.range}</span>
+                      <span className="text-sm font-medium">{parseFloat(range.percentage).toFixed(1)}%</span>
+                    </div>
+                    <Progress value={parseFloat(range.percentage)} className="h-2" />
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-8">
+                  <p className="text-sm text-gray-600 dark:text-gray-400">No outstanding fees data available</p>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>

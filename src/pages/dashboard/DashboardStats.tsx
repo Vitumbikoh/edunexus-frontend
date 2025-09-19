@@ -109,14 +109,24 @@ export const useDashboardStats = () => {
             },
           ]);
         } else if (role === "finance") {
-          // Fetch finance dashboard data
-          const financeData = await fetchData("/finance/dashboard-data");
+          // Fetch finance dashboard data and outstanding fees trend
+          const [financeData, outstandingFeesLastMonth] = await Promise.all([
+            fetchData("/finance/dashboard-data"),
+            fetchData("/finance/outstanding-fees-last-month")
+          ]);
 
           // Calculate trends (comparing current vs last month/previous period)
           const monthlyRevenue = financeData.monthlyRevenue || 0;
           const monthlyRevenueLastMonth = financeData.monthlyRevenueLastMonth || 0;
           const revenueChange = monthlyRevenueLastMonth > 0 
             ? ((monthlyRevenue - monthlyRevenueLastMonth) / monthlyRevenueLastMonth) * 100 
+            : 0;
+
+          // Calculate outstanding fees trend
+          const currentOutstanding = financeData.outstandingFees || 0;
+          const lastMonthOutstanding = outstandingFeesLastMonth.outstandingFeesLastMonth || 0;
+          const outstandingChange = lastMonthOutstanding > 0 
+            ? ((currentOutstanding - lastMonthOutstanding) / lastMonthOutstanding) * 100 
             : 0;
 
           setStats([
@@ -129,9 +139,9 @@ export const useDashboardStats = () => {
             },
             {
               title: "Outstanding Fees",
-              value: `$${financeData.outstandingFees?.toLocaleString() || 0}`,
+              value: `$${currentOutstanding.toLocaleString()}`,
               icon: <DollarSign size={24} />,
-              trend: { value: 8, isPositive: false }, // This would need historical data to calculate properly
+              trend: { value: Math.abs(Math.round(outstandingChange)), isPositive: outstandingChange <= 0 },
               className: "bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-900/10",
             },
             {

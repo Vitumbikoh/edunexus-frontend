@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   BarChart, 
   Bar, 
@@ -28,7 +28,48 @@ import { useAuth } from '@/contexts/AuthContext';
 import { API_CONFIG } from '@/config/api';
 import { Preloader } from '@/components/ui/preloader';
 
-// Sample data for charts
+// Dynamic data fetching for charts
+const useChartData = (endpoint: string, defaultData: any[] = []) => {
+  const { token } = useAuth();
+  const [data, setData] = useState(defaultData);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!token) return;
+      
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await fetch(`${API_CONFIG.BASE_URL}${endpoint}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error(`Failed to fetch data from ${endpoint}`);
+        }
+
+        const result = await response.json();
+        setData(result);
+      } catch (err) {
+        console.error(`Error fetching ${endpoint}:`, err);
+        setError(err instanceof Error ? err.message : 'Failed to load data');
+        setData(defaultData);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [token, endpoint]);
+
+  return { data, loading, error };
+};
+
+// Sample data for charts (fallback)
 export const attendanceData = [
   { name: 'Class 9A', value: 92 },
   { name: 'Class 9B', value: 88 },
@@ -63,6 +104,85 @@ export const financeData = [
 const COLORS = ['#0088FE', '#FFBB28', '#00C49F', '#FF8042', '#8884D8', '#82ca9d'];
 const PIE_COLORS = ['#10B981', '#F97316'];
 const ASSIGNMENT_COLORS = ['#f97316', '#3b82f6', '#10b981'];
+
+// Dynamic Attendance Chart Component
+export const AttendanceChart = () => {
+  const { data: attendanceData, loading, error } = useChartData('/analytics/attendance-by-class', []);
+
+  if (loading) return <Preloader />;
+  if (error) return <div className="text-red-500">Error loading attendance data</div>;
+
+  const processedData = attendanceData.map((item: any) => ({
+    name: item.className || item.name,
+    value: item.attendanceRate || item.value || 0,
+  }));
+
+  return (
+    <ResponsiveContainer width="100%" height={300}>
+      <BarChart data={processedData}>
+        <XAxis dataKey="name" />
+        <YAxis />
+        <Tooltip />
+        <Bar dataKey="value" fill="#8884d8" />
+      </BarChart>
+    </ResponsiveContainer>
+  );
+};
+
+// Dynamic Performance Chart Component
+export const PerformanceChart = () => {
+  const { data: performanceData, loading, error } = useChartData('/analytics/course-averages', []);
+
+  if (loading) return <Preloader />;
+  if (error) return <div className="text-red-500">Error loading performance data</div>;
+
+  const processedData = performanceData.map((item: any) => ({
+    name: item.courseName || item.name,
+    students: item.studentCount || item.students || 0,
+    average: item.averageGrade || item.average || 0,
+  }));
+
+  return (
+    <ResponsiveContainer width="100%" height={300}>
+      <BarChart data={processedData}>
+        <XAxis dataKey="name" />
+        <YAxis />
+        <Tooltip />
+        <Bar dataKey="average" fill="#82ca9d" />
+      </BarChart>
+    </ResponsiveContainer>
+  );
+};
+
+// Dynamic Finance Trend Chart Component
+export const FinanceTrendChart = () => {
+  const { data: financeData, loading, error } = useChartData('/finance/dashboard-data', []);
+
+  if (loading) return <Preloader />;
+  if (error) return <div className="text-red-500">Error loading finance data</div>;
+
+  // For now, return sample data until we have historical finance data
+  const sampleData = [
+    { month: 'Jan', income: 45000, expenses: 38000 },
+    { month: 'Feb', income: 52000, expenses: 41000 },
+    { month: 'Mar', income: 48000, expenses: 39000 },
+    { month: 'Apr', income: 61000, expenses: 45000 },
+    { month: 'May', income: 55000, expenses: 42000 },
+    { month: 'Jun', income: 67000, expenses: 48000 },
+  ];
+
+  return (
+    <ResponsiveContainer width="100%" height={300}>
+      <AreaChart data={sampleData}>
+        <XAxis dataKey="month" />
+        <YAxis />
+        <Tooltip />
+        <Area type="monotone" dataKey="income" stackId="1" stroke="#8884d8" fill="#8884d8" />
+        <Area type="monotone" dataKey="expenses" stackId="1" stroke="#82ca9d" fill="#82ca9d" />
+      </AreaChart>
+    </ResponsiveContainer>
+  );
+};
 
 export const generateStudentPerformanceData = (user: any) => {
   if (!user?.studentData) {
