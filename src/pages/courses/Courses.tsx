@@ -405,7 +405,7 @@ export default function Courses() {
       </div>
 
       <div className="mb-4 text-sm text-muted-foreground">
-        Use the Excel template for bulk upload. The column "className" is optional but recommended for proper class assignment. Teacher names will be matched automatically.
+        Use the Excel template for bulk upload. The column "className" is optional but recommended for proper class assignment. Use "teacherUsername" column with usernames like "matthewsgondwe2@teacher" - leave empty for courses without assigned teachers.
       </div>
 
       {isLoading ? (
