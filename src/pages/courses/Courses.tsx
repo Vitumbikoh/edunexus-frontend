@@ -328,7 +328,8 @@ export default function Courses() {
         <div>
           <h1 className="text-2xl font-bold">Courses</h1>
           <p className="text-muted-foreground">
-            Showing {paginatedData.courses.length} of {paginatedData.totalItems}{" "}
+            Showing {Math.min((currentPage - 1) * itemsPerPage + 1, paginatedData.totalItems)}-
+            {Math.min(currentPage * itemsPerPage, paginatedData.totalItems)} of {paginatedData.totalItems}{" "}
             courses
           </p>
         </div>
@@ -487,8 +488,9 @@ export default function Courses() {
             ))}
           </div>
 
-          {paginatedData.totalPages > 1 && (
-            <div className="mt-6">
+          {/* Show pagination controls if there are more items than page size or multiple pages */}
+          {(paginatedData.totalPages > 1 || paginatedData.totalItems > itemsPerPage) && (
+            <div className="mt-6 flex justify-center">
               <Pagination>
                 <PaginationContent>
                   <PaginationItem>
@@ -496,23 +498,57 @@ export default function Courses() {
                       onClick={() => {
                         if (currentPage > 1) handlePageChange(currentPage - 1);
                       }}
+                      className={currentPage <= 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
                     />
                   </PaginationItem>
-                  <PaginationItem>
-                    <span className="px-4">
-                      Page {currentPage} of {paginatedData.totalPages}
-                    </span>
-                  </PaginationItem>
+
+                  {/* Page numbers */}
+                  {Array.from({ length: Math.min(5, paginatedData.totalPages) }, (_, i) => {
+                    let pageNum;
+                    if (paginatedData.totalPages <= 5) {
+                      pageNum = i + 1;
+                    } else if (currentPage <= 3) {
+                      pageNum = i + 1;
+                    } else if (currentPage >= paginatedData.totalPages - 2) {
+                      pageNum = paginatedData.totalPages - 4 + i;
+                    } else {
+                      pageNum = currentPage - 2 + i;
+                    }
+
+                    return (
+                      <PaginationItem key={pageNum}>
+                        <button
+                          onClick={() => handlePageChange(pageNum)}
+                          className={`px-3 py-2 rounded-md text-sm font-medium ${
+                            currentPage === pageNum
+                              ? "bg-primary text-primary-foreground"
+                              : "hover:bg-muted"
+                          }`}
+                        >
+                          {pageNum}
+                        </button>
+                      </PaginationItem>
+                    );
+                  })}
+
                   <PaginationItem>
                     <PaginationNext
                       onClick={() => {
                         if (currentPage < paginatedData.totalPages)
                           handlePageChange(currentPage + 1);
                       }}
+                      className={currentPage >= paginatedData.totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
                     />
                   </PaginationItem>
                 </PaginationContent>
               </Pagination>
+            </div>
+          )}
+
+          {/* Show pagination info */}
+          {paginatedData.totalItems > 0 && (
+            <div className="mt-4 text-center text-sm text-muted-foreground">
+              Page {currentPage} of {paginatedData.totalPages} • {paginatedData.totalItems} total courses
             </div>
           )}
         </>
