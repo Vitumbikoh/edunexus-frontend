@@ -14,5 +14,8 @@ export const API_CONFIG = {
   FEE_COLLECTION: '/analytics/fee-collection-status',
   CURRENT_ACADEMIC_YEAR: '/analytics/current-term',
   RECENT_ACTIVITIES: '/activities/recent',
+
+  // Finance endpoints
+  TRANSACTIONS: '/finance/transactions',
   }
 } as const;

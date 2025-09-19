@@ -535,7 +535,7 @@ export default function Finance() {
               <CardContent>
                 <div className="text-2xl font-bold">${effectivePaid.toFixed(2)}</div>
                 <p className="text-xs text-muted-foreground">
-                  {fetchingSummary ? 'Updating...' : `For ${isParent ? 'all children' : 'all students'}`}
+                  {fetchingSummary ? 'Updating...' : `For students that have paid`}
                 </p>
               </CardContent>
             </Card>
