@@ -21,6 +21,8 @@ import {
   Tooltip,
   XAxis,
   YAxis,
+  BarChart,
+  Bar,
 } from 'recharts';
 
 // In‑memory simple cache to avoid repeated loads within session
@@ -791,9 +793,9 @@ export const FinanceDashboardCards = () => {
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="text-xl font-semibold text-gray-900 dark:text-gray-100">Outstanding Fees</CardTitle>
+                <CardTitle className="text-xl font-semibold text-gray-900 dark:text-gray-100">Outstanding Fees by Class</CardTitle>
                 <CardDescription className="text-gray-600 dark:text-gray-400">
-                  Breakdown by amount ranges
+                  Outstanding fees breakdown by class
                 </CardDescription>
               </div>
               <div className="p-2 bg-orange-100 dark:bg-orange-900/30 rounded-full">
@@ -802,24 +804,39 @@ export const FinanceDashboardCards = () => {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
+            <div className="h-64">
               {analyticsLoading ? (
-                <div className="text-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600 mx-auto"></div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">Loading breakdown...</p>
+                <div className="flex items-center justify-center h-full">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600"></div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 ml-2">Loading breakdown...</p>
                 </div>
               ) : outstandingFeesBreakdown.length > 0 ? (
-                outstandingFeesBreakdown.map((range, index) => (
-                  <div key={index}>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600 dark:text-gray-400">{range.range}</span>
-                      <span className="text-sm font-medium">{range.percentage}%</span>
-                    </div>
-                    <Progress value={range.percentage} className="h-2" />
-                  </div>
-                ))
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={outstandingFeesBreakdown}>
+                    <XAxis 
+                      dataKey="range" 
+                      tick={{ fontSize: 12 }}
+                      angle={-45}
+                      textAnchor="end"
+                      height={60}
+                    />
+                    <YAxis 
+                      tick={{ fontSize: 12 }}
+                      tickFormatter={(value) => `$${value.toLocaleString()}`}
+                    />
+                    <Tooltip 
+                      formatter={(value: any) => [`$${value.toLocaleString()}`, 'Outstanding Fees']}
+                      labelStyle={{ color: '#000' }}
+                    />
+                    <Bar 
+                      dataKey="amount" 
+                      fill="#F97316" 
+                      radius={[4, 4, 0, 0]}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
               ) : (
-                <div className="text-center py-8">
+                <div className="flex items-center justify-center h-full">
                   <p className="text-sm text-gray-600 dark:text-gray-400">No outstanding fees data available</p>
                 </div>
               )}
