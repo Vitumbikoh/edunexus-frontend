@@ -813,9 +813,9 @@ export const FinanceDashboardCards = () => {
                   <div key={index}>
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-gray-600 dark:text-gray-400">{range.range}</span>
-                      <span className="text-sm font-medium">{parseFloat(range.percentage).toFixed(1)}%</span>
+                      <span className="text-sm font-medium">{range.percentage}%</span>
                     </div>
-                    <Progress value={parseFloat(range.percentage)} className="h-2" />
+                    <Progress value={range.percentage} className="h-2" />
                   </div>
                 ))
               ) : (
