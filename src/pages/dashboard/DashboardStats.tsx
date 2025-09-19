@@ -108,6 +108,46 @@ export const useDashboardStats = () => {
               className: "bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-900/10",
             },
           ]);
+        } else if (role === "finance") {
+          // Fetch finance dashboard data
+          const financeData = await fetchData("/finance/dashboard-data");
+
+          // Calculate trends (comparing current vs last month/previous period)
+          const monthlyRevenue = financeData.monthlyRevenue || 0;
+          const monthlyRevenueLastMonth = financeData.monthlyRevenueLastMonth || 0;
+          const revenueChange = monthlyRevenueLastMonth > 0 
+            ? ((monthlyRevenue - monthlyRevenueLastMonth) / monthlyRevenueLastMonth) * 100 
+            : 0;
+
+          setStats([
+            {
+              title: "Monthly Revenue",
+              value: `$${monthlyRevenue.toLocaleString()}`,
+              icon: <TrendingUp size={24} />,
+              trend: { value: Math.abs(Math.round(revenueChange)), isPositive: revenueChange >= 0 },
+              className: "bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-900/10",
+            },
+            {
+              title: "Outstanding Fees",
+              value: `$${financeData.outstandingFees?.toLocaleString() || 0}`,
+              icon: <DollarSign size={24} />,
+              trend: { value: 8, isPositive: false }, // This would need historical data to calculate properly
+              className: "bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-900/10",
+            },
+            {
+              title: "Payments Today",
+              value: financeData.paymentsToday?.toString() || "0",
+              icon: <CreditCard size={24} />,
+              className: "bg-gradient-to-br from-green-200 to-green-100 dark:from-green-900/20 dark:to-green-900/10",
+            },
+            {
+              title: "Collection Rate",
+              value: `${financeData.collectionRate || 0}%`,
+              icon: <UserCheck size={24} />,
+              trend: { value: 2, isPositive: true }, // This would need historical data to calculate properly
+              className: "bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-900/10",
+            },
+          ]);
         } else if (role === "teacher") {
           // Fetch teacher profile to get teacherId
           const profileResponse = await fetch(`http://localhost:5000/api/v1/profile`, {
@@ -250,35 +290,7 @@ export const useDashboardStats = () => {
           }
           const roleStats = {
             student: studentStats,
-            finance: [
-              {
-                title: "Monthly Revenue",
-                value: "$67,000",
-                icon: <TrendingUp size={24} />,
-                trend: { value: 15, isPositive: true },
-                className: "bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-900/10",
-              },
-              {
-                title: "Outstanding Fees",
-                value: "$12,450",
-                icon: <DollarSign size={24} />,
-                trend: { value: 8, isPositive: false },
-                className: "bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-900/10",
-              },
-              {
-                title: "Payments Today",
-                value: "23",
-                icon: <CreditCard size={24} />,
-                className: "bg-gradient-to-br from-green-200 to-green-100 dark:from-green-900/20 dark:to-green-900/10",
-              },
-              {
-                title: "Collection Rate",
-                value: "94%",
-                icon: <UserCheck size={24} />,
-                trend: { value: 2, isPositive: true },
-                className: "bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-900/10",
-              },
-            ],
+            finance: [], // Handled separately above
             parent: user?.parentData?.children?.flatMap((child) => [
               {
                 title: `${child.name}'s Attendance`,

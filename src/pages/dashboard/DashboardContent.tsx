@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { DashboardStats } from './DashboardStats';
-import { AdminDashboardCards, TeacherDashboardCards } from './DashboardCards';
+import { AdminDashboardCards, TeacherDashboardCards, FinanceDashboardCards } from './DashboardCards';
 import { Badge } from "@/components/ui/badge";
 import { CalendarDays, Clock, User } from "lucide-react";
 
@@ -164,6 +164,7 @@ export const DashboardContent = () => {
       {/* Role-specific Content */}
       {isAdmin && <AdminDashboardCards />}
       {isTeacher && <TeacherDashboardCards />}
+      {isFinance && <FinanceDashboardCards />}
       {/* ... other role content */}
     </div>
   );

@@ -7,10 +7,21 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ChevronRight, TrendingUp, AlertTriangle, CheckCircle, Clock, Users2, UserCog, GraduationCap, Star, RefreshCcw, Loader2, Filter } from "lucide-react";
+import { ChevronRight, TrendingUp, AlertTriangle, CheckCircle, Clock, Users2, UserCog, GraduationCap, Star, RefreshCcw, Loader2, Filter, DollarSign, CreditCard } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { API_CONFIG } from "@/config/api";
 import { useAuth } from "@/contexts/AuthContext";
+import {
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+  PieChart,
+  Pie,
+  Cell,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts';
 
 // In‑memory simple cache to avoid repeated loads within session
 const teacherPerfCache: Record<string, any> = {};
@@ -520,115 +531,276 @@ export const AdminDashboardCards = () => {
 };
 
 export const FinanceDashboardCards = () => {
+  const { token } = useAuth();
   const navigate = useNavigate();
+  const [financeData, setFinanceData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchFinanceData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        console.log('Fetching finance data from:', `${API_CONFIG.BASE_URL}/finance/dashboard-data`);
+        
+        const response = await fetch(`${API_CONFIG.BASE_URL}/finance/dashboard-data`, {
+          headers: { 
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+        });
+
+        console.log('Response status:', response.status);
+        console.log('Response ok:', response.ok);
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('Error response:', errorText);
+          throw new Error(`Failed to fetch finance data: ${response.status} ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        console.log('Finance data received:', data);
+        setFinanceData(data);
+      } catch (err) {
+        console.error('Finance data fetch error:', err);
+        setError(err instanceof Error ? err.message : 'Failed to load finance data');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (token) {
+      fetchFinanceData();
+    }
+  }, [token]);
+
+  if (loading) {
+    return (
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card className="animate-pulse">
+          <CardContent className="p-6">
+            <div className="h-64 bg-gray-200 rounded"></div>
+          </CardContent>
+        </Card>
+        <Card className="animate-pulse">
+          <CardContent className="p-6">
+            <div className="h-64 bg-gray-200 rounded"></div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card className="border-red-200 bg-red-50 dark:bg-red-900/20">
+        <CardContent className="p-6 text-center">
+          <div className="flex flex-col items-center space-y-4">
+            <AlertTriangle className="h-12 w-12 text-red-500" />
+            <div>
+              <h3 className="text-lg font-semibold text-red-800 dark:text-red-200 mb-2">
+                Error loading dashboard statistics
+              </h3>
+              <p className="text-red-600 dark:text-red-300 mb-4">{error}</p>
+              <div className="text-sm text-red-500 dark:text-red-400 mb-4">
+                <p>API Endpoint: {API_CONFIG.BASE_URL}/finance/dashboard-data</p>
+                <p>Please check:</p>
+                <ul className="list-disc list-inside mt-2 space-y-1">
+                  <li>Backend server is running on port 5000</li>
+                  <li>Finance module is properly configured</li>
+                  <li>User has appropriate permissions</li>
+                  <li>Network connectivity</li>
+                </ul>
+              </div>
+              <Button 
+                variant="outline" 
+                onClick={() => window.location.reload()}
+                className="bg-white hover:bg-red-50 border-red-300"
+              >
+                <RefreshCcw className="h-4 w-4 mr-2" />
+                Retry
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Sample chart data - in a real app, this would come from the API
+  const revenueChartData = [
+    { month: 'Jan', revenue: 45000, target: 50000 },
+    { month: 'Feb', revenue: 52000, target: 55000 },
+    { month: 'Mar', revenue: 48000, target: 50000 },
+    { month: 'Apr', revenue: financeData?.monthlyRevenue || 61000, target: 60000 },
+    { month: 'May', revenue: 55000, target: 58000 },
+    { month: 'Jun', revenue: 67000, target: 65000 },
+  ];
+
+  const paymentMethodsData = [
+    { name: 'Cash', value: 35, color: '#10B981' },
+    { name: 'Bank Transfer', value: 45, color: '#3B82F6' },
+    { name: 'M-Pesa', value: 15, color: '#F97316' },
+    { name: 'Card', value: 5, color: '#8B5CF6' },
+  ];
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <Card className="bg-gradient-to-br from-white to-slate-50 dark:from-gray-900 dark:to-gray-900/50">
+    <div className="space-y-6">
+      {/* Revenue Trend Chart */}
+      <Card className="bg-gradient-to-br from-white via-blue-50/30 to-blue-100/50 dark:from-gray-900 dark:via-blue-900/10 dark:to-blue-900/20 border-blue-200/50 shadow-lg">
         <CardHeader>
-          <CardTitle>Revenue vs Expenses</CardTitle>
-          <CardDescription>Monthly financial overview</CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-xl font-semibold text-gray-900 dark:text-gray-100">Revenue Trends</CardTitle>
+              <CardDescription className="text-gray-600 dark:text-gray-400">
+                Monthly revenue vs targets
+              </CardDescription>
+            </div>
+            <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-full">
+              <TrendingUp className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
-          <div className="h-80">
-            <FinanceOverviewChart />
+          <div className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={revenueChartData}>
+                <XAxis dataKey="month" />
+                <YAxis />
+                <Tooltip formatter={(value) => [`$${value.toLocaleString()}`, '']} />
+                <Area type="monotone" dataKey="revenue" stackId="1" stroke="#3B82F6" fill="#3B82F6" fillOpacity={0.6} />
+                <Area type="monotone" dataKey="target" stackId="2" stroke="#10B981" fill="#10B981" fillOpacity={0.3} />
+              </AreaChart>
+            </ResponsiveContainer>
           </div>
         </CardContent>
       </Card>
 
-      <Card className="bg-gradient-to-br from-white to-slate-50 dark:from-gray-900 dark:to-gray-900/50">
-        <CardHeader>
-          <CardTitle>Payment Status</CardTitle>
-          <CardDescription>Current academic year collection</CardDescription>
-        </CardHeader>
-        <CardContent className="flex justify-center">
-          <div className="h-64 w-64">
-            <FeeCollectionChart />
-          </div>
-        </CardContent>
-        <div className="px-6 pb-6">
-          <Button
-            className="w-full"
-            onClick={() => navigate("/finance/reports")}
-          >
-            View Financial Details
-            <ChevronRight className="ml-2 h-4 w-4" />
-          </Button>
-        </div>
-      </Card>
+      {/* Payment Methods Distribution */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card className="bg-gradient-to-br from-white via-green-50/30 to-green-100/50 dark:from-gray-900 dark:via-green-900/10 dark:to-green-900/20 border-green-200/50 shadow-lg">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-xl font-semibold text-gray-900 dark:text-gray-100">Payment Methods</CardTitle>
+                <CardDescription className="text-gray-600 dark:text-gray-400">
+                  Distribution of payment methods used
+                </CardDescription>
+              </div>
+              <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-full">
+                <CreditCard className="h-5 w-5 text-green-600 dark:text-green-400" />
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={paymentMethodsData}
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={80}
+                    dataKey="value"
+                    label={({ name, value }) => `${name}: ${value}%`}
+                  >
+                    {paymentMethodsData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
 
-      <Card className="bg-gradient-to-br from-white to-slate-50 dark:from-gray-900 dark:to-gray-900/50">
+        {/* Outstanding Fees Breakdown */}
+        <Card className="bg-gradient-to-br from-white via-orange-50/30 to-orange-100/50 dark:from-gray-900 dark:via-orange-900/10 dark:to-orange-900/20 border-orange-200/50 shadow-lg">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-xl font-semibold text-gray-900 dark:text-gray-100">Outstanding Fees</CardTitle>
+                <CardDescription className="text-gray-600 dark:text-gray-400">
+                  Breakdown by amount ranges
+                </CardDescription>
+              </div>
+              <div className="p-2 bg-orange-100 dark:bg-orange-900/30 rounded-full">
+                <DollarSign className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-600 dark:text-gray-400">$0 - $500</span>
+                <span className="text-sm font-medium">45%</span>
+              </div>
+              <Progress value={45} className="h-2" />
+              
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-600 dark:text-gray-400">$501 - $1,000</span>
+                <span className="text-sm font-medium">30%</span>
+              </div>
+              <Progress value={30} className="h-2" />
+              
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-600 dark:text-gray-400">$1,001 - $2,000</span>
+                <span className="text-sm font-medium">20%</span>
+              </div>
+              <Progress value={20} className="h-2" />
+              
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-600 dark:text-gray-400">$2,000+</span>
+                <span className="text-sm font-medium">5%</span>
+              </div>
+              <Progress value={5} className="h-2" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Recent Transactions */}
+      <Card className="bg-gradient-to-br from-white via-purple-50/30 to-purple-100/50 dark:from-gray-900 dark:via-purple-900/10 dark:to-purple-900/20 border-purple-200/50 shadow-lg">
         <CardHeader>
-          <CardTitle>Recent Transactions</CardTitle>
-          <CardDescription>Latest payment activities</CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-xl font-semibold text-gray-900 dark:text-gray-100">Recent Transactions</CardTitle>
+              <CardDescription className="text-gray-600 dark:text-gray-400">
+                Latest payment activities
+              </CardDescription>
+            </div>
+            <Button variant="outline" size="sm" onClick={() => navigate("/finance/transactions")}>
+              View All
+              <ChevronRight className="ml-2 h-4 w-4" />
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            <div className="flex justify-between items-center p-3 rounded-lg bg-background/50">
-              <div>
-                <p className="font-medium">John Smith - Grade 10</p>
-                <p className="text-sm text-muted-foreground">
-                  Tuition Fee Payment
-                </p>
+          <div className="space-y-3">
+            {financeData?.recentTransactions?.slice(0, 5).map((transaction: any, index: number) => (
+              <div key={index} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                <div className="flex items-center space-x-3">
+                  <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-full">
+                    <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-gray-900 dark:text-gray-100">{transaction.studentName}</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">{transaction.paymentType}</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="font-medium text-gray-900 dark:text-gray-100">${transaction.amount}</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    {new Date(transaction.paymentDate).toLocaleDateString()}
+                  </p>
+                </div>
               </div>
-              <span className="text-green-600 font-medium">+$1,200</span>
-            </div>
-            <div className="flex justify-between items-center p-3 rounded-lg bg-background/50">
-              <div>
-                <p className="font-medium">Sarah Johnson - Grade 8</p>
-                <p className="text-sm text-muted-foreground">
-                  Book Fee Payment
-                </p>
-              </div>
-              <span className="text-green-600 font-medium">+$150</span>
-            </div>
-            <div className="flex justify-between items-center p-3 rounded-lg bg-background/50">
-              <div>
-                <p className="font-medium">Office Supplies</p>
-                <p className="text-sm text-muted-foreground">
-                  Administrative Expense
-                </p>
-              </div>
-              <span className="text-red-600 font-medium">-$450</span>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card className="bg-gradient-to-br from-white to-slate-50 dark:from-gray-900 dark:to-gray-900/50">
-        <CardHeader>
-          <CardTitle>Outstanding Payments</CardTitle>
-          <CardDescription>Students with pending fees</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="flex justify-between items-center p-3 rounded-lg bg-background/50">
-              <div>
-                <p className="font-medium">Michael Brown</p>
-                <p className="text-sm text-muted-foreground">
-                  Grade 9 - Due: Dec 15
-                </p>
-              </div>
-              <Badge variant="destructive">$800</Badge>
-            </div>
-            <div className="flex justify-between items-center p-3 rounded-lg bg-background/50">
-              <div>
-                <p className="font-medium">Emily Davis</p>
-                <p className="text-sm text-muted-foreground">
-                  Grade 11 - Due: Dec 20
-                </p>
-              </div>
-              <Badge variant="destructive">$650</Badge>
-            </div>
-            <div className="flex justify-between items-center p-3 rounded-lg bg-background/50">
-              <div>
-                <p className="font-medium">Alex Wilson</p>
-                <p className="text-sm text-muted-foreground">
-                  Grade 7 - Due: Dec 25
-                </p>
-              </div>
-              <Badge variant="destructive">$450</Badge>
-            </div>
+            )) || (
+              <p className="text-center text-gray-500 dark:text-gray-400 py-4">No recent transactions</p>
+            )}
           </div>
         </CardContent>
       </Card>

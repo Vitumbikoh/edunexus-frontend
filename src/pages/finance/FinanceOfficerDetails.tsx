@@ -12,6 +12,7 @@ interface FinanceOfficer {
   id: string;
   firstName: string;
   lastName: string;
+  username?: string; // Add username field
   email?: string; // may come nested under user
   phoneNumber?: string;
   department?: string;
@@ -38,7 +39,7 @@ export default function FinanceOfficerDetails() {
       try {
         setIsLoading(true);
         setError(null);
-        const res = await fetch(`${API_CONFIG.BASE_URL}/finance/${id}` , {
+        const res = await fetch(`${API_CONFIG.BASE_URL}/finance/officers/${id}` , {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (res.status === 401) {
@@ -91,6 +92,7 @@ export default function FinanceOfficerDetails() {
 
   const fullName = `${officer.firstName || ''} ${officer.lastName || ''}`.trim() || 'Finance Officer';
   const email = officer.email || officer.user?.email || 'N/A';
+  const username = officer.username || officer.user?.username || 'N/A';
   const status = officer.status || (officer.user?.isActive || officer.isActive ? 'active' : 'inactive');
   const statusLabel = status.charAt(0).toUpperCase() + status.slice(1);
 
@@ -113,7 +115,7 @@ export default function FinanceOfficerDetails() {
                   {statusLabel}
                 </Badge>
                 {officer.user?.username && (
-                  <span className="text-sm text-muted-foreground">@{officer.user.username}</span>
+                  <span className="text-sm text-muted-foreground">@{username}</span>
                 )}
               </div>
             </div>

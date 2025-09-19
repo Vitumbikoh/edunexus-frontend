@@ -27,6 +27,7 @@ interface FinanceOfficer {
   id: string;
   firstName: string;
   lastName: string;
+  username?: string;
   email: string;
   phoneNumber?: string;
   department?: string;
@@ -75,7 +76,7 @@ export default function FinanceOfficers() {
       setApiError(null);
 
       const response = await fetch(
-        `http://localhost:5000/api/v1/finance?page=${page}&limit=${limit}&search=${encodeURIComponent(
+        `http://localhost:5000/api/v1/finance/officers?page=${page}&limit=${limit}&search=${encodeURIComponent(
           search
         )}`,
         {
@@ -193,6 +194,7 @@ export default function FinanceOfficers() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Name</TableHead>
+                    <TableHead>Username</TableHead>
                     <TableHead>Contact</TableHead>
                     <TableHead>Department</TableHead>
                     {/* <TableHead>Permissions</TableHead> */}
@@ -206,6 +208,11 @@ export default function FinanceOfficers() {
                       <TableRow key={officer.id}>
                         <TableCell className="font-medium">
                           {officer.firstName} {officer.lastName}
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-sm text-muted-foreground">
+                            @{officer.username || 'N/A'}
+                          </span>
                         </TableCell>
                         <TableCell>
                           <div className="text-sm text-muted-foreground">
