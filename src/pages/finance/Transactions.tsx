@@ -64,6 +64,7 @@ export default function Transactions() {
   const [currentPage, setCurrentPage] = useState(1);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [pendingStudents, setPendingStudents] = useState(0);
 
   const fetchTransactions = async (page = 1, search = '', status = 'all', type = 'all', start = '', end = '') => {
     try {
@@ -103,9 +104,28 @@ export default function Transactions() {
     }
   };
 
+  const fetchFinancialStats = async () => {
+    try {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/finance/total-finances`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setPendingStudents(data.pendingStudents || 0);
+      }
+    } catch (err) {
+      console.error('Error fetching financial stats:', err);
+    }
+  };
+
   useEffect(() => {
     if (token) {
       fetchTransactions(currentPage, searchPeriod, statusFilter, typeFilter, startDate, endDate);
+      fetchFinancialStats();
     }
   }, [token, currentPage, searchPeriod, statusFilter, typeFilter, startDate, endDate]);
 
@@ -185,17 +205,14 @@ export default function Transactions() {
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Pending</CardTitle>
+            <CardTitle className="text-sm font-medium">Pending Students</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-yellow-600">
-              ${transactions.filter(t => t.status?.toLowerCase() === 'pending').reduce((sum, t) => {
-                const amount = parseFloat(t.amount) || 0;
-                return sum + amount;
-              }, 0).toLocaleString()}
+              {pendingStudents}
             </div>
             <p className="text-xs text-muted-foreground">
-              {transactions.filter(t => t.status?.toLowerCase() === 'pending').length} transactions
+              Students with outstanding fees
             </p>
           </CardContent>
         </Card>
