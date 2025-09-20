@@ -2,12 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle, XCircle, Clock, AlertTriangle, Eye, Loader2, DollarSign, Filter, Search } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, AlertTriangle, Eye, Loader2, DollarSign, Filter, Search, BarChart3 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
 import { API_CONFIG } from '@/config/api';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useNavigate } from 'react-router-dom';
 
 interface Expense {
   id: string;
@@ -35,6 +36,7 @@ interface Expense {
 export default function FinanceApprovals() {
   const { token, user } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(false);
@@ -183,6 +185,14 @@ export default function FinanceApprovals() {
           <h1 className="text-3xl font-bold">Finance Approvals</h1>
           <p className="text-muted-foreground">Review and approve expense requests</p>
         </div>
+        <Button 
+          variant="outline" 
+          onClick={() => navigate('/expense-analytics')}
+          className="flex items-center gap-2"
+        >
+          <BarChart3 className="h-4 w-4" />
+          View Analytics
+        </Button>
       </div>
 
       {/* Filters and Search */}
@@ -378,7 +388,8 @@ export default function FinanceApprovals() {
                         <Eye className="h-4 w-4 mr-2" />
                         View Details
                       </Button>
-                      {String(user?.role).toUpperCase() === 'ADMIN' ? (
+                      {String(user?.role).toUpperCase() === 'ADMIN' && 
+                       ['Pending', 'Department Approved', 'Finance Review', 'Principal Approved', 'Board Review'].includes(expense.status || '') ? (
                         <>
                           <Button 
                             variant="outline" 
@@ -397,6 +408,10 @@ export default function FinanceApprovals() {
                             Approve
                           </Button>
                         </>
+                      ) : String(user?.role).toUpperCase() === 'ADMIN' ? (
+                        <div className="text-sm text-muted-foreground px-3 py-2 bg-green-50 rounded text-green-700">
+                          ✓ Expense {expense.status?.toLowerCase() || 'processed'}
+                        </div>
                       ) : (
                         <div className="text-sm text-muted-foreground px-3 py-2 bg-gray-50 rounded">
                           Only school admins can approve expenses

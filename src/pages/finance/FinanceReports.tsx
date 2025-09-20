@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -7,64 +7,28 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
-import { CalendarIcon, Download, FileText, TrendingUp, TrendingDown, DollarSign } from 'lucide-react';
+import { CalendarIcon, Download, FileText, TrendingUp, TrendingDown, DollarSign, Loader2, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { useToast } from '@/components/ui/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
+import { API_CONFIG } from '@/config/api';
 
-const monthlyRevenueData = [
-  { month: 'Jan', revenue: 45000, expenses: 12000, profit: 33000 },
-  { month: 'Feb', revenue: 52000, expenses: 14000, profit: 38000 },
-  { month: 'Mar', revenue: 48000, expenses: 13000, profit: 35000 },
-  { month: 'Apr', revenue: 61000, expenses: 15000, profit: 46000 },
-  { month: 'May', revenue: 55000, expenses: 14500, profit: 40500 },
-  { month: 'Jun', revenue: 67000, expenses: 16000, profit: 51000 }
-];
-
-const categoryData = [
-  { name: 'Tuition', value: 75, color: '#8884d8' },
-  { name: 'Lab Fees', value: 15, color: '#82ca9d' },
-  { name: 'Library', value: 5, color: '#ffc658' },
-  { name: 'Exams', value: 5, color: '#ff7300' }
-];
-
-const recentTransactions = [
-  {
-    id: '1',
-    type: 'Revenue',
-    description: 'Tuition Payment - Multiple Students',
-    amount: 12500.00,
-    date: '2024-01-15',
-    category: 'Tuition'
-  },
-  {
-    id: '2',
-    type: 'Expense',
-    description: 'Faculty Salaries',
-    amount: -8500.00,
-    date: '2024-01-14',
-    category: 'Payroll'
-  },
-  {
-    id: '3',
-    type: 'Revenue',
-    description: 'Lab Fee Collection',
-    amount: 2250.00,
-    date: '2024-01-13',
-    category: 'Fees'
-  },
-  {
-    id: '4',
-    type: 'Expense',
-    description: 'Utilities',
-    amount: -1200.00,
-    date: '2024-01-12',
-    category: 'Operations'
-  }
-];
+type FinancialReportResponse = {
+  success: boolean;
+  totals: {
+    totalFees: number;
+    totalByType: Array<{ type: string; amount: number }>;
+    totalApprovedExpenses: number;
+    netBalance: number;
+  };
+  trends: Array<{ month: string; fees: number; expenses: number }>;
+  filters?: any;
+};
 
 export default function FinanceReports() {
   const { toast } = useToast();
+  const { token } = useAuth();
   
   const [reportType, setReportType] = useState('overview');
   const [dateRange, setDateRange] = useState('6months');
@@ -76,14 +40,89 @@ export default function FinanceReports() {
   const [includeRevenue, setIncludeRevenue] = useState(true);
   const [groupBy, setGroupBy] = useState('month');
 
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [data, setData] = useState<FinancialReportResponse | null>(null);
+
+  // Currency utilities (no FX conversion yet; formatting only)
+  const currencySymbol = useMemo(() => {
+    const m: Record<string, string> = { USD: '$', EUR: '€', GBP: '£', KES: 'KSh ' };
+    return m[currency] ?? '';
+  }, [currency]);
+
+  // Compute default date range
+  const computedRange = useMemo(() => {
+    if (dateRange === 'custom') {
+      return { start: fromDate, end: toDate };
+    }
+    const now = new Date();
+    const end = now;
+    let start = new Date(now);
+    if (dateRange === '1month') start.setMonth(now.getMonth() - 1);
+    else if (dateRange === '3months') start.setMonth(now.getMonth() - 3);
+    else if (dateRange === '6months') start.setMonth(now.getMonth() - 6);
+    else if (dateRange === '1year') start.setFullYear(now.getFullYear() - 1);
+    return { start, end };
+  }, [dateRange, fromDate, toDate]);
+
+  useEffect(() => {
+    const fetchReport = async () => {
+      if (!token) return;
+      // For custom range, wait until both dates are selected
+      if (dateRange === 'custom' && (!computedRange.start || !computedRange.end)) return;
+      try {
+        setLoading(true);
+        setError(null);
+        const params = new URLSearchParams();
+        if (computedRange.start) params.set('startDate', computedRange.start.toISOString());
+        if (computedRange.end) params.set('endDate', computedRange.end.toISOString());
+        const res = await fetch(`${API_CONFIG.BASE_URL}/finance/reports/financial?${params.toString()}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        if (!res.ok) throw new Error(`Failed: ${res.status}`);
+        const json = await res.json();
+        setData(json as FinancialReportResponse);
+      } catch (e: any) {
+        setError(e?.message || 'Failed to load financial report');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchReport();
+  }, [token, dateRange, computedRange.start?.toISOString(), computedRange.end?.toISOString()]);
+
   const handleExportReport = () => {
-    // Create CSV export of financial data
-    const csvData = [
-      ['Month', 'Revenue', 'Expenses', 'Profit'],
-      ...monthlyRevenueData.map(item => [item.month, item.revenue, item.expenses, item.profit])
-    ];
-    
-    const csvContent = csvData.map(row => row.join(',')).join('\n');
+    if (!data) return;
+    const csvRows: Array<Array<string | number>> = [];
+    // Metadata header
+    csvRows.push(['Report Type', reportType]);
+    csvRows.push(['Date Range', dateRange === 'custom' ? `${fromDate ? format(fromDate, 'yyyy-MM-dd') : ''} to ${toDate ? format(toDate, 'yyyy-MM-dd') : ''}` : dateRange]);
+    csvRows.push(['Currency', currency]);
+    csvRows.push(['Group By', groupBy]);
+    csvRows.push(['Include Revenue', includeRevenue ? 'Yes' : 'No']);
+    csvRows.push(['Include Expenses', includeExpenses ? 'Yes' : 'No']);
+    csvRows.push([]);
+    // Totals (respect toggles for a quick-glance)
+    const effRevenue = includeRevenue ? data.totals.totalFees : 0;
+    const effExpenses = includeExpenses ? data.totals.totalApprovedExpenses : 0;
+    const effNet = effRevenue - effExpenses;
+    csvRows.push(['Totals']);
+    csvRows.push(['Total Revenue', effRevenue]);
+    csvRows.push(['Total Expenses', effExpenses]);
+    csvRows.push(['Net Balance', effNet]);
+    csvRows.push([]);
+    csvRows.push(['Fees By Type']);
+    csvRows.push(['Type', 'Amount']);
+    for (const t of data.totals.totalByType) csvRows.push([t.type, t.amount]);
+    csvRows.push([]);
+    csvRows.push(['Trends']);
+    csvRows.push(['Bucket', 'Revenue', 'Expenses', 'Profit']);
+    const rows = groupedTrends.map((m) => [m.bucket, includeRevenue ? m.revenue : 0, includeExpenses ? m.expenses : 0, (includeRevenue ? m.revenue : 0) - (includeExpenses ? m.expenses : 0)]);
+    rows.forEach(r => csvRows.push(r));
+
+    const csvContent = csvRows.map(r => r.join(',')).join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -91,11 +130,7 @@ export default function FinanceReports() {
     a.download = `financial-report-${new Date().toISOString().split('T')[0]}.csv`;
     a.click();
     window.URL.revokeObjectURL(url);
-    
-    toast({
-      title: 'Report Exported',
-      description: 'Financial report has been downloaded as CSV.',
-    });
+    toast({ title: 'Report Exported', description: 'Financial report has been downloaded as CSV.' });
   };
 
   const handleGeneratePDF = () => {
@@ -107,10 +142,99 @@ export default function FinanceReports() {
     });
   };
 
-  const totalRevenue = monthlyRevenueData.reduce((sum, item) => sum + item.revenue, 0);
-  const totalExpenses = monthlyRevenueData.reduce((sum, item) => sum + item.expenses, 0);
+  // Grouping logic for trends
+  const groupedTrends = useMemo(() => {
+    if (!data) return [] as Array<{ bucket: string; revenue: number; expenses: number; profit: number }>;
+    const items = data.trends.map(t => ({ month: t.month, revenue: t.fees, expenses: t.expenses }));
+    const acc = new Map<string, { revenue: number; expenses: number }>();
+
+    const toQuarter = (m: string) => {
+      // Expecting YYYY-MM or Mon/YYYY; support both
+      // Try to parse YYYY-MM first
+      const parts = m.match(/^(\d{4})[-/](\d{2})/);
+      let year: string | null = null;
+      let monthNum: number | null = null;
+      if (parts) {
+        year = parts[1];
+        monthNum = Number(parts[2]);
+      } else {
+        // Fallback parse like 'Jan' or 'Jan-2025'
+        const months = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
+        const mMatch = m.toLowerCase().match(/([a-z]{3})/);
+        const yMatch = m.match(/(\d{4})/);
+        monthNum = mMatch ? months.indexOf(mMatch[1]) + 1 : null;
+        year = yMatch ? yMatch[1] : null;
+      }
+      if (!year || !monthNum) return m;
+      const q = Math.ceil(monthNum / 3);
+      return `${year}-Q${q}`;
+    };
+
+    const toYear = (m: string) => {
+      const y = m.match(/(\d{4})/);
+      return y ? y[1] : m;
+    };
+
+    const bucketOf = (m: string) => {
+      if (groupBy === 'quarter') return toQuarter(m);
+      if (groupBy === 'year') return toYear(m);
+      // month (default)
+      return m;
+    };
+
+    for (const it of items) {
+      const b = bucketOf(it.month);
+      const prev = acc.get(b) || { revenue: 0, expenses: 0 };
+      acc.set(b, { revenue: prev.revenue + it.revenue, expenses: prev.expenses + it.expenses });
+    }
+
+    // Sort buckets chronologically when possible (YYYY-MM, YYYY-Qx, YYYY)
+    const keys = Array.from(acc.keys());
+    const sorted = keys.sort((a, b) => a.localeCompare(b));
+    return sorted.map(k => ({ bucket: k, revenue: acc.get(k)!.revenue, expenses: acc.get(k)!.expenses, profit: acc.get(k)!.revenue - acc.get(k)!.expenses }));
+  }, [data, groupBy]);
+
+  const monthlyRevenueData = useMemo(() => {
+    // Adapt groupedTrends to chart consumption
+    return groupedTrends.map(g => ({ month: g.bucket, revenue: includeRevenue ? g.revenue : 0, expenses: includeExpenses ? g.expenses : 0, profit: (includeRevenue ? g.revenue : 0) - (includeExpenses ? g.expenses : 0) }));
+  }, [groupedTrends, includeRevenue, includeExpenses]);
+
+  const totalRevenue = includeRevenue ? (data?.totals.totalFees || 0) : 0;
+  const totalExpenses = includeExpenses ? (data?.totals.totalApprovedExpenses || 0) : 0;
   const totalProfit = totalRevenue - totalExpenses;
-  const profitMargin = ((totalProfit / totalRevenue) * 100).toFixed(1);
+  const profitMargin = totalRevenue > 0 ? ((totalProfit / totalRevenue) * 100).toFixed(1) : '0.0';
+
+  const categoryData = useMemo(() => {
+    const palette = ['#22c55e', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#84cc16'];
+    const byType = data?.totals.totalByType || [];
+    return byType.map((t, i) => ({ name: t.type?.toString()?.toUpperCase() || 'OTHER', value: t.amount, color: palette[i % palette.length] }));
+  }, [data]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-center">
+          <Loader2 className="h-10 w-10 animate-spin mx-auto mb-3 text-blue-600" />
+          <p className="text-gray-600 dark:text-gray-400">Loading financial report…</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Card className="w-full max-w-md">
+          <CardContent className="p-6 text-center">
+            <AlertTriangle className="h-10 w-10 mx-auto mb-3 text-orange-500" />
+            <h3 className="text-lg font-semibold mb-1">Failed to load</h3>
+            <p className="text-gray-600 dark:text-gray-400 mb-4">{error}</p>
+            <Button onClick={() => window.location.reload()}>Retry</Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -288,7 +412,7 @@ export default function FinanceReports() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">${totalRevenue.toLocaleString()}</div>
+            <div className="text-2xl font-bold text-green-600">{currencySymbol}{totalRevenue.toLocaleString()}</div>
             <div className="flex items-center text-xs text-green-600">
               <TrendingUp className="h-3 w-3 mr-1" />
               +12.5% from last period
@@ -304,7 +428,7 @@ export default function FinanceReports() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">${totalExpenses.toLocaleString()}</div>
+            <div className="text-2xl font-bold text-red-600">{currencySymbol}{totalExpenses.toLocaleString()}</div>
             <div className="flex items-center text-xs text-red-600">
               <TrendingUp className="h-3 w-3 mr-1" />
               +8.2% from last period
@@ -317,7 +441,7 @@ export default function FinanceReports() {
             <CardTitle className="text-sm font-medium">Net Profit</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-600">${totalProfit.toLocaleString()}</div>
+            <div className="text-2xl font-bold text-blue-600">{currencySymbol}{totalProfit.toLocaleString()}</div>
             <div className="flex items-center text-xs text-green-600">
               <TrendingUp className="h-3 w-3 mr-1" />
               +15.3% from last period
@@ -348,15 +472,65 @@ export default function FinanceReports() {
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={monthlyRevenueData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis />
-                <Tooltip formatter={(value: number) => [`$${value.toLocaleString()}`, '']} />
-                <Legend />
-                <Bar dataKey="revenue" fill="#22c55e" name="Revenue" />
-                <Bar dataKey="expenses" fill="#ef4444" name="Expenses" />
-              </BarChart>
+              {(() => {
+                switch (chartType) {
+                  case 'line':
+                    return (
+                      <LineChart data={monthlyRevenueData}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="month" />
+                        <YAxis />
+                        <Tooltip formatter={(value: number) => [`${currencySymbol}${Number(value || 0).toLocaleString()}`, '']} />
+                        <Legend />
+                        {includeRevenue && <Line type="monotone" dataKey="revenue" stroke="#22c55e" name="Revenue" />}
+                        {includeExpenses && <Line type="monotone" dataKey="expenses" stroke="#ef4444" name="Expenses" />}
+                      </LineChart>
+                    );
+                  case 'area':
+                    return (
+                      <BarChart data={monthlyRevenueData}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="month" />
+                        <YAxis />
+                        <Tooltip formatter={(value: number) => [`${currencySymbol}${Number(value || 0).toLocaleString()}`, '']} />
+                        <Legend />
+                        {includeRevenue && <Bar dataKey="revenue" fill="#86efac" name="Revenue" />}
+                        {includeExpenses && <Bar dataKey="expenses" fill="#fecaca" name="Expenses" />}
+                      </BarChart>
+                    );
+                  case 'pie':
+                    return (
+                      <PieChart>
+                        <Tooltip formatter={(value: number) => [`${currencySymbol}${Number(value || 0).toLocaleString()}`, '']} />
+                        <Legend />
+                        <Pie
+                          dataKey="value"
+                          data={[
+                            ...(includeRevenue ? [{ name: 'Revenue', value: totalRevenue }] : []),
+                            ...(includeExpenses ? [{ name: 'Expenses', value: totalExpenses }] : []),
+                          ]}
+                          cx="50%"
+                          cy="50%"
+                          outerRadius={80}
+                          label
+                        />
+                      </PieChart>
+                    );
+                  case 'bar':
+                  default:
+                    return (
+                      <BarChart data={monthlyRevenueData}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="month" />
+                        <YAxis />
+                        <Tooltip formatter={(value: number) => [`${currencySymbol}${Number(value || 0).toLocaleString()}`, '']} />
+                        <Legend />
+                        {includeRevenue && <Bar dataKey="revenue" fill="#22c55e" name="Revenue" />}
+                        {includeExpenses && <Bar dataKey="expenses" fill="#ef4444" name="Expenses" />}
+                      </BarChart>
+                    );
+                }
+              })()}
             </ResponsiveContainer>
           </CardContent>
         </Card>
@@ -383,7 +557,7 @@ export default function FinanceReports() {
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Pie>
-                <Tooltip />
+                <Tooltip formatter={(value: number) => [`${currencySymbol}${Number(value || 0).toLocaleString()}`, '']} />
               </PieChart>
             </ResponsiveContainer>
           </CardContent>
@@ -402,52 +576,21 @@ export default function FinanceReports() {
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="month" />
               <YAxis />
-              <Tooltip formatter={(value: number) => [`$${value.toLocaleString()}`, 'Profit']} />
+              <Tooltip formatter={(value: number) => [`${currencySymbol}${Number(value || 0).toLocaleString()}`, 'Profit']} />
               <Line type="monotone" dataKey="profit" stroke="#3b82f6" strokeWidth={2} />
             </LineChart>
           </ResponsiveContainer>
         </CardContent>
       </Card>
 
-      {/* Recent Transactions */}
+      {/* Recent Transactions (placeholder) */}
       <Card>
         <CardHeader>
           <CardTitle>Recent Financial Activity</CardTitle>
           <CardDescription>Latest transactions and activities</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Description</TableHead>
-                  <TableHead>Category</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead className="text-right">Amount</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {recentTransactions.map((transaction) => (
-                  <TableRow key={transaction.id}>
-                    <TableCell>
-                      <Badge variant={transaction.type === 'Revenue' ? 'default' : 'secondary'}>
-                        {transaction.type}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{transaction.description}</TableCell>
-                    <TableCell>{transaction.category}</TableCell>
-                    <TableCell>{new Date(transaction.date).toLocaleDateString()}</TableCell>
-                    <TableCell className={`text-right font-medium ${
-                      transaction.amount > 0 ? 'text-green-600' : 'text-red-600'
-                    }`}>
-                      ${Math.abs(transaction.amount).toLocaleString()}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+          <div className="text-sm text-muted-foreground">Coming soon: a merged feed of recent payments and approved expenses.</div>
         </CardContent>
       </Card>
     </div>

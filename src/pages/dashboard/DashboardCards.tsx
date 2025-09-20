@@ -41,7 +41,20 @@ const TeacherPerformanceCard: React.FC = () => {
   const [page, setPage] = React.useState(1);
   const pageSize = 5;
   const [allTeachers, setAllTeachers] = React.useState<any[]>([]);
-  const cacheKey = `${termId||'current'}:${passThreshold}`;
+  // Keep raw list for local filtering so UI reacts instantly without always re-fetching
+  const [rawTeachers, setRawTeachers] = React.useState<any[]>([]);
+  // Cache only by scope (term) so threshold changes can be applied client-side
+  const cacheKey = `${termId||'current'}`;
+
+  // Local filter utility: prefer passRate, fallback to avgGrade
+  const applyFilter = React.useCallback((list: any[], threshold: number) => {
+    if (!Array.isArray(list)) return [];
+    const t = Math.max(0, Math.min(100, Number(threshold) || 0));
+    return list.filter((item) => {
+      const metric = typeof item?.passRate === 'number' ? item.passRate : (item?.avgGrade ?? 0);
+      return metric >= t;
+    });
+  }, []);
 
   const paginated = React.useMemo(()=> {
     const start = (page-1)*pageSize;
@@ -53,13 +66,17 @@ const TeacherPerformanceCard: React.FC = () => {
     setLoading(true); setError(null);
     try {
       if (teacherPerfCache[cacheKey]) {
-        setData(teacherPerfCache[cacheKey]);
-        setAllTeachers(teacherPerfCache[cacheKey].teachers || []);
+        const cached = teacherPerfCache[cacheKey];
+        setData(cached);
+        const list = cached.teachers || [];
+        setRawTeachers(list);
+        setAllTeachers(applyFilter(list, passThreshold));
         setLoading(false);
         return;
       }
       const params = new URLSearchParams();
       if (termId) params.append('termId', termId);
+      // Server may support threshold too; keep sending it, but UI filters locally regardless
       params.append('passThreshold', passThreshold.toString());
       // get more than first page for local pagination
       params.append('limit', '100');
@@ -70,14 +87,22 @@ const TeacherPerformanceCard: React.FC = () => {
       const json = await res.json();
       teacherPerfCache[cacheKey] = json; // cache
       setData(json);
-      setAllTeachers(json.teachers || []);
+      const list = json.teachers || [];
+      setRawTeachers(list);
+      setAllTeachers(applyFilter(list, passThreshold));
       setPage(1);
     } catch (e:any) {
       setError(e.message);
     } finally { setLoading(false); }
-  }, [token, termId, passThreshold, cacheKey]);
+  }, [token, termId, passThreshold, cacheKey, applyFilter]);
 
   React.useEffect(()=> { fetchData(); }, [fetchData]);
+
+  // Re-apply local filters instantly when threshold changes (or when new raw data arrives)
+  React.useEffect(() => {
+    setAllTeachers(applyFilter(rawTeachers, passThreshold));
+    setPage(1);
+  }, [passThreshold, rawTeachers, applyFilter]);
 
   const teachers = allTeachers;
   const top = data?.topPerformer;
@@ -102,12 +127,20 @@ const TeacherPerformanceCard: React.FC = () => {
                 min={0}
                 max={100}
                 value={passThreshold}
-                onChange={(e)=> setPassThreshold(Number(e.target.value)||0)}
-                onBlur={()=> fetchData()}
+                onChange={(e)=> {
+                  const val = Number(e.target.value);
+                  const clamped = Math.max(0, Math.min(100, isNaN(val) ? 0 : val));
+                  setPassThreshold(clamped);
+                }}
+                onKeyDown={(e)=> { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+                onBlur={()=> {
+                  // No need to refetch just to apply threshold; local filter already applied
+                  setPage(1);
+                }}
                 className="w-16 h-8 text-xs border rounded px-1 bg-white dark:bg-gray-900"
                 title="Pass % threshold"
               />
-              <Button size="icon" variant="ghost" onClick={()=> fetchData()} className="h-8 w-8" title="Apply Filters">
+              <Button size="icon" variant="ghost" onClick={()=> { setPage(1); }} className="h-8 w-8" title="Apply Filters">
                 <Filter className="h-4 w-4" />
               </Button>
             </div>
@@ -844,6 +877,43 @@ export const FinanceDashboardCards = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Expense Analytics */}
+      <Card className="bg-gradient-to-br from-white via-indigo-50/30 to-indigo-100/50 dark:from-gray-900 dark:via-indigo-900/10 dark:to-indigo-900/20 border-indigo-200/50 shadow-lg">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-xl font-semibold text-gray-900 dark:text-gray-100">Expense Analytics</CardTitle>
+              <CardDescription className="text-gray-600 dark:text-gray-400">
+                Key expense metrics and trends
+              </CardDescription>
+            </div>
+            <div className="p-2 bg-indigo-100 dark:bg-indigo-900/30 rounded-full">
+              <TrendingUp className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-8">
+            <div className="mb-4">
+              <TrendingUp className="h-12 w-12 mx-auto text-indigo-500 mb-4" />
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                Expense Insights
+              </h3>
+              <p className="text-gray-600 dark:text-gray-400 mb-4">
+                View detailed expense analytics, budget utilization, and spending trends
+              </p>
+            </div>
+            <Button
+              onClick={() => navigate('/expense-analytics')}
+              className="bg-indigo-600 hover:bg-indigo-700"
+            >
+              View Analytics
+              <ChevronRight className="ml-2 h-4 w-4" />
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Recent Transactions */}
       <Card className="bg-gradient-to-br from-white via-purple-50/30 to-purple-100/50 dark:from-gray-900 dark:via-purple-900/10 dark:to-purple-900/20 border-purple-200/50 shadow-lg">

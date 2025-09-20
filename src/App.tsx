@@ -66,6 +66,7 @@ import Transactions from "./pages/finance/Transactions";
 import ExpenseManagement from "./pages/finance/ExpenseManagement";
 import FinanceReports from "./pages/finance/FinanceReports";
 import FinanceApprovals from "./pages/finance/FinanceApprovals";
+import ExpenseAnalytics from "./pages/ExpenseAnalytics";
 import FeeManagement from "./pages/finance/FeeManagement";
 import Courses from "./pages/courses/Courses";
 import EnrollStudents from "./pages/courses/EnrollStudents";
@@ -755,6 +756,19 @@ const AppRoutes = () => {
                 <FinanceApprovals />
               </Layout>
             </AdminRoute>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/expense-analytics"
+        element={
+          <ProtectedRoute>
+            <FinanceRoute>
+              <Layout>
+                <ExpenseAnalytics />
+              </Layout>
+            </FinanceRoute>
           </ProtectedRoute>
         }
       />
