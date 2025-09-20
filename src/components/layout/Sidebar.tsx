@@ -134,6 +134,11 @@ const adminNavItems: NavItem[] = [
         roles: ["admin"],
       },
       {
+        label: "Finance Approvals",
+        href: "/finance/approvals",
+        roles: ["admin"],
+      },
+      {
         label: "View Financial Officers",
         href: "/finance/officers/view",
         roles: ["admin"],

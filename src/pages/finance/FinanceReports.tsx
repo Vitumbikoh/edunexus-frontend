@@ -10,6 +10,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsive
 import { CalendarIcon, Download, FileText, TrendingUp, TrendingDown, DollarSign } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
+import { useToast } from '@/components/ui/use-toast';
 
 const monthlyRevenueData = [
   { month: 'Jan', revenue: 45000, expenses: 12000, profit: 33000 },
@@ -63,10 +64,48 @@ const recentTransactions = [
 ];
 
 export default function FinanceReports() {
+  const { toast } = useToast();
+  
   const [reportType, setReportType] = useState('overview');
   const [dateRange, setDateRange] = useState('6months');
   const [fromDate, setFromDate] = useState<Date>();
   const [toDate, setToDate] = useState<Date>();
+  const [currency, setCurrency] = useState('USD');
+  const [chartType, setChartType] = useState('bar');
+  const [includeExpenses, setIncludeExpenses] = useState(true);
+  const [includeRevenue, setIncludeRevenue] = useState(true);
+  const [groupBy, setGroupBy] = useState('month');
+
+  const handleExportReport = () => {
+    // Create CSV export of financial data
+    const csvData = [
+      ['Month', 'Revenue', 'Expenses', 'Profit'],
+      ...monthlyRevenueData.map(item => [item.month, item.revenue, item.expenses, item.profit])
+    ];
+    
+    const csvContent = csvData.map(row => row.join(',')).join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `financial-report-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+    
+    toast({
+      title: 'Report Exported',
+      description: 'Financial report has been downloaded as CSV.',
+    });
+  };
+
+  const handleGeneratePDF = () => {
+    // For now, show a toast indicating PDF generation
+    // In a real implementation, you would use a library like jsPDF or call a backend service
+    toast({
+      title: 'PDF Generation',
+      description: 'PDF report generation feature coming soon.',
+    });
+  };
 
   const totalRevenue = monthlyRevenueData.reduce((sum, item) => sum + item.revenue, 0);
   const totalExpenses = monthlyRevenueData.reduce((sum, item) => sum + item.expenses, 0);
@@ -81,11 +120,11 @@ export default function FinanceReports() {
           <p className="text-muted-foreground">Comprehensive financial analytics and insights</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline">
+          <Button variant="outline" onClick={handleExportReport}>
             <Download className="h-4 w-4 mr-2" />
             Export Report
           </Button>
-          <Button variant="outline">
+          <Button variant="outline" onClick={handleGeneratePDF}>
             <FileText className="h-4 w-4 mr-2" />
             Generate PDF
           </Button>
@@ -99,9 +138,9 @@ export default function FinanceReports() {
           <CardDescription>Configure your financial report parameters</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-col sm:flex-row gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <Select value={reportType} onValueChange={setReportType}>
-              <SelectTrigger className="w-full sm:w-48">
+              <SelectTrigger>
                 <SelectValue placeholder="Report Type" />
               </SelectTrigger>
               <SelectContent>
@@ -109,11 +148,12 @@ export default function FinanceReports() {
                 <SelectItem value="revenue">Revenue Analysis</SelectItem>
                 <SelectItem value="expenses">Expense Report</SelectItem>
                 <SelectItem value="student">Student Analysis</SelectItem>
+                <SelectItem value="approvals">Approval Summary</SelectItem>
               </SelectContent>
             </Select>
             
             <Select value={dateRange} onValueChange={setDateRange}>
-              <SelectTrigger className="w-full sm:w-40">
+              <SelectTrigger>
                 <SelectValue placeholder="Period" />
               </SelectTrigger>
               <SelectContent>
@@ -125,6 +165,30 @@ export default function FinanceReports() {
               </SelectContent>
             </Select>
 
+            <Select value={currency} onValueChange={setCurrency}>
+              <SelectTrigger>
+                <SelectValue placeholder="Currency" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="USD">USD ($)</SelectItem>
+                <SelectItem value="EUR">EUR (€)</SelectItem>
+                <SelectItem value="GBP">GBP (£)</SelectItem>
+                <SelectItem value="KES">KES (KSh)</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select value={chartType} onValueChange={setChartType}>
+              <SelectTrigger>
+                <SelectValue placeholder="Chart Type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="bar">Bar Chart</SelectItem>
+                <SelectItem value="line">Line Chart</SelectItem>
+                <SelectItem value="pie">Pie Chart</SelectItem>
+                <SelectItem value="area">Area Chart</SelectItem>
+              </SelectContent>
+            </Select>
+
             {dateRange === 'custom' && (
               <>
                 <Popover>
@@ -132,7 +196,7 @@ export default function FinanceReports() {
                     <Button
                       variant={"outline"}
                       className={cn(
-                        "w-full sm:w-40 justify-start text-left font-normal",
+                        "w-full justify-start text-left font-normal",
                         !fromDate && "text-muted-foreground"
                       )}
                     >
@@ -155,7 +219,7 @@ export default function FinanceReports() {
                     <Button
                       variant={"outline"}
                       className={cn(
-                        "w-full sm:w-40 justify-start text-left font-normal",
+                        "w-full justify-start text-left font-normal",
                         !toDate && "text-muted-foreground"
                       )}
                     >
@@ -174,6 +238,42 @@ export default function FinanceReports() {
                 </Popover>
               </>
             )}
+          </div>
+
+          <div className="mt-4 flex flex-wrap gap-4">
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="includeRevenue"
+                checked={includeRevenue}
+                onChange={(e) => setIncludeRevenue(e.target.checked)}
+                className="rounded"
+              />
+              <label htmlFor="includeRevenue" className="text-sm">Include Revenue</label>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="includeExpenses"
+                checked={includeExpenses}
+                onChange={(e) => setIncludeExpenses(e.target.checked)}
+                className="rounded"
+              />
+              <label htmlFor="includeExpenses" className="text-sm">Include Expenses</label>
+            </div>
+
+            <Select value={groupBy} onValueChange={setGroupBy}>
+              <SelectTrigger className="w-32">
+                <SelectValue placeholder="Group By" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="month">Month</SelectItem>
+                <SelectItem value="quarter">Quarter</SelectItem>
+                <SelectItem value="year">Year</SelectItem>
+                <SelectItem value="category">Category</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </CardContent>
       </Card>

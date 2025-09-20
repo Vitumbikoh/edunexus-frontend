@@ -228,7 +228,11 @@ export default function ExpenseManagement() {
 
   // Load expenses on component mount and when filters change
   useEffect(() => {
-    fetchExpenses();
+    fetchExpenses().catch(error => {
+      console.error('Error loading expenses:', error);
+      setExpenses([]);
+      setTotal(0);
+    });
   }, [token, statusFilter, categoryFilter, priorityFilter, searchTerm, currentPage]);
 
   // Reset to first page when filters change
@@ -267,7 +271,12 @@ export default function ExpenseManagement() {
   };
 
   // Filtered expenses are now handled by the backend through API params
-  const filteredExpenses = expenses;
+  const filteredExpenses = useMemo(() => {
+    if (!expenses || !Array.isArray(expenses)) {
+      return [];
+    }
+    return expenses.filter(expense => expense && typeof expense === 'object');
+  }, [expenses]);
 
   // Calculate summary statistics from current expense list
   const summaryStats = useMemo(() => {
@@ -598,16 +607,39 @@ export default function ExpenseManagement() {
         </TabsContent>
 
         <TabsContent value="analytics" className="space-y-6">
-          <ExpenseAnalytics expenses={filteredExpenses} />
+          <TabErrorBoundary fallbackMessage="Unable to load analytics data. Please refresh the page.">
+            {filteredExpenses.length >= 0 ? (
+              <ExpenseAnalytics expenses={filteredExpenses} />
+            ) : (
+              <div className="flex items-center justify-center py-8">
+                <div className="text-center">
+                  <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+                  <p className="text-muted-foreground">Loading analytics...</p>
+                </div>
+              </div>
+            )}
+          </TabErrorBoundary>
         </TabsContent>
 
         <TabsContent value="approvals" className="space-y-6">
-          <ExpenseApprovals 
-            expenses={filteredExpenses} 
-            onAction={handleApprovalAction}
-            getStatusColor={getStatusColor}
-            getPriorityColor={getPriorityColor}
-          />
+          <TabErrorBoundary fallbackMessage="Unable to load approvals data. Please refresh the page.">
+            {filteredExpenses && filteredExpenses.length >= 0 ? (
+              <ExpenseApprovals 
+                expenses={filteredExpenses} 
+                onAction={handleApprovalAction || (() => {})}
+                getStatusColor={getStatusColor || (() => 'bg-gray-100 text-gray-800 border-gray-200')}
+                getPriorityColor={getPriorityColor || (() => 'text-gray-600')}
+                user={user}
+              />
+            ) : (
+              <div className="flex items-center justify-center py-8">
+                <div className="text-center">
+                  <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+                  <p className="text-muted-foreground">Loading approvals...</p>
+                </div>
+              </div>
+            )}
+          </TabErrorBoundary>
         </TabsContent>
       </Tabs>
 
@@ -622,6 +654,38 @@ export default function ExpenseManagement() {
       )}
     </div>
   );
+}
+
+// Error boundary component for tab content
+function TabErrorBoundary({ children, fallbackMessage }: { children: React.ReactNode, fallbackMessage: string }) {
+  const [hasError, setHasError] = useState(false);
+
+  useEffect(() => {
+    const handleError = (error: ErrorEvent) => {
+      console.error('Tab error:', error);
+      setHasError(true);
+    };
+
+    window.addEventListener('error', handleError);
+    return () => window.removeEventListener('error', handleError);
+  }, []);
+
+  if (hasError) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <div className="text-center">
+          <AlertTriangle className="h-12 w-12 mx-auto mb-4 text-yellow-500" />
+          <h3 className="text-lg font-semibold mb-2">Something went wrong</h3>
+          <p className="text-muted-foreground mb-4">{fallbackMessage}</p>
+          <Button onClick={() => setHasError(false)} variant="outline">
+            Try Again
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  return <>{children}</>;
 }
 
 // Expense form component for creating new expenses
@@ -979,15 +1043,32 @@ function ExpenseForm({ onClose, onSuccess }: { onClose: () => void; onSuccess?: 
 
 // Analytics component with charts and insights
 function ExpenseAnalytics({ expenses }: { expenses: any[] }) {
+  // Add safety check for expenses data
+  if (!expenses || !Array.isArray(expenses)) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+          <p className="text-muted-foreground">Loading analytics data...</p>
+        </div>
+      </div>
+    );
+  }
+
   // Calculate category breakdown
   const categoryBreakdown = useMemo(() => {
-    const breakdown = EXPENSE_CATEGORIES.map(category => {
-      const categoryExpenses = expenses.filter(exp => exp.category === category);
-      const total = categoryExpenses.reduce((sum, exp) => sum + exp.amount, 0);
-      const count = categoryExpenses.length;
-      return { category, total, count };
-    }).filter(item => item.count > 0);
-    return breakdown;
+    try {
+      const breakdown = EXPENSE_CATEGORIES.map(category => {
+        const categoryExpenses = expenses.filter(exp => exp && exp.category === category);
+        const total = categoryExpenses.reduce((sum, exp) => sum + (Number(exp.amount) || 0), 0);
+        const count = categoryExpenses.length;
+        return { category, total, count };
+      }).filter(item => item.count > 0);
+      return breakdown;
+    } catch (error) {
+      console.error('Error calculating category breakdown:', error);
+      return [];
+    }
   }, [expenses]);
 
   // Calculate monthly trends (mock data for demonstration)
@@ -1002,29 +1083,39 @@ function ExpenseAnalytics({ expenses }: { expenses: any[] }) {
 
   // Calculate status distribution
   const statusDistribution = useMemo(() => {
-    const distribution = APPROVAL_STATUSES.map(status => {
-      const statusExpenses = expenses.filter(exp => exp.status === status);
-      const total = statusExpenses.reduce((sum, exp) => sum + exp.amount, 0);
-      const count = statusExpenses.length;
-      return { status, total, count };
-    }).filter(item => item.count > 0);
-    return distribution;
+    try {
+      const distribution = APPROVAL_STATUSES.map(status => {
+        const statusExpenses = expenses.filter(exp => exp && exp.status === status);
+        const total = statusExpenses.reduce((sum, exp) => sum + (Number(exp.amount) || 0), 0);
+        const count = statusExpenses.length;
+        return { status, total, count };
+      }).filter(item => item.count > 0);
+      return distribution;
+    } catch (error) {
+      console.error('Error calculating status distribution:', error);
+      return [];
+    }
   }, [expenses]);
 
   // Calculate department spending
   const departmentSpending = useMemo(() => {
-    const departments = [...new Set(expenses.map(exp => exp.department))];
-    return departments.map(dept => {
-      const deptExpenses = expenses.filter(exp => exp.department === dept);
-      const total = deptExpenses.reduce((sum, exp) => sum + exp.amount, 0);
-      const count = deptExpenses.length;
-      return { department: dept, total, count };
-    }).sort((a, b) => b.total - a.total);
+    try {
+      const departments = [...new Set(expenses.filter(exp => exp && exp.department).map(exp => exp.department))];
+      return departments.map(dept => {
+        const deptExpenses = expenses.filter(exp => exp && exp.department === dept);
+        const total = deptExpenses.reduce((sum, exp) => sum + (Number(exp.amount) || 0), 0);
+        const count = deptExpenses.length;
+        return { department: dept, total, count };
+      }).sort((a, b) => b.total - a.total);
+    } catch (error) {
+      console.error('Error calculating department spending:', error);
+      return [];
+    }
   }, [expenses]);
 
   const totalBudget = 100000; // Mock annual budget
-  const totalSpent = expenses.reduce((sum, exp) => sum + exp.amount, 0);
-  const budgetUtilization = (totalSpent / totalBudget) * 100;
+  const totalSpent = expenses.reduce((sum, exp) => sum + (Number(exp.amount) || 0), 0);
+  const budgetUtilization = totalSpent > 0 ? (totalSpent / totalBudget) * 100 : 0;
 
   return (
     <div className="space-y-6">
@@ -1249,16 +1340,37 @@ function ExpenseApprovals({
   expenses, 
   onAction, 
   getStatusColor, 
-  getPriorityColor 
+  getPriorityColor,
+  user 
 }: { 
   expenses: any[], 
   onAction: (id: string, action: 'approve' | 'reject') => void,
   getStatusColor: (status: string) => string,
-  getPriorityColor: (priority: string) => string
+  getPriorityColor: (priority: string) => string,
+  user?: any
 }) {
+  // Add safety check for expenses data
+  if (!expenses || !Array.isArray(expenses)) {
+    console.log('ExpenseApprovals: expenses is not an array or is null', expenses);
+    return (
+      <div className="flex items-center justify-center py-8">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+          <p className="text-muted-foreground">Loading approvals data...</p>
+        </div>
+      </div>
+    );
+  }
+
+  console.log('ExpenseApprovals: received expenses', expenses.length, expenses);
+
   const pendingExpenses = expenses.filter(expense => 
-    ['Pending', 'Department Approved', 'Finance Review', 'Principal Approved', 'Board Review'].includes(expense.status)
+    expense && expense.status && ['Pending', 'Department Approved', 'Finance Review', 'Principal Approved', 'Board Review'].includes(expense.status)
   );
+
+  console.log('ExpenseApprovals: pending expenses', pendingExpenses.length, pendingExpenses);
+
+  try {
 
   const getApprovalSteps = (currentStatus: string, approvalLevel: number) => {
     const steps = [
@@ -1293,14 +1405,14 @@ function ExpenseApprovals({
                 <CardContent className="p-6">
                   <div className="flex justify-between items-start mb-4">
                     <div>
-                      <h3 className="font-semibold text-lg">{expense.title}</h3>
-                      <p className="text-sm text-muted-foreground">{expense.expenseNumber} • {expense.category}</p>
-                      <p className="text-sm text-muted-foreground">Requested by: {expense.requestedBy}</p>
+                      <h3 className="font-semibold text-lg">{expense.title || 'Untitled Expense'}</h3>
+                      <p className="text-sm text-muted-foreground">{expense.expenseNumber || 'N/A'} • {expense.category || 'N/A'}</p>
+                      <p className="text-sm text-muted-foreground">Requested by: {expense.requestedBy || 'Unknown'}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-2xl font-bold">${expense.amount.toFixed(2)}</p>
-                      <Badge className={`${getPriorityColor(expense.priority)} bg-opacity-10 border`}>
-                        {expense.priority} Priority
+                      <p className="text-2xl font-bold">${expense.amount ? Number(expense.amount).toFixed(2) : '0.00'}</p>
+                      <Badge className={`${getPriorityColor(expense.priority || 'Medium')} bg-opacity-10 border`}>
+                        {expense.priority || 'Medium'} Priority
                       </Badge>
                     </div>
                   </div>
@@ -1308,7 +1420,7 @@ function ExpenseApprovals({
                   <div className="mb-4">
                     <p className="text-sm text-muted-foreground mb-2">Approval Progress:</p>
                     <div className="flex items-center space-x-2">
-                      {getApprovalSteps(expense.status, expense.approvalLevel).map((step, index) => (
+                      {getApprovalSteps(expense.status || 'Pending', expense.approvalLevel || 0).map((step, index) => (
                         <React.Fragment key={step.label}>
                           <div className={`flex items-center space-x-1 ${
                             step.completed ? 'text-green-600' : 
@@ -1323,7 +1435,7 @@ function ExpenseApprovals({
                             )}
                             <span className="text-xs font-medium">{step.label}</span>
                           </div>
-                          {index < getApprovalSteps(expense.status, expense.approvalLevel).length - 1 && (
+                          {index < getApprovalSteps(expense.status || 'Pending', expense.approvalLevel || 0).length - 1 && (
                             <div className={`flex-1 h-0.5 ${step.completed ? 'bg-green-600' : 'bg-gray-300'}`} />
                           )}
                         </React.Fragment>
@@ -1332,10 +1444,10 @@ function ExpenseApprovals({
                   </div>
 
                   <div className="mb-4 p-3 bg-gray-50 rounded">
-                    <p className="text-sm"><strong>Description:</strong> {expense.description}</p>
-                    <p className="text-sm mt-1"><strong>Department:</strong> {expense.department}</p>
-                    <p className="text-sm mt-1"><strong>Budget Code:</strong> {expense.budgetCode}</p>
-                    <p className="text-sm mt-1"><strong>Due Date:</strong> {new Date(expense.dueDate).toLocaleDateString()}</p>
+                    <p className="text-sm"><strong>Description:</strong> {expense.description || 'No description'}</p>
+                    <p className="text-sm mt-1"><strong>Department:</strong> {expense.department || 'N/A'}</p>
+                    <p className="text-sm mt-1"><strong>Budget Code:</strong> {expense.budgetCode || 'N/A'}</p>
+                    <p className="text-sm mt-1"><strong>Due Date:</strong> {expense.dueDate ? new Date(expense.dueDate).toLocaleDateString() : 'N/A'}</p>
                   </div>
 
                   <div className="flex justify-end space-x-2">
@@ -1343,22 +1455,30 @@ function ExpenseApprovals({
                       <Eye className="h-4 w-4 mr-2" />
                       View Details
                     </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => onAction(expense.id, 'reject')}
-                      className="text-red-600 hover:text-red-700"
-                    >
-                      <XCircle className="h-4 w-4 mr-2" />
-                      Reject
-                    </Button>
-                    <Button 
-                      size="sm"
-                      onClick={() => onAction(expense.id, 'approve')}
-                    >
-                      <CheckCircle className="h-4 w-4 mr-2" />
-                      Approve
-                    </Button>
+                    {user?.role === 'ADMIN' ? (
+                      <>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => onAction(expense.id, 'reject')}
+                          className="text-red-600 hover:text-red-700"
+                        >
+                          <XCircle className="h-4 w-4 mr-2" />
+                          Reject
+                        </Button>
+                        <Button 
+                          size="sm"
+                          onClick={() => onAction(expense.id, 'approve')}
+                        >
+                          <CheckCircle className="h-4 w-4 mr-2" />
+                          Approve
+                        </Button>
+                      </>
+                    ) : (
+                      <div className="text-sm text-muted-foreground px-3 py-2 bg-gray-50 rounded">
+                        This Item is pending approval by school admin
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -1375,7 +1495,7 @@ function ExpenseApprovals({
               <Clock className="h-8 w-8 text-yellow-500 mr-3" />
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Awaiting Your Review</p>
-                <p className="text-2xl font-bold">{pendingExpenses.filter(e => e.status === 'Finance Review').length}</p>
+                <p className="text-2xl font-bold">{pendingExpenses.filter(e => e && e.status === 'Finance Review').length}</p>
               </div>
             </div>
           </CardContent>
@@ -1386,7 +1506,7 @@ function ExpenseApprovals({
               <AlertTriangle className="h-8 w-8 text-red-500 mr-3" />
               <div>
                 <p className="text-sm font-medium text-muted-foreground">High Priority</p>
-                <p className="text-2xl font-bold">{pendingExpenses.filter(e => e.priority === 'High').length}</p>
+                <p className="text-2xl font-bold">{pendingExpenses.filter(e => e && e.priority === 'High').length}</p>
               </div>
             </div>
           </CardContent>
@@ -1398,7 +1518,7 @@ function ExpenseApprovals({
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Total Pending Value</p>
                 <p className="text-2xl font-bold">
-                  ${pendingExpenses.reduce((sum, e) => sum + e.amount, 0).toFixed(0)}
+                  ${pendingExpenses.reduce((sum, e) => sum + (e && e.amount ? Number(e.amount) : 0), 0).toFixed(0)}
                 </p>
               </div>
             </div>
@@ -1407,6 +1527,21 @@ function ExpenseApprovals({
       </div>
     </div>
   );
+  } catch (error) {
+    console.error('Error rendering ExpenseApprovals:', error);
+    return (
+      <div className="flex items-center justify-center py-8">
+        <div className="text-center">
+          <AlertTriangle className="h-12 w-12 mx-auto mb-4 text-yellow-500" />
+          <h3 className="text-lg font-semibold mb-2">Unable to load approvals</h3>
+          <p className="text-muted-foreground mb-4">There was an error loading the approvals data.</p>
+          <Button onClick={() => window.location.reload()} variant="outline">
+            Refresh Page
+          </Button>
+        </div>
+      </div>
+    );
+  }
 }
 
 // Enhanced Details dialog with comprehensive information
@@ -1421,6 +1556,25 @@ function ExpenseDetailsDialog({
   getStatusColor: (status: string) => string,
   getPriorityColor: (priority: string) => string
 }) {
+  // Add safety check for expense data
+  if (!expense || typeof expense !== 'object') {
+    return (
+      <Dialog open={true} onOpenChange={onClose}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Error Loading Expense Details</DialogTitle>
+            <DialogDescription>
+              Unable to load expense details. Please try again.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end">
+            <Button onClick={onClose}>Close</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
   const getApprovalSteps = (currentStatus: string, approvalLevel: number) => {
     const steps = [
       { 
