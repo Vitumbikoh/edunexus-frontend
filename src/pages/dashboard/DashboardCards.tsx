@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ChevronRight, TrendingUp, AlertTriangle, CheckCircle, Clock, Users2, UserCog, GraduationCap, Star, RefreshCcw, Loader2, Filter, DollarSign, CreditCard } from "lucide-react";
+import { formatCurrency, getCurrencySymbol, getDefaultCurrency } from "@/lib/currency";
 import { useNavigate } from "react-router-dom";
 import { API_CONFIG } from "@/config/api";
 import { useAuth } from "@/contexts/AuthContext";
@@ -773,7 +774,7 @@ export const FinanceDashboardCards = () => {
               <AreaChart data={revenueChartData}>
                 <XAxis dataKey="month" />
                 <YAxis />
-                <Tooltip formatter={(value) => [`$${value.toLocaleString()}`, '']} />
+                <Tooltip formatter={(value) => [`${formatCurrency(Number(value), getDefaultCurrency())}`, '']} />
                 <Area type="monotone" dataKey="revenue" stackId="1" stroke="#3B82F6" fill="#3B82F6" fillOpacity={0.6} />
                 <Area type="monotone" dataKey="target" stackId="2" stroke="#10B981" fill="#10B981" fillOpacity={0.3} />
               </AreaChart>
@@ -855,10 +856,10 @@ export const FinanceDashboardCards = () => {
                     />
                     <YAxis 
                       tick={{ fontSize: 12 }}
-                      tickFormatter={(value) => `$${value.toLocaleString()}`}
+                      tickFormatter={(value) => `${getCurrencySymbol(getDefaultCurrency())}${Number(value).toLocaleString()}`}
                     />
                     <Tooltip 
-                      formatter={(value: any) => [`$${value.toLocaleString()}`, 'Outstanding Fees']}
+                      formatter={(value: any) => [`${formatCurrency(Number(value), getDefaultCurrency())}`, 'Outstanding Fees']}
                       labelStyle={{ color: '#000' }}
                     />
                     <Bar 
@@ -945,7 +946,7 @@ export const FinanceDashboardCards = () => {
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="font-medium text-gray-900 dark:text-gray-100">${transaction.amount}</p>
+                  <p className="font-medium text-gray-900 dark:text-gray-100">{formatCurrency(transaction.amount, getDefaultCurrency())}</p>
                   <p className="text-sm text-gray-600 dark:text-gray-400">
                     {new Date(transaction.paymentDate).toLocaleDateString()}
                   </p>

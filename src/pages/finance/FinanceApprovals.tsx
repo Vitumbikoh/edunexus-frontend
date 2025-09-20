@@ -9,6 +9,7 @@ import { API_CONFIG } from '@/config/api';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useNavigate } from 'react-router-dom';
+import { formatCurrency, getDefaultCurrency } from '@/lib/currency';
 
 interface Expense {
   id: string;
@@ -296,7 +297,7 @@ export default function FinanceApprovals() {
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Total Amount</p>
                 <p className="text-2xl font-bold">
-                  ${pendingExpenses.reduce((sum, expense) => sum + Number(expense.amount), 0).toLocaleString()}
+                  {formatCurrency(pendingExpenses.reduce((sum, expense) => sum + Number(expense.amount), 0), getDefaultCurrency())}
                 </p>
               </div>
             </div>
@@ -336,7 +337,7 @@ export default function FinanceApprovals() {
                         <p className="text-sm text-muted-foreground">Requested by: {expense.requestedBy || 'Unknown'}</p>
                       </div>
                       <div className="text-right">
-                        <p className="text-2xl font-bold">${expense.amount ? Number(expense.amount).toFixed(2) : '0.00'}</p>
+                        <p className="text-2xl font-bold">{formatCurrency(expense.amount || 0, getDefaultCurrency())}</p>
                         <Badge className={`${getPriorityColor(expense.priority || 'Medium')} bg-opacity-10 border`}>
                           {expense.priority || 'Medium'} Priority
                         </Badge>
