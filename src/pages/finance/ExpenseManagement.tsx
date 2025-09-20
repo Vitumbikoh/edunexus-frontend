@@ -104,9 +104,8 @@ export default function ExpenseManagement() {
   const [currentPage, setCurrentPage] = useState(0);
   const [pageSize] = useState(20);
 
-  // Check user permissions
-  const isAdmin = user?.role === 'admin' || user?.role === 'finance';
-  const canApprove = user?.role === 'admin' || user?.role === 'finance';
+  // Check user permissions - only ADMIN can manage certain actions (delete). Approvals moved to FinanceApprovals page.
+  const isAdmin = user?.role === 'admin';
 
   // API functions
   const fetchExpenses = async () => {
@@ -149,51 +148,11 @@ export default function ExpenseManagement() {
     }
   };
 
-  const handleApprovalAction = async (expenseId: string, action: 'approve' | 'reject', reason?: string) => {
-    if (!token) return;
-    
-    setActionLoading(expenseId);
-    try {
-      const endpoint = action === 'approve' ? 'approve' : 'reject';
-      const body = action === 'approve' 
-        ? { comments: reason || 'Approved' }
-        : { reason: reason || 'Rejected', comments: reason };
 
-      const response = await fetch(`${API_CONFIG.BASE_URL}/expenses/${expenseId}/${endpoint}`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(body),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to ${action} expense`);
-      }
-
-      toast({
-        title: 'Success',
-        description: `Expense ${action}d successfully.`,
-      });
-
-      // Refresh the expenses list
-      await fetchExpenses();
-    } catch (error) {
-      console.error(`Error ${action}ing expense:`, error);
-      toast({
-        title: 'Error',
-        description: `Failed to ${action} expense. Please try again.`,
-        variant: 'destructive',
-      });
-    } finally {
-      setActionLoading(null);
-    }
-  };
 
   const deleteExpense = async (expenseId: string) => {
     if (!token) return;
-    
+
     setActionLoading(expenseId);
     try {
       const response = await fetch(`${API_CONFIG.BASE_URL}/expenses/${expenseId}`, {
@@ -219,6 +178,43 @@ export default function ExpenseManagement() {
       toast({
         title: 'Error',
         description: 'Failed to delete expense. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleApprovalAction = async (expenseId: string, action: 'approve' | 'reject') => {
+    if (!token) return;
+
+    setActionLoading(expenseId);
+    try {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/expenses/${expenseId}/approve`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ action }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to ${action} expense`);
+      }
+
+      toast({
+        title: 'Success',
+        description: `Expense ${action}d successfully.`,
+      });
+
+      // Refresh the expenses list
+      await fetchExpenses();
+    } catch (error) {
+      console.error(`Error ${action}ing expense:`, error);
+      toast({
+        title: 'Error',
+        description: `Failed to ${action} expense. Please try again.`,
         variant: 'destructive',
       });
     } finally {
@@ -529,25 +525,6 @@ export default function ExpenseManagement() {
                                   <Eye className="h-4 w-4 mr-2" />
                                   View Details
                                 </DropdownMenuItem>
-                                {canApprove && ['Pending', 'Department Approved', 'Finance Review', 'Principal Approved', 'Board Review'].includes(expense.status) && (
-                                  <>
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuItem 
-                                      onClick={() => handleApprovalAction(expense.id, 'approve')}
-                                      disabled={actionLoading === expense.id}
-                                    >
-                                      <CheckCircle className="h-4 w-4 mr-2" />
-                                      Approve
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem 
-                                      onClick={() => handleApprovalAction(expense.id, 'reject', 'Rejected by user')}
-                                      disabled={actionLoading === expense.id}
-                                    >
-                                      <XCircle className="h-4 w-4 mr-2" />
-                                      Reject
-                                    </DropdownMenuItem>
-                                  </>
-                                )}
                                 {isAdmin && expense.status === 'Pending' && (
                                   <>
                                     <DropdownMenuSeparator />
