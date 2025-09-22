@@ -73,6 +73,9 @@ import EnrollStudents from "./pages/courses/EnrollStudents";
 import ClassManagement from "./pages/Classes";
 import Exams from "./pages/courses/Exams";
 import ExamForm from "./pages/courses/ExamForm";
+import Payroll from "./pages/finance/Payroll";
+import PayComponents from "./pages/finance/PayComponents";
+import StaffPayAssignments from "./pages/finance/StaffPayAssignments";
 
 // Reports page
 import Reports from "./pages/Reports/Reports";
@@ -751,11 +754,11 @@ const AppRoutes = () => {
         path="/finance/approvals"
         element={
           <ProtectedRoute>
-            <AdminRoute>
+            <FinanceRoute>
               <Layout>
                 <FinanceApprovals />
               </Layout>
-            </AdminRoute>
+            </FinanceRoute>
           </ProtectedRoute>
         }
       />
@@ -767,6 +770,45 @@ const AppRoutes = () => {
             <FinanceRoute>
               <Layout>
                 <ExpenseAnalytics />
+              </Layout>
+            </FinanceRoute>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/payroll"
+        element={
+          <ProtectedRoute>
+            <FinanceRoute>
+              <Layout>
+                <Payroll />
+              </Layout>
+            </FinanceRoute>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/payroll/components"
+        element={
+          <ProtectedRoute>
+            <FinanceRoute>
+              <Layout>
+                <PayComponents />
+              </Layout>
+            </FinanceRoute>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/payroll/assignments"
+        element={
+          <ProtectedRoute>
+            <FinanceRoute>
+              <Layout>
+                <StaffPayAssignments />
               </Layout>
             </FinanceRoute>
           </ProtectedRoute>

@@ -121,22 +121,37 @@ const adminNavItems: NavItem[] = [
   {
     label: "Finance",
     icon: DollarSign,
-    roles: ["admin", "parent"],
+    roles: ["admin", "parent", "finance"],
     subItems: [
       {
         label: "View Financial Records",
         href: "/finance",
-        roles: ["admin", "parent"],
+        roles: ["admin", "parent", "finance"],
       },
       {
         label: "Financial Reports",
         href: "/finance/reports",
-        roles: ["admin"],
+        roles: ["admin", "finance"],
       },
       {
         label: "Finance Approvals",
         href: "/finance/approvals",
-        roles: ["admin"],
+        roles: ["admin", "finance"],
+      },
+      {
+        label: "Payroll",
+        href: "/payroll",
+        roles: ["admin", "finance"],
+      },
+      {
+        label: "Pay Components",
+        href: "/payroll/components",
+        roles: ["admin", "finance"],
+      },
+      {
+        label: "Staff Assignments",
+        href: "/payroll/assignments",
+        roles: ["admin", "finance"],
       },
       {
         label: "View Financial Officers",
@@ -303,6 +318,18 @@ const financeNavItems: NavItem[] = [
     label: "Expenses",
     icon: FileText,
     href: "/finance/expenses",
+    roles: ["finance"],
+  },
+  {
+    label: "Payroll",
+    icon: Users,
+    href: "/payroll",
+    roles: ["finance"],
+  },
+  {
+    label: "Approvals",
+    icon: Check,
+    href: "/finance/approvals",
     roles: ["finance"],
   },
   {

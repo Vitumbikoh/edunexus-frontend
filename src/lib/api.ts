@@ -8,7 +8,7 @@ export const api = {
       const baseUrl = API_CONFIG.BASE_URL;
       const response = await fetch(`${baseUrl}${endpoint}`, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
+          'Authorization': `Bearer ${localStorage.getItem('access_token') || ''}`,
           'Content-Type': 'application/json'
         }
       });
@@ -30,7 +30,7 @@ export const api = {
       const response = await fetch(`${baseUrl}${endpoint}`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
+          'Authorization': `Bearer ${localStorage.getItem('access_token') || ''}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify(body)
@@ -53,7 +53,7 @@ export const api = {
       const response = await fetch(`${baseUrl}${endpoint}`, {
         method: 'PATCH',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
+          'Authorization': `Bearer ${localStorage.getItem('access_token') || ''}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify(body)
@@ -76,7 +76,7 @@ export const api = {
       const response = await fetch(`${baseUrl}${endpoint}`, {
         method: 'PUT',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
+          'Authorization': `Bearer ${localStorage.getItem('access_token') || ''}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify(body)
@@ -99,7 +99,7 @@ export const api = {
       const response = await fetch(`${baseUrl}${endpoint}`, {
         method: 'DELETE',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
+          'Authorization': `Bearer ${localStorage.getItem('access_token') || ''}`,
           'Content-Type': 'application/json'
         }
       });
