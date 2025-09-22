@@ -10,6 +10,7 @@ import { academicCalendarService } from "@/services/academicCalendarService";
 import { termService } from "@/services/termService";
 import { ReportCards } from "./ReportCards";
 import { ReportCharts } from "./ReportCharts";
+import { formatCurrency, getDefaultCurrency } from '@/lib/currency';
 
 interface ReportDataAPI {
   totalStudents: number;
@@ -430,7 +431,7 @@ export default function Reports() {
           </CardHeader>
           <CardContent className="pb-2">
             <div className="text-2xl font-bold text-foreground break-words">
-              ${reportData.totalRevenue?.toLocaleString() || "0"}
+              {formatCurrency(reportData.totalRevenue || 0, getDefaultCurrency())}
             </div>
             <p className="text-xs text-muted-foreground mt-1">Total collected</p>
           </CardContent>

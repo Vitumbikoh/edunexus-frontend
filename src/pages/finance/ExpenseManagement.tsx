@@ -14,6 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
 import { API_CONFIG } from '@/config/api';
+import { formatCurrency, getDefaultCurrency } from '@/lib/currency';
 
 // Expense categories matching backend enum
 const EXPENSE_CATEGORIES = [
@@ -346,7 +347,7 @@ export default function ExpenseManagement() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">${summaryStats.total.toFixed(2)}</div>
+                <div className="text-2xl font-bold">{formatCurrency(summaryStats.total, getDefaultCurrency())}</div>
                 <p className="text-xs text-muted-foreground">{filteredExpenses.length} requests</p>
               </CardContent>
             </Card>
@@ -503,7 +504,7 @@ export default function ExpenseManagement() {
                             </span>
                           </TableCell>
                           <TableCell className="text-right font-medium">
-                            ${Number(expense.amount).toFixed(2)}
+                            {formatCurrency(Number(expense.amount), getDefaultCurrency())}
                           </TableCell>
                           <TableCell className="text-right">
                             <DropdownMenu>
@@ -1122,7 +1123,7 @@ function ExpenseAnalytics({ expenses }: { expenses: any[] }) {
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Avg. Expense</p>
                 <p className="text-2xl font-bold">
-                  ${expenses.length > 0 ? (totalSpent / expenses.length).toFixed(0) : '0'}
+                  {expenses.length > 0 ? formatCurrency(totalSpent / expenses.length, getDefaultCurrency()) : formatCurrency(0, getDefaultCurrency())}
                 </p>
               </div>
               <DollarSign className="h-8 w-8 text-green-500" />
@@ -1179,7 +1180,7 @@ function ExpenseAnalytics({ expenses }: { expenses: any[] }) {
                     <span className="text-sm font-medium">{item.category}</span>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-bold">${item.total.toFixed(0)}</p>
+                    <p className="text-sm font-bold">{formatCurrency(item.total, getDefaultCurrency())}</p>
                     <p className="text-xs text-muted-foreground">{item.count} items</p>
                   </div>
                 </div>
@@ -1207,7 +1208,7 @@ function ExpenseAnalytics({ expenses }: { expenses: any[] }) {
                     <span className="text-sm font-medium">{item.status}</span>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-bold">${item.total.toFixed(0)}</p>
+                    <p className="text-sm font-bold">{formatCurrency(item.total, getDefaultCurrency())}</p>
                     <p className="text-xs text-muted-foreground">{item.count} items</p>
                   </div>
                 </div>
@@ -1231,7 +1232,7 @@ function ExpenseAnalytics({ expenses }: { expenses: any[] }) {
                 <div key={dept.department} className="space-y-2">
                   <div className="flex justify-between text-sm">
                     <span className="font-medium">{dept.department}</span>
-                    <span>${dept.total.toFixed(0)}</span>
+                    <span>{formatCurrency(dept.total, getDefaultCurrency())}</span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
                     <div 
@@ -1262,7 +1263,7 @@ function ExpenseAnalytics({ expenses }: { expenses: any[] }) {
                     <span className="text-sm font-medium">{month.month} 2024</span>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-bold">${month.amount.toLocaleString()}</p>
+                    <p className="text-sm font-bold">{formatCurrency(month.amount, getDefaultCurrency())}</p>
                     <p className="text-xs text-muted-foreground">{month.count} expenses</p>
                   </div>
                 </div>
@@ -1387,7 +1388,7 @@ function ExpenseApprovals({
                       <p className="text-sm text-muted-foreground">Requested by: {expense.requestedBy || 'Unknown'}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-2xl font-bold">${expense.amount ? Number(expense.amount).toFixed(2) : '0.00'}</p>
+                      <p className="text-2xl font-bold">{formatCurrency(expense.amount ? Number(expense.amount) : 0, getDefaultCurrency())}</p>
                       <Badge className={`${getPriorityColor(expense.priority || 'Medium')} bg-opacity-10 border`}>
                         {expense.priority || 'Medium'} Priority
                       </Badge>
@@ -1495,7 +1496,7 @@ function ExpenseApprovals({
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Total Pending Value</p>
                 <p className="text-2xl font-bold">
-                  ${pendingExpenses.reduce((sum, e) => sum + (e && e.amount ? Number(e.amount) : 0), 0).toFixed(0)}
+                  {formatCurrency(pendingExpenses.reduce((sum, e) => sum + (e && e.amount ? Number(e.amount) : 0), 0), getDefaultCurrency())}
                 </p>
               </div>
             </div>
@@ -1624,7 +1625,7 @@ function ExpenseDetailsDialog({
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label className="text-sm font-medium text-muted-foreground">Amount</Label>
-                    <p className="text-2xl font-bold text-green-600">${expense.amount.toFixed(2)}</p>
+                    <p className="text-2xl font-bold text-green-600">{formatCurrency(expense.amount, getDefaultCurrency())}</p>
                   </div>
                   <div>
                     <Label className="text-sm font-medium text-muted-foreground">Department</Label>
@@ -1790,20 +1791,20 @@ function ExpenseDetailsDialog({
                 <div className="space-y-3">
                   <div className="flex justify-between text-sm">
                     <span>Budget Allocated:</span>
-                    <span className="font-medium">$50,000</span>
+                    <span className="font-medium">{formatCurrency(50000, getDefaultCurrency())}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span>Already Spent:</span>
-                    <span className="font-medium">$32,500</span>
+                    <span className="font-medium">{formatCurrency(32500, getDefaultCurrency())}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span>This Expense:</span>
-                    <span className="font-medium">${expense.amount.toFixed(2)}</span>
+                    <span className="font-medium">{formatCurrency(expense.amount, getDefaultCurrency())}</span>
                   </div>
                   <hr />
                   <div className="flex justify-between text-sm font-bold">
                     <span>Remaining After:</span>
-                    <span>${(50000 - 32500 - expense.amount).toFixed(2)}</span>
+                    <span>{formatCurrency(50000 - 32500 - expense.amount, getDefaultCurrency())}</span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
                     <div 

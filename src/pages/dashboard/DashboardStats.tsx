@@ -102,7 +102,7 @@ export const useDashboardStats = () => {
             },
             {
               title: "Fee Collection",
-              value: financesData.totalRevenue || "$0",
+              value: financesData.totalRevenue || "MWK0",
               icon: <DollarSign size={24} />,
               trend: { value: 8, isPositive: false },
               className: "bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-900/10",
@@ -132,14 +132,14 @@ export const useDashboardStats = () => {
           setStats([
             {
               title: "Monthly Revenue",
-              value: `$${monthlyRevenue.toLocaleString()}`,
+              value: `MWK${monthlyRevenue.toLocaleString()}`,
               icon: <TrendingUp size={24} />,
               trend: { value: Math.abs(Math.round(revenueChange)), isPositive: revenueChange >= 0 },
               className: "bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-900/10",
             },
             {
               title: "Outstanding Fees",
-              value: `$${currentOutstanding.toLocaleString()}`,
+              value: `MWK${currentOutstanding.toLocaleString()}`,
               icon: <DollarSign size={24} />,
               trend: { value: Math.abs(Math.round(outstandingChange)), isPositive: outstandingChange <= 0 },
               className: "bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-900/10",
@@ -322,7 +322,7 @@ export const useDashboardStats = () => {
               },
               {
                 title: `${child.name}'s Fees Due`,
-                value: `$${child.fees?.pending || 0}`,
+                value: `MWK${child.fees?.pending || 0}`,
                 icon: <DollarSign size={24} />,
                 className: "bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-900/10",
               },
@@ -347,7 +347,7 @@ export const useDashboardStats = () => {
               },
               {
                 title: "Total Fees Due",
-                value: "$450",
+                value: "MWK450",
                 icon: <DollarSign size={24} />,
                 className: "bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-900/10",
               },

@@ -14,6 +14,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { DollarSign, CreditCard, Calendar, AlertTriangle } from "lucide-react";
+import { formatCurrency, getDefaultCurrency } from '@/lib/currency';
 
 export default function ParentFinance() {
   const { user } = useAuth();
@@ -49,7 +50,7 @@ export default function ParentFinance() {
         </div>
         <div className="flex items-center space-x-2">
           <Badge variant={totalPending > 0 ? "destructive" : "default"} className="text-sm">
-            {totalPending > 0 ? `$${totalPending} pending` : 'All paid'}
+            {totalPending > 0 ? `${formatCurrency(totalPending, getDefaultCurrency())} pending` : 'All paid'}
           </Badge>
         </div>
       </div>
@@ -62,7 +63,7 @@ export default function ParentFinance() {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${totalFees.toLocaleString()}</div>
+            <div className="text-2xl font-bold">{formatCurrency(totalFees, getDefaultCurrency())}</div>
             <p className="text-xs text-muted-foreground">
               Academic year 2023-2024
             </p>
@@ -75,7 +76,7 @@ export default function ParentFinance() {
             <CreditCard className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">${totalPaid.toLocaleString()}</div>
+            <div className="text-2xl font-bold text-green-600">{formatCurrency(totalPaid, getDefaultCurrency())}</div>
             <p className="text-xs text-muted-foreground">
               {Math.round((totalPaid / totalFees) * 100)}% of total fees
             </p>
@@ -89,7 +90,7 @@ export default function ParentFinance() {
           </CardHeader>
           <CardContent>
             <div className={`text-2xl font-bold ${totalPending > 0 ? 'text-red-500' : 'text-green-600'}`}>
-              ${totalPending.toLocaleString()}
+              {formatCurrency(totalPending, getDefaultCurrency())}
             </div>
             <p className="text-xs text-muted-foreground">
               Due by January 30, 2024
@@ -111,13 +112,13 @@ export default function ParentFinance() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="bg-background p-4 rounded-lg border">
                   <div className="text-sm text-muted-foreground">Total Fees</div>
-                  <div className="text-2xl font-bold">${child.fees.total}</div>
+                  <div className="text-2xl font-bold">{formatCurrency(child.fees.total, getDefaultCurrency())}</div>
                   <div className="text-sm text-muted-foreground mt-2">Academic year</div>
                 </div>
                 
                 <div className="bg-background p-4 rounded-lg border">
                   <div className="text-sm text-muted-foreground">Amount Paid</div>
-                  <div className="text-2xl font-bold text-green-600">${child.fees.paid}</div>
+                  <div className="text-2xl font-bold text-green-600">{formatCurrency(child.fees.paid, getDefaultCurrency())}</div>
                   <div className="text-sm text-muted-foreground mt-2">
                     {Math.round((child.fees.paid / child.fees.total) * 100)}% completed
                   </div>
@@ -126,7 +127,7 @@ export default function ParentFinance() {
                 <div className="bg-background p-4 rounded-lg border">
                   <div className="text-sm text-muted-foreground">Pending</div>
                   <div className={`text-2xl font-bold ${child.fees.pending > 0 ? 'text-red-500' : 'text-green-600'}`}>
-                    ${child.fees.pending}
+                    {formatCurrency(child.fees.pending, getDefaultCurrency())}
                   </div>
                   <div className="text-sm text-muted-foreground mt-2">Due: {child.fees.dueDate}</div>
                 </div>
@@ -137,7 +138,7 @@ export default function ParentFinance() {
                 <div className="flex justify-between items-center">
                   <span className="text-sm font-medium">Payment Progress</span>
                   <span className="text-sm text-muted-foreground">
-                    ${child.fees.paid} / ${child.fees.total}
+                    {formatCurrency(child.fees.paid, getDefaultCurrency())} / {formatCurrency(child.fees.total, getDefaultCurrency())}
                   </span>
                 </div>
                 <Progress value={Math.round((child.fees.paid / child.fees.total) * 100)} className="h-2" />
@@ -148,7 +149,7 @@ export default function ParentFinance() {
                 <div className="flex space-x-2">
                   <Button>
                     <CreditCard className="mr-2 h-4 w-4" />
-                    Pay Now (${child.fees.pending})
+                    Pay Now ({formatCurrency(child.fees.pending, getDefaultCurrency())})
                   </Button>
                   <Button variant="outline">
                     <Calendar className="mr-2 h-4 w-4" />
@@ -185,7 +186,7 @@ export default function ParentFinance() {
                   <TableCell>{payment.date}</TableCell>
                   <TableCell className="font-medium">{payment.child}</TableCell>
                   <TableCell>{payment.type}</TableCell>
-                  <TableCell className="text-right">${payment.amount}</TableCell>
+                  <TableCell className="text-right">{formatCurrency(payment.amount, getDefaultCurrency())}</TableCell>
                   <TableCell className="text-right">
                     <Badge variant="default" className="text-green-700 bg-green-100">
                       {payment.status}

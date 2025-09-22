@@ -27,6 +27,7 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { API_CONFIG } from '@/config/api';
 import { Preloader } from '@/components/ui/preloader';
+import { formatCurrency, getDefaultCurrency } from '@/lib/currency';
 
 // Dynamic data fetching for charts
 const useChartData = (endpoint: string, defaultData: any[] = []) => {
@@ -658,7 +659,7 @@ export const FeeCollectionChart = ({ termId }: { termId?: string }) => {
           ))}
         </Pie>
         <Tooltip 
-          formatter={(value: number) => [`$${value.toLocaleString()}`, 'Amount']}
+          formatter={(value: number) => [`${formatCurrency(value, getDefaultCurrency())}`, 'Amount']}
           contentStyle={{
             backgroundColor: '#ffffff',
             border: '1px solid #e5e7eb',
@@ -690,7 +691,7 @@ export const FinanceOverviewChart = () => (
         axisLine={false}
         tickLine={false}
         tick={{ fontSize: 12, fill: '#6b7280' }}
-        tickFormatter={(value) => `$${value.toLocaleString()}`}
+        tickFormatter={(value) => formatCurrency(value, getDefaultCurrency())}
       />
       <ChartTooltip 
         content={<ChartTooltipContent />}

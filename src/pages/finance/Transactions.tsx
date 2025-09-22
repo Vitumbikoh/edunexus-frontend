@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Search, Filter, Download, Plus, Loader2 } from 'lucide-react';
 import { API_CONFIG } from '@/config/api';
 import { useAuth } from '@/contexts/AuthContext';
+import { formatCurrency, getDefaultCurrency } from '@/lib/currency';
 
 const mockTransactions = [
   {
@@ -222,10 +223,10 @@ export default function Transactions() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-red-600">
-              ${Math.abs(transactions.filter(t => (parseFloat(t.amount) || 0) < 0).reduce((sum, t) => {
+              {formatCurrency(Math.abs(transactions.filter(t => (parseFloat(t.amount) || 0) < 0).reduce((sum, t) => {
                 const amount = parseFloat(t.amount) || 0;
                 return sum + amount;
-              }, 0)).toLocaleString()}
+              }, 0)), getDefaultCurrency())}
             </div>
             <p className="text-xs text-muted-foreground">
               {transactions.filter(t => t.amount < 0).length} transactions
@@ -335,7 +336,7 @@ export default function Transactions() {
                         </Badge>
                       </TableCell>
                       <TableCell className={`text-right font-medium ${getAmountColor(parseFloat(transaction.amount) || 0)}`}>
-                        ${Math.abs(parseFloat(transaction.amount) || 0).toFixed(2)}
+                        {formatCurrency(Math.abs(parseFloat(transaction.amount) || 0), getDefaultCurrency())}
                         {(parseFloat(transaction.amount) || 0) < 0 && ' (Refund)'}
                       </TableCell>
                     </TableRow>

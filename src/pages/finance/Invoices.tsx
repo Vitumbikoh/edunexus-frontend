@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Search, Plus, Eye, Send, Download } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { formatCurrency, getDefaultCurrency } from '@/lib/currency';
 
 const mockInvoices = [
   {
@@ -109,7 +110,7 @@ export default function Invoices() {
             <CardTitle className="text-sm font-medium">Total Invoices</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${totalAmount.toFixed(2)}</div>
+            <div className="text-2xl font-bold">{formatCurrency(totalAmount, getDefaultCurrency())}</div>
             <p className="text-xs text-muted-foreground">{filteredInvoices.length} invoices</p>
           </CardContent>
         </Card>

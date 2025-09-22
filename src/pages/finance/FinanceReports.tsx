@@ -13,6 +13,7 @@ import { format } from 'date-fns';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { API_CONFIG } from '@/config/api';
+import { formatCurrency, getDefaultCurrency } from '@/lib/currency';
 
 type FinancialReportResponse = {
   success: boolean;
@@ -34,7 +35,7 @@ export default function FinanceReports() {
   const [dateRange, setDateRange] = useState('6months');
   const [fromDate, setFromDate] = useState<Date>();
   const [toDate, setToDate] = useState<Date>();
-  const [currency, setCurrency] = useState('USD');
+  const [currency, setCurrency] = useState(getDefaultCurrency());
   const [chartType, setChartType] = useState('bar');
   const [includeExpenses, setIncludeExpenses] = useState(true);
   const [includeRevenue, setIncludeRevenue] = useState(true);
@@ -46,6 +47,7 @@ export default function FinanceReports() {
 
   // Currency utilities (no FX conversion yet; formatting only)
   const currencySymbol = useMemo(() => {
+    if (currency === 'MWK') return 'MK';
     const m: Record<string, string> = { USD: '$', EUR: '€', GBP: '£', KES: 'KSh ' };
     return m[currency] ?? '';
   }, [currency]);
@@ -289,15 +291,13 @@ export default function FinanceReports() {
               </SelectContent>
             </Select>
 
-            <Select value={currency} onValueChange={setCurrency}>
+            <Select value={currency} onValueChange={(value) => setCurrency(value as "MWK" | "USD")}>
               <SelectTrigger>
                 <SelectValue placeholder="Currency" />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="MWK">MWK (MK)</SelectItem>
                 <SelectItem value="USD">USD ($)</SelectItem>
-                <SelectItem value="EUR">EUR (€)</SelectItem>
-                <SelectItem value="GBP">GBP (£)</SelectItem>
-                <SelectItem value="KES">KES (KSh)</SelectItem>
               </SelectContent>
             </Select>
 
@@ -501,7 +501,7 @@ export default function FinanceReports() {
                   case 'pie':
                     return (
                       <PieChart>
-                        <Tooltip formatter={(value: number) => [`${currencySymbol}${Number(value || 0).toLocaleString()}`, '']} />
+                        <Tooltip formatter={(value: number) => [formatCurrency(Number(value || 0), currency), '']} />
                         <Legend />
                         <Pie
                           dataKey="value"
@@ -523,7 +523,7 @@ export default function FinanceReports() {
                         <CartesianGrid strokeDasharray="3 3" />
                         <XAxis dataKey="month" />
                         <YAxis />
-                        <Tooltip formatter={(value: number) => [`${currencySymbol}${Number(value || 0).toLocaleString()}`, '']} />
+                        <Tooltip formatter={(value: number) => [formatCurrency(Number(value || 0), currency), '']} />
                         <Legend />
                         {includeRevenue && <Bar dataKey="revenue" fill="#22c55e" name="Revenue" />}
                         {includeExpenses && <Bar dataKey="expenses" fill="#ef4444" name="Expenses" />}
@@ -557,7 +557,7 @@ export default function FinanceReports() {
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Pie>
-                <Tooltip formatter={(value: number) => [`${currencySymbol}${Number(value || 0).toLocaleString()}`, '']} />
+                <Tooltip formatter={(value: number) => [formatCurrency(Number(value || 0), currency), '']} />
               </PieChart>
             </ResponsiveContainer>
           </CardContent>
@@ -576,7 +576,7 @@ export default function FinanceReports() {
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="month" />
               <YAxis />
-              <Tooltip formatter={(value: number) => [`${currencySymbol}${Number(value || 0).toLocaleString()}`, 'Profit']} />
+              <Tooltip formatter={(value: number) => [formatCurrency(Number(value || 0), currency), 'Profit']} />
               <Line type="monotone" dataKey="profit" stroke="#3b82f6" strokeWidth={2} />
             </LineChart>
           </ResponsiveContainer>

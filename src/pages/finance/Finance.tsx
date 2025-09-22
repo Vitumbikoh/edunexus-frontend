@@ -36,6 +36,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { API_CONFIG } from '@/config/api';
+import { formatCurrency, getDefaultCurrency } from '@/lib/currency';
 
 interface Transaction {
   id: string;
@@ -533,7 +534,7 @@ export default function Finance() {
                 <DollarSign className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">${effectivePaid.toFixed(2)}</div>
+                <div className="text-2xl font-bold">{formatCurrency(effectivePaid, getDefaultCurrency())}</div>
                 <p className="text-xs text-muted-foreground">
                   {fetchingSummary ? 'Updating...' : `For students that have paid`}
                 </p>
@@ -546,7 +547,7 @@ export default function Finance() {
                 <Receipt className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">${effectiveExpected.toFixed(2)}</div>
+                <div className="text-2xl font-bold">{formatCurrency(effectiveExpected, getDefaultCurrency())}</div>
                 <div className="mt-2 space-y-1">
                   <Progress value={paidPercentage} className="h-2" />
                   <p className="text-xs text-muted-foreground">{paidPercentage}% of total fees</p>
@@ -561,7 +562,7 @@ export default function Finance() {
                 <CreditCard className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">${pendingRemaining.toFixed(2)}</div>
+                <div className="text-2xl font-bold">{formatCurrency(pendingRemaining, getDefaultCurrency())}</div>
                 <p className="text-xs text-muted-foreground">Remaining balance</p>
               </CardContent>
             </Card>
@@ -572,7 +573,7 @@ export default function Finance() {
                 <ArrowUpRight className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">${overdueAmount.toFixed(2)}</div>
+                <div className="text-2xl font-bold">{formatCurrency(overdueAmount, getDefaultCurrency())}</div>
                 <p className="text-xs text-muted-foreground">
                   {summaryData?.overdueStudents
                     ? `${summaryData.overdueStudents} students overdue`
@@ -636,7 +637,7 @@ export default function Finance() {
                             <TableCell>{transaction.studentName}</TableCell>
                             <TableCell>{transaction.studentId || '-'}</TableCell>
                             <TableCell>{transaction.paymentType}</TableCell>
-                            <TableCell className="text-right">${transaction.amount.toFixed(2)}</TableCell>
+                            <TableCell className="text-right">{formatCurrency(transaction.amount, getDefaultCurrency())}</TableCell>
                             <TableCell className="text-right capitalize">{transaction.paymentMethod}</TableCell>
                             <TableCell className="text-right">
                                   <Button
@@ -715,9 +716,9 @@ export default function Finance() {
                               <TableRow key={s.studentId}>
                                 <TableCell className="font-medium">{s.studentName}</TableCell>
                                 <TableCell>{s.humanId || s.studentId || '-'}</TableCell>
-                                <TableCell className="text-right">${s.expectedAmount.toFixed(2)}</TableCell>
-                                <TableCell className="text-right">${s.paidAmount.toFixed(2)}</TableCell>
-                                <TableCell className="text-right">${s.outstandingAmount.toFixed(2)}</TableCell>
+                                <TableCell className="text-right">{formatCurrency(s.expectedAmount, getDefaultCurrency())}</TableCell>
+                                <TableCell className="text-right">{formatCurrency(s.paidAmount, getDefaultCurrency())}</TableCell>
+                                <TableCell className="text-right">{formatCurrency(s.outstandingAmount, getDefaultCurrency())}</TableCell>
                                 <TableCell className="text-right">
                                   <Badge
                                     variant={

@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { TrendingUp, AlertTriangle, Loader2, DollarSign, Clock, CheckCircle, BarChart3 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { API_CONFIG } from '@/config/api';
+import { formatCurrency, getDefaultCurrency } from '@/lib/currency';
 import {
   ResponsiveContainer,
   AreaChart,
@@ -136,7 +137,7 @@ export default function ExpenseAnalytics() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-green-600 dark:text-green-400">Average Expense</p>
-                <p className="text-3xl font-bold text-green-700 dark:text-green-300">{summary.avgExpense || '$0'}</p>
+                <p className="text-3xl font-bold text-green-700 dark:text-green-300">{summary.avgExpense ? formatCurrency(summary.avgExpense, getDefaultCurrency()) : formatCurrency(0, getDefaultCurrency())}</p>
               </div>
               <TrendingUp className="h-8 w-8 text-green-500" />
             </div>
@@ -184,9 +185,9 @@ export default function ExpenseAnalytics() {
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={monthlyChartData}>
                   <XAxis dataKey="month" />
-                  <YAxis tickFormatter={(value) => `$${value.toLocaleString()}`} />
+                  <YAxis tickFormatter={(value) => formatCurrency(value, getDefaultCurrency())} />
                   <Tooltip
-                    formatter={(value: any) => [`$${value.toLocaleString()}`, 'Amount']}
+                    formatter={(value: any) => [formatCurrency(value, getDefaultCurrency()), 'Amount']}
                     labelFormatter={(label) => `Month: ${label}`}
                   />
                   <Area
@@ -222,13 +223,13 @@ export default function ExpenseAnalytics() {
                       cy="50%"
                       outerRadius={100}
                       dataKey="value"
-                      label={({ name, value }) => `${name}: $${value.toLocaleString()}`}
+                      label={({ name, value }) => `${name}: ${formatCurrency(value, getDefaultCurrency())}`}
                     >
                       {categoryChartData.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
                     </Pie>
-                    <Tooltip formatter={(value: any) => [`$${value.toLocaleString()}`, 'Amount']} />
+                    <Tooltip formatter={(value: any) => [formatCurrency(value, getDefaultCurrency()), 'Amount']} />
                   </PieChart>
                 </ResponsiveContainer>
               ) : (
@@ -262,10 +263,10 @@ export default function ExpenseAnalytics() {
                 {monthlyChartData.map((item, index) => (
                   <tr key={index} className="border-b hover:bg-gray-50 dark:hover:bg-gray-800">
                     <td className="py-3 px-4 font-medium">{item.displayName.split('\n')[0]}</td>
-                    <td className="py-3 px-4 text-right font-mono">${item.amount.toLocaleString()}</td>
+                    <td className="py-3 px-4 text-right font-mono">{formatCurrency(item.amount, getDefaultCurrency())}</td>
                     <td className="py-3 px-4 text-right">{item.count}</td>
                     <td className="py-3 px-4 text-right font-mono">
-                      ${item.count > 0 ? (item.amount / item.count).toFixed(2) : '0.00'}
+                      {item.count > 0 ? formatCurrency(item.amount / item.count, getDefaultCurrency()) : formatCurrency(0, getDefaultCurrency())}
                     </td>
                   </tr>
                 ))}
