@@ -86,15 +86,14 @@ export default function StaffPayAssignments() {
       staffId: assignment.userId,
       payComponentId: assignment.componentId,
       amount: assignment.amount,
-      effectiveFrom: assignment.effectiveDate.split('T')[0],
-      effectiveTo: '', // Set empty as the interface doesn't have effectiveTo
+      effectiveFrom: assignment.effectiveFrom.split('T')[0],
+      effectiveTo: assignment.effectiveTo ? assignment.effectiveTo.split('T')[0] : '',
     });
     setShowCreateDialog(true);
   };
 
   const handleDelete = async (assignment: StaffPayAssignment) => {
-    const staffName = assignment.user?.name || assignment.user?.firstName + ' ' + assignment.user?.lastName || 'this staff member';
-    if (!confirm(`Are you sure you want to delete this assignment for ${staffName}?`)) {
+    if (!confirm(`Are you sure you want to delete this assignment for ${assignment.staffName}?`)) {
       return;
     }
 
@@ -141,8 +140,7 @@ export default function StaffPayAssignments() {
   };
 
   const filteredAssignments = assignments.filter(assignment => {
-    const staffName = assignment.user?.name || assignment.user?.firstName + ' ' + assignment.user?.lastName || '';
-    const matchesSearch = staffName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    const matchesSearch = assignment.staffName.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          assignment.component.name.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStaff = staffFilter === 'ALL' || assignment.userId === staffFilter;
     return matchesSearch && matchesStaff;
@@ -151,9 +149,8 @@ export default function StaffPayAssignments() {
   // Group assignments by staff
   const assignmentsByStaff = filteredAssignments.reduce((acc, assignment) => {
     if (!acc[assignment.userId]) {
-      const staffName = assignment.user?.name || assignment.user?.firstName + ' ' + assignment.user?.lastName || 'Unknown Staff';
       acc[assignment.userId] = {
-        staffName: staffName,
+        staffName: assignment.staffName,
         assignments: [],
       };
     }
@@ -259,9 +256,12 @@ export default function StaffPayAssignments() {
                           </Badge>
                         </TableCell>
                         <TableCell>${assignment.amount.toLocaleString()}</TableCell>
-                        <TableCell>{format(new Date(assignment.effectiveDate), 'MMM dd, yyyy')}</TableCell>
+                        <TableCell>{format(new Date(assignment.effectiveFrom), 'MMM dd, yyyy')}</TableCell>
                         <TableCell>
-                          Ongoing
+                          {assignment.effectiveTo 
+                            ? format(new Date(assignment.effectiveTo), 'MMM dd, yyyy')
+                            : 'Ongoing'
+                          }
                         </TableCell>
                         <TableCell>
                           <Badge variant={assignment.isActive ? 'default' : 'secondary'}>
@@ -365,9 +365,7 @@ export default function StaffPayAssignments() {
                 <TableBody>
                   {filteredAssignments.map((assignment) => (
                     <TableRow key={assignment.id}>
-                      <TableCell className="font-medium">
-                        {assignment.user?.name || assignment.user?.firstName + ' ' + assignment.user?.lastName || 'Unknown Staff'}
-                      </TableCell>
+                      <TableCell className="font-medium">{assignment.staffName}</TableCell>
                       <TableCell>{assignment.component.name}</TableCell>
                       <TableCell>
                         <Badge className={typeColors[assignment.component.type]}>
@@ -375,7 +373,7 @@ export default function StaffPayAssignments() {
                         </Badge>
                       </TableCell>
                       <TableCell>${assignment.amount.toLocaleString()}</TableCell>
-                      <TableCell>{format(new Date(assignment.effectiveDate), 'MMM dd, yyyy')}</TableCell>
+                      <TableCell>{format(new Date(assignment.effectiveFrom), 'MMM dd, yyyy')}</TableCell>
                       <TableCell>
                         <Badge variant={assignment.isActive ? 'default' : 'secondary'}>
                           {assignment.isActive ? 'Active' : 'Inactive'}

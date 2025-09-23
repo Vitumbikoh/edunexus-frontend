@@ -139,7 +139,7 @@ const adminNavItems: NavItem[] = [
         roles: ["admin", "finance"],
       },
       {
-        label: "Payroll",
+        label: "Payroll Approvals",
         href: "/payroll",
         roles: ["admin", "finance"],
       },
