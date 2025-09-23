@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,6 +15,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
 import { API_CONFIG } from '@/config/api';
 import { formatCurrency, getDefaultCurrency } from '@/lib/currency';
+import { expenseService } from '@/services/expenseService';
+import type { User } from '@/contexts/AuthContext';
 
 // Expense categories matching backend enum
 const EXPENSE_CATEGORIES = [
@@ -46,6 +48,37 @@ const EXPENSE_PRIORITIES = [
   'Medium',
   'High'
 ];
+
+// Types for analytics data
+interface MonthlyTrendData {
+  amount: number;
+  count: number;
+  formattedAmount?: string;
+  displayName?: string;
+}
+
+interface AnalyticsData {
+  summary?: {
+    budgetUtilization?: string;
+    avgExpense?: string;
+    approvalRate?: string;
+    avgApprovalTime?: string;
+  };
+  totals?: {
+    totalExpenses: number;
+    totalAmount: number;
+    approvedAmount: number;
+    pendingAmount: number;
+  };
+  categoryBreakdown?: Record<string, number>;
+  monthlyTrend?: Record<string, MonthlyTrendData>;
+  performance?: {
+    approvalRate: number;
+    avgApprovalTime: number;
+    budgetUtilization: number;
+    avgExpense: number;
+  };
+}
 
 // Types for the expense data structure
 interface Expense {
@@ -104,12 +137,14 @@ export default function ExpenseManagement() {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
   const [pageSize] = useState(20);
+  const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null);
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
 
   // Check user permissions - only ADMIN can manage certain actions (delete). Approvals moved to FinanceApprovals page.
   const isAdmin = user?.role === 'admin';
 
   // API functions
-  const fetchExpenses = async () => {
+  const fetchExpenses = useCallback(async () => {
     if (!token) return;
     
     setLoading(true);
@@ -147,7 +182,7 @@ export default function ExpenseManagement() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [token, statusFilter, categoryFilter, priorityFilter, searchTerm, currentPage, pageSize, toast]);
 
 
 
@@ -230,12 +265,45 @@ export default function ExpenseManagement() {
       setExpenses([]);
       setTotal(0);
     });
-  }, [token, statusFilter, categoryFilter, priorityFilter, searchTerm, currentPage]);
+  }, [fetchExpenses]);
 
   // Reset to first page when filters change
   useEffect(() => {
     setCurrentPage(0);
   }, [statusFilter, categoryFilter, priorityFilter, searchTerm]);
+
+  // Fetch analytics data
+  const fetchAnalytics = useCallback(async () => {
+    if (!token) return;
+    
+    setAnalyticsLoading(true);
+    try {
+      // Prefer api client with auto token refresh
+      const analytics = await (async () => {
+        try {
+          const data = await (await import('@/lib/apiClient')).apiFetch(`/expenses/analytics`);
+          return data as any;
+        } catch {
+          // Fallback to existing service if needed
+          return await expenseService.getAnalytics();
+        }
+      })();
+      setAnalyticsData(analytics);
+    } catch (error) {
+      console.error('Error fetching analytics:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to load analytics data.',
+        variant: 'destructive',
+      });
+    } finally {
+      setAnalyticsLoading(false);
+    }
+  }, [token, toast]);
+
+  useEffect(() => {
+    fetchAnalytics();
+  }, [fetchAnalytics]);
 
   // Helper functions
   const getStatusColor = (status: string) => {
@@ -587,7 +655,7 @@ export default function ExpenseManagement() {
         <TabsContent value="analytics" className="space-y-6">
           <TabErrorBoundary fallbackMessage="Unable to load analytics data. Please refresh the page.">
             {filteredExpenses.length >= 0 ? (
-              <ExpenseAnalytics expenses={filteredExpenses} />
+              <ExpenseAnalytics expenses={filteredExpenses} analyticsData={analyticsData} />
             ) : (
               <div className="flex items-center justify-center py-8">
                 <div className="text-center">
@@ -1020,19 +1088,7 @@ function ExpenseForm({ onClose, onSuccess }: { onClose: () => void; onSuccess?: 
 }
 
 // Analytics component with charts and insights
-function ExpenseAnalytics({ expenses }: { expenses: any[] }) {
-  // Add safety check for expenses data
-  if (!expenses || !Array.isArray(expenses)) {
-    return (
-      <div className="flex items-center justify-center py-8">
-        <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
-          <p className="text-muted-foreground">Loading analytics data...</p>
-        </div>
-      </div>
-    );
-  }
-
+function ExpenseAnalytics({ expenses, analyticsData }: { expenses: Expense[], analyticsData: AnalyticsData | null }) {
   // Calculate category breakdown
   const categoryBreakdown = useMemo(() => {
     try {
@@ -1049,15 +1105,21 @@ function ExpenseAnalytics({ expenses }: { expenses: any[] }) {
     }
   }, [expenses]);
 
-  // Calculate monthly trends (mock data for demonstration)
-  const monthlyTrends = [
-    { month: 'Jan', amount: 12500, count: 15 },
-    { month: 'Feb', amount: 15200, count: 18 },
-    { month: 'Mar', amount: 18700, count: 22 },
-    { month: 'Apr', amount: 16300, count: 19 },
-    { month: 'May', amount: 14800, count: 17 },
-    { month: 'Jun', amount: 17900, count: 21 }
-  ];
+  // Calculate monthly trends from analytics data
+  const monthlyTrends = useMemo(() => {
+    if (!analyticsData?.monthlyTrend) {
+      return [];
+    }
+
+    return Object.entries(analyticsData.monthlyTrend)
+      .sort(([a], [b]) => new Date(a).getTime() - new Date(b).getTime())
+      .slice(-6) // Get last 6 months
+      .map(([monthKey, data]: [string, MonthlyTrendData]) => ({
+        month: monthKey.split(' ')[0], // Extract month name (e.g., "Jan" from "Jan 2024")
+        amount: data.amount || 0,
+        count: data.count || 0,
+      }));
+  }, [analyticsData]);
 
   // Calculate status distribution
   const statusDistribution = useMemo(() => {
@@ -1090,6 +1152,18 @@ function ExpenseAnalytics({ expenses }: { expenses: any[] }) {
       return [];
     }
   }, [expenses]);
+
+  // Add safety check for expenses data
+  if (!expenses || !Array.isArray(expenses)) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+          <p className="text-muted-foreground">Loading analytics data...</p>
+        </div>
+      </div>
+    );
+  }
 
   const totalBudget = 100000; // Mock annual budget
   const totalSpent = expenses.reduce((sum, exp) => sum + (Number(exp.amount) || 0), 0);
@@ -1321,11 +1395,11 @@ function ExpenseApprovals({
   getPriorityColor,
   user 
 }: { 
-  expenses: any[], 
+  expenses: Expense[], 
   onAction: (id: string, action: 'approve' | 'reject') => void,
   getStatusColor: (status: string) => string,
   getPriorityColor: (priority: string) => string,
-  user?: any
+  user?: User
 }) {
   // Add safety check for expenses data
   if (!expenses || !Array.isArray(expenses)) {
@@ -1433,10 +1507,10 @@ function ExpenseApprovals({
                       <Eye className="h-4 w-4 mr-2" />
                       View Details
                     </Button>
-                    {user?.role === 'ADMIN' ? (
+                    {user?.role === 'admin' ? (
                       <>
-                        <Button 
-                          variant="outline" 
+                        <Button
+                          variant="outline"
                           size="sm"
                           onClick={() => onAction(expense.id, 'reject')}
                           className="text-red-600 hover:text-red-700"
@@ -1444,7 +1518,7 @@ function ExpenseApprovals({
                           <XCircle className="h-4 w-4 mr-2" />
                           Reject
                         </Button>
-                        <Button 
+                        <Button
                           size="sm"
                           onClick={() => onAction(expense.id, 'approve')}
                         >
@@ -1529,7 +1603,7 @@ function ExpenseDetailsDialog({
   getStatusColor, 
   getPriorityColor 
 }: { 
-  expense: any, 
+  expense: Expense, 
   onClose: () => void,
   getStatusColor: (status: string) => string,
   getPriorityColor: (priority: string) => string

@@ -10,6 +10,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
 import { ArrowLeft, Save } from "lucide-react";
 import { API_CONFIG } from '@/config/api';
+import { apiFetch } from '@/lib/apiClient';
 
 interface Class {
   id: string;
@@ -144,15 +145,12 @@ export default function PaymentForm() {
     const fetchFeeTypes = async () => {
       if (!token) return;
       try {
-        const res = await fetch(`${API_CONFIG.BASE_URL}/finance/fee-types`, { headers: { Authorization: `Bearer ${token}` }});
-        if (res.ok) {
-          const data = await res.json();
-          const list: string[] = Array.isArray(data) ? data : (data.feeTypes || []);
-          if (list.length) {
-            setFeeTypes(list.map(ft => ({ value: ft, label: ft })));
-            if (!list.includes(selectedPaymentType)) {
-              setSelectedPaymentType(list[0]);
-            }
+        const data = await apiFetch<{ feeTypes: string[] }>(`/finance/fee-types`);
+        const list: string[] = Array.isArray(data) ? (data as any) : (data?.feeTypes || []);
+        if (list.length) {
+          setFeeTypes(list.map(ft => ({ value: ft, label: ft })));
+          if (!list.includes(selectedPaymentType)) {
+            setSelectedPaymentType(list[0]);
           }
         }
       } catch {/* ignore */}
@@ -160,33 +158,7 @@ export default function PaymentForm() {
     fetchFeeTypes();
   }, [token]);
 
-  // Token refresh logic (if supported by backend)
-  const refreshToken = async (): Promise<string | null> => {
-    try {
-      const response = await fetch(`${API_CONFIG.BASE_URL}/auth/refresh`, {
-        method: 'POST',
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to refresh token");
-      }
-
-      const result = await response.json();
-      const newToken = result.token;
-      if (newToken) {
-        localStorage.setItem("token", newToken);
-        return newToken;
-      }
-      return null;
-    } catch (error) {
-      console.error("Token refresh failed:", error);
-      return null;
-    }
-  };
+  // Token refresh is now handled by apiClient
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -217,46 +189,18 @@ export default function PaymentForm() {
         throw new Error("Receipt number is required for bank transfer");
       }
 
-      let authToken = token;
-      let response = await fetch(`${API_CONFIG.BASE_URL}/finance/payments`, {
+      const result = await apiFetch<any>(`/finance/payments`, {
         method: 'POST',
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${authToken}`,
-        },
         body: JSON.stringify(requestBody),
+        headers: { 'Content-Type': 'application/json' },
       });
-
-      // Handle 401 by attempting token refresh
-      if (response.status === 401) {
-        const newToken = await refreshToken();
-        if (newToken) {
-          authToken = newToken;
-          response = await fetch(`${API_CONFIG.BASE_URL}/finance/payments`, {
-            method: 'POST',
-            headers: {
-              "Content-Type": "application/json",
-              "Authorization": `Bearer ${authToken}`,
-            },
-            body: JSON.stringify(requestBody),
-          });
-        } else {
-          throw new Error("Session expired. Please log in again.");
-        }
-      }
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error("API Error Response:", errorData); // Debug log
-        throw new Error(errorData.message || "Failed to record payment");
-      }
-
-      const result = await response.json();
       console.log("Payment Success Response:", result); // Debug log
 
       toast({
         title: "Payment Recorded",
-        description: "The payment has been successfully recorded.",
+        description: result?.credit?.created
+          ? `Payment recorded. Surplus of ${result.credit.amount.toFixed(2)} credited to student.`
+          : "The payment has been successfully recorded.",
         variant: "default",
       });
 

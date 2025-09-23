@@ -136,7 +136,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   
   useEffect(() => {
     const checkAuth = async () => {
-      const storedToken = localStorage.getItem('access_token');
+  const storedToken = localStorage.getItem('access_token');
       const storedUser = localStorage.getItem('user_data');
       
       if (storedToken && storedUser) {
@@ -183,6 +183,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const response = await authApi.login({ username, password });
       
       localStorage.setItem('access_token', response.access_token);
+      if ((response as any).refresh_token) {
+        localStorage.setItem('refresh_token', (response as any).refresh_token);
+      }
       setToken(response.access_token);
       
       const normalizedRole = normalizeRole(response.user.role);
