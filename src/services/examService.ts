@@ -192,6 +192,33 @@ export const examService = {
     return response.json();
   },
 
+  // Administer an exam (change status to administered)
+  administerExam: async (id: string, token: string): Promise<Exam> => {
+    const response = await fetch(`${API_BASE}/exams/${id}/administer`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        throw new Error('Unauthorized - Please log in again');
+      }
+      if (response.status === 403) {
+        throw new Error('Access Denied - You are not authorized to administer this exam');
+      }
+      if (response.status === 400) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to administer exam');
+      }
+      throw new Error(`Failed to administer exam: ${response.status}`);
+    }
+
+    return response.json();
+  },
+
   // Create a new exam
   createExam: async (examData: Omit<Exam, 'id' | 'class' | 'teacher'>, token: string): Promise<Exam> => {
     const response = await fetch(`${API_BASE}/exams`, {

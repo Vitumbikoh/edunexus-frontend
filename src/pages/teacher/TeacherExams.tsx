@@ -3,12 +3,14 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { RefreshCw, FileText } from 'lucide-react';
+import { RefreshCw, FileText, Play } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { API_CONFIG } from '@/config/api';
 import { TablePreloader } from '@/components/ui/preloader';
+import { examService } from '@/services/examService';
+import { useToast } from '@/components/ui/use-toast';
 
 export default function TeacherExams() {
   const { token } = useAuth();
@@ -16,6 +18,7 @@ export default function TeacherExams() {
   const location = useLocation();
   const params = new URLSearchParams(location.search);
   const courseId = params.get('courseId') || '';
+  const { toast } = useToast();
 
   const [exams, setExams] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -37,6 +40,28 @@ export default function TeacherExams() {
       // noop simple error handling
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleAdministerExam = async (examId: string) => {
+    if (!token) return;
+    try {
+      const updatedExam = await examService.administerExam(examId, token);
+      // Update the exam in the local state
+      setExams(prev => prev.map(exam => 
+        exam.id === examId ? { ...exam, status: 'administered' } : exam
+      ));
+      toast({
+        title: 'Exam Administered',
+        description: 'The exam has been marked as administered and is now ready for grading.',
+        variant: 'default',
+      });
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'Failed to administer exam',
+        variant: 'destructive',
+      });
     }
   };
 
@@ -107,10 +132,23 @@ export default function TeacherExams() {
                         <Badge variant="secondary">{exam.status}</Badge>
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button variant="ghost" size="sm" className="gap-2" onClick={() => navigate(`/exams/${exam.id}`)}>
-                          <FileText className="h-4 w-4" />
-                          View
-                        </Button>
+                        <div className="flex gap-2 justify-end">
+                          {exam.status === 'upcoming' && (
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="gap-2" 
+                              onClick={() => handleAdministerExam(exam.id)}
+                            >
+                              <Play className="h-4 w-4" />
+                              Administer
+                            </Button>
+                          )}
+                          <Button variant="ghost" size="sm" className="gap-2" onClick={() => navigate(`/exams/${exam.id}`)}>
+                            <FileText className="h-4 w-4" />
+                            View
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))
