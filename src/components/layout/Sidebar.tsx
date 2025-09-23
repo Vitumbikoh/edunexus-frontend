@@ -327,12 +327,6 @@ const financeNavItems: NavItem[] = [
     roles: ["finance"],
   },
   {
-    label: "Approvals",
-    icon: Check,
-    href: "/finance/approvals",
-    roles: ["finance"],
-  },
-  {
     label: "Reports",
     icon: ChartPie,
     href: "/finance/reports",

@@ -53,7 +53,7 @@ export default function ApprovalDialog({ run, open, onOpenChange, onApprovalActi
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             Review Salary Run - {run.period}
@@ -75,7 +75,7 @@ export default function ApprovalDialog({ run, open, onOpenChange, onApprovalActi
                 <Users className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{run.staffCount}</div>
+                <div className="text-2xl font-bold">{run.staffCount || 0}</div>
               </CardContent>
             </Card>
 
@@ -85,7 +85,7 @@ export default function ApprovalDialog({ run, open, onOpenChange, onApprovalActi
                 <DollarSign className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">${run.totalGross.toLocaleString()}</div>
+                <div className="text-2xl font-bold">${(run.totalGross || 0).toLocaleString()}</div>
               </CardContent>
             </Card>
 
@@ -95,7 +95,7 @@ export default function ApprovalDialog({ run, open, onOpenChange, onApprovalActi
                 <TrendingUp className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">${run.totalNet.toLocaleString()}</div>
+                <div className="text-2xl font-bold">${(run.totalNet || 0).toLocaleString()}</div>
               </CardContent>
             </Card>
           </div>
@@ -112,16 +112,16 @@ export default function ApprovalDialog({ run, open, onOpenChange, onApprovalActi
                   <p className="text-sm">{run.period}</p>
                 </div>
                 <div>
-                  <Label className="text-sm font-medium">Employer Cost</Label>
-                  <p className="text-sm">${run.employerCost.toLocaleString()}</p>
+                  <Label className="text-sm font-medium">Employer Contribution</Label>
+                  <p className="text-sm">${(run.employerCost || 0).toLocaleString()}</p>
                 </div>
                 <div>
                   <Label className="text-sm font-medium">Total Deductions</Label>
-                  <p className="text-sm">${(run.totalGross - run.totalNet).toLocaleString()}</p>
+                  <p className="text-sm">${((run.totalGross || 0) - (run.totalNet || 0)).toLocaleString()}</p>
                 </div>
                 <div>
                   <Label className="text-sm font-medium">Average per Staff</Label>
-                  <p className="text-sm">${Math.round(run.totalNet / run.staffCount).toLocaleString()}</p>
+                  <p className="text-sm">${run.staffCount > 0 ? Math.round((run.totalNet || 0) / run.staffCount).toLocaleString() : '0'}</p>
                 </div>
               </div>
             </CardContent>

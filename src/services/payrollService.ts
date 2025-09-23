@@ -21,14 +21,20 @@ export interface SalaryRun {
 
 export interface SalaryItem {
   id: string;
-  salaryRunId: string;
-  staffId: string;
+  runId: string;
+  userId: string;
   staffName: string;
-  grossSalary: number;
-  totalDeductions: number;
-  netSalary: number;
-  employerCost: number;
-  salaryBreakdown: Record<string, number>;
+  department: string | null;
+  breakdown: Record<string, any>;
+  grossPay: number;
+  taxablePay: number;
+  paye: number;
+  nhif: number;
+  nssf: number;
+  otherDeductions: number;
+  netPay: number;
+  employerContrib: number;
+  schoolId: string;
   createdAt: string;
   updatedAt: string;
 }

@@ -43,10 +43,11 @@ export default function RunDetailsDialog({ run, open, onOpenChange, onRunUpdated
     try {
       setLoadingItems(true);
       const items = await payrollService.getRunItems(run.id);
-      setSalaryItems(items);
+      setSalaryItems(items || []);
     } catch (error) {
       console.error('Error loading salary items:', error);
       toast.error('Failed to load salary details');
+      setSalaryItems([]);
     } finally {
       setLoadingItems(false);
     }
@@ -56,10 +57,11 @@ export default function RunDetailsDialog({ run, open, onOpenChange, onRunUpdated
     try {
       setLoadingHistory(true);
       const history = await payrollService.getApprovalHistory(run.id);
-      setApprovalHistory(history);
+      setApprovalHistory(history || []);
     } catch (error) {
       console.error('Error loading approval history:', error);
       toast.error('Failed to load approval history');
+      setApprovalHistory([]);
     } finally {
       setLoadingHistory(false);
     }
@@ -83,14 +85,21 @@ export default function RunDetailsDialog({ run, open, onOpenChange, onRunUpdated
     }
   };
 
-  const updateSalaryItem = async (itemId: string, salaryBreakdown: Record<string, number>) => {
+  const handleExport = async (format: 'pdf' | 'excel') => {
     try {
-      const updatedItem = await payrollService.updateSalaryItem(run.id, itemId, { salaryBreakdown });
-      setSalaryItems(prev => prev.map(item => item.id === itemId ? updatedItem : item));
-      toast.success('Salary item updated successfully');
+      const blob = await payrollService.exportPayroll(run.id, format);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `payroll-${run.period}-${format === 'pdf' ? 'report.pdf' : 'data.xlsx'}`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      toast.success(`Payroll ${format.toUpperCase()} exported successfully`);
     } catch (error) {
-      console.error('Error updating salary item:', error);
-      toast.error('Failed to update salary item');
+      console.error('Error exporting payroll:', error);
+      toast.error(`Failed to export payroll ${format.toUpperCase()}`);
     }
   };
 
@@ -105,7 +114,7 @@ export default function RunDetailsDialog({ run, open, onOpenChange, onRunUpdated
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             Salary Run Details - {run.period}
@@ -223,28 +232,28 @@ export default function RunDetailsDialog({ run, open, onOpenChange, onRunUpdated
                     <TableHeader>
                       <TableRow>
                         <TableHead>Staff Name</TableHead>
-                        <TableHead>Gross Salary</TableHead>
-                        <TableHead>Total Deductions</TableHead>
-                        <TableHead>Net Salary</TableHead>
-                        <TableHead>Employer Cost</TableHead>
+                        <TableHead>Gross Pay</TableHead>
+                        <TableHead>Deductions</TableHead>
+                        <TableHead>Net Pay</TableHead>
+                        <TableHead>Employer Contribution</TableHead>
                         <TableHead>Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {salaryItems.map((item) => (
                         <TableRow key={item.id}>
-                          <TableCell className="font-medium">{item.staffName}</TableCell>
-                          <TableCell>${item.grossSalary.toLocaleString()}</TableCell>
-                          <TableCell>${item.totalDeductions.toLocaleString()}</TableCell>
-                          <TableCell>${item.netSalary.toLocaleString()}</TableCell>
-                          <TableCell>${item.employerCost.toLocaleString()}</TableCell>
+                          <TableCell className="font-medium">{item.staffName || 'Unknown Staff'}</TableCell>
+                          <TableCell>${(item.grossPay || 0).toLocaleString()}</TableCell>
+                          <TableCell>${(item.otherDeductions || 0).toLocaleString()}</TableCell>
+                          <TableCell>${(item.netPay || 0).toLocaleString()}</TableCell>
+                          <TableCell>${(item.employerContrib || 0).toLocaleString()}</TableCell>
                           <TableCell>
                             <div className="flex gap-2">
                               {run.status === 'FINALIZED' && (
                                 <Button
                                   variant="outline"
                                   size="sm"
-                                  onClick={() => handleGeneratePayslip(item.staffId, item.staffName)}
+                                  onClick={() => handleGeneratePayslip(item.userId, item.staffName)}
                                 >
                                   <Download className="h-4 w-4 mr-1" />
                                   Payslip
@@ -329,10 +338,7 @@ export default function RunDetailsDialog({ run, open, onOpenChange, onRunUpdated
                     variant="outline"
                     className="h-24 flex flex-col items-center gap-2"
                     disabled={run.status !== 'FINALIZED'}
-                    onClick={() => {
-                      // Handle PDF export
-                      toast.info('PDF export coming soon');
-                    }}
+                    onClick={() => handleExport('pdf')}
                   >
                     <Download className="h-6 w-6" />
                     <div className="text-center">
@@ -345,10 +351,7 @@ export default function RunDetailsDialog({ run, open, onOpenChange, onRunUpdated
                     variant="outline"
                     className="h-24 flex flex-col items-center gap-2"
                     disabled={run.status !== 'FINALIZED'}
-                    onClick={() => {
-                      // Handle Excel export
-                      toast.info('Excel export coming soon');
-                    }}
+                    onClick={() => handleExport('excel')}
                   >
                     <Download className="h-6 w-6" />
                     <div className="text-center">
