@@ -49,18 +49,31 @@ interface Exam {
     code?: string;
     description?: string;
     status?: string;
+    enrollmentCount?: number;
   };
   schoolId: string;
 }
 
 export default function ExamDetails() {
   const { examId } = useParams<{ examId: string }>();
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const [exam, setExam] = useState<Exam | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [renderError, setRenderError] = useState<string | null>(null);
+  const [gradedStudentsCount, setGradedStudentsCount] = useState<number>(0);
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  // Function to get the correct back navigation path based on user role
+  const getBackNavigationPath = () => {
+    if (user?.role === 'admin' || user?.role === 'super_admin') {
+      return '/courses/exams';
+    } else if (user?.role === 'teacher') {
+      return '/teacher/exams';
+    }
+    // Default fallback
+    return '/courses/exams';
+  };
 
   const fetchWithAuth = async (url: string) => {
     const response = await fetch(url, {
@@ -82,6 +95,42 @@ export default function ExamDetails() {
 
     const data = await response.json();
     return data;
+  };
+
+  const fetchGradedStudentsCount = async (examId: string, enrollmentCount?: number) => {
+    try {
+      const gradesResponse = await fetchWithAuth(`http://localhost:5000/api/v1/grades/filtered?examId=${examId}`);
+      let count = 0;
+      
+      if (gradesResponse && typeof gradesResponse === 'object') {
+        // New optimized response shape: { gradedCount }
+        if (typeof gradesResponse.gradedCount === 'number') {
+          count = gradesResponse.gradedCount;
+        } else if (gradesResponse.student && gradesResponse.results) {
+          count = gradesResponse.results.length;
+        } else if (gradesResponse.students && Array.isArray(gradesResponse.students)) {
+          count = gradesResponse.students.reduce((total: number, student: any) => {
+            return total + (student.results ? student.results.length : 0);
+          }, 0);
+        } else {
+          count = 0;
+        }
+      } else if (Array.isArray(gradesResponse)) {
+        count = gradesResponse.length;
+      } else {
+        count = 0;
+      }
+
+      // Do NOT default to enrollment when count is zero; a zero means genuinely no published grades yet.
+      // We'll only fallback in the catch block if the request itself fails.
+      
+      setGradedStudentsCount(count);
+    } catch (error) {
+      console.error('Failed to fetch graded students count:', error);
+      // Only fallback to enrollment count if we explicitly want to display at least something.
+      // This preserves transparency: network/API failure vs genuine zero grades.
+      setGradedStudentsCount(0);
+    }
   };
 
   useEffect(() => {
@@ -117,6 +166,11 @@ export default function ExamDetails() {
           term: examData.term || examData.Term || null,
         };
         setExam(normalized);
+        
+        // Fetch graded students count for graded exams
+        if (normalized.status === 'graded') {
+          await fetchGradedStudentsCount(examId, normalized.course?.enrollmentCount);
+        }
       } catch (error: any) {
         const errorMessage = error.message || 'Failed to fetch exam details';
         toast({
@@ -172,7 +226,7 @@ export default function ExamDetails() {
         <div className="text-center py-8">
           <div className="text-red-600 mb-4">Error displaying exam details</div>
           <div className="text-sm text-muted-foreground mb-4">{renderError}</div>
-          <Button onClick={() => navigate('/exams')}>Back to Exams</Button>
+          <Button onClick={() => navigate(getBackNavigationPath())}>Back to Exams</Button>
         </div>
       </div>
     );
@@ -186,13 +240,7 @@ export default function ExamDetails() {
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => {
-            if (exam?.course?.id) {
-              navigate(`/my-exams?courseId=${exam.course.id}`);
-            } else {
-              navigate('/courses/exams');
-            }
-          }}
+          onClick={() => navigate(getBackNavigationPath())}
           className="gap-2"
         >
           <ArrowLeft className="h-4 w-4" />
@@ -249,10 +297,22 @@ export default function ExamDetails() {
                 <p className="text-sm">{getStatusBadge(exam.status)}</p>
               </div>
               <div>
-                <h3 className="font-semibold">Students Enrolled/Completed</h3>
+                <h3 className="font-semibold">
+                  {exam.status === 'upcoming' || exam.status === 'administered'
+                    ? 'Students enrolled in that course' 
+                    : exam.status === 'graded'
+                    ? 'Students Enrolled/graded'
+                    : 'Students Enrolled/Completed'
+                  }
+                </h3>
                 <p className="text-sm flex items-center gap-1">
                   <Users className="h-4 w-4 text-muted-foreground" />
-                  {exam.studentsCompleted}/{exam.studentsEnrolled}
+                  {exam.status === 'upcoming' || exam.status === 'administered'
+                    ? (exam.course?.enrollmentCount || 0)
+                    : exam.status === 'graded'
+                    ? `${exam.course?.enrollmentCount || 0}/${gradedStudentsCount}`
+                    : `${exam.studentsCompleted}/${exam.studentsEnrolled}`
+                  }
                 </p>
               </div>
               <div>
@@ -292,7 +352,7 @@ export default function ExamDetails() {
         <div className="text-center py-8">
           <div className="text-red-600 mb-4">Error displaying exam details</div>
           <div className="text-sm text-muted-foreground mb-4">{error.message || 'An unexpected error occurred'}</div>
-          <Button onClick={() => navigate('/exams')}>Back to Exams</Button>
+          <Button onClick={() => navigate(getBackNavigationPath())}>Back to Exams</Button>
         </div>
       </div>
     );

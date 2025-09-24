@@ -486,12 +486,30 @@ export default function SubmitGrades() {
       return;
     }
 
+    // Filter out students without actual grades (only include students with valid marks)
+    const filteredGrades: Record<string, number> = {};
+    Object.entries(grades).forEach(([studentId, mark]) => {
+      if (mark !== undefined && mark !== null && !isNaN(Number(mark))) {
+        filteredGrades[studentId] = Number(mark);
+      }
+    });
+
+    if (Object.keys(filteredGrades).length === 0) {
+      toast({
+        variant: "destructive",
+        title: "No valid grades",
+        description: "Please enter valid grades for at least one student",
+      });
+      return;
+    }
+
     const payload = {
       examId: selectedExam,
-      grades,
+      grades: filteredGrades,
     };
 
     console.log('Submitting grades payload:', payload);
+    console.log(`Submitting grades for ${Object.keys(filteredGrades).length} students out of ${students.length} total students`);
 
     try {
       setIsLoading(true);
@@ -517,7 +535,7 @@ export default function SubmitGrades() {
       const examTitle = availableExams.find(e => e.id === selectedExam)?.title || 'the exam';
       toast({
         title: "Grades submitted successfully",
-        description: `Grades for ${examTitle} have been recorded.`,
+        description: `Grades for ${Object.keys(filteredGrades).length} students have been recorded for ${examTitle}.`,
       });
 
       // Reset form
@@ -755,7 +773,7 @@ export default function SubmitGrades() {
             </div>
           )}
 
-          {students.length > 0 && Object.keys(grades).length > 0 && selectedExamData && (
+          {students.length > 0 && selectedExamData && (
             <div>
               <h3 className="font-medium mb-4">Grade Preview</h3>
               <div className="border rounded-lg">
@@ -770,14 +788,16 @@ export default function SubmitGrades() {
                   </TableHeader>
                   <TableBody>
                     {students.map((student) => {
-                      const mark = grades[student.studentId] ?? 0;
-                      const percentage = ((mark / selectedExamData.totalMarks) * 100).toFixed(1);
+                      const mark = grades[student.studentId];
+                      const hasGrade = mark !== undefined && mark !== null && mark !== '';
+                      const displayMark = hasGrade ? mark : 'not graded';
+                      const percentage = hasGrade ? ((mark / selectedExamData.totalMarks) * 100).toFixed(1) + '%' : 'not graded';
                       return (
                         <TableRow key={student.id}>
                           <TableCell>{student.studentId}</TableCell>
                           <TableCell className="font-medium">{student.name}</TableCell>
-                          <TableCell>{mark}</TableCell>
-                          <TableCell>{percentage}%</TableCell>
+                          <TableCell>{displayMark}</TableCell>
+                          <TableCell>{percentage}</TableCell>
                         </TableRow>
                       );
                     })}
@@ -789,6 +809,7 @@ export default function SubmitGrades() {
                 <p><strong>Assessment Type:</strong> {selectedExamData.examType}</p>
                 <p><strong>Total Marks:</strong> {selectedExamData.totalMarks}</p>
                 <p><strong>Exam Date:</strong> {new Date(selectedExamData.date).toLocaleDateString()}</p>
+                <p><strong>Students to be graded:</strong> {Object.keys(grades).filter(studentId => grades[studentId] !== undefined && grades[studentId] !== null && !isNaN(Number(grades[studentId]))).length} out of {students.length}</p>
               </div>
             </div>
           )}
@@ -796,11 +817,11 @@ export default function SubmitGrades() {
         <CardFooter className="flex justify-end">
           <Button 
             onClick={handleSubmitGrades} 
-            disabled={!selectedExam || Object.keys(grades).length === 0 || isLoading}
+            disabled={!selectedExam || isLoading}
             className="gap-2"
           >
             <Save className="h-4 w-4" />
-            Submit Grades
+            Submit Grades {Object.keys(grades).filter(studentId => grades[studentId] !== undefined && grades[studentId] !== null && !isNaN(Number(grades[studentId]))).length > 0 && `(${Object.keys(grades).filter(studentId => grades[studentId] !== undefined && grades[studentId] !== null && !isNaN(Number(grades[studentId]))).length} students)`}
           </Button>
         </CardFooter>
       </Card>

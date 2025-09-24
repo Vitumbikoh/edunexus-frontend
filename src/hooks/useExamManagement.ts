@@ -90,6 +90,11 @@ export const useExamManagement = (): UseExamManagementReturn => {
       });
 
       if (!response.ok) {
+        // If forbidden or other error, just return empty array instead of throwing
+        if (response.status === 403) {
+          console.warn('Access denied to teachers endpoint, skipping teacher filter');
+          return [];
+        }
         throw new Error(`Failed to fetch teachers: ${response.status}`);
       }
 
@@ -143,7 +148,12 @@ export const useExamManagement = (): UseExamManagementReturn => {
       }
 
   // Fetch teachers
-      const teachersData = await fetchTeachers(token);
+      let teachersData: Teacher[] = [];
+      try {
+        teachersData = await fetchTeachers(token);
+      } catch (error) {
+        console.warn('Failed to fetch teachers, continuing without teacher filter:', error);
+      }
 
       // Set the data
       const allClassesOption = { id: 'all', name: 'All Classes' };
@@ -172,8 +182,12 @@ export const useExamManagement = (): UseExamManagementReturn => {
           if (currRes.ok) {
             const curr = await currRes.json();
             currentTermId = curr?.id || curr?.termId || curr?.currentTerm?.id;
+          } else if (currRes.status === 403) {
+            console.warn('Access denied to current-term endpoint, will use default term selection');
           }
-        } catch {}
+        } catch (error) {
+          console.warn('Failed to fetch current term:', error);
+        }
 
         // Fetch actual Term instances
         const realTerms = await termService.getTerms(token);
