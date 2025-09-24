@@ -10,7 +10,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { PrinterIcon, Eye, GraduationCap, Calendar, Search } from "lucide-react";
+import { PrinterIcon, Eye, GraduationCap, Calendar, Search, FileText, Download } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
@@ -18,6 +18,10 @@ import ReportCard from "@/components/reports/ReportCard";
 import { academicCalendarService, AcademicCalendar } from "@/services/academicCalendarService";
 import { termService, Term } from "@/services/termService";
 import { classService, Class } from "@/services/classService";
+import { ExamResultService, StudentExamResult, ClassExamResults } from "@/services/examResultService";
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import * as XLSX from 'xlsx';
 
 interface Student {
   id: string;
@@ -26,16 +30,38 @@ interface Student {
   studentId: string;
 }
 
+// Legacy interface for backward compatibility with individual exam grades
 interface ExamResult {
-  id: string;
+  id?: string;
+  gradeId?: string;
   examTitle: string;
   subject: string;
+  courseName?: string;
+  courseCode?: string;
   marksObtained: number;
   totalMarks: number;
   percentage: number;
   grade: string;
   date: string;
   examType: string;
+  termId?: string;
+  examStatus?: string;
+}
+
+// Updated interface for aggregated exam results
+interface CourseExamResult {
+  id: string;
+  courseId: string;
+  courseName: string;
+  courseCode: string;
+  termId: string;
+  termName: string;
+  finalPercentage: number;
+  finalGradeCode: string;
+  pass: boolean;
+  breakdown?: any;
+  computedAt: Date;
+  schemeVersion: number;
 }
 
 interface StudentResult {
@@ -45,18 +71,35 @@ interface StudentResult {
     firstName: string;
     lastName: string;
   };
-  results: ExamResult[];
-  totalMarks: number;
-  totalPossible: number;
-  averageScore: number;
-  overallGPA: number;
-  totalExams: number;
-  remarks: string;
+  summary?: {
+    totalResults: number;
+    averageScore: number;
+    overallGPA: number;
+    remarks: string;
+    totalMarks: number;
+    totalPossible: number;
+  };
+  results: CourseExamResult[];
+  // Legacy fields for backward compatibility
+  totalMarks?: number;
+  totalPossible?: number;
+  averageScore?: number;
+  overallGPA?: number;
+  totalExams?: number;
+  remarks?: string;
+  hiddenResults?: number;
 }
 
 interface AllStudentsResults {
-  classInfo: Class;
+  classInfo: {
+    id: string;
+    name: string;
+  };
   students: StudentResult[];
+  summary?: {
+    totalStudents: number;
+    studentsWithResults: number;
+  };
 }
 
 const ExamResults = () => {
@@ -83,8 +126,8 @@ const ExamResults = () => {
   const [publishLoading, setPublishLoading] = useState(false);
 
   // Results state
-  const [studentResults, setStudentResults] = useState<StudentResult | null>(null);
-  const [allStudentsResults, setAllStudentsResults] = useState<AllStudentsResults | null>(null);
+  const [studentResults, setStudentResults] = useState<StudentExamResult | null>(null);
+  const [allStudentsResults, setAllStudentsResults] = useState<ClassExamResults | null>(null);
 
   const [isLoading, setIsLoading] = useState(false);
 
@@ -115,6 +158,16 @@ const ExamResults = () => {
     };
     load();
   }, [token, toast]);
+
+  // Auto-select active academic calendar when calendars are loaded
+  useEffect(() => {
+    if (academicCalendars.length > 0 && !selectedAcademicCalendar) {
+      const activeCalendar = academicCalendars.find(calendar => calendar.isActive);
+      if (activeCalendar) {
+        setSelectedAcademicCalendar(activeCalendar.id!);
+      }
+    }
+  }, [academicCalendars, selectedAcademicCalendar]);
 
   // Terms filtered by chosen academic calendar (currently all if calendar selected)
   // Filter terms by selected academic calendar id if provided
@@ -241,27 +294,30 @@ const ExamResults = () => {
 
     setIsLoading(true);
     try {
-      // Fetch all students results with new filter parameters
-      const response = await fetch(
-        `http://localhost:5000/api/v1/grades/class/${selectedClass}?academicCalendarId=${selectedAcademicCalendar}&termId=${selectedTerm}`,
-        { headers: { Authorization: `Bearer ${token}` } }
+      // Use new ExamResultService for aggregated exam results
+      const data = await ExamResultService.getClassResults(
+        selectedClass,
+        token!,
+        undefined, // schoolId - will be handled by backend based on user context
+        selectedTerm,
+        selectedAcademicCalendar
       );
-      if (!response.ok) throw new Error("Failed to fetch students results");
-      const data = await response.json();
-      console.log("All students results:", data);
+      
+      console.log("All students exam results:", data);
       setAllStudentsResults(data);
+      
       if (data.students.length === 0) {
         toast({
           title: "No Results",
-          description: "No grades recorded for this class and academic period.",
+          description: "No exam results recorded for this class and academic period.",
           variant: "default",
         });
       }
     } catch (error) {
-      console.error('Error fetching all students results:', error);
+      console.error('Error fetching all students exam results:', error);
       toast({
         title: "Error",
-        description: "Failed to fetch students results",
+        description: "Failed to fetch exam results",
         variant: "destructive",
       });
     } finally {
@@ -286,29 +342,32 @@ const ExamResults = () => {
         throw new Error("Student not found");
       }
 
-      // Use the student ID with academic calendar and year parameters
-      const response = await fetch(
-        `http://localhost:5000/api/v1/grades/student/${selectedStudentId}?classId=${selectedClass}&academicCalendarId=${selectedAcademicCalendar}&termId=${selectedTerm}`,
-        { headers: { Authorization: `Bearer ${token}` } }
+      // Use new ExamResultService for aggregated exam results
+      const data = await ExamResultService.getStudentResults(
+        selectedStudentId,
+        token!,
+        selectedClass,
+        selectedTerm,
+        selectedAcademicCalendar
       );
-
-      if (!response.ok) throw new Error("Failed to fetch student results");
-      const data = await response.json();
+      
+      console.log("Student exam results:", data);
       setStudentResults(data);
+      
       if (data.results.length === 0) {
         toast({
           title: "No Results",
           description:
-            "No grades recorded for this student in the selected class and academic period.",
+            "No exam results recorded for this student in the selected class and academic period.",
           variant: "default",
         });
       }
     } catch (error) {
-      console.error('Error fetching student results:', error);
+      console.error('Error fetching student exam results:', error);
       toast({
         title: "Error",
         description:
-          "Failed to fetch student results. Ensure the student is enrolled in the class and grades are recorded.",
+          "Failed to fetch student exam results. Ensure the student is enrolled in the class and results are published.",
         variant: "destructive",
       });
     } finally {
@@ -563,13 +622,12 @@ const ExamResults = () => {
               <table class="results-table">
                 <thead>
                   <tr>
-                    <th>Exam</th>
-                    <th>Subject</th>
-                    <th>Type</th>
-                    <th>Date</th>
-                    <th>Marks</th>
-                    <th>Percentage</th>
+                    <th>Course Name</th>
+                    <th>Course Code</th>
+                    <th>Term</th>
+                    <th>Final Percentage</th>
                     <th>Grade</th>
+                    <th>Status</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -578,15 +636,14 @@ const ExamResults = () => {
                       .map(
                         (result) => `
                     <tr>
-                      <td>${result.examTitle}</td>
-                      <td>${result.subject}</td>
-                      <td>${result.examType}</td>
-                      <td>${new Date(result.date).toLocaleDateString()}</td>
-                      <td>${result.marksObtained}/${result.totalMarks}</td>
-                      <td>${result.percentage}%</td>
-                      <td><span class="grade-badge grade-${result.grade
+                      <td>${result.courseName}</td>
+                      <td>${result.courseCode}</td>
+                      <td>${result.termName}</td>
+                      <td>${Math.round(result.finalPercentage)}%</td>
+                      <td><span class="grade-badge grade-${(result.finalGradeCode || 'na')
                         .toLowerCase()
-                        .replace("+", "")}">${result.grade}</span></td>
+                        .replace("+", "")}">${result.finalGradeCode || 'N/A'}</span></td>
+                      <td>${result.pass ? 'Pass' : 'Fail'}</td>
                     </tr>
                   `
                       )
@@ -599,28 +656,27 @@ const ExamResults = () => {
                 <div class="summary-grid">
                   <div class="summary-item">
                     <div class="summary-value">${
-                      studentResults?.overallGPA.toFixed(1) || "0.0"
+                      studentResults?.summary?.overallGPA?.toFixed(1) || "0.0"
                     }</div>
                     <div class="summary-label">Overall GPA</div>
                   </div>
                   <div class="summary-item">
                     <div class="summary-value">${
-                      studentResults?.totalExams || 0
+                      studentResults?.summary?.totalResults || 0
                     }</div>
-                    <div class="summary-label">Total Exams</div>
+                    <div class="summary-label">Total Courses</div>
                   </div>
                   <div class="summary-item">
-                    <div class="summary-value">${
-                      studentResults?.results.length
-                        ? Math.round(
-                            studentResults.results.reduce(
-                              (sum, r) => sum + r.percentage,
-                              0
-                            ) / studentResults.results.length
-                          )
-                        : 0
-                    }%</div>
+                    <div class="summary-value">${Math.round(studentResults?.summary?.averageScore || 0)}%</div>
                     <div class="summary-label">Average Score</div>
+                  </div>
+                  <div class="summary-item">
+                    <div class="summary-value">${studentResults?.summary?.totalMarks || 0}/${studentResults?.summary?.totalPossible || 0}</div>
+                    <div class="summary-label">Total Marks</div>
+                  </div>
+                  <div class="summary-item">
+                    <div class="summary-value">${studentResults?.summary?.remarks || "No Assessment"}</div>
+                    <div class="summary-label">Performance</div>
                   </div>
                 </div>
               </div>
@@ -643,6 +699,148 @@ const ExamResults = () => {
 
     printWindow.document.write(reportHTML);
     printWindow.document.close();
+  };
+
+  // Calculate student positions based on average score
+  const calculateStudentPositions = (students: any[]) => {
+    if (!students || students.length === 0) return [];
+
+    // Sort students by average score in descending order
+    const sortedStudents = [...students].sort((a, b) => {
+      const scoreA = a.averageScore || 0;
+      const scoreB = b.averageScore || 0;
+      return scoreB - scoreA;
+    });
+
+    // Assign positions, handling ties
+    const studentsWithPositions = [];
+    for (let i = 0; i < sortedStudents.length; i++) {
+      const student = sortedStudents[i];
+      let position = i + 1;
+      
+      // If this student has the same score as the previous one, give them the same position
+      if (i > 0) {
+        const prevStudent = sortedStudents[i - 1];
+        if ((student.averageScore || 0) === (prevStudent.averageScore || 0)) {
+          position = studentsWithPositions[i - 1].position;
+        }
+      }
+      
+      studentsWithPositions.push({
+        ...student,
+        position
+      });
+    }
+
+    return studentsWithPositions;
+  };
+
+  const exportToPDF = () => {
+    if (!allStudentsResults || !allStudentsResults.students.length) {
+      toast({
+        title: "No Data",
+        description: "No student results available to export.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const doc = new jsPDF();
+    
+    // Add title
+    doc.setFontSize(18);
+    doc.text(`All Students' Exam Results - ${allStudentsResults.classInfo.name}`, 20, 20);
+    
+    // Add filters info
+    doc.setFontSize(12);
+    let yPos = 35;
+    const selectedClassName = classes.find(c => c.id === selectedClass)?.name || '';
+    const selectedCalendarName = academicCalendars.find(c => c.id === selectedAcademicCalendar)?.term || '';
+    const selectedTermName = terms.find(t => t.id === selectedTerm)?.name || '';
+    
+    doc.text(`Class: ${selectedClassName}`, 20, yPos);
+    yPos += 7;
+    doc.text(`Academic Calendar: ${selectedCalendarName}`, 20, yPos);
+    yPos += 7;
+    doc.text(`Term: ${selectedTermName}`, 20, yPos);
+    yPos += 15;
+
+    // Prepare table data
+    const studentsWithPositions = calculateStudentPositions(allStudentsResults.students);
+    const tableData = studentsWithPositions.map(student => [
+      student.position,
+      student.student.studentId,
+      `${student.student.firstName} ${student.student.lastName}`,
+      `${Math.round(student.averageScore || 0)}%`,
+      (student.overallGPA || 0).toFixed(1),
+      student.totalResults || student.results?.length || 0,
+      student.remarks || 'No Assessment'
+    ]);
+
+    // Add table
+    autoTable(doc, {
+      head: [['Position', 'Student ID', 'Student Name', 'Average Score', 'Overall GPA', 'Total Courses', 'Remarks']],
+      body: tableData,
+      startY: yPos,
+      styles: { fontSize: 8 },
+      headStyles: { fillColor: [41, 128, 185] },
+      alternateRowStyles: { fillColor: [245, 245, 245] },
+    });
+
+    // Save the PDF
+    doc.save(`exam_results_${allStudentsResults.classInfo.name}_${new Date().toISOString().split('T')[0]}.pdf`);
+    
+    toast({
+      title: "PDF Exported",
+      description: "Exam results have been exported to PDF successfully.",
+    });
+  };
+
+  const exportToExcel = () => {
+    if (!allStudentsResults || !allStudentsResults.students.length) {
+      toast({
+        title: "No Data",
+        description: "No student results available to export.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Prepare data for Excel
+    const studentsWithPositions = calculateStudentPositions(allStudentsResults.students);
+    const excelData = studentsWithPositions.map(student => ({
+      'Position': student.position,
+      'Student ID': student.student.studentId,
+      'First Name': student.student.firstName,
+      'Last Name': student.student.lastName,
+      'Average Score (%)': Math.round(student.averageScore || 0),
+      'Overall GPA': (student.overallGPA || 0).toFixed(1),
+      'Total Courses': student.totalResults || student.results?.length || 0,
+      'Remarks': student.remarks || 'No Assessment'
+    }));
+
+    // Create workbook and worksheet
+    const ws = XLSX.utils.json_to_sheet(excelData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Exam Results');
+
+    // Add summary sheet
+    const summaryData = [{
+      'Class': allStudentsResults.classInfo.name,
+      'Total Students': allStudentsResults.students.length,
+      'Average Class Score': Math.round(allStudentsResults.students.reduce((sum, s) => sum + (s.averageScore || 0), 0) / allStudentsResults.students.length),
+      'Export Date': new Date().toLocaleDateString()
+    }];
+    const wsSummary = XLSX.utils.json_to_sheet(summaryData);
+    XLSX.utils.book_append_sheet(wb, wsSummary, 'Summary');
+
+    // Save the file
+    XLSX.writeFile(wb, `exam_results_${allStudentsResults.classInfo.name}_${new Date().toISOString().split('T')[0]}.xlsx`);
+    
+    toast({
+      title: "Excel Exported",
+      description: "Exam results have been exported to Excel successfully.",
+    });
   };
 
   return (
@@ -909,38 +1107,56 @@ const ExamResults = () => {
             </Button>
           }
           summary={[
-            { label: "Overall GPA", value: studentResults.overallGPA.toFixed(1) },
-            { label: "Total Exams", value: studentResults.totalExams },
+            { label: "Overall GPA", value: studentResults.summary?.overallGPA?.toFixed(1) || "0.0" },
+            { label: "Total Exams", value: studentResults.summary?.totalResults || 0 },
             {
               label: "Average Score",
-              value: `${studentResults.results.length ? Math.round(studentResults.results.reduce((sum, r) => sum + r.percentage, 0) / studentResults.results.length) : 0}%`,
+              value: `${Math.round(studentResults.summary?.averageScore || 0)}%`,
+            },
+            {
+              label: "Total Marks",
+              value: `${studentResults.summary?.totalMarks || 0}/${studentResults.summary?.totalPossible || 0}`,
+            },
+            {
+              label: "Performance",
+              value: studentResults.summary?.remarks || "No Assessment",
             },
           ]}
           columns={[
-            "Exam Title",
-            "Subject",
-            "Type",
-            "Date",
-            "Marks",
-            "Percentage",
+            "Course Name",
+            "Course Code",
+            "Term",
+            "Final Percentage",
             "Grade",
+            "Status",
+            "Computed At",
           ]}
           rows={
             studentResults.results.length
               ? studentResults.results.map((result) => ({
                   key: result.id,
                   cells: [
-                    result.examTitle,
-                    result.subject,
-                    result.examType,
-                    new Date(result.date).toLocaleDateString(),
-                    `${result.marksObtained}/${result.totalMarks}`,
-                    `${result.percentage}%`,
+                    result.courseName,
+                    result.courseCode,
+                    result.termName,
+                    `${Math.round(result.finalPercentage)}%`,
                     (
-                      <Badge className={cn("text-xs", getGradeColor(result.grade))}>
-                        {result.grade}
+                      <Badge className={cn("text-xs", getGradeColor(result.finalGradeCode || 'N/A'))}>
+                        {result.finalGradeCode || 'N/A'}
                       </Badge>
                     ),
+                    result.pass ? (
+                      <Badge className="text-xs bg-green-100 text-green-800">
+                        Pass
+                      </Badge>
+                    ) : (
+                      <Badge className="text-xs bg-red-100 text-red-800">
+                        Fail
+                      </Badge>
+                    ),
+                    result.computedAt 
+                      ? new Date(result.computedAt).toLocaleDateString()
+                      : 'N/A',
                   ],
                 }))
               : []
@@ -952,16 +1168,41 @@ const ExamResults = () => {
       {allStudentsResults && !selectedStudentId && (
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Eye className="h-5 w-5" />
-              All Students' Exam Results - {allStudentsResults.classInfo.name}
-            </CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
+                <Eye className="h-5 w-5" />
+                All Students' Exam Results - {allStudentsResults.classInfo.name}
+              </CardTitle>
+              <div className="flex gap-2">
+                <Button
+                  onClick={exportToPDF}
+                  variant="outline"
+                  size="sm"
+                  className="gap-2"
+                >
+                  <FileText className="h-4 w-4" />
+                  Export PDF
+                </Button>
+                <Button
+                  onClick={exportToExcel}
+                  variant="outline"
+                  size="sm"
+                  className="gap-2"
+                >
+                  <Download className="h-4 w-4" />
+                  Export Excel
+                </Button>
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="overflow-x-auto">
               <table className="w-full border-collapse border border-border">
                 <thead>
                   <tr className="bg-muted">
+                    <th className="border border-border p-3 text-left">
+                      Position
+                    </th>
                     <th className="border border-border p-3 text-left">
                       Student ID
                     </th>
@@ -975,7 +1216,7 @@ const ExamResults = () => {
                       Overall GPA
                     </th>
                     <th className="border border-border p-3 text-left">
-                      Total Exams
+                      Total Courses
                     </th>
                     <th className="border border-border p-3 text-left">
                       Remarks
@@ -984,40 +1225,48 @@ const ExamResults = () => {
                 </thead>
                 <tbody>
                   {allStudentsResults.students.length ? (
-                    allStudentsResults.students.map((studentResult) => (
-                      <tr
-                        key={studentResult.student.id}
-                        className="hover:bg-muted/50"
-                      >
-                        <td className="border border-border p-3 font-medium">
-                          {studentResult.student.studentId}
-                        </td>
-                        <td className="border border-border p-3">
-                          {studentResult.student.firstName}{" "}
-                          {studentResult.student.lastName}
-                        </td>
-                        <td className="border border-border p-3">
-                          <Badge variant="secondary">
-                            {Math.round(studentResult.averageScore)}%
-                          </Badge>
-                        </td>
-                        <td className="border border-border p-3">
-                          <Badge variant="outline">
-                            {studentResult.overallGPA.toFixed(1)}
-                          </Badge>
-                        </td>
-                        <td className="border border-border p-3">
-                          {studentResult.results.length}
-                        </td>
-                        <td className="border border-border p-3 text-muted-foreground">
-                          {studentResult.remarks}
-                        </td>
-                      </tr>
-                    ))
+                    (() => {
+                      const studentsWithPositions = calculateStudentPositions(allStudentsResults.students);
+                      return studentsWithPositions.map((studentResult) => (
+                        <tr
+                          key={studentResult.student.id}
+                          className="hover:bg-muted/50"
+                        >
+                          <td className="border border-border p-3">
+                            <Badge variant="default" className="font-bold">
+                              #{studentResult.position}
+                            </Badge>
+                          </td>
+                          <td className="border border-border p-3 font-medium">
+                            {studentResult.student.studentId}
+                          </td>
+                          <td className="border border-border p-3">
+                            {studentResult.student.firstName}{" "}
+                            {studentResult.student.lastName}
+                          </td>
+                          <td className="border border-border p-3">
+                            <Badge variant="secondary">
+                              {Math.round(studentResult.averageScore || 0)}%
+                            </Badge>
+                          </td>
+                          <td className="border border-border p-3">
+                            <Badge variant="outline">
+                              {(studentResult.overallGPA || 0).toFixed(1)}
+                            </Badge>
+                          </td>
+                          <td className="border border-border p-3">
+                            {studentResult.totalResults || studentResult.results?.length || 0}
+                          </td>
+                          <td className="border border-border p-3 text-muted-foreground">
+                            {studentResult.remarks || 'No Assessment'}
+                          </td>
+                        </tr>
+                      ));
+                    })()
                   ) : (
                     <tr>
                       <td
-                        colSpan={6}
+                        colSpan={7}
                         className="border border-border p-3 text-center text-muted-foreground"
                       >
                         No students enrolled or no grades recorded for this
