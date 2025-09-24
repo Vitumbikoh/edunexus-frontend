@@ -2,12 +2,42 @@
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
+import { API_CONFIG } from '@/config/api';
 
 declare module 'jspdf' {
   interface jsPDF {
     autoTable: (options: any) => jsPDF;
   }
 }
+
+// Helper function to load image as base64
+const loadImageAsBase64 = (url: string): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        reject(new Error('Could not get canvas context'));
+        return;
+      }
+      canvas.width = img.width;
+      canvas.height = img.height;
+      ctx.drawImage(img, 0, 0);
+      const dataURL = canvas.toDataURL('image/png');
+      resolve(dataURL);
+    };
+    img.onerror = () => reject(new Error('Could not load image'));
+    img.src = url;
+  });
+};
+
+// Helper function to get school logo URL
+const getLogoUrl = (logoPath: string | null): string | null => {
+  if (!logoPath) return null;
+  return `${API_CONFIG.BASE_URL}/uploads/logos/${logoPath}`;
+};
 
 export interface ReportData {
   students: Array<{
@@ -173,11 +203,32 @@ export const reportService = {
   },
 
   // Generate PDF report for students
-  generateStudentsPDF: (students: ReportData['students']) => {
+  generateStudentsPDF: async (students: ReportData['students'], schoolLogo?: string | null) => {
     const doc = new jsPDF();
+    let currentY = 22;
     
-    doc.text('Students Report', 14, 22);
-    doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 32);
+    // Add school logo if available
+    if (schoolLogo) {
+      const logoUrl = getLogoUrl(schoolLogo);
+      if (logoUrl) {
+        try {
+          const logoBase64 = await loadImageAsBase64(logoUrl);
+          doc.addImage(logoBase64, 'PNG', 14, 10, 30, 30);
+          doc.text('Students Report', 50, 22);
+          doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 50, 32);
+          currentY = 45;
+        } catch (error) {
+          console.error('Error loading logo:', error);
+          doc.text('Students Report', 14, 22);
+          doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 32);
+          currentY = 40;
+        }
+      }
+    } else {
+      doc.text('Students Report', 14, 22);
+      doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 32);
+      currentY = 40;
+    }
     
     const tableColumn = ['ID', 'Name', 'Email', 'Grade', 'Enrollment Date', 'Status'];
     const tableRows = students.map(student => [
@@ -192,7 +243,7 @@ export const reportService = {
     doc.autoTable({
       head: [tableColumn],
       body: tableRows,
-      startY: 40,
+      startY: currentY,
       styles: { fontSize: 8 },
       headStyles: { fillColor: [66, 139, 202] }
     });
@@ -201,11 +252,32 @@ export const reportService = {
   },
 
   // Generate PDF report for teachers
-  generateTeachersPDF: (teachers: ReportData['teachers']) => {
+  generateTeachersPDF: async (teachers: ReportData['teachers'], schoolLogo?: string | null) => {
     const doc = new jsPDF();
+    let currentY = 22;
     
-    doc.text('Teachers Report', 14, 22);
-    doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 32);
+    // Add school logo if available
+    if (schoolLogo) {
+      const logoUrl = getLogoUrl(schoolLogo);
+      if (logoUrl) {
+        try {
+          const logoBase64 = await loadImageAsBase64(logoUrl);
+          doc.addImage(logoBase64, 'PNG', 14, 10, 30, 30);
+          doc.text('Teachers Report', 50, 22);
+          doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 50, 32);
+          currentY = 45;
+        } catch (error) {
+          console.error('Error loading logo:', error);
+          doc.text('Teachers Report', 14, 22);
+          doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 32);
+          currentY = 40;
+        }
+      }
+    } else {
+      doc.text('Teachers Report', 14, 22);
+      doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 32);
+      currentY = 40;
+    }
     
     const tableColumn = ['ID', 'Name', 'Email', 'Department', 'Join Date', 'Status'];
     const tableRows = teachers.map(teacher => [
@@ -220,7 +292,7 @@ export const reportService = {
     doc.autoTable({
       head: [tableColumn],
       body: tableRows,
-      startY: 40,
+      startY: currentY,
       styles: { fontSize: 8 },
       headStyles: { fillColor: [66, 139, 202] }
     });
@@ -229,11 +301,32 @@ export const reportService = {
   },
 
   // Generate PDF report for courses
-  generateCoursesPDF: (courses: ReportData['courses']) => {
+  generateCoursesPDF: async (courses: ReportData['courses'], schoolLogo?: string | null) => {
     const doc = new jsPDF();
+    let currentY = 22;
     
-    doc.text('Courses Report', 14, 22);
-    doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 32);
+    // Add school logo if available
+    if (schoolLogo) {
+      const logoUrl = getLogoUrl(schoolLogo);
+      if (logoUrl) {
+        try {
+          const logoBase64 = await loadImageAsBase64(logoUrl);
+          doc.addImage(logoBase64, 'PNG', 14, 10, 30, 30);
+          doc.text('Courses Report', 50, 22);
+          doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 50, 32);
+          currentY = 45;
+        } catch (error) {
+          console.error('Error loading logo:', error);
+          doc.text('Courses Report', 14, 22);
+          doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 32);
+          currentY = 40;
+        }
+      }
+    } else {
+      doc.text('Courses Report', 14, 22);
+      doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 32);
+      currentY = 40;
+    }
     
     const tableColumn = ['ID', 'Name', 'Code', 'Department', 'Credits', 'Enrollments'];
     const tableRows = courses.map(course => [
@@ -248,7 +341,7 @@ export const reportService = {
     doc.autoTable({
       head: [tableColumn],
       body: tableRows,
-      startY: 40,
+      startY: currentY,
       styles: { fontSize: 8 },
       headStyles: { fillColor: [66, 139, 202] }
     });
@@ -257,11 +350,32 @@ export const reportService = {
   },
 
   // Generate PDF report for enrollments
-  generateEnrollmentsPDF: (enrollments: ReportData['enrollments']) => {
+  generateEnrollmentsPDF: async (enrollments: ReportData['enrollments'], schoolLogo?: string | null) => {
     const doc = new jsPDF();
+    let currentY = 22;
     
-    doc.text('Enrollments Report', 14, 22);
-    doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 32);
+    // Add school logo if available
+    if (schoolLogo) {
+      const logoUrl = getLogoUrl(schoolLogo);
+      if (logoUrl) {
+        try {
+          const logoBase64 = await loadImageAsBase64(logoUrl);
+          doc.addImage(logoBase64, 'PNG', 14, 10, 30, 30);
+          doc.text('Enrollments Report', 50, 22);
+          doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 50, 32);
+          currentY = 45;
+        } catch (error) {
+          console.error('Error loading logo:', error);
+          doc.text('Enrollments Report', 14, 22);
+          doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 32);
+          currentY = 40;
+        }
+      }
+    } else {
+      doc.text('Enrollments Report', 14, 22);
+      doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 32);
+      currentY = 40;
+    }
     
     const tableColumn = ['ID', 'Student', 'Course', 'Enrollment Date', 'Status', 'Grade'];
     const tableRows = enrollments.map(enrollment => [
@@ -276,7 +390,7 @@ export const reportService = {
     doc.autoTable({
       head: [tableColumn],
       body: tableRows,
-      startY: 40,
+      startY: currentY,
       styles: { fontSize: 8 },
       headStyles: { fillColor: [66, 139, 202] }
     });
@@ -285,11 +399,32 @@ export const reportService = {
   },
 
   // Generate PDF report for fee payments
-  generateFeePaymentsPDF: (feePayments: ReportData['feePayments']) => {
+  generateFeePaymentsPDF: async (feePayments: ReportData['feePayments'], schoolLogo?: string | null) => {
     const doc = new jsPDF();
+    let currentY = 22;
     
-    doc.text('Fee Payments Report', 14, 22);
-    doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 32);
+    // Add school logo if available
+    if (schoolLogo) {
+      const logoUrl = getLogoUrl(schoolLogo);
+      if (logoUrl) {
+        try {
+          const logoBase64 = await loadImageAsBase64(logoUrl);
+          doc.addImage(logoBase64, 'PNG', 14, 10, 30, 30);
+          doc.text('Fee Payments Report', 50, 22);
+          doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 50, 32);
+          currentY = 45;
+        } catch (error) {
+          console.error('Error loading logo:', error);
+          doc.text('Fee Payments Report', 14, 22);
+          doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 32);
+          currentY = 40;
+        }
+      }
+    } else {
+      doc.text('Fee Payments Report', 14, 22);
+      doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 32);
+      currentY = 40;
+    }
     
     const tableColumn = ['ID', 'Student', 'Amount', 'Payment Date', 'Method', 'Status'];
     const tableRows = feePayments.map(payment => [
@@ -304,7 +439,7 @@ export const reportService = {
     doc.autoTable({
       head: [tableColumn],
       body: tableRows,
-      startY: 40,
+      startY: currentY,
       styles: { fontSize: 8 },
       headStyles: { fillColor: [66, 139, 202] }
     });

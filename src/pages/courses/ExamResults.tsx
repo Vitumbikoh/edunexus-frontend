@@ -19,6 +19,8 @@ import { academicCalendarService, AcademicCalendar } from "@/services/academicCa
 import { termService, Term } from "@/services/termService";
 import { classService, Class } from "@/services/classService";
 import { ExamResultService, StudentExamResult, ClassExamResults } from "@/services/examResultService";
+import { schoolSettingsService, SchoolSettings } from "@/services/schoolSettingsService";
+import { API_CONFIG } from "@/config/api";
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
@@ -129,7 +131,39 @@ const ExamResults = () => {
   const [studentResults, setStudentResults] = useState<StudentExamResult | null>(null);
   const [allStudentsResults, setAllStudentsResults] = useState<ClassExamResults | null>(null);
 
+  // School settings state
+  const [schoolSettings, setSchoolSettings] = useState<SchoolSettings | null>(null);
+
   const [isLoading, setIsLoading] = useState(false);
+
+  // Helper function to load image as base64
+  const loadImageAsBase64 = (url: string): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          reject(new Error('Could not get canvas context'));
+          return;
+        }
+        canvas.width = img.width;
+        canvas.height = img.height;
+        ctx.drawImage(img, 0, 0);
+        const dataURL = canvas.toDataURL('image/png');
+        resolve(dataURL);
+      };
+      img.onerror = () => reject(new Error('Could not load image'));
+      img.src = url;
+    });
+  };
+
+  // Helper function to get school logo URL
+  const getLogoUrl = (logoPath: string | null): string | null => {
+    if (!logoPath) return null;
+    return `${API_CONFIG.BASE_URL}/uploads/logos/${logoPath}`;
+  };
 
   // Initial load
   useEffect(() => {
@@ -137,14 +171,16 @@ const ExamResults = () => {
       if (!token) return;
       try {
         setIsLoading(true);
-        const [classesResp, calendarsResp, termsResp] = await Promise.all([
+        const [classesResp, calendarsResp, termsResp, settingsResp] = await Promise.all([
           classService.getClasses(token),
           academicCalendarService.getAcademicCalendars(token),
           termService.getTerms(token),
+          schoolSettingsService.getSettings(token),
         ]);
         setClasses(classesResp);
         setAcademicCalendars(calendarsResp);
         setTerms(termsResp);
+        setSchoolSettings(settingsResp);
       } catch (e) {
         console.error("Error loading initial exam results data", e);
         toast({
@@ -735,7 +771,7 @@ const ExamResults = () => {
     return studentsWithPositions;
   };
 
-  const exportToPDF = () => {
+  const exportToPDF = async () => {
     if (!allStudentsResults || !allStudentsResults.students.length) {
       toast({
         title: "No Data",
@@ -746,14 +782,39 @@ const ExamResults = () => {
     }
 
     const doc = new jsPDF();
+    let yPos = 20;
     
-    // Add title
-    doc.setFontSize(18);
-    doc.text(`All Students' Exam Results - ${allStudentsResults.classInfo.name}`, 20, 20);
+    // Add school logo if available
+    if (schoolSettings?.schoolLogo) {
+      const logoUrl = getLogoUrl(schoolSettings.schoolLogo);
+      console.log('Logo URL:', logoUrl);
+      if (logoUrl) {
+        try {
+          const logoBase64 = await loadImageAsBase64(logoUrl);
+          doc.addImage(logoBase64, 'PNG', 20, 10, 30, 30);
+          
+          // Add title next to logo
+          doc.setFontSize(18);
+          doc.text(`All Students' Exam Results - ${allStudentsResults.classInfo.name}`, 55, 20);
+          yPos = 45;
+        } catch (error) {
+          console.error('Error loading logo:', error);
+          // Fallback to regular title
+          doc.setFontSize(18);
+          doc.text(`All Students' Exam Results - ${allStudentsResults.classInfo.name}`, 20, 20);
+          yPos = 35;
+        }
+      }
+    } else {
+      console.log('No school logo found');
+      // No logo, use regular title
+      doc.setFontSize(18);
+      doc.text(`All Students' Exam Results - ${allStudentsResults.classInfo.name}`, 20, 20);
+      yPos = 35;
+    }
     
     // Add filters info
     doc.setFontSize(12);
-    let yPos = 35;
     const selectedClassName = classes.find(c => c.id === selectedClass)?.name || '';
     const selectedCalendarName = academicCalendars.find(c => c.id === selectedAcademicCalendar)?.term || '';
     const selectedTermName = terms.find(t => t.id === selectedTerm)?.name || '';
