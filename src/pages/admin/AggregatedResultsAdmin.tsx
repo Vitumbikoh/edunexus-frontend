@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 
-interface ResultRow { id:string; studentId:string; courseId:string; termId:string; finalPercentage?:string|null; finalGradeCode?:string|null; pass?:boolean|null; status:string; breakdown?: any; computedAt?:string; schemeVersion?:number; }
+interface ResultRow { id:string; studentId:string; student?: { firstName: string; lastName: string; studentId: string }; courseId:string; termId:string; finalPercentage?:string|null; finalGradeCode?:string|null; pass?:boolean|null; status:string; breakdown?: any; computedAt?:string; schemeVersion?:number; }
 interface CourseOption { id:string; name:string; }
 interface TermOption { id:string; termNumber:number; name?:string; isCurrent?:boolean; }
 
@@ -36,7 +36,7 @@ export default function AggregatedResultsAdmin(){
     } } } catch{} }
   async function fetchResults(){ setLoading(true); try { const r = await fetch(`${API_CONFIG.BASE_URL}/aggregation/results?courseId=${courseId}&termId=${termId}`, { headers: authHeaders }); if(r.ok){ const data = await r.json(); setResults(Array.isArray(data)? data: []); } } finally { setLoading(false); } }
 
-  const filtered = useMemo(()=> results.filter(r=> !search || r.studentId.toLowerCase().includes(search.toLowerCase())),[results, search]);
+  const filtered = useMemo(()=> results.filter(r=> !search || r.student?.studentId?.toLowerCase().includes(search.toLowerCase())),[results, search]);
 
   return (
     <div className="space-y-6">

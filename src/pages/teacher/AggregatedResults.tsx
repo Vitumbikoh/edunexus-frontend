@@ -6,6 +6,7 @@ import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { TablePreloader } from '@/components/ui/preloader';
 
 interface ResultRow { id:string; studentId:string; student?: { firstName: string; lastName: string; studentId: string }; courseId:string; termId:string; finalPercentage?:string|null; finalGradeCode?:string|null; pass?:boolean|null; status:string; breakdown?:any; schemeVersion?:number; }
@@ -75,7 +76,9 @@ export default function AggregatedResults(){
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Student</TableHead>
+                  <TableHead>Position</TableHead>
+                  <TableHead>Student ID</TableHead>
+                  <TableHead>Student Name</TableHead>
                   <TableHead>Final %</TableHead>
                   <TableHead>Grade</TableHead>
                   <TableHead>Pass</TableHead>
@@ -90,22 +93,77 @@ export default function AggregatedResults(){
                 ) : filtered.length === 0 ? (
                   <TableRow><TableCell colSpan={showBreakdown?7:6} className="text-center py-6 text-muted-foreground">No results</TableCell></TableRow>
                 ) : (
-                  filtered.map(r=> (
-                    <TableRow key={r.id}>
-                      <TableCell>
-                        <div className="flex flex-col">
-                          <span className="font-medium">{r.student?.firstName} {r.student?.lastName}</span>
-                          <span className="text-sm text-muted-foreground">{r.student?.studentId}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>{r.finalPercentage ?? '-'}</TableCell>
-                      <TableCell>{r.finalGradeCode ?? '-'}</TableCell>
-                      <TableCell>{r.pass==null? '-' : (r.pass? 'Yes':'No')}</TableCell>
-                      <TableCell>{r.status}</TableCell>
-                      <TableCell>{r.schemeVersion ?? '-'}</TableCell>
-                      {showBreakdown && <TableCell className="max-w-md whitespace-pre-wrap text-xs">{Array.isArray(r.breakdown)? r.breakdown.map((b:any)=> `${b.componentType}:${b.earnedPercentage ?? 'NA'}(${b.weight}%)`).join(', ') : '-'}</TableCell>}
-                    </TableRow>
-                  ))
+                  (() => {
+                    // Calculate positions based on finalPercentage
+                    const studentsWithScores = filtered.filter(r => r.finalPercentage !== null && r.finalPercentage !== undefined);
+                    const sortedByScore = [...studentsWithScores].sort((a, b) => {
+                      const scoreA = parseFloat(a.finalPercentage || '0');
+                      const scoreB = parseFloat(b.finalPercentage || '0');
+                      return scoreB - scoreA;
+                    });
+                    
+                    // Create position map
+                    const positionMap = new Map();
+                    sortedByScore.forEach((student, index) => {
+                      let position = index + 1;
+                      if (index > 0) {
+                        const prevScore = parseFloat(sortedByScore[index - 1].finalPercentage || '0');
+                        const currScore = parseFloat(student.finalPercentage || '0');
+                        if (prevScore === currScore) {
+                          position = positionMap.get(sortedByScore[index - 1].id);
+                        }
+                      }
+                      positionMap.set(student.id, position);
+                    });
+                    
+                    return filtered.map(r=> (
+                      <TableRow key={r.id}>
+                        <TableCell>
+                          {r.finalPercentage ? (
+                            <Badge variant="default" className="font-bold">
+                              #{positionMap.get(r.id) || '-'}
+                            </Badge>
+                          ) : '-'}
+                        </TableCell>
+                        <TableCell className="font-medium">{r.student?.studentId || r.studentId}</TableCell>
+                        <TableCell>{r.student?.firstName} {r.student?.lastName}</TableCell>
+                        <TableCell>
+                          {r.finalPercentage ? (
+                            <Badge variant="secondary" className={`${r.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' : ''}`}>
+                              {parseFloat(r.finalPercentage).toFixed(1)}%
+                            </Badge>
+                          ) : '-'}
+                        </TableCell>
+                        <TableCell>
+                          {r.finalGradeCode ? (
+                            <Badge variant="outline" className={`${
+                              r.finalGradeCode === 'A' ? 'bg-green-100 text-green-800' :
+                              r.finalGradeCode === 'B' ? 'bg-blue-100 text-blue-800' :
+                              r.finalGradeCode === 'C' ? 'bg-orange-100 text-orange-800' :
+                              r.finalGradeCode === 'D' ? 'bg-yellow-100 text-yellow-800' :
+                              'bg-red-100 text-red-800'
+                            }`}>
+                              {r.finalGradeCode}
+                            </Badge>
+                          ) : '-'}
+                        </TableCell>
+                        <TableCell>
+                          {r.pass === null ? '-' : (
+                            <Badge variant={r.pass ? "default" : "destructive"}>
+                              {r.pass ? 'Yes' : 'No'}
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={r.status === 'COMPLETE' ? 'default' : 'secondary'}>
+                            {r.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{r.schemeVersion ?? '-'}</TableCell>
+                        {showBreakdown && <TableCell className="max-w-md whitespace-pre-wrap text-xs">{Array.isArray(r.breakdown)? r.breakdown.map((b:any)=> `${b.componentType}:${b.earnedPercentage ?? 'NA'}(${b.weight}%)`).join(', ') : '-'}</TableCell>}
+                      </TableRow>
+                    ));
+                  })()
                 )}
               </TableBody>
             </Table>
