@@ -90,6 +90,13 @@ const adminNavItems: NavItem[] = [
         roles: ["admin", "teacher", "student"],
       },
       { label: "Add Courses", href: "/courses/add", roles: ["admin"] },
+    ],
+  },
+  {
+    label: "Exams",
+    icon: FileText,
+    roles: ["admin", "teacher"],
+    subItems: [
       {
         label: "View Exams",
         href: "/courses/exams",

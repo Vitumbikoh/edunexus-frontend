@@ -1483,7 +1483,7 @@ export const TeacherDashboardCards = () => {
         <div className="px-6 pb-6">
           <Button
             className="w-full"
-            onClick={() => navigate("/teacher/schedules")}
+            onClick={() => navigate("/my-schedule")}
           >
             View Full Schedule
             <ChevronRight className="ml-2 h-4 w-4" />
