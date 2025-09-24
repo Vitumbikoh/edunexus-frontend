@@ -2,6 +2,29 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 
+// Helper function to load and convert image to base64 for PDF
+const loadImageAsBase64 = (src: string): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      canvas.width = img.width;
+      canvas.height = img.height;
+      ctx?.drawImage(img, 0, 0);
+      try {
+        const dataURL = canvas.toDataURL('image/png');
+        resolve(dataURL);
+      } catch (error) {
+        reject(error);
+      }
+    };
+    img.onerror = () => reject(new Error('Failed to load image'));
+    img.src = src;
+  });
+};
+
 // Type definition for school information from API
 type SchoolInfo = {
   school?: {
@@ -18,6 +41,7 @@ type SchoolInfo = {
     schoolPhone?: string;
     schoolAddress?: string;
     schoolAbout?: string;
+    schoolLogo?: string;
   };
 };
 
@@ -33,6 +57,7 @@ const getSchoolInfo = (apiSchoolInfo?: SchoolInfo) => {
       phone: settings?.schoolPhone || '+1 (555) 123-4567',
       email: settings?.schoolEmail || 'info@school.com',
       website: (import.meta.env.VITE_SCHOOL_WEBSITE as string) || 'www.school.com',
+      logo: settings?.schoolLogo || null,
     };
   }
   
@@ -43,11 +68,12 @@ const getSchoolInfo = (apiSchoolInfo?: SchoolInfo) => {
     phone: (import.meta.env.VITE_SCHOOL_PHONE as string) || '+1 (555) 123-4567',
     email: (import.meta.env.VITE_SCHOOL_EMAIL as string) || 'info@schomas.com',
     website: (import.meta.env.VITE_SCHOOL_WEBSITE as string) || 'www.schomas.com',
+    logo: null,
   };
 };
 
 // Returns options to pass into autoTable to draw a professional header and footer on each page.
-const addPdfHeaderFooterOptions = (doc: any, apiSchoolInfo?: SchoolInfo) => {
+const addPdfHeaderFooterOptions = (doc: any, apiSchoolInfo?: SchoolInfo, logoImage?: string) => {
   const school = getSchoolInfo(apiSchoolInfo);
   return {
     didDrawPage: (data: any) => {
@@ -64,11 +90,25 @@ const addPdfHeaderFooterOptions = (doc: any, apiSchoolInfo?: SchoolInfo) => {
       doc.setLineWidth(0.5);
       doc.line(0, 45, pageWidth, 45);
       
+      // School Logo - if available
+      let textStartX = 20;
+      if (logoImage) {
+        try {
+          const logoSize = 30; // Logo size in points
+          const logoX = 15;
+          const logoY = 7.5; // Centered vertically in header
+          doc.addImage(logoImage, 'PNG', logoX, logoY, logoSize, logoSize);
+          textStartX = logoX + logoSize + 10; // Adjust text start position
+        } catch (error) {
+          console.warn('Failed to add logo to PDF:', error);
+        }
+      }
+      
       // School Name - Large and prominent
       doc.setTextColor(44, 62, 80); // Dark blue-gray
       doc.setFontSize(18);
       doc.setFont(undefined, 'bold');
-      doc.text(school.name, 20, 22);
+      doc.text(school.name, textStartX, 22);
       
       // Contact Information - Properly spaced and aligned
       doc.setFontSize(9);
@@ -77,7 +117,7 @@ const addPdfHeaderFooterOptions = (doc: any, apiSchoolInfo?: SchoolInfo) => {
       
       // Address line
       if (school.address) {
-        doc.text(`Address: ${school.address}`, 20, 30);
+        doc.text(`Address: ${school.address}`, textStartX, 30);
       }
       
       // Contact line - right side
@@ -87,7 +127,7 @@ const addPdfHeaderFooterOptions = (doc: any, apiSchoolInfo?: SchoolInfo) => {
       
       const contactText = contactInfo.join('   •   ');
       if (contactText) {
-        doc.text(contactText, 20, 37);
+        doc.text(contactText, textStartX, 37);
       }
       
       // Professional Footer Design
@@ -123,11 +163,22 @@ const addPdfHeaderFooterOptions = (doc: any, apiSchoolInfo?: SchoolInfo) => {
   };
 };
 
+// Helper function to get logo URL for PDFs
+const getLogoUrl = (schoolInfo?: SchoolInfo): string | null => {
+  const school = getSchoolInfo(schoolInfo);
+  if (school.logo) {
+    const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL as string) || 'http://localhost:5000/api/v1';
+    const baseUrl = apiBaseUrl.replace('/api/v1', '');
+    return `${baseUrl}${school.logo}`;
+  }
+  return null;
+};
+
 const generateStudentsExcel = (data: any[], schoolInfo?: SchoolInfo) => {
   try {
     const school = getSchoolInfo(schoolInfo);
     const headerRows = [
-      [school.name],
+      [school.name + (school.logo ? ' (Logo Available)' : '')],
       [school.address],
       [`Phone: ${school.phone}  |  Email: ${school.email}`],
       [],
@@ -163,10 +214,10 @@ const generateStudentsExcel = (data: any[], schoolInfo?: SchoolInfo) => {
   }
 };
 
-const generateTeachersExcel = (data: any[]) => {
+const generateTeachersExcel = (data: any[], schoolInfo?: SchoolInfo) => {
   try {
-    const school = getSchoolInfo();
-    const headerRows = [[school.name], [school.address], [`Phone: ${school.phone}  Email: ${school.email}  Website: ${school.website}`], []];
+    const school = getSchoolInfo(schoolInfo);
+    const headerRows = [[school.name + (school.logo ? ' (Logo Available)' : '')], [school.address], [`Phone: ${school.phone}  Email: ${school.email}  Website: ${school.website}`], []];
     const dataRows = data.map(item => [
       item.name || 'N/A',
       item.gender || 'N/A',
@@ -198,10 +249,10 @@ const generateTeachersExcel = (data: any[]) => {
   }
 };
 
-const generateCoursesExcel = (data: any[]) => {
+const generateCoursesExcel = (data: any[], schoolInfo?: SchoolInfo) => {
   try {
-    const school = getSchoolInfo();
-    const headerRows = [[school.name], [school.address], [`Phone: ${school.phone}  Email: ${school.email}`], []];
+    const school = getSchoolInfo(schoolInfo);
+    const headerRows = [[school.name + (school.logo ? ' (Logo Available)' : '')], [school.address], [`Phone: ${school.phone}  Email: ${school.email}`], []];
     const dataRows = data.map(item => [
       item.name || 'N/A',
       item.code || 'N/A',
@@ -228,10 +279,10 @@ const generateCoursesExcel = (data: any[]) => {
   }
 };
 
-const generateEnrollmentsExcel = (data: any[]) => {
+const generateEnrollmentsExcel = (data: any[], schoolInfo?: SchoolInfo) => {
   try {
-    const school = getSchoolInfo();
-    const headerRows = [[school.name], [school.address], [`Phone: ${school.phone}  Email: ${school.email}`], []];
+    const school = getSchoolInfo(schoolInfo);
+    const headerRows = [[school.name + (school.logo ? ' (Logo Available)' : '')], [school.address], [`Phone: ${school.phone}  Email: ${school.email}`], []];
     const dataRows = data.map(item => [
       item.studentHumanId || item.studentId || 'N/A',
       item.studentName || 'N/A',
@@ -257,10 +308,10 @@ const generateEnrollmentsExcel = (data: any[]) => {
   }
 };
 
-const generateFeePaymentsExcel = (data: any[]) => {
+const generateFeePaymentsExcel = (data: any[], schoolInfo?: SchoolInfo) => {
   try {
-    const school = getSchoolInfo();
-    const headerRows = [[school.name], [school.address], [`Phone: ${school.phone}  Email: ${school.email}`], []];
+    const school = getSchoolInfo(schoolInfo);
+    const headerRows = [[school.name + (school.logo ? ' (Logo Available)' : '')], [school.address], [`Phone: ${school.phone}  Email: ${school.email}`], []];
     const dataRows = data.map(item => [
       item.studentHumanId || item.studentId || 'N/A',
       item.studentName || 'N/A',
@@ -292,6 +343,7 @@ const generateComprehensiveExcel = (data: {
   courses: any[];
   enrollments: any[];
   feePayments: any[];
+  schoolInfo?: SchoolInfo;
 }) => {
   try {
     const wb = XLSX.utils.book_new();
@@ -383,10 +435,22 @@ const generateComprehensiveExcel = (data: {
 
 
 // Initialize jsPDF with autoTable and generate PDF reports
-const generateStudentsPDF = (data: any[], schoolInfo?: SchoolInfo) => {
+const generateStudentsPDF = async (data: any[], schoolInfo?: SchoolInfo) => {
   try {
     const doc: any = new jsPDF();
-    const headerFooterOpts = addPdfHeaderFooterOptions(doc, schoolInfo);
+    
+    // Load logo if available
+    const logoUrl = getLogoUrl(schoolInfo);
+    let logoImage: string | undefined;
+    if (logoUrl) {
+      try {
+        logoImage = await loadImageAsBase64(logoUrl);
+      } catch (error) {
+        console.warn('Failed to load logo for PDF:', error);
+      }
+    }
+    
+    const headerFooterOpts = addPdfHeaderFooterOptions(doc, schoolInfo, logoImage);
     
     // Add report title
     doc.setFontSize(16);
@@ -460,10 +524,22 @@ const generateStudentsPDF = (data: any[], schoolInfo?: SchoolInfo) => {
   }
 };
 
-const generateTeachersPDF = (data: any[], schoolInfo?: SchoolInfo) => {
+const generateTeachersPDF = async (data: any[], schoolInfo?: SchoolInfo) => {
   try {
     const doc: any = new jsPDF();
-    const headerFooterOpts = addPdfHeaderFooterOptions(doc, schoolInfo);
+    
+    // Load logo if available
+    const logoUrl = getLogoUrl(schoolInfo);
+    let logoImage: string | undefined;
+    if (logoUrl) {
+      try {
+        logoImage = await loadImageAsBase64(logoUrl);
+      } catch (error) {
+        console.warn('Failed to load logo for PDF:', error);
+      }
+    }
+    
+    const headerFooterOpts = addPdfHeaderFooterOptions(doc, schoolInfo, logoImage);
     
     // Add report title
     doc.setFontSize(16);
@@ -535,10 +611,22 @@ const generateTeachersPDF = (data: any[], schoolInfo?: SchoolInfo) => {
   }
 };
 
-const generateCoursesPDF = (data: any[], schoolInfo?: SchoolInfo) => {
+const generateCoursesPDF = async (data: any[], schoolInfo?: SchoolInfo) => {
   try {
     const doc: any = new jsPDF();
-    const headerFooterOpts = addPdfHeaderFooterOptions(doc, schoolInfo);
+    
+    // Load logo if available
+    const logoUrl = getLogoUrl(schoolInfo);
+    let logoImage: string | undefined;
+    if (logoUrl) {
+      try {
+        logoImage = await loadImageAsBase64(logoUrl);
+      } catch (error) {
+        console.warn('Failed to load logo for PDF:', error);
+      }
+    }
+    
+    const headerFooterOpts = addPdfHeaderFooterOptions(doc, schoolInfo, logoImage);
     
     // Add report title
     doc.setFontSize(16);
@@ -610,10 +698,22 @@ const generateCoursesPDF = (data: any[], schoolInfo?: SchoolInfo) => {
   }
 };
 
-const generateEnrollmentsPDF = (data: any[], schoolInfo?: SchoolInfo) => {
+const generateEnrollmentsPDF = async (data: any[], schoolInfo?: SchoolInfo) => {
   try {
     const doc: any = new jsPDF();
-    const headerFooterOpts = addPdfHeaderFooterOptions(doc, schoolInfo);
+    
+    // Load logo if available
+    const logoUrl = getLogoUrl(schoolInfo);
+    let logoImage: string | undefined;
+    if (logoUrl) {
+      try {
+        logoImage = await loadImageAsBase64(logoUrl);
+      } catch (error) {
+        console.warn('Failed to load logo for PDF:', error);
+      }
+    }
+    
+    const headerFooterOpts = addPdfHeaderFooterOptions(doc, schoolInfo, logoImage);
     
     // Add report title
     doc.setFontSize(16);
@@ -683,10 +783,22 @@ const generateEnrollmentsPDF = (data: any[], schoolInfo?: SchoolInfo) => {
   }
 };
 
-const generateFeePaymentsPDF = (data: any[], schoolInfo?: SchoolInfo) => {
+const generateFeePaymentsPDF = async (data: any[], schoolInfo?: SchoolInfo) => {
   try {
     const doc: any = new jsPDF();
-    const headerFooterOpts = addPdfHeaderFooterOptions(doc, schoolInfo);
+    
+    // Load logo if available
+    const logoUrl = getLogoUrl(schoolInfo);
+    let logoImage: string | undefined;
+    if (logoUrl) {
+      try {
+        logoImage = await loadImageAsBase64(logoUrl);
+      } catch (error) {
+        console.warn('Failed to load logo for PDF:', error);
+      }
+    }
+    
+    const headerFooterOpts = addPdfHeaderFooterOptions(doc, schoolInfo, logoImage);
     
     // Add report title
     doc.setFontSize(16);
@@ -757,7 +869,7 @@ const generateFeePaymentsPDF = (data: any[], schoolInfo?: SchoolInfo) => {
   }
 };
 
-const generateComprehensivePDF = (data: {
+const generateComprehensivePDF = async (data: {
   students: any[];
   teachers: any[];
   courses: any[];
@@ -767,7 +879,19 @@ const generateComprehensivePDF = (data: {
 }) => {
   try {
     const doc: any = new jsPDF();
-    const headerFooterOpts = addPdfHeaderFooterOptions(doc, data.schoolInfo);
+    
+    // Load logo if available
+    const logoUrl = getLogoUrl(data.schoolInfo);
+    let logoImage: string | undefined;
+    if (logoUrl) {
+      try {
+        logoImage = await loadImageAsBase64(logoUrl);
+      } catch (error) {
+        console.warn('Failed to load logo for PDF:', error);
+      }
+    }
+    
+    const headerFooterOpts = addPdfHeaderFooterOptions(doc, data.schoolInfo, logoImage);
     const school = getSchoolInfo(data.schoolInfo);
 
     // Title Page Section with School Information

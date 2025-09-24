@@ -38,6 +38,7 @@ interface ReportDataAPI {
       schoolPhone?: string;
       schoolAddress?: string;
       schoolAbout?: string;
+      schoolLogo?: string;
     };
   };
 }
@@ -238,19 +239,19 @@ export default function Reports() {
       if (format === 'excel') {
         switch (category) {
           case 'students':
-            reportService.generateStudentsExcel(data.students!);
+            reportService.generateStudentsExcel(data.students!, reportData?.schoolInfo);
             break;
           case 'teachers':
-            reportService.generateTeachersExcel(data.teachers!);
+            reportService.generateTeachersExcel(data.teachers!, reportData?.schoolInfo);
             break;
           case 'courses':
-            reportService.generateCoursesExcel(data.courses!);
+            reportService.generateCoursesExcel(data.courses!, reportData?.schoolInfo);
             break;
           case 'enrollments':
-            reportService.generateEnrollmentsExcel(data.enrollments!);
+            reportService.generateEnrollmentsExcel(data.enrollments!, reportData?.schoolInfo);
             break;
           case 'financial':
-            reportService.generateFeePaymentsExcel(data.feePayments!);
+            reportService.generateFeePaymentsExcel(data.feePayments!, reportData?.schoolInfo);
             break;
           case 'attendance':
             toast({ title: 'Attendance Report', description: 'Attendance reporting will be implemented soon', variant: 'default' });
@@ -265,25 +266,26 @@ export default function Reports() {
               courses: data.courses,
               enrollments: data.enrollments,
               feePayments: data.feePayments,
+              schoolInfo: reportData?.schoolInfo,
             });
             break;
         }
       } else {
         switch (category) {
           case 'students':
-            reportService.generateStudentsPDF?.(data.students as any, reportData?.schoolInfo);
+            await reportService.generateStudentsPDF?.(data.students as any, reportData?.schoolInfo);
             break;
           case 'teachers':
-            reportService.generateTeachersPDF?.(data.teachers as any, reportData?.schoolInfo);
+            await reportService.generateTeachersPDF?.(data.teachers as any, reportData?.schoolInfo);
             break;
           case 'courses':
-            reportService.generateCoursesPDF?.(data.courses as any, reportData?.schoolInfo);
+            await reportService.generateCoursesPDF?.(data.courses as any, reportData?.schoolInfo);
             break;
           case 'enrollments':
-            reportService.generateEnrollmentsPDF?.(data.enrollments as any, reportData?.schoolInfo);
+            await reportService.generateEnrollmentsPDF?.(data.enrollments as any, reportData?.schoolInfo);
             break;
           case 'financial':
-            reportService.generateFeePaymentsPDF?.(data.feePayments as any, reportData?.schoolInfo);
+            await reportService.generateFeePaymentsPDF?.(data.feePayments as any, reportData?.schoolInfo);
             break;
           case 'attendance':
             toast({ title: 'Attendance PDF', description: 'Attendance PDF reporting will be implemented soon', variant: 'default' });
@@ -292,7 +294,7 @@ export default function Reports() {
             if (!data.students || !data.teachers || !data.courses || !data.enrollments || !data.feePayments) {
               throw new Error('Comprehensive report data is incomplete');
             }
-            reportService.generateComprehensivePDF({
+            await reportService.generateComprehensivePDF({
               students: data.students,
               teachers: data.teachers,
               courses: data.courses,
