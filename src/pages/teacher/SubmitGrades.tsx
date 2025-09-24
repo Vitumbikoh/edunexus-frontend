@@ -789,7 +789,7 @@ export default function SubmitGrades() {
                   <TableBody>
                     {students.map((student) => {
                       const mark = grades[student.studentId];
-                      const hasGrade = mark !== undefined && mark !== null && mark !== '';
+                      const hasGrade = mark !== undefined && mark !== null;
                       const displayMark = hasGrade ? mark : 'not graded';
                       const percentage = hasGrade ? ((mark / selectedExamData.totalMarks) * 100).toFixed(1) + '%' : 'not graded';
                       return (
