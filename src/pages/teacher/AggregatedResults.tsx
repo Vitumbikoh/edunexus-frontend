@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { TablePreloader } from '@/components/ui/preloader';
 
-interface ResultRow { id:string; studentId:string; courseId:string; termId:string; finalPercentage?:string|null; finalGradeCode?:string|null; pass?:boolean|null; status:string; breakdown?:any; schemeVersion?:number; }
+interface ResultRow { id:string; studentId:string; student?: { firstName: string; lastName: string; studentId: string }; courseId:string; termId:string; finalPercentage?:string|null; finalGradeCode?:string|null; pass?:boolean|null; status:string; breakdown?:any; schemeVersion?:number; }
 interface CourseOption { id:string; name:string; }
 interface TermOption { id:string; termNumber:number; name?:string; isCurrent?:boolean; }
 
@@ -32,7 +32,7 @@ export default function AggregatedResults(){
   async function fetchCourses(){ try { const r = await fetch(`${API_CONFIG.BASE_URL}/teacher/my-courses?limit=200`, { headers: authHeaders }); if(r.ok){ const data = await r.json(); if(data?.courses){ setCourses(data.courses.map((c:any)=> ({ id:c.id, name:c.name })) ); } } } catch{} }
   async function fetchResults(){ setLoading(true); try { const r = await fetch(`${API_CONFIG.BASE_URL}/aggregation/results?courseId=${courseId}&termId=${termId}`, { headers: authHeaders }); if(r.ok){ const data = await r.json(); setResults(Array.isArray(data)? data: []); } } finally { setLoading(false); } }
 
-  const filtered = useMemo(()=> results.filter(r=> !search || r.studentId.toLowerCase().includes(search.toLowerCase())),[results, search]);
+  const filtered = useMemo(()=> results.filter(r=> !search || r.student?.studentId?.toLowerCase().includes(search.toLowerCase())),[results, search]);
 
   return (
     <div className="space-y-6">
@@ -92,7 +92,12 @@ export default function AggregatedResults(){
                 ) : (
                   filtered.map(r=> (
                     <TableRow key={r.id}>
-                      <TableCell>{r.studentId}</TableCell>
+                      <TableCell>
+                        <div className="flex flex-col">
+                          <span className="font-medium">{r.student?.firstName} {r.student?.lastName}</span>
+                          <span className="text-sm text-muted-foreground">{r.student?.studentId}</span>
+                        </div>
+                      </TableCell>
                       <TableCell>{r.finalPercentage ?? '-'}</TableCell>
                       <TableCell>{r.finalGradeCode ?? '-'}</TableCell>
                       <TableCell>{r.pass==null? '-' : (r.pass? 'Yes':'No')}</TableCell>
