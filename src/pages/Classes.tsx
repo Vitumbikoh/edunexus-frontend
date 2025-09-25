@@ -14,6 +14,7 @@ interface Class {
   name: string;
   numericalName: number;
   description: string;
+  isActive: boolean;
 }
 
 export default function ClassManagement() {
@@ -28,6 +29,14 @@ export default function ClassManagement() {
   const [classForm, setClassForm] = useState({
     name: '',
     numericalName: 1
+  });
+
+  // Edit state
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState({
+    name: '',
+    numericalName: 1,
+    description: ''
   });
 
   // Fetch classes
@@ -101,6 +110,69 @@ export default function ClassManagement() {
     } catch (error) {
       setApiError(error instanceof Error ? error.message : "Failed to delete class");
     }
+  };
+
+  // Update class
+  const updateClass = async (id: string) => {
+    try {
+      const response = await fetch(`http://localhost:5000/api/v1/classes/${id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          name: editForm.name,
+          numericalName: Number(editForm.numericalName),
+          description: editForm.description
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to update class");
+      }
+
+      const result = await response.json();
+      setClasses(classes.map(c => c.id === id ? result : c));
+      setEditingId(null);
+      toast({ title: "Class updated successfully!" });
+    } catch (error) {
+      setApiError(error instanceof Error ? error.message : "Failed to update class");
+    }
+  };
+
+  // Deactivate class
+  const deactivateClass = async (id: string) => {
+    if (!window.confirm("Deactivate this class?")) return;
+    try {
+      const response = await fetch(`http://localhost:5000/api/v1/classes/${id}/deactivate`, {
+        method: "PATCH",
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      if (!response.ok) throw new Error("Failed to deactivate class");
+      setClasses(classes.map(c => c.id === id ? { ...c, isActive: false } : c));
+      toast({ title: "Class deactivated successfully!" });
+    } catch (error) {
+      setApiError(error instanceof Error ? error.message : "Failed to deactivate class");
+    }
+  };
+
+  // Start editing
+  const startEditing = (cls: Class) => {
+    setEditingId(cls.id);
+    setEditForm({
+      name: cls.name,
+      numericalName: cls.numericalName,
+      description: cls.description
+    });
+  };
+
+  // Cancel editing
+  const cancelEditing = () => {
+    setEditingId(null);
+    setEditForm({ name: '', numericalName: 1, description: '' });
   };
 
   // Initial data load
@@ -190,22 +262,67 @@ export default function ClassManagement() {
             <TableBody>
               {classes.map(cls => (
                 <TableRow key={cls.id}>
-                  <TableCell className="font-medium">{cls.name}</TableCell>
-                  <TableCell>Grade {cls.numericalName}</TableCell>
-                  <TableCell>{cls.description}</TableCell>
+                  <TableCell className="font-medium">
+                    {editingId === cls.id ? (
+                      <Input
+                        value={editForm.name}
+                        onChange={(e) => setEditForm({...editForm, name: e.target.value})}
+                        placeholder="Class name"
+                      />
+                    ) : (
+                      cls.name
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {editingId === cls.id ? (
+                      <Input
+                        type="number"
+                        value={editForm.numericalName}
+                        onChange={(e) => setEditForm({...editForm, numericalName: Number(e.target.value)})}
+                        placeholder="Grade level"
+                        min="1"
+                      />
+                    ) : (
+                      `Grade ${cls.numericalName}`
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {editingId === cls.id ? (
+                      <Input
+                        value={editForm.description}
+                        onChange={(e) => setEditForm({...editForm, description: e.target.value})}
+                        placeholder="Description"
+                      />
+                    ) : (
+                      cls.description
+                    )}
+                  </TableCell>
                   {isAdmin && (
                     <TableCell>
                       <div className="flex gap-2">
-                        <Button variant="outline" size="sm">
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button 
-                          variant="destructive" 
-                          size="sm"
-                          onClick={() => deleteClass(cls.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        {editingId === cls.id ? (
+                          <>
+                            <Button variant="outline" size="sm" onClick={() => updateClass(cls.id)}>
+                              Save
+                            </Button>
+                            <Button variant="ghost" size="sm" onClick={cancelEditing}>
+                              Cancel
+                            </Button>
+                          </>
+                        ) : (
+                          <>
+                            <Button variant="outline" size="sm" onClick={() => startEditing(cls)}>
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button 
+                              variant="destructive" 
+                              size="sm"
+                              onClick={() => deactivateClass(cls.id)}
+                            >
+                              Deactivate
+                            </Button>
+                          </>
+                        )}
                       </div>
                     </TableCell>
                   )}
