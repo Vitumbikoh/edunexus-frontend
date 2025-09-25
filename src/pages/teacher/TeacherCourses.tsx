@@ -25,6 +25,7 @@ import {
 import { useToast } from "@/components/ui/use-toast";
 import { API_CONFIG } from '@/config/api';
 import { Preloader } from "@/components/ui/preloader";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function TeacherCourses() {
   const { user, token } = useAuth();
@@ -36,6 +37,8 @@ export default function TeacherCourses() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
+  const [selectedClassId, setSelectedClassId] = useState<string>("all");
+  const [classes, setClasses] = useState([]);
   const [pagination, setPagination] = useState({
     currentPage: 1,
     totalPages: 1,
@@ -53,15 +56,27 @@ export default function TeacherCourses() {
     );
   }
 
-  const fetchCourses = async (pageNum: number, searchPeriod: string) => {
+  const fetchCourses = async (pageNum: number, searchTerm: string, classId: string) => {
     try {
       setLoading(true);
       setError(null);
 
+      const params = new URLSearchParams({
+        page: pageNum.toString(),
+        limit: limit.toString(),
+        includeExams: 'true',
+      });
+
+      if (searchTerm) {
+        params.append('search', searchTerm);
+      }
+
+      if (classId && classId !== 'all' && classId.trim() !== '') {
+        params.append('classId', classId);
+      }
+
       const response = await fetch(
-        `${API_CONFIG.BASE_URL}/teacher/my-courses?page=${pageNum}&limit=${limit}${
-          searchPeriod ? `&search=${encodeURIComponent(searchPeriod)}` : ""
-        }&includeExams=true`,
+        `${API_CONFIG.BASE_URL}/teacher/my-courses?${params}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -98,12 +113,39 @@ export default function TeacherCourses() {
     }
   };
 
+  const fetchClasses = async () => {
+    try {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/teacher/my-classes`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          setClasses(data.classes);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to fetch classes:", err);
+    }
+  };
+
   useEffect(() => {
-    fetchCourses(page, search);
-  }, [page, search, token]);
+    if (token) {
+      fetchClasses();
+      fetchCourses(page, search, selectedClassId);
+    }
+  }, [page, search, selectedClassId, token]);
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearch(e.target.value);
+    setPage(1);
+  };
+
+  const handleClassFilter = (classId: string) => {
+    setSelectedClassId(classId);
     setPage(1);
   };
 
@@ -137,20 +179,36 @@ export default function TeacherCourses() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">My Courses</h1>
-        <p className="text-muted-foreground">Manage your teaching courses</p>
-      </div>
-
-      <div className="flex items-center space-x-2 mb-4">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search courses..."
-            value={search}
-            onChange={handleSearch}
-            className="pl-10"
-          />
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">My Courses</h1>
+          <p className="text-muted-foreground">Manage your teaching courses</p>
+        </div>
+        <div className="flex items-center space-x-2">
+          <div className="relative max-w-sm">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search courses..."
+              value={search}
+              onChange={handleSearch}
+              className="pl-10 w-64"
+            />
+          </div>
+          <div className="w-48">
+            <Select value={selectedClassId} onValueChange={handleClassFilter}>
+              <SelectTrigger>
+                <SelectValue placeholder="Filter by class" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Classes</SelectItem>
+                {classes.map((cls: any) => (
+                  <SelectItem key={cls.id} value={cls.id}>
+                    {cls.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </div>
 
