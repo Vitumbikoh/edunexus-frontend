@@ -287,8 +287,8 @@ export default function TeacherCourses() {
                       <Upload className="h-4 w-4" />
                       Upload Materials
                     </Button>
-                    {/* Grade students only when there are exams */}
-                    {course.examsCount > 0 && (
+                    {/* Grade students only when there are ungraded exams */}
+                    {course.hasUngradedExams && (
                       <Button
                         variant="outline"
                         size="sm"

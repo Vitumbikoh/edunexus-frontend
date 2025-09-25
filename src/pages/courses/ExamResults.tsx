@@ -15,6 +15,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 import ReportCard from "@/components/reports/ReportCard";
+import ProfessionalReportCard from "@/components/reports/ProfessionalReportCard";
 import { academicCalendarService, AcademicCalendar } from "@/services/academicCalendarService";
 import { termService, Term } from "@/services/termService";
 import { classService, Class } from "@/services/classService";
@@ -103,6 +104,17 @@ interface AllStudentsResults {
     studentsWithResults: number;
   };
 }
+
+// Helper function to calculate grade points
+const calculateGradePoints = (grade: string): number => {
+  const gradePoints: Record<string, number> = {
+    'A+': 4.0, 'A': 4.0, 'A-': 3.7,
+    'B+': 3.3, 'B': 3.0, 'B-': 2.7,
+    'C+': 2.3, 'C': 2.0, 'C-': 1.7,
+    'D+': 1.3, 'D': 1.0, 'F': 0.0
+  };
+  return gradePoints[grade] || 0.0;
+};
 
 const ExamResults = () => {
   const { token } = useAuth();
@@ -460,31 +472,55 @@ const ExamResults = () => {
     const printWindow = window.open("", "_blank");
     if (!printWindow) return;
 
+    // Get school information
+    const schoolName = schoolSettings?.schoolName || "School Name";
+    const logoUrl = getLogoUrl(schoolSettings?.schoolLogo || null);
+    const academicCalendar = academicCalendars.find(ac => ac.id === selectedAcademicCalendar);
+    const academicYear = academicCalendar?.term || "Unknown Year";
+
+    // Debug term lookup
+    const selectedTermObj = terms.find(t => t.id === selectedTerm);
+    console.log('Term lookup debug:', {
+      selectedTerm,
+      termsCount: terms.length,
+      foundTerm: selectedTermObj,
+      filteredTermsCount: filteredTerms.length
+    });
+
+    const termName = selectedTermObj?.name ||
+                     selectedTermObj?.periodName ||
+                     selectedTermObj?.term ||
+                     (selectedTermObj?.termNumber ? `Term ${selectedTermObj.termNumber}` : "Unknown Term");
+
+    const className = classes.find(c => c.id === selectedClass)?.name || "Unknown Class";
+
     const reportHTML = `
       <!DOCTYPE html>
       <html>
         <head>
-          <title>Student Report Card</title>
+          <title>Academic Report Card - ${studentResults.student.firstName} ${studentResults.student.lastName}</title>
           <style>
             * { margin: 0; padding: 0; box-sizing: border-box; }
             body { 
-              font-family: 'Times New Roman', serif; 
+              font-family: 'Georgia', 'Times New Roman', serif; 
               background: #f8f9fa;
               padding: 20px;
+              color: #2c3e50;
+              line-height: 1.6;
             }
             .report-card {
-              max-width: 800px;
+              max-width: 900px;
               margin: 0 auto;
               background: white;
-              border: 3px solid #2c3e50;
-              border-radius: 10px;
+              border: 3px solid #34495e;
+              border-radius: 15px;
               overflow: hidden;
-              box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+              box-shadow: 0 15px 35px rgba(0,0,0,0.1);
             }
             .header {
-              background: linear-gradient(135deg, #2c3e50, #34495e);
+              background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
               color: white;
-              padding: 30px;
+              padding: 40px 30px;
               text-align: center;
               position: relative;
             }
@@ -494,239 +530,402 @@ const ExamResults = () => {
               top: 0;
               left: 0;
               right: 0;
-              height: 5px;
-              background: linear-gradient(90deg, #e74c3c, #f39c12, #f1c40f, #27ae60, #3498db, #9b59b6);
+              height: 6px;
+              background: linear-gradient(90deg, #e74c3c, #f39c12, #f1c40f, #27ae60, #3498db, #9b59b6, #e74c3c);
+            }
+            .school-logo {
+              width: 80px;
+              height: 80px;
+              border-radius: 50%;
+              background: rgba(255,255,255,0.2);
+              margin: 0 auto 20px;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              border: 3px solid rgba(255,255,255,0.3);
+            }
+            .school-logo img {
+              width: 60px;
+              height: 60px;
+              object-fit: contain;
+              border-radius: 50%;
             }
             .school-name {
-              font-size: 28px;
+              font-size: 32px;
               font-weight: bold;
-              margin-bottom: 5px;
+              margin-bottom: 8px;
               text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+              letter-spacing: 1px;
+            }
+            .school-motto {
+              font-size: 14px;
+              font-style: italic;
+              opacity: 0.9;
+              margin-bottom: 15px;
             }
             .report-title {
+              font-size: 20px;
+              font-weight: 600;
+              background: rgba(255,255,255,0.2);
+              padding: 10px 20px;
+              border-radius: 25px;
+              display: inline-block;
+            }
+            .academic-period {
+              background: linear-gradient(135deg, #ecf0f1 0%, #ffffff 100%);
+              padding: 25px 30px;
+              border-bottom: 2px solid #bdc3c7;
+            }
+            .period-grid {
+              display: grid;
+              grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+              gap: 20px;
+              text-align: center;
+            }
+            .period-item {
+              background: white;
+              padding: 15px;
+              border-radius: 10px;
+              border: 2px solid #3498db;
+              box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+            }
+            .period-label {
+              font-size: 12px;
+              font-weight: bold;
+              color: #7f8c8d;
+              text-transform: uppercase;
+              letter-spacing: 1px;
+            }
+            .period-value {
               font-size: 18px;
-              font-weight: normal;
-              opacity: 0.9;
+              font-weight: bold;
+              color: #2c3e50;
+              margin-top: 5px;
             }
             .student-info {
-              padding: 25px;
-              background: #ecf0f1;
-              border-bottom: 2px solid #bdc3c7;
+              padding: 30px;
+              background: white;
+              border-bottom: 2px solid #ecf0f1;
             }
             .info-grid {
               display: grid;
               grid-template-columns: 1fr 1fr;
-              gap: 15px;
+              gap: 25px;
             }
-            .info-item {
+            .info-section {
+              background: #f8f9fa;
+              padding: 20px;
+              border-radius: 12px;
+              border-left: 5px solid #3498db;
+            }
+            .section-title {
+              font-size: 16px;
+              font-weight: bold;
+              color: #2c3e50;
+              margin-bottom: 15px;
               display: flex;
               align-items: center;
             }
+            .info-item {
+              margin-bottom: 10px;
+            }
             .info-label {
-              font-weight: bold;
-              color: #2c3e50;
+              font-weight: 600;
+              color: #34495e;
+              display: inline-block;
               min-width: 120px;
             }
-            .results-section {
-              padding: 25px;
+            .info-value {
+              color: #2c3e50;
+              font-weight: 500;
             }
-            .section-title {
-              font-size: 20px;
+            .performance-summary {
+              background: linear-gradient(135deg, #f8f9fa 0%, #ecf0f1 100%);
+              padding: 30px;
+              border-bottom: 2px solid #bdc3c7;
+            }
+            .summary-title {
+              font-size: 22px;
               font-weight: bold;
               color: #2c3e50;
-              margin-bottom: 20px;
-              padding-bottom: 10px;
-              border-bottom: 2px solid #3498db;
-            }
-            .results-table {
-              width: 100%;
-              border-collapse: collapse;
+              text-align: center;
               margin-bottom: 25px;
-              box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            }
-            .results-table th {
-              background: #3498db;
-              color: white;
-              padding: 12px;
-              text-align: left;
-              font-weight: bold;
-            }
-            .results-table td {
-              padding: 12px;
-              border-bottom: 1px solid #ecf0f1;
-            }
-            .results-table tr:hover {
-              background: #f8f9fa;
-            }
-            .grade-badge {
-              display: inline-block;
-              padding: 4px 12px;
-              border-radius: 20px;
-              font-weight: bold;
-              font-size: 12px;
-            }
-            .grade-a { background: #27ae60; color: white; }
-            .grade-b { background: #3498db; color: white; }
-            .grade-c { background: #f39c12; color: white; }
-            .grade-d { background: #e67e22; color: white; }
-            .grade-f { background: #e74c3c; color: white; }
-            .summary {
-              background: #f8f9fa;
-              padding: 20px;
-              border-radius: 8px;
-              margin-top: 20px;
-              border-left: 5px solid #3498db;
             }
             .summary-grid {
               display: grid;
-              grid-template-columns: repeat(3, 1fr);
-              gap: 15px;
+              grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+              gap: 20px;
             }
-            .summary-item {
-              text-align: center;
-              padding: 15px;
+            .summary-card {
               background: white;
-              border-radius: 8px;
-              box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+              padding: 20px;
+              border-radius: 15px;
+              text-align: center;
+              box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+              border: 2px solid transparent;
+              transition: all 0.3s ease;
             }
+            .summary-card:hover {
+              transform: translateY(-5px);
+              box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+            }
+            .gpa-card { border-color: #27ae60; }
+            .score-card { border-color: #3498db; }
+            .courses-card { border-color: #f39c12; }
+            .marks-card { border-color: #9b59b6; }
+            .performance-card { border-color: #e74c3c; }
             .summary-value {
-              font-size: 24px;
+              font-size: 28px;
               font-weight: bold;
-              color: #2c3e50;
+              margin-bottom: 8px;
             }
             .summary-label {
               font-size: 12px;
               color: #7f8c8d;
               text-transform: uppercase;
+              letter-spacing: 1px;
+              font-weight: 600;
+            }
+            .results-section {
+              padding: 30px;
+            }
+            .results-title {
+              font-size: 22px;
+              font-weight: bold;
+              color: #2c3e50;
+              margin-bottom: 25px;
+              text-align: center;
+              padding-bottom: 15px;
+              border-bottom: 3px solid #3498db;
+            }
+            .results-table {
+              width: 100%;
+              border-collapse: collapse;
+              margin-top: 20px;
+              box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+              border-radius: 10px;
+              overflow: hidden;
+            }
+            .results-table th {
+              background: linear-gradient(135deg, #34495e 0%, #2c3e50 100%);
+              color: white;
+              padding: 15px 12px;
+              text-align: left;
+              font-weight: bold;
+              font-size: 14px;
+              text-transform: uppercase;
+              letter-spacing: 0.5px;
+            }
+            .results-table td {
+              padding: 15px 12px;
+              border-bottom: 1px solid #ecf0f1;
+              vertical-align: middle;
+            }
+            .results-table tr:nth-child(even) {
+              background: #f8f9fa;
+            }
+            .results-table tr:hover {
+              background: #e8f4fd;
+            }
+            .grade-badge {
+              display: inline-block;
+              padding: 6px 15px;
+              border-radius: 25px;
+              font-weight: bold;
+              font-size: 13px;
+              text-align: center;
+              min-width: 45px;
+            }
+            .grade-a { background: linear-gradient(135deg, #27ae60, #2ecc71); color: white; }
+            .grade-b { background: linear-gradient(135deg, #3498db, #5dade2); color: white; }
+            .grade-c { background: linear-gradient(135deg, #f39c12, #f5b041); color: white; }
+            .grade-d { background: linear-gradient(135deg, #e67e22, #eb984e); color: white; }
+            .grade-f { background: linear-gradient(135deg, #e74c3c, #ec7063); color: white; }
+            .status-pass {
+              background: linear-gradient(135deg, #27ae60, #2ecc71);
+              color: white;
+              padding: 4px 12px;
+              border-radius: 20px;
+              font-size: 12px;
+              font-weight: bold;
+            }
+            .status-fail {
+              background: linear-gradient(135deg, #e74c3c, #ec7063);
+              color: white;
+              padding: 4px 12px;
+              border-radius: 20px;
+              font-size: 12px;
+              font-weight: bold;
             }
             .footer {
-              padding: 20px;
+              background: linear-gradient(135deg, #34495e 0%, #2c3e50 100%);
+              color: white;
+              padding: 25px 30px;
               text-align: center;
-              background: #ecf0f1;
-              color: #7f8c8d;
+            }
+            .footer-content {
+              opacity: 0.9;
+              font-size: 13px;
+              line-height: 1.8;
+            }
+            .school-contact {
+              margin-top: 15px;
               font-size: 12px;
-              border-top: 1px solid #bdc3c7;
+              opacity: 0.8;
             }
             @media print {
               body { background: white; padding: 0; }
               .report-card { box-shadow: none; border: 2px solid #2c3e50; }
+              .summary-card:hover { transform: none; }
             }
           </style>
         </head>
         <body>
           <div class="report-card">
+            <!-- School Header -->
             <div class="header">
-              <div class="school-name">Schomas Academy</div>
-              <div class="report-title">Student Academic Report Card</div>
+              <div class="school-logo">
+                ${logoUrl ? `<img src="${logoUrl}" alt="${schoolName} Logo">` : '<div style="color: white; font-size: 24px;">🎓</div>'}
+              </div>
+              <div class="school-name">${schoolName}</div>
+              <div class="school-motto">"Excellence in Education"</div>
+              <div class="report-title">Academic Performance Report</div>
             </div>
-            
-            <div class="student-info">
-              <div class="info-grid">
-                <div class="info-item">
-                  <span class="info-label">Student Name:</span>
-                  <span>${studentResults?.student.firstName} ${
-      studentResults?.student.lastName
-    }</span>
+
+            <!-- Academic Period -->
+            <div class="academic-period">
+              <div class="period-grid">
+                <div class="period-item">
+                  <div class="period-label">Academic Year</div>
+                  <div class="period-value">${academicYear}</div>
                 </div>
-                <div class="info-item">
-                  <span class="info-label">Student ID:</span>
-                  <span>${studentResults?.student.studentId}</span>
+                <div class="period-item">
+                  <div class="period-label">Academic Term</div>
+                  <div class="period-value">${termName}</div>
                 </div>
-                <div class="info-item">
-                  <span class="info-label">Class:</span>
-                  <span>${
-                    classes.find((c) => c.id === selectedClass)?.name || "N/A"
-                  }</span>
+                <div class="period-item">
+                  <div class="period-label">Class</div>
+                  <div class="period-value">${className}</div>
                 </div>
-                <div class="info-item">
-                  <span class="info-label">Academic Calendar:</span>
-                  <span>${academicCalendars.find((c) => c.id === selectedAcademicCalendar)?.term || "N/A"}</span>
-                </div>
-                <div class="info-item">
-                  <span class="info-label">Term:</span>
-                  <span>${(() => { const termObj = terms.find((y) => y.id === selectedTerm); if(!termObj) return "N/A"; const num = (termObj as any).termNumber; if(num!=null) return `Term ${num}`; const pick = termObj.periodName || termObj.name || termObj.term || ''; const m = pick.match(/period\s*(\d+)/i); if(m) return `Term ${m[1]}`; return pick || 'N/A'; })()}</span>
-                </div>
-                <div class="info-item">
-                  <span class="info-label">Generated:</span>
-                  <span>${new Date().toLocaleDateString()}</span>
+                <div class="period-item">
+                  <div class="period-label">Report Date</div>
+                  <div class="period-value">${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
                 </div>
               </div>
             </div>
-            
+
+            <!-- Student Information -->
+            <div class="student-info">
+              <div class="info-grid">
+                <div class="info-section">
+                  <div class="section-title">👤 Student Details</div>
+                  <div class="info-item">
+                    <span class="info-label">Full Name:</span>
+                    <span class="info-value">${studentResults.student.firstName} ${studentResults.student.lastName}</span>
+                  </div>
+                  <div class="info-item">
+                    <span class="info-label">Student ID:</span>
+                    <span class="info-value">${studentResults.student.studentId}</span>
+                  </div>
+
+                </div>
+                
+                <div class="info-section">
+                  <div class="section-title">🏫 School Information</div>
+                  ${schoolSettings?.schoolAddress ? `
+                  <div class="info-item">
+                    <span class="info-label">Address:</span>
+                    <span class="info-value">${schoolSettings.schoolAddress}</span>
+                  </div>` : ''}
+                  ${schoolSettings?.schoolPhone ? `
+                  <div class="info-item">
+                    <span class="info-label">Phone:</span>
+                    <span class="info-value">${schoolSettings.schoolPhone}</span>
+                  </div>` : ''}
+                  ${schoolSettings?.schoolEmail ? `
+                  <div class="info-item">
+                    <span class="info-label">Email:</span>
+                    <span class="info-value">${schoolSettings.schoolEmail}</span>
+                  </div>` : ''}
+                </div>
+              </div>
+            </div>
+
+            <!-- Performance Summary -->
+            <div class="performance-summary">
+              <div class="summary-title">📊 Academic Performance Summary</div>
+              <div class="summary-grid">
+                <div class="summary-card gpa-card">
+                  <div class="summary-value" style="color: #27ae60;">${(studentResults.summary?.overallGPA || 0).toFixed(2)}</div>
+                  <div class="summary-label">Overall GPA</div>
+                </div>
+                <div class="summary-card score-card">
+                  <div class="summary-value" style="color: #3498db;">${Math.round(studentResults.summary?.averageScore || 0)}%</div>
+                  <div class="summary-label">Average Score</div>
+                </div>
+                <div class="summary-card courses-card">
+                  <div class="summary-value" style="color: #f39c12;">${studentResults.summary?.totalResults || 0}</div>
+                  <div class="summary-label">Total Courses</div>
+                </div>
+                <div class="summary-card marks-card">
+                  <div class="summary-value" style="color: #9b59b6;">${studentResults.summary?.totalMarks || 0}/${studentResults.summary?.totalPossible || 0}</div>
+                  <div class="summary-label">Marks Obtained</div>
+                </div>
+                <div class="summary-card performance-card">
+                  <div class="summary-value" style="color: #e74c3c; font-size: 18px;">${studentResults.summary?.remarks || "No Assessment"}</div>
+                  <div class="summary-label">Performance Level</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Course Results -->
             <div class="results-section">
-              <div class="section-title">Examination Results</div>
+              <div class="results-title">📚 Detailed Course Results</div>
               <table class="results-table">
                 <thead>
                   <tr>
                     <th>Course Name</th>
-                    <th>Course Code</th>
-                    <th>Term</th>
-                    <th>Final Percentage</th>
+                    <th>Code</th>
+                    <th>Percentage</th>
                     <th>Grade</th>
+                    <th>Points</th>
                     <th>Status</th>
                   </tr>
                 </thead>
                 <tbody>
-                  ${
-                    studentResults?.results
-                      .map(
-                        (result) => `
+                  ${studentResults.results.map(result => `
                     <tr>
-                      <td>${result.courseName}</td>
-                      <td>${result.courseCode}</td>
-                      <td>${result.termName}</td>
-                      <td>${Math.round(result.finalPercentage)}%</td>
-                      <td><span class="grade-badge grade-${(result.finalGradeCode || 'na')
-                        .toLowerCase()
-                        .replace("+", "")}">${result.finalGradeCode || 'N/A'}</span></td>
-                      <td>${result.pass ? 'Pass' : 'Fail'}</td>
+                      <td style="font-weight: 600;">${result.courseName}</td>
+                      <td style="font-family: 'Courier New', monospace; color: #7f8c8d;">${result.courseCode}</td>
+                      <td style="font-weight: bold; font-size: 16px;">${Math.round(result.finalPercentage)}%</td>
+                      <td><span class="grade-badge grade-${(result.finalGradeCode || 'f').toLowerCase().replace('+', '')}">${result.finalGradeCode || 'N/A'}</span></td>
+                      <td style="font-weight: 600;">${calculateGradePoints(result.finalGradeCode || 'F').toFixed(1)}</td>
+                      <td><span class="status-${result.pass ? 'pass' : 'fail'}">${result.pass ? 'Pass' : 'Fail'}</span></td>
                     </tr>
-                  `
-                      )
-                      .join("") || ""
-                  }
+                  `).join('')}
                 </tbody>
               </table>
-              
-              <div class="summary">
-                <div class="summary-grid">
-                  <div class="summary-item">
-                    <div class="summary-value">${
-                      studentResults?.summary?.overallGPA?.toFixed(1) || "0.0"
-                    }</div>
-                    <div class="summary-label">Overall GPA</div>
-                  </div>
-                  <div class="summary-item">
-                    <div class="summary-value">${
-                      studentResults?.summary?.totalResults || 0
-                    }</div>
-                    <div class="summary-label">Total Courses</div>
-                  </div>
-                  <div class="summary-item">
-                    <div class="summary-value">${Math.round(studentResults?.summary?.averageScore || 0)}%</div>
-                    <div class="summary-label">Average Score</div>
-                  </div>
-                  <div class="summary-item">
-                    <div class="summary-value">${studentResults?.summary?.totalMarks || 0}/${studentResults?.summary?.totalPossible || 0}</div>
-                    <div class="summary-label">Total Marks</div>
-                  </div>
-                  <div class="summary-item">
-                    <div class="summary-value">${studentResults?.summary?.remarks || "No Assessment"}</div>
-                    <div class="summary-label">Performance</div>
-                  </div>
-                </div>
-              </div>
             </div>
-            
+
+            <!-- Footer -->
             <div class="footer">
-              This report card was generated electronically by Schomas Academy Management System.<br>
-              For any inquiries, please contact the academic office.
+              <div class="footer-content">
+                This official academic report card has been generated electronically by the ${schoolName} Management System.<br>
+                For verification or any academic inquiries, please contact the school administration office.
+                ${schoolSettings?.schoolAbout ? `<br><br><strong>About ${schoolName}:</strong> ${schoolSettings.schoolAbout}` : ''}
+              </div>
+              ${(schoolSettings?.schoolAddress || schoolSettings?.schoolPhone || schoolSettings?.schoolEmail) ? `
+              <div class="school-contact">
+                ${schoolSettings.schoolAddress ? `📍 ${schoolSettings.schoolAddress}` : ''}
+                ${schoolSettings.schoolPhone ? `📞 ${schoolSettings.schoolPhone}` : ''}
+                ${schoolSettings.schoolEmail ? `📧 ${schoolSettings.schoolEmail}` : ''}
+              </div>` : ''}
             </div>
           </div>
           
           <script>
             window.onload = function() {
-              window.print();
+              setTimeout(() => window.print(), 1000);
             }
           </script>
         </body>
@@ -1159,70 +1358,49 @@ const ExamResults = () => {
       )}
 
       {studentResults && (
-        <ReportCard
-          title={`Exam Results for ${studentResults.student.firstName} ${studentResults.student.lastName}`}
-          action={
-            <Button onClick={generateReportCard} className="gap-2">
-              <PrinterIcon className="h-4 w-4" />
-              Print Report Card
-            </Button>
+        <ProfessionalReportCard
+          school={{
+            name: schoolSettings?.schoolName || "School Name",
+            logoUrl: schoolSettings?.schoolLogo,
+            address: schoolSettings?.schoolAddress,
+            phone: schoolSettings?.schoolPhone,
+            email: schoolSettings?.schoolEmail,
+            website: "",
+            motto: "Excellence in Education",
+            about: schoolSettings?.schoolAbout
+          }}
+          student={{
+            id: studentResults.student.id,
+            studentId: studentResults.student.studentId,
+            firstName: studentResults.student.firstName,
+            lastName: studentResults.student.lastName,
+            className: classes.find(c => c.id === selectedClass)?.name || "Unknown Class",
+            academicYear: academicCalendars.find(ac => ac.id === selectedAcademicCalendar)?.term || "Unknown Year",
+            term: terms.find(t => t.id === selectedTerm)?.name || "Unknown Term"
+          }}
+          summary={{
+            overallGPA: studentResults.summary?.overallGPA || 0,
+            averageScore: studentResults.summary?.averageScore || 0,
+            totalCourses: studentResults.summary?.totalResults || 0,
+            totalMarks: studentResults.summary?.totalMarks || 0,
+            totalPossible: studentResults.summary?.totalPossible || 0,
+            performance: studentResults.summary?.remarks || "No Assessment",
+            position: undefined,
+            totalStudents: undefined
+          }}
+          courses={
+            studentResults.results.map((result) => ({
+              courseCode: result.courseCode,
+              courseName: result.courseName,
+              finalPercentage: result.finalPercentage,
+              grade: result.finalGradeCode || 'N/A',
+              points: calculateGradePoints(result.finalGradeCode || 'F'),
+              status: result.pass ? 'Pass' : 'Fail',
+              computedAt: new Date(result.computedAt),
+              breakdown: result.breakdown
+            }))
           }
-          summary={[
-            { label: "Overall GPA", value: studentResults.summary?.overallGPA?.toFixed(1) || "0.0" },
-            { label: "Total Exams", value: studentResults.summary?.totalResults || 0 },
-            {
-              label: "Average Score",
-              value: `${Math.round(studentResults.summary?.averageScore || 0)}%`,
-            },
-            {
-              label: "Total Marks",
-              value: `${studentResults.summary?.totalMarks || 0}/${studentResults.summary?.totalPossible || 0}`,
-            },
-            {
-              label: "Performance",
-              value: studentResults.summary?.remarks || "No Assessment",
-            },
-          ]}
-          columns={[
-            "Course Name",
-            "Course Code",
-            "Term",
-            "Final Percentage",
-            "Grade",
-            "Status",
-            "Computed At",
-          ]}
-          rows={
-            studentResults.results.length
-              ? studentResults.results.map((result) => ({
-                  key: result.id,
-                  cells: [
-                    result.courseName,
-                    result.courseCode,
-                    result.termName,
-                    `${Math.round(result.finalPercentage)}%`,
-                    (
-                      <Badge className={cn("text-xs", getGradeColor(result.finalGradeCode || 'N/A'))}>
-                        {result.finalGradeCode || 'N/A'}
-                      </Badge>
-                    ),
-                    result.pass ? (
-                      <Badge className="text-xs bg-green-100 text-green-800">
-                        Pass
-                      </Badge>
-                    ) : (
-                      <Badge className="text-xs bg-red-100 text-red-800">
-                        Fail
-                      </Badge>
-                    ),
-                    result.computedAt 
-                      ? new Date(result.computedAt).toLocaleDateString()
-                      : 'N/A',
-                  ],
-                }))
-              : []
-          }
-          emptyMessage="No results available for this student."
+          onPrint={generateReportCard}
         />
       )}
 
