@@ -548,9 +548,9 @@ export default function WeeklyScheduleGrid() {
             <div className="overflow-x-auto">
               <div className="grid grid-cols-6 gap-2 min-w-[800px]">
                 {/* Header row */}
-                <div className="font-semibold p-2 border rounded bg-gray-50">Time</div>
+                <div className="font-semibold p-2 border rounded bg-muted">Time</div>
                 {DAYS.map(day => (
-                  <div key={day} className="font-semibold p-2 border rounded bg-gray-50 text-center">
+                  <div key={day} className="font-semibold p-2 border rounded bg-muted text-center">
                     {day}
                   </div>
                 ))}
@@ -558,7 +558,7 @@ export default function WeeklyScheduleGrid() {
                 {/* Time slot rows */}
                 {TIME_SLOTS.map((timeSlot, timeIndex) => (
                   <div key={timeSlot} className="contents">
-                    <div className="p-2 border rounded bg-gray-50 text-sm font-medium">
+                    <div className="p-2 border rounded bg-muted text-sm font-medium">
                       {timeSlot}
                     </div>
                     {DAYS.map(day => {
@@ -651,7 +651,7 @@ export default function WeeklyScheduleGrid() {
                     <SelectValue placeholder="Select course" />
                   </SelectTrigger>
                   <SelectContent>
-                    {Array.isArray(courses) && courses.filter(course => !selectedClassId || course.classId === selectedClassId).map(course => (
+                    {Array.isArray(courses) && courses.map(course => (
                       <SelectItem key={course.id} value={course.id}>
                         {course.name} ({course.code})
                       </SelectItem>
