@@ -21,7 +21,8 @@ import {
   MessageSquare,
   CreditCard,
   ChevronDown,
-  FileText as ReportIcon,
+  Library,
+  BarChart3,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -116,7 +117,7 @@ const adminNavItems: NavItem[] = [
   },
   {
     label: "Library",
-    icon: BookOpen,
+    icon: Library,
     roles: ["admin", "teacher", "student", "finance"],
     subItems: [
       { label: "Catalog", href: "/library/catalog", roles: ["admin", "teacher", "student", "finance"] },
@@ -201,7 +202,7 @@ const adminNavItems: NavItem[] = [
       // { label: 'Add Schedules', href: '/schedules/add', roles: ['admin'] },
     ],
   },
-  { label: "Reports", icon: ReportIcon, href: "/reports", roles: ["admin"] },
+  { label: "Reports", icon: BarChart3, href: "/reports", roles: ["admin"] },
   { label: "Settings", icon: Settings, href: "/settings", roles: ["admin"] },
 ];
 
@@ -419,13 +420,16 @@ export default function Sidebar() {
                       // When sidebar is minimized, use popover for dropdown items
                       <Popover>
                         <PopoverTrigger asChild>
-                          <div
+                          <button
+                            aria-label={item.label}
                             className={cn(
-                              "flex items-center px-3 py-3 text-base font-medium rounded-md hover:bg-accent hover:text-accent-foreground group transition-all duration-200 cursor-pointer justify-center"
+                              "flex items-center px-3 py-3 text-base font-medium rounded-md hover:bg-accent hover:text-accent-foreground group transition-all duration-200 cursor-pointer justify-center bg-transparent border-none w-full"
                             )}
                           >
-                            <item.icon className="h-5 w-5 text-muted-foreground group-hover:text-accent-foreground" />
-                          </div>
+                            <span className="inline-flex h-8 w-8 items-center justify-center rounded-md bg-secondary text-secondary-foreground">
+                              <item.icon className="h-5 w-5" />
+                            </span>
+                          </button>
                         </PopoverTrigger>
                         <PopoverContent side="right" className="w-56 p-2">
                           <div className="space-y-1">
@@ -457,7 +461,7 @@ export default function Sidebar() {
                           )}
                           onClick={() => toggleDropdown(item.label)}
                         >
-                          <item.icon className="h-5 w-5 text-muted-foreground group-hover:text-accent-foreground" />
+                          <item.icon className="h-5 w-5 text-foreground group-hover:text-accent-foreground" />
                           <span className="ml-3 flex-1">{item.label}</span>
                           <ChevronDown
                             className={cn(
@@ -492,11 +496,14 @@ export default function Sidebar() {
                     <TooltipTrigger asChild>
                       <Link
                         to={item.href!}
+                        aria-label={item.label}
                         className={cn(
                           "flex items-center px-3 py-3 text-base font-medium rounded-md hover:bg-accent hover:text-accent-foreground group transition-all duration-200 justify-center"
                         )}
                       >
-                        <item.icon className="h-5 w-5 text-muted-foreground group-hover:text-accent-foreground" />
+                        <span className="inline-flex h-8 w-8 items-center justify-center rounded-md bg-secondary text-secondary-foreground">
+                          <item.icon className="h-5 w-5" />
+                        </span>
                       </Link>
                     </TooltipTrigger>
                     <TooltipContent side="right">
@@ -510,7 +517,7 @@ export default function Sidebar() {
                       "flex items-center px-3 py-3 text-base font-medium rounded-md hover:bg-accent hover:text-accent-foreground group transition-all duration-200"
                     )}
                   >
-                    <item.icon className="h-5 w-5 text-muted-foreground group-hover:text-accent-foreground" />
+                    <item.icon className="h-5 w-5 text-foreground group-hover:text-accent-foreground" />
                     <span className="ml-3">{item.label}</span>
                   </Link>
                 )}
