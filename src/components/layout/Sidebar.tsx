@@ -426,8 +426,8 @@ export default function Sidebar() {
                               "flex items-center px-3 py-3 text-base font-medium rounded-md hover:bg-accent hover:text-accent-foreground group transition-all duration-200 cursor-pointer justify-center bg-transparent border-none w-full"
                             )}
                           >
-                            <span className="inline-flex h-8 w-8 items-center justify-center rounded-md bg-secondary text-secondary-foreground">
-                              <item.icon className="h-5 w-5" />
+                            <span className="inline-flex h-8 w-8 items-center justify-center">
+                              <item.icon className="h-5 w-5 text-foreground group-hover:text-accent-foreground" />
                             </span>
                           </button>
                         </PopoverTrigger>
@@ -501,8 +501,8 @@ export default function Sidebar() {
                           "flex items-center px-3 py-3 text-base font-medium rounded-md hover:bg-accent hover:text-accent-foreground group transition-all duration-200 justify-center"
                         )}
                       >
-                        <span className="inline-flex h-8 w-8 items-center justify-center rounded-md bg-secondary text-secondary-foreground">
-                          <item.icon className="h-5 w-5" />
+                        <span className="inline-flex h-8 w-8 items-center justify-center">
+                          <item.icon className="h-5 w-5 text-foreground group-hover:text-accent-foreground" />
                         </span>
                       </Link>
                     </TooltipTrigger>
