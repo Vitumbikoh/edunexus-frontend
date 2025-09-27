@@ -156,7 +156,7 @@ export default function FinanceOfficers() {
         </div>
         {canAdd && (
           <Button asChild>
-            <Link to="/finance/new">Add New Officer</Link>
+            <Link to="/finance/officers/add">Add New Officer</Link>
           </Button>
         )}
       </div>

@@ -285,22 +285,33 @@ export const AdminDashboardCards = () => {
     try {
       setAcademicStats(prev => ({ ...prev, loading: true }));
       
-      const [studentsRes, coursesRes] = await Promise.all([
+      const [studentsRes, coursesRes, performanceRes] = await Promise.all([
         fetch(`${API_CONFIG.BASE_URL}/student/total-students`, {
           headers: { Authorization: `Bearer ${token}` },
         }),
         fetch(`${API_CONFIG.BASE_URL}/course/stats/total-courses`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        fetch(`${API_CONFIG.BASE_URL}/analytics/course-averages`, {
           headers: { Authorization: `Bearer ${token}` },
         })
       ]);
 
       const studentsData = studentsRes.ok ? await studentsRes.json() : { totalStudents: 0 };
       const coursesData = coursesRes.ok ? await coursesRes.json() : { value: 0 };
+      const performanceData = performanceRes.ok ? await performanceRes.json() : [];
+
+      // Calculate overall average from course averages
+      let overallAverage = 0;
+      if (Array.isArray(performanceData) && performanceData.length > 0) {
+        const total = performanceData.reduce((sum: number, item: any) => sum + (item.average || 0), 0);
+        overallAverage = Math.round(total / performanceData.length);
+      }
 
       setAcademicStats({
         totalStudents: studentsData.totalStudents || 0,
         totalCourses: coursesData.value || 0,
-        overallAverage: 0, // This could be calculated from performance data
+        overallAverage,
         loading: false
       });
     } catch (error) {
@@ -438,7 +449,7 @@ export const AdminDashboardCards = () => {
                 </div>
                 <div className="space-y-1">
                   <div className="text-xl font-bold text-green-600 dark:text-green-400">
-                    {academicStats.loading ? "..." : "85%"}
+                    {academicStats.loading ? "..." : academicStats.overallAverage ? `${academicStats.overallAverage}%` : "N/A"}
                   </div>
                   <div className="text-xs text-gray-600 dark:text-gray-400">Avg Performance</div>
                 </div>

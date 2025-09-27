@@ -395,7 +395,7 @@ export const ClassPerformanceChart = ({ termId }: { termId?: string }) => {
       const raw = Array.isArray(data) ? data : (data.courseAverages || data.classPerformance || []);
       const normalized = raw.map((item: any) => ({
         courseName: item.courseName || item.name,
-        studentsCount: item.studentsCount ?? item.students ?? item.studentCount ?? 0,
+        studentsCount: item.gradeCount ?? item.numericGradeCount ?? item.studentsCount ?? item.students ?? item.studentCount ?? 0,
         averageScore: item.averageScore ?? item.average ?? item.score ?? 0,
       }));
       setPerformanceData(normalized);
@@ -483,7 +483,7 @@ export const ClassPerformanceChart = ({ termId }: { termId?: string }) => {
         <Bar 
           dataKey="studentsCount" 
           fill="#374151" 
-          name="Students" 
+          name="Grade Count" 
           radius={[2, 2, 0, 0]}
         />
         <Bar 
