@@ -101,7 +101,7 @@ export default function Borrowings() {
                 </DialogHeader>
                 <div className="grid gap-3 py-2">
                   <Label>Select Catalog Book (optional)</Label>
-                  <Select onValueChange={(v) => setForm({ ...form, bookId: v, bookName: undefined })}>
+                  <Select disabled={!!form.bookName} onValueChange={(v) => setForm({ ...form, bookId: v, bookName: undefined })}>
                     <SelectTrigger>
                       <SelectValue placeholder="Choose a book" />
                     </SelectTrigger>
@@ -112,7 +112,7 @@ export default function Borrowings() {
                     </SelectContent>
                   </Select>
                   <Label>Or enter custom book name</Label>
-                  <Input value={form.bookName || ''} onChange={(e) => setForm({ ...form, bookName: e.target.value, bookId: undefined })} placeholder="Book name" />
+                  <Input disabled={!!form.bookId} value={form.bookName || ''} onChange={(e) => setForm({ ...form, bookName: e.target.value, bookId: undefined })} placeholder="Book name" />
                   <Label>Student</Label>
                   <div className="space-y-2">
                     <Input
