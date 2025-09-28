@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,6 +7,7 @@ import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { 
@@ -43,6 +44,34 @@ export default function ScheduleImportExport() {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [importResults, setImportResults] = useState<ImportResponse | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [classes, setClasses] = useState<Array<{ id: string; name: string }>>([]);
+  const [courses, setCourses] = useState<Array<{ id: string; name: string; code: string; classId?: string; class?: { id: string; name: string } }>>([]);
+  const [templateScope, setTemplateScope] = useState<string>('ALL'); // 'ALL' or classId
+  const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+  const TIME_SLOTS = ['08:00','09:00','10:00','11:00','13:30','14:30'];
+
+  // Load classes and courses for dynamic template generation
+  useEffect(() => {
+    const loadMeta = async () => {
+      if (!token) return;
+      try {
+        const [classesRes, coursesRes] = await Promise.all([
+          fetch(`${API_CONFIG.BASE_URL}/classes`, { headers: { 'Authorization': `Bearer ${token}` } }),
+          fetch(`${API_CONFIG.BASE_URL}/course?page=1&limit=1000`, { headers: { 'Authorization': `Bearer ${token}` } })
+        ]);
+        const classesData = classesRes.ok ? await classesRes.json() : { data: [] };
+        const coursesData = coursesRes.ok ? await coursesRes.json() : { courses: [] };
+        const classesList = Array.isArray(classesData.data) ? classesData.data : Array.isArray(classesData) ? classesData : [];
+        const coursesList = Array.isArray(coursesData.courses) ? coursesData.courses : Array.isArray(coursesData.data) ? coursesData.data : Array.isArray(coursesData) ? coursesData : [];
+        setClasses(classesList.map((c: any) => ({ id: c.id, name: c.name })));
+        setCourses(coursesList.map((c: any) => ({ id: c.id, name: c.name, code: c.code, classId: c.classId, class: c.class })));
+      } catch (e) {
+        // Soft fail - template can still be downloaded with headers only
+        console.warn('Failed to load classes/courses for template:', e);
+      }
+    };
+    loadMeta();
+  }, [token]);
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -120,60 +149,93 @@ export default function ScheduleImportExport() {
   };
 
   const downloadTemplate = () => {
-    // Create CSV template
-    const headers = [
-      'className',
-      'day', 
-      'startTime',
-      'endTime',
-      'courseCode',
-      'classroomName',
-      'isActive'
-    ];
-    
-    const sampleData = [
-      // Form One - Monday schedule
-      ['Form one', 'Monday', '08:00', '09:00', 'MATH101', '', 'true'],
-      ['Form one', 'Monday', '09:00', '10:00', 'ENG101', '', 'true'],
-      ['Form one', 'Monday', '10:00', '11:00', 'SCI101', '', 'true'],
-      ['Form one', 'Monday', '11:00', '12:00', 'HIST101', '', 'true'],
-      // Form Two - Tuesday schedule
-      ['Form two', 'Tuesday', '08:00', '09:00', 'ENG201', '', 'true'],
-      ['Form two', 'Tuesday', '09:00', '10:00', 'MATH201', '', 'true'],
-      ['Form two', 'Tuesday', '10:00', '11:00', 'PHYS201', '', 'true'],
-      ['Form two', 'Tuesday', '11:00', '12:00', 'CHEM201', '', 'true'],
-      // Form Three - Wednesday schedule
-      ['Form Three', 'Wednesday', '08:00', '09:00', 'SCI301', '', 'true'],
-      ['Form Three', 'Wednesday', '09:00', '10:00', 'HIST301', '', 'true'],
-      ['Form Three', 'Wednesday', '10:00', '11:00', 'MATH301', '', 'true'],
-      ['Form Three', 'Wednesday', '11:00', '12:00', 'ENG301', '', 'true'],
-      // Form One - Thursday schedule
-      ['Form one', 'Thursday', '08:00', '09:00', 'PHYS101', '', 'true'],
-      ['Form one', 'Thursday', '09:00', '10:00', 'CHEM101', '', 'true'],
-      ['Form one', 'Thursday', '10:00', '11:00', 'ENG101', '', 'true'],
-      ['Form one', 'Thursday', '11:00', '12:00', 'SCI101', '', 'true'],
-      // Form Two - Friday schedule
-      ['Form two', 'Friday', '08:00', '09:00', 'MATH201', '', 'true'],
-      ['Form two', 'Friday', '09:00', '10:00', 'HIST201', '', 'true'],
-      ['Form two', 'Friday', '10:00', '11:00', 'PHYS201', '', 'true'],
-      ['Form two', 'Friday', '11:00', '12:00', 'CHEM201', '', 'true']
-    ];
+    const headers = ['className','day','startTime','endTime','courseCode','classroomName','isActive'];
 
-    const csvContent = [headers, ...sampleData]
-      .map(row => row.map(cell => `"${cell}"`).join(','))
+    // Decide which classes to include
+    const targetClasses = templateScope === 'ALL'
+      ? classes
+      : classes.filter(c => c.id === templateScope);
+
+    const rows: string[][] = [];
+
+    // For each class, build a balanced full-week schedule using available courses
+    targetClasses.forEach(cls => {
+      const classCourses = courses.filter(c => (c.classId || c.class?.id) === cls.id);
+      if (classCourses.length === 0) {
+        // If no courses, add a single header-like row to guide user
+        rows.push([cls.name, 'Monday', '08:00', '09:00', '', '', 'true']);
+        return;
+      }
+
+      const totalSlots = DAYS.length * TIME_SLOTS.length; // 30
+      const base = Math.floor(totalSlots / classCourses.length); // typically 3
+      const remainingByCourse: Record<string, number> = {};
+      classCourses.forEach(crs => remainingByCourse[crs.id] = base);
+      let assigned = base * classCourses.length;
+      let cursor = 0;
+      while (assigned < totalSlots) {
+        const crs = classCourses[cursor % classCourses.length];
+        remainingByCourse[crs.id] += 1;
+        assigned++;
+        cursor++;
+      }
+
+      const getEndTime = (start: string) => {
+        const [h,m] = start.split(':').map(Number);
+        return `${String(h+1).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+      };
+
+      const pickCourse = (usedToday: Set<string>, offset: number) => {
+        for (let i=0;i<classCourses.length;i++) {
+          const idx = (offset + i) % classCourses.length;
+          const c = classCourses[idx];
+          if (remainingByCourse[c.id] > 0 && !usedToday.has(c.id)) return c;
+        }
+        for (let i=0;i<classCourses.length;i++) {
+          const idx = (offset + i) % classCourses.length;
+          const c = classCourses[idx];
+          if (remainingByCourse[c.id] > 0) return c;
+        }
+        return null;
+      };
+
+      let globalOffset = 0;
+      DAYS.forEach(day => {
+        const usedToday = new Set<string>();
+        TIME_SLOTS.forEach((slot, slotIndex) => {
+          const course = pickCourse(usedToday, globalOffset + slotIndex);
+          if (!course) return;
+          usedToday.add(course.id);
+          remainingByCourse[course.id] -= 1;
+          rows.push([
+            cls.name,
+            day,
+            slot,
+            getEndTime(slot),
+            course.code || '',
+            '',
+            'true'
+          ]);
+        });
+        globalOffset += 3; // rotate for fairness
+      });
+    });
+
+    const csvContent = [headers, ...rows]
+      .map(row => row.map(cell => `"${cell ?? ''}"`).join(','))
       .join('\n');
 
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'schedule-import-template.csv';
+    a.download = templateScope === 'ALL' ? 'schedule-template-all-classes.csv' : `schedule-template-${(classes.find(c=>c.id===templateScope)?.name||'class').replace(/\s+/g,'_').toLowerCase()}.csv`;
     a.click();
     window.URL.revokeObjectURL(url);
 
     toast({
       title: "Template downloaded",
-      description: "CSV template downloaded successfully"
+      description: templateScope === 'ALL' ? 'Full-week template for all classes downloaded' : 'Full-week template for selected class downloaded'
     });
   };
 
@@ -212,6 +274,7 @@ export default function ScheduleImportExport() {
                 variant="outline" 
                 onClick={downloadTemplate}
                 className="shrink-0"
+                title="Download a full-week balanced template"
               >
                 <FileDown className="h-4 w-4 mr-2" />
                 Template
@@ -222,6 +285,27 @@ export default function ScheduleImportExport() {
                 Selected: {selectedFile.name} ({(selectedFile.size / 1024).toFixed(1)} KB)
               </div>
             )}
+          </div>
+
+          {/* Template Options */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <Label>Template Scope</Label>
+              <Select value={templateScope} onValueChange={setTemplateScope}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Choose scope" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">All Classes (Full Week)</SelectItem>
+                  {classes.map(cls => (
+                    <SelectItem key={cls.id} value={cls.id}>{cls.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="pt-6">
+              <Badge variant="outline">Balanced Mon–Fri • 08:00–12:00, 13:30–15:30 • Lunch 12:00–13:30</Badge>
+            </div>
           </div>
 
           {/* Upload Progress */}
@@ -257,6 +341,7 @@ export default function ScheduleImportExport() {
                 <li>• Teacher is automatically assigned from the course</li>
                 <li>• Time format: HH:mm (e.g., 08:00, 14:30)</li>
                 <li>• Day format: Monday, Tuesday, Wednesday, Thursday, Friday</li>
+                <li>• Template includes a full Mon–Fri schedule per class using the school hours and lunch break</li>
               </ul>
             </AlertDescription>
           </Alert>
