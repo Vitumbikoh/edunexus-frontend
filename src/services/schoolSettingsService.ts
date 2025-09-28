@@ -7,6 +7,7 @@ export interface SchoolSettings {
   schoolAddress: string;
   schoolAbout: string;
   schoolLogo?: string;
+  schoolMotto?: string;
 }
 
 export const schoolSettingsService = {
@@ -35,6 +36,8 @@ export const schoolSettingsService = {
       schoolAddress: settings.schoolAddress || '',
       schoolAbout: settings.schoolAbout || '',
       schoolLogo: settings.schoolLogo || '',
+      // Support both `schoolMotto` and `motto` keys from backend
+      schoolMotto: settings.schoolMotto || settings.motto || '',
     };
   },
 };

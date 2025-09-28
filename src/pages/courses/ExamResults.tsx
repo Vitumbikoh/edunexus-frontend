@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -62,7 +62,7 @@ interface CourseExamResult {
   finalPercentage: number;
   finalGradeCode: string;
   pass: boolean;
-  breakdown?: any;
+  breakdown?: Record<string, unknown>;
   computedAt: Date;
   schemeVersion: number;
 }
@@ -219,9 +219,9 @@ const ExamResults = () => {
 
   // Terms filtered by chosen academic calendar (currently all if calendar selected)
   // Filter terms by selected academic calendar id if provided
-  const filteredTerms = selectedAcademicCalendar
+  const filteredTerms = useMemo(() => selectedAcademicCalendar
     ? terms.filter(t => !t.academicCalendarId || t.academicCalendarId === selectedAcademicCalendar)
-    : [];
+    : [], [selectedAcademicCalendar, terms]);
 
   // Auto-select active/current academic year when calendar changes
   useEffect(() => {
@@ -235,7 +235,7 @@ const ExamResults = () => {
     } else {
       setSelectedTerm("");
     }
-  }, [selectedAcademicCalendar, filteredTerms]);
+  }, [selectedAcademicCalendar, filteredTerms, selectedTerm]);
 
   // Reset dependent selections when parent selections change
   useEffect(() => {
@@ -267,10 +267,11 @@ const ExamResults = () => {
         title: "Results Published",
         description: "Exam results have been published for the selected academic year.",
       });
-    } catch (e: any) {
+    } catch (e: unknown) {
+      const error = e as { message?: string };
       toast({
         title: "Error",
-        description: e.message || "Failed to publish results",
+        description: error.message || "Failed to publish results",
         variant: "destructive",
       });
     } finally {
@@ -337,7 +338,7 @@ const ExamResults = () => {
     }
   }, [selectedClass, selectedAcademicCalendar, selectedTerm, token, toast]);
 
-  const fetchAllStudentsResults = async () => {
+  const fetchAllStudentsResults = useCallback(async () => {
     if (!selectedClass || !selectedAcademicCalendar || !selectedTerm) return;
 
     setIsLoading(true);
@@ -350,10 +351,10 @@ const ExamResults = () => {
         selectedTerm,
         selectedAcademicCalendar
       );
-      
+
       console.log("All students exam results:", data);
       setAllStudentsResults(data);
-      
+
       if (data.students.length === 0) {
         toast({
           title: "No Results",
@@ -371,15 +372,15 @@ const ExamResults = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [selectedClass, selectedAcademicCalendar, selectedTerm, token, toast]);
 
   useEffect(() => {
     if (selectedClass && selectedAcademicCalendar && selectedTerm && !selectedStudentId) {
       fetchAllStudentsResults();
     }
-  }, [selectedClass, selectedAcademicCalendar, selectedTerm, students]);
+  }, [selectedClass, selectedAcademicCalendar, selectedTerm, selectedStudentId, fetchAllStudentsResults]);
 
-  const fetchStudentResults = async () => {
+  const fetchStudentResults = useCallback(async () => {
     if (!selectedStudentId || !selectedClass || !selectedAcademicCalendar || !selectedTerm) return;
 
     setIsLoading(true);
@@ -398,10 +399,10 @@ const ExamResults = () => {
         selectedTerm,
         selectedAcademicCalendar
       );
-      
+
       console.log("Student exam results:", data);
       setStudentResults(data);
-      
+
       if (data.results.length === 0) {
         toast({
           title: "No Results",
@@ -421,13 +422,13 @@ const ExamResults = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [selectedStudentId, selectedClass, selectedAcademicCalendar, selectedTerm, students, token, toast]);
 
   useEffect(() => {
     if (selectedStudentId) {
       fetchStudentResults();
     }
-  }, [selectedStudentId]);
+  }, [selectedStudentId, fetchStudentResults]);
 
   const getGradeColor = (grade: string) => {
     switch (grade) {
@@ -788,7 +789,7 @@ const ExamResults = () => {
                 ${logoUrl ? `<img src="${logoUrl}" alt="${schoolName} Logo">` : '<div style="color: white; font-size: 24px;">🎓</div>'}
               </div>
               <div class="school-name">${schoolName}</div>
-              <div class="school-motto">"Excellence in Education"</div>
+              <div class="school-motto">"${schoolSettings?.schoolMotto || 'Excellence in Education'}"</div>
               <div class="report-title">Academic Performance Report</div>
             </div>
 
@@ -937,7 +938,14 @@ const ExamResults = () => {
   };
 
   // Calculate student positions based on average score
-  const calculateStudentPositions = (students: any[]) => {
+  const calculateStudentPositions = (students: Array<{
+    student: { id: string; studentId: string; firstName: string; lastName: string };
+    averageScore?: number;
+    overallGPA?: number;
+    totalResults?: number;
+    results?: unknown[];
+    remarks?: string;
+  }>) => {
     if (!students || students.length === 0) return [];
 
     // Sort students by average score in descending order
@@ -992,38 +1000,93 @@ const ExamResults = () => {
           const logoBase64 = await loadImageAsBase64(logoUrl);
           doc.addImage(logoBase64, 'PNG', 20, 10, 30, 30);
           
-          // Add title next to logo
-          doc.setFontSize(18);
-          doc.text(`All Students' Exam Results - ${allStudentsResults.classInfo.name}`, 55, 20);
-          yPos = 45;
+          // Add school name next to logo
+          doc.setFontSize(16);
+          doc.setFont("helvetica", "bold");
+          doc.text(schoolSettings.schoolName || "School Name", 55, 20);
+          
+          // Add school motto/tagline if available
+          if (schoolSettings.schoolMotto) {
+            doc.setFontSize(10);
+            doc.setFont("helvetica", "italic");
+            doc.text(`"${schoolSettings.schoolMotto}"`, 55, 28);
+          }
+          
+          yPos = 50;
         } catch (error) {
           console.error('Error loading logo:', error);
-          // Fallback to regular title
-          doc.setFontSize(18);
-          doc.text(`All Students' Exam Results - ${allStudentsResults.classInfo.name}`, 20, 20);
-          yPos = 35;
+          // Fallback to text-only header
+          doc.setFontSize(16);
+          doc.setFont("helvetica", "bold");
+          doc.text(schoolSettings.schoolName || "School Name", 20, 20);
+          
+          if (schoolSettings.schoolMotto) {
+            doc.setFontSize(10);
+            doc.setFont("helvetica", "italic");
+            doc.text(`"${schoolSettings.schoolMotto}"`, 20, 28);
+          }
+          
+          yPos = 45;
         }
       }
     } else {
       console.log('No school logo found');
-      // No logo, use regular title
-      doc.setFontSize(18);
-      doc.text(`All Students' Exam Results - ${allStudentsResults.classInfo.name}`, 20, 20);
-      yPos = 35;
+      // No logo, use text-only header
+      doc.setFontSize(16);
+      doc.setFont("helvetica", "bold");
+      doc.text(schoolSettings?.schoolName || "School Name", 20, 20);
+      
+      if (schoolSettings?.schoolMotto) {
+        doc.setFontSize(10);
+        doc.setFont("helvetica", "italic");
+        doc.text(`"${schoolSettings.schoolMotto}"`, 20, 28);
+      }
+      
+      yPos = 45;
     }
     
+    // Add report title
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "bold");
+    doc.text(`All Students' Exam Results - ${allStudentsResults.classInfo.name}`, 20, yPos);
+    yPos += 10;
+    
+    // Add school contact information
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "normal");
+    let contactY = yPos;
+    
+    if (schoolSettings?.schoolAddress) {
+      doc.text(`Address: ${schoolSettings.schoolAddress}`, 20, contactY);
+      contactY += 4;
+    }
+    
+    if (schoolSettings?.schoolPhone) {
+      doc.text(`Phone: ${schoolSettings.schoolPhone}`, 20, contactY);
+      contactY += 4;
+    }
+    
+    if (schoolSettings?.schoolEmail) {
+      doc.text(`Email: ${schoolSettings.schoolEmail}`, 20, contactY);
+      contactY += 4;
+    }
+    
+    yPos = Math.max(contactY + 5, yPos + 15);
+    
     // Add filters info
-    doc.setFontSize(12);
+    doc.setFontSize(10);
     const selectedClassName = classes.find(c => c.id === selectedClass)?.name || '';
     const selectedCalendarName = academicCalendars.find(c => c.id === selectedAcademicCalendar)?.term || '';
     const selectedTermName = terms.find(t => t.id === selectedTerm)?.name || '';
     
     doc.text(`Class: ${selectedClassName}`, 20, yPos);
-    yPos += 7;
+    yPos += 5;
     doc.text(`Academic Calendar: ${selectedCalendarName}`, 20, yPos);
-    yPos += 7;
+    yPos += 5;
     doc.text(`Term: ${selectedTermName}`, 20, yPos);
-    yPos += 15;
+    yPos += 5;
+    doc.text(`Export Date: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`, 20, yPos);
+    yPos += 10;
 
     // Prepare table data
     const studentsWithPositions = calculateStudentPositions(allStudentsResults.students);
@@ -1046,6 +1109,12 @@ const ExamResults = () => {
       headStyles: { fillColor: [41, 128, 185] },
       alternateRowStyles: { fillColor: [245, 245, 245] },
     });
+
+    // Add footer with generation info
+    const pageHeight = doc.internal.pageSize.height;
+    doc.setFontSize(6);
+    doc.setFont("helvetica", "italic");
+    doc.text(`Generated by ${schoolSettings?.schoolName || 'School'} Management System on ${new Date().toLocaleString()}`, 20, pageHeight - 10);
 
     // Save the PDF
     doc.save(`exam_results_${allStudentsResults.classInfo.name}_${new Date().toISOString().split('T')[0]}.pdf`);
@@ -1079,18 +1148,42 @@ const ExamResults = () => {
       'Remarks': student.remarks || 'No Assessment'
     }));
 
-    // Create workbook and worksheet
+    // Create workbook and main worksheet
     const ws = XLSX.utils.json_to_sheet(excelData);
     const wb = XLSX.utils.book_new();
+    
+    // Add school information as the first sheet
+    const schoolInfoData = [
+      { 'Field': 'School Name', 'Value': schoolSettings?.schoolName || 'School Name' },
+      { 'Field': 'School Motto', 'Value': schoolSettings?.schoolMotto || '' },
+      { 'Field': 'School Address', 'Value': schoolSettings?.schoolAddress || '' },
+      { 'Field': 'School Phone', 'Value': schoolSettings?.schoolPhone || '' },
+      { 'Field': 'School Email', 'Value': schoolSettings?.schoolEmail || '' },
+      { 'Field': '', 'Value': '' },
+      { 'Field': 'Report Title', 'Value': `All Students' Exam Results - ${allStudentsResults.classInfo.name}` },
+      { 'Field': 'Class', 'Value': classes.find(c => c.id === selectedClass)?.name || '' },
+      { 'Field': 'Academic Calendar', 'Value': academicCalendars.find(c => c.id === selectedAcademicCalendar)?.term || '' },
+      { 'Field': 'Term', 'Value': terms.find(t => t.id === selectedTerm)?.name || '' },
+      { 'Field': 'Export Date', 'Value': new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) },
+      { 'Field': 'Total Students', 'Value': allStudentsResults.students.length },
+      { 'Field': 'Average Class Score', 'Value': `${Math.round(allStudentsResults.students.reduce((sum, s) => sum + (s.averageScore || 0), 0) / allStudentsResults.students.length)}%` },
+    ];
+    
+    const wsSchoolInfo = XLSX.utils.json_to_sheet(schoolInfoData);
+    XLSX.utils.book_append_sheet(wb, wsSchoolInfo, 'School Information');
+
+    // Add the main data sheet
     XLSX.utils.book_append_sheet(wb, ws, 'Exam Results');
 
     // Add summary sheet
-    const summaryData = [{
-      'Class': allStudentsResults.classInfo.name,
-      'Total Students': allStudentsResults.students.length,
-      'Average Class Score': Math.round(allStudentsResults.students.reduce((sum, s) => sum + (s.averageScore || 0), 0) / allStudentsResults.students.length),
-      'Export Date': new Date().toLocaleDateString()
-    }];
+    const summaryData = [
+      { 'Metric': 'Total Students', 'Value': allStudentsResults.students.length },
+      { 'Metric': 'Average Class Score', 'Value': `${Math.round(allStudentsResults.students.reduce((sum, s) => sum + (s.averageScore || 0), 0) / allStudentsResults.students.length)}%` },
+      { 'Metric': 'Highest Score', 'Value': `${Math.max(...allStudentsResults.students.map(s => s.averageScore || 0))}%` },
+      { 'Metric': 'Lowest Score', 'Value': `${Math.min(...allStudentsResults.students.map(s => s.averageScore || 0))}%` },
+      { 'Metric': 'Export Date', 'Value': new Date().toLocaleDateString() },
+      { 'Metric': 'Generated By', 'Value': schoolSettings?.schoolName ? `${schoolSettings.schoolName} Management System` : 'School Management System' },
+    ];
     const wsSummary = XLSX.utils.json_to_sheet(summaryData);
     XLSX.utils.book_append_sheet(wb, wsSummary, 'Summary');
 
@@ -1128,7 +1221,7 @@ const ExamResults = () => {
               <SelectContent>
                 {terms.map((t) => (
                   <SelectItem key={t.id} value={t.id}>
-                    {formatTerm(t)} {(t.isActive || t.isCurrent || (t as any).current) && "(Current)"}
+                    {formatTerm(t)} {(t.isActive || t.isCurrent || (t as { current?: boolean }).current) && "(Current)"}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -1366,7 +1459,7 @@ const ExamResults = () => {
             phone: schoolSettings?.schoolPhone,
             email: schoolSettings?.schoolEmail,
             website: "",
-            motto: "Excellence in Education",
+            motto: schoolSettings?.schoolMotto,
             about: schoolSettings?.schoolAbout
           }}
           student={{
