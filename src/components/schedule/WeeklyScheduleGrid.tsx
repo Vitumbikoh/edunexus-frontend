@@ -161,7 +161,7 @@ export default function WeeklyScheduleGrid() {
         fetch(`${API_CONFIG.BASE_URL}/classes`, {
           headers: { 'Authorization': `Bearer ${token}` }
         }),
-        fetch(`${API_CONFIG.BASE_URL}/courses`, {
+        fetch(`${API_CONFIG.BASE_URL}/course?page=1&limit=1000`, {
           headers: { 'Authorization': `Bearer ${token}` }
         }),
         fetch(`${API_CONFIG.BASE_URL}/users/teachers`, {
@@ -179,7 +179,13 @@ export default function WeeklyScheduleGrid() {
       const classroomsData = classroomsRes.ok ? await classroomsRes.json() : { data: [] };
 
       setClasses(Array.isArray(classesData.data) ? classesData.data : Array.isArray(classesData) ? classesData : []);
-      setCourses(Array.isArray(coursesData.courses) ? coursesData.courses : Array.isArray(coursesData.data) ? coursesData.data : Array.isArray(coursesData) ? coursesData : []);
+      // Debug: Log course data to understand structure
+      console.log('Raw courses response:', coursesData);
+      const coursesList = Array.isArray(coursesData.courses) ? coursesData.courses : 
+                         Array.isArray(coursesData.data) ? coursesData.data : 
+                         Array.isArray(coursesData) ? coursesData : [];
+      console.log('Processed courses:', coursesList);
+      setCourses(coursesList);
       setTeachers(Array.isArray(teachersData.data) ? teachersData.data : Array.isArray(teachersData) ? teachersData : []);
       setClassrooms(Array.isArray(classroomsData.data) ? classroomsData.data : Array.isArray(classroomsData) ? classroomsData : []);
       
@@ -504,7 +510,7 @@ export default function WeeklyScheduleGrid() {
                 <SelectContent>
                   {Array.isArray(classes) && classes.map(cls => (
                     <SelectItem key={cls.id} value={cls.id}>
-                      {cls.name} (Grade {cls.numericalName})
+                      {cls.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -672,10 +678,19 @@ export default function WeeklyScheduleGrid() {
                   </SelectTrigger>
                   <SelectContent>
                     {Array.isArray(courses) && courses
-                      .filter(course => course.classId && (!selectedClassId || course.classId === selectedClassId))
+                      .filter(course => {
+                        // If no class is selected, show all courses
+                        if (!selectedClassId) return true;
+                        
+                        // Show courses that match the selected class OR courses without classId (unassigned)
+                        return course.classId === selectedClassId || 
+                               course.class?.id === selectedClassId ||
+                               (!course.classId && !course.class?.id); // Show unassigned courses
+                      })
                       .map(course => (
                         <SelectItem key={course.id} value={course.id}>
                           {course.name} ({course.code})
+                          {(!course.classId && !course.class?.id) && ' - Unassigned'}
                         </SelectItem>
                       ))}
                   </SelectContent>
