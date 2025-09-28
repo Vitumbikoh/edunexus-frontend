@@ -442,12 +442,14 @@ export default function WeeklyScheduleGrid() {
   };
 
   const getConflictColor = (item: GridItem) => {
-    const hasConflict = conflicts.some(c => 
-      c.item.day === item.day && 
+    const hasConflict = conflicts.some(c =>
+      c.item.day === item.day &&
       c.item.startTime === item.startTime &&
       c.item.courseId === item.courseId
     );
-    return hasConflict ? 'bg-red-100 border-red-300' : 'bg-blue-50 border-blue-200';
+    return hasConflict
+      ? 'bg-red-50 border-red-300 text-red-800'
+      : 'bg-blue-50 border-blue-200 text-blue-800';
   };
 
   // Template Generation Functions
@@ -742,24 +744,24 @@ export default function WeeklyScheduleGrid() {
                           {items.map(item => (
                             <div
                               key={item.id}
-                              className={`p-2 rounded border text-xs space-y-1 ${getConflictColor(item)}`}
+                              className={`p-2 rounded border text-xs space-y-1 ${getConflictColor(item)} shadow-sm hover:shadow-md transition-shadow cursor-pointer`}
                             >
-                              <div className="font-semibold flex items-center gap-1">
-                                <BookOpen className="h-3 w-3" />
-                                {item.courseName}
+                              <div className="font-semibold flex items-center gap-1 text-gray-900">
+                                <BookOpen className="h-3 w-3 flex-shrink-0" />
+                                <span className="truncate font-medium">{item.courseName}</span>
                               </div>
-                              <div className="text-gray-600 flex items-center gap-1">
-                                <User className="h-3 w-3" />
-                                {item.teacherName}
+                              <div className="text-gray-700 flex items-center gap-1">
+                                <User className="h-3 w-3 flex-shrink-0" />
+                                <span className="truncate">{item.teacherName}</span>
                               </div>
                               {item.classroomName && (
                                 <div className="text-gray-600 flex items-center gap-1">
-                                  <MapPin className="h-3 w-3" />
-                                  {item.classroomName}
+                                  <MapPin className="h-3 w-3 flex-shrink-0" />
+                                  <span className="truncate">{item.classroomName}</span>
                                 </div>
                               )}
-                              <div className="text-gray-500 flex items-center gap-1">
-                                <Clock className="h-3 w-3" />
+                              <div className="text-gray-600 flex items-center gap-1 text-[10px]">
+                                <Clock className="h-3 w-3 flex-shrink-0" />
                                 {item.startTime}-{item.endTime}
                               </div>
                               {isAdmin && (
