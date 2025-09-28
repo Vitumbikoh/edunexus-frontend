@@ -62,7 +62,7 @@ export default function Students() {
   const [searchPeriod, setSearchPeriod] = useState("");
   const [formFilter, setFormFilter] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(10);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   const [paginatedData, setPaginatedData] = useState<PaginatedData>({
     students: [],
     totalPages: 1,
@@ -147,7 +147,7 @@ export default function Students() {
     if (canView) {
       fetchStudents(currentPage, itemsPerPage, searchPeriod);
     }
-  }, [currentPage, searchPeriod, formFilter, canView, token]);
+  }, [currentPage, itemsPerPage, searchPeriod, formFilter, canView, token]);
 
   useEffect(() => {
     fetchClasses();
@@ -178,12 +178,19 @@ export default function Students() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Students</h1>
+          <h1 className="text-2xl font-bold text-foreground">My Students</h1>
           <p className="text-muted-foreground">
-            Showing {paginatedData.students.length} of {paginatedData.totalItems} students
+            View and manage your students
           </p>
         </div>
-        
+        <div className="text-right">
+          <div className="text-2xl font-bold text-primary">
+            {paginatedData.totalItems}
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Total Students
+          </p>
+        </div>
       </div>
 
       {apiError && (
@@ -375,23 +382,76 @@ export default function Students() {
 
               {paginatedData.totalPages > 1 && (
                 <div className="mt-6">
-                  <Pagination>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-muted-foreground">Show</span>
+                      <Select 
+                        value={itemsPerPage.toString()} 
+                        onValueChange={(value) => {
+                          setItemsPerPage(Number(value));
+                          setCurrentPage(1);
+                        }}
+                      >
+                        <SelectTrigger className="w-16">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="5">5</SelectItem>
+                          <SelectItem value="10">10</SelectItem>
+                          <SelectItem value="20">20</SelectItem>
+                          <SelectItem value="50">50</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <span className="text-sm text-muted-foreground">per page</span>
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-muted-foreground">
+                        Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, paginatedData.totalItems)} of {paginatedData.totalItems} students
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <Pagination className="mt-4">
                     <PaginationContent>
                       <PaginationItem>
                         <PaginationPrevious
                           onClick={currentPage === 1 ? undefined : () => handlePageChange(currentPage - 1)}
-                          className={currentPage === 1 ? "pointer-events-none opacity-50" : ""}
+                          className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
                         />
                       </PaginationItem>
-                      <PaginationItem>
-                        <span className="px-4">
-                          Page {currentPage} of {paginatedData.totalPages}
-                        </span>
-                      </PaginationItem>
+                      
+                      {/* Page numbers */}
+                      {Array.from({ length: Math.min(5, paginatedData.totalPages) }, (_, i) => {
+                        let pageNum;
+                        if (paginatedData.totalPages <= 5) {
+                          pageNum = i + 1;
+                        } else if (currentPage <= 3) {
+                          pageNum = i + 1;
+                        } else if (currentPage >= paginatedData.totalPages - 2) {
+                          pageNum = paginatedData.totalPages - 4 + i;
+                        } else {
+                          pageNum = currentPage - 2 + i;
+                        }
+                        
+                        return (
+                          <PaginationItem key={pageNum}>
+                            <Button
+                              variant={currentPage === pageNum ? "default" : "outline"}
+                              size="sm"
+                              onClick={() => handlePageChange(pageNum)}
+                              className="w-10"
+                            >
+                              {pageNum}
+                            </Button>
+                          </PaginationItem>
+                        );
+                      })}
+                      
                       <PaginationItem>
                         <PaginationNext
                           onClick={currentPage === paginatedData.totalPages ? undefined : () => handlePageChange(currentPage + 1)}
-                          className={currentPage === paginatedData.totalPages ? "pointer-events-none opacity-50" : ""}
+                          className={currentPage === paginatedData.totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
                         />
                       </PaginationItem>
                     </PaginationContent>
