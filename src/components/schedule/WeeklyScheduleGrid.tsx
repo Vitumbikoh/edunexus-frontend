@@ -70,6 +70,16 @@ interface Course {
   name: string;
   code: string;
   classId?: string;
+  teacher?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    username: string;
+  };
+  class?: {
+    id: string;
+    name: string;
+  };
 }
 
 interface Teacher {
@@ -133,6 +143,16 @@ export default function WeeklyScheduleGrid() {
       loadClassSchedule();
     }
   }, [selectedClassId, token]);
+
+  // Auto-set teacher when course changes
+  useEffect(() => {
+    if (itemForm.courseId) {
+      const selectedCourse = courses.find(c => c.id === itemForm.courseId);
+      if (selectedCourse?.teacher?.id) {
+        setItemForm(prev => ({ ...prev, teacherId: selectedCourse.teacher.id }));
+      }
+    }
+  }, [itemForm.courseId, courses]);
 
   const loadInitialData = async () => {
     setIsLoading(true);
@@ -651,11 +671,13 @@ export default function WeeklyScheduleGrid() {
                     <SelectValue placeholder="Select course" />
                   </SelectTrigger>
                   <SelectContent>
-                    {Array.isArray(courses) && courses.map(course => (
-                      <SelectItem key={course.id} value={course.id}>
-                        {course.name} ({course.code})
-                      </SelectItem>
-                    ))}
+                    {Array.isArray(courses) && courses
+                      .filter(course => course.classId && (!selectedClassId || course.classId === selectedClassId))
+                      .map(course => (
+                        <SelectItem key={course.id} value={course.id}>
+                          {course.name} ({course.code})
+                        </SelectItem>
+                      ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -681,19 +703,15 @@ export default function WeeklyScheduleGrid() {
             </div>
 
             <div>
-              <Label>Teacher</Label>
-              <Select value={itemForm.teacherId} onValueChange={(val) => setItemForm({...itemForm, teacherId: val})}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select teacher" />
-                </SelectTrigger>
-                <SelectContent>
-                  {Array.isArray(teachers) && teachers.map(teacher => (
-                    <SelectItem key={teacher.id} value={teacher.id}>
-                      {teacher.firstName} {teacher.lastName}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label>Teacher (Auto-assigned from course)</Label>
+              <Input
+                value={(() => {
+                  const selectedCourse = courses.find(c => c.id === itemForm.courseId);
+                  return selectedCourse?.teacher ? `${selectedCourse.teacher.firstName} ${selectedCourse.teacher.lastName} (${selectedCourse.teacher.username})` : 'Select a course first';
+                })()}
+                readOnly
+                placeholder="Teacher will be auto-assigned when course is selected"
+              />
             </div>
 
             <div>

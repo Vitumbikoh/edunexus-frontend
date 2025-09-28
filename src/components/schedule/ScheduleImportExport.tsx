@@ -122,37 +122,41 @@ export default function ScheduleImportExport() {
   const downloadTemplate = () => {
     // Create CSV template
     const headers = [
-      'classId',
+      'className',
       'day', 
       'startTime',
       'endTime',
-      'courseId',
-      'teacherId',
-      'classroomId',
+      'courseCode',
+      'classroomName',
       'isActive'
     ];
     
     const sampleData = [
-      [
-        'class-uuid-here',
-        'Monday',
-        '08:00',
-        '09:00', 
-        'course-uuid-here',
-        'teacher-uuid-here',
-        'classroom-uuid-here',
-        'true'
-      ],
-      [
-        'class-uuid-here',
-        'Monday',
-        '09:00',
-        '10:00',
-        'course-uuid-here',
-        'teacher-uuid-here',
-        '',
-        'true'
-      ]
+      // Form One - Monday schedule
+      ['Form one', 'Monday', '08:00', '09:00', 'MATH101', '', 'true'],
+      ['Form one', 'Monday', '09:00', '10:00', 'ENG101', '', 'true'],
+      ['Form one', 'Monday', '10:00', '11:00', 'SCI101', '', 'true'],
+      ['Form one', 'Monday', '11:00', '12:00', 'HIST101', '', 'true'],
+      // Form Two - Tuesday schedule
+      ['Form two', 'Tuesday', '08:00', '09:00', 'ENG201', '', 'true'],
+      ['Form two', 'Tuesday', '09:00', '10:00', 'MATH201', '', 'true'],
+      ['Form two', 'Tuesday', '10:00', '11:00', 'PHYS201', '', 'true'],
+      ['Form two', 'Tuesday', '11:00', '12:00', 'CHEM201', '', 'true'],
+      // Form Three - Wednesday schedule
+      ['Form Three', 'Wednesday', '08:00', '09:00', 'SCI301', '', 'true'],
+      ['Form Three', 'Wednesday', '09:00', '10:00', 'HIST301', '', 'true'],
+      ['Form Three', 'Wednesday', '10:00', '11:00', 'MATH301', '', 'true'],
+      ['Form Three', 'Wednesday', '11:00', '12:00', 'ENG301', '', 'true'],
+      // Form One - Thursday schedule
+      ['Form one', 'Thursday', '08:00', '09:00', 'PHYS101', '', 'true'],
+      ['Form one', 'Thursday', '09:00', '10:00', 'CHEM101', '', 'true'],
+      ['Form one', 'Thursday', '10:00', '11:00', 'ENG101', '', 'true'],
+      ['Form one', 'Thursday', '11:00', '12:00', 'SCI101', '', 'true'],
+      // Form Two - Friday schedule
+      ['Form two', 'Friday', '08:00', '09:00', 'MATH201', '', 'true'],
+      ['Form two', 'Friday', '09:00', '10:00', 'HIST201', '', 'true'],
+      ['Form two', 'Friday', '10:00', '11:00', 'PHYS201', '', 'true'],
+      ['Form two', 'Friday', '11:00', '12:00', 'CHEM201', '', 'true']
     ];
 
     const csvContent = [headers, ...sampleData]
@@ -248,9 +252,9 @@ export default function ScheduleImportExport() {
               <strong>Import Requirements:</strong>
               <ul className="mt-1 space-y-1 text-sm">
                 <li>• File format: Excel (.xlsx, .xls) or CSV</li>
-                <li>• Required columns: classId, day, startTime, endTime, courseId, teacherId</li>
-                <li>• Optional columns: classroomId, isActive</li>
-                <li>• Use valid UUIDs for classId, courseId, teacherId, classroomId</li>
+                <li>• Required columns: className, day, startTime, endTime, courseCode</li>
+                <li>• Optional columns: classroomName, isActive</li>
+                <li>• Teacher is automatically assigned from the course</li>
                 <li>• Time format: HH:mm (e.g., 08:00, 14:30)</li>
                 <li>• Day format: Monday, Tuesday, Wednesday, Thursday, Friday</li>
               </ul>
