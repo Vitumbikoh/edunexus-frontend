@@ -45,6 +45,7 @@ export default function CourseTermScheme(){
   const { toast } = useToast();
 
   useEffect(()=>{ fetchTerms(); fetchCourses(); },[token]);
+  useEffect(()=>{ if(termId){ fetchSchemes(); } },[termId]);
   useEffect(()=>{ if(courseId && termId){ fetchScheme(); fetchResults(); fetchSchemes(); } },[courseId, termId]);
 
   const authHeaders = token? { Authorization:`Bearer ${token}` }: {};
@@ -63,7 +64,13 @@ export default function CourseTermScheme(){
   }
   async function fetchSchemes(){
     setSchemesLoading(true);
-    try { const res = await fetch(`${API_CONFIG.BASE_URL}/aggregation/schemes?termId=${termId}`, { headers: authHeaders }); if(res.ok){ const data = await res.json(); setSchemes(Array.isArray(data)? data: []); } } catch{} finally { setSchemesLoading(false); }
+    try { 
+      const url = courseId 
+        ? `${API_CONFIG.BASE_URL}/aggregation/schemes?courseId=${courseId}&termId=${termId}`
+        : `${API_CONFIG.BASE_URL}/aggregation/schemes?termId=${termId}`;
+      const res = await fetch(url, { headers: authHeaders }); 
+      if(res.ok){ const data = await res.json(); setSchemes(Array.isArray(data)? data: []); } 
+    } catch{} finally { setSchemesLoading(false); }
   }
 
   function addComponent(){
@@ -139,55 +146,57 @@ export default function CourseTermScheme(){
         </div>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Components {weightValid? <Badge variant="secondary">{totalWeight}%</Badge> : <Badge variant="destructive">{totalWeight}% (Need 100%)</Badge>}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {components.map((c,i)=> {
-              const remaining = 100 - (totalWeight - c.weight);
-              const availableTypes = COMPONENT_OPTIONS.filter(opt => opt.value === c.componentType || !components.some(cc=> cc.componentType === opt.value));
-              return (
-              <div key={i} className="flex gap-3 items-end flex-wrap border p-3 rounded-md">
-                <div className="w-40">
-                  <Select value={c.componentType} onValueChange={v=> updateComponent(i,{ componentType:v })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {availableTypes.map(opt=> <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
+      {courseId && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Components {weightValid? <Badge variant="secondary">{totalWeight}%</Badge> : <Badge variant="destructive">{totalWeight}% (Need 100%)</Badge>}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {components.map((c,i)=> {
+                const remaining = 100 - (totalWeight - c.weight);
+                const availableTypes = COMPONENT_OPTIONS.filter(opt => opt.value === c.componentType || !components.some(cc=> cc.componentType === opt.value));
+                return (
+                <div key={i} className="flex gap-3 items-end flex-wrap border p-3 rounded-md">
+                  <div className="w-40">
+                    <Select value={c.componentType} onValueChange={v=> updateComponent(i,{ componentType:v })}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {availableTypes.map(opt=> <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="w-24">
+                    <input
+                      type="number"
+                      className="w-full border rounded-md px-2 py-1 text-sm"
+                      value={c.weight}
+                      min={0}
+                      max={remaining}
+                      onChange={e=> {
+                        let val = Number(e.target.value);
+                        if(val > remaining) val = remaining;
+                        if(val < 0) val = 0;
+                        updateComponent(i,{ weight: val });
+                      }}
+                    />
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <input type="checkbox" checked={c.required} onChange={e=> updateComponent(i,{ required:e.target.checked })} /> Required
+                  </div>
+                  <Button variant="ghost" onClick={()=> removeComponent(i)}>Remove</Button>
                 </div>
-                <div className="w-24">
-                  <input
-                    type="number"
-                    className="w-full border rounded-md px-2 py-1 text-sm"
-                    value={c.weight}
-                    min={0}
-                    max={remaining}
-                    onChange={e=> {
-                      let val = Number(e.target.value);
-                      if(val > remaining) val = remaining;
-                      if(val < 0) val = 0;
-                      updateComponent(i,{ weight: val });
-                    }}
-                  />
-                </div>
-                <div className="flex items-center gap-2 text-sm">
-                  <input type="checkbox" checked={c.required} onChange={e=> updateComponent(i,{ required:e.target.checked })} /> Required
-                </div>
-                <Button variant="ghost" onClick={()=> removeComponent(i)}>Remove</Button>
-              </div>
-              );
-            })}
-            <Button variant="outline" onClick={addComponent} disabled={totalWeight>=100 || allTypesUsed || !courseId}>Add Component</Button>
-          </div>
-        </CardContent>
-      </Card>
+                );
+              })}
+              <Button variant="outline" onClick={addComponent} disabled={totalWeight>=100 || allTypesUsed || !courseId}>Add Component</Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>
-          <CardTitle>Available Schemes (This Term)</CardTitle>
+          <CardTitle>Available Schemes (This Term) {!courseId && <span className="text-sm font-normal text-muted-foreground">- All Courses</span>}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="rounded-md border overflow-x-auto">
