@@ -223,30 +223,34 @@ const ExamResults = () => {
     ? terms.filter(t => !t.academicCalendarId || t.academicCalendarId === selectedAcademicCalendar)
     : [], [selectedAcademicCalendar, terms]);
 
-  // Auto-select active/current academic year when calendar changes
+  // Auto-select a term when calendar changes or selection becomes invalid
   useEffect(() => {
-    if (selectedAcademicCalendar && filteredTerms.length > 0) {
-      const currentYear = filteredTerms.find(year => 
-        year.isActive || year.isCurrent || year.current
-      );
-      if (currentYear && !selectedTerm) {
-        setSelectedTerm(currentYear.id);
-      }
-    } else {
+    if (!selectedAcademicCalendar) {
       setSelectedTerm("");
+      return;
+    }
+
+    if (filteredTerms.length === 0) {
+      setSelectedTerm("");
+      return;
+    }
+
+    const isSelectedValid = filteredTerms.some(t => t.id === selectedTerm);
+    if (!isSelectedValid) {
+      const current = filteredTerms.find(t => t.isActive || t.isCurrent || (t as any).current);
+      setSelectedTerm((current?.id) || filteredTerms[0].id);
     }
   }, [selectedAcademicCalendar, filteredTerms, selectedTerm]);
 
   // Reset dependent selections when parent selections change
   useEffect(() => {
-    setSelectedAcademicCalendar("");
-    setSelectedTerm("");
+    // Preserve academic calendar selection; only reset student and search
     setSelectedStudentId("");
     setSearchPeriod("");
   }, [selectedClass]);
 
   useEffect(() => {
-    setSelectedTerm("");
+    // Do not clear term here; allow the auto-select effect to set current term
     setSelectedStudentId("");
     setSearchPeriod("");
   }, [selectedAcademicCalendar]);
@@ -300,7 +304,7 @@ const ExamResults = () => {
           setIsLoading(true);
           // Fetch students for the selected class
           const response = await fetch(
-            `http://localhost:5000/api/v1/grades/classes/${selectedClass}/students?academicCalendarId=${selectedAcademicCalendar}&termId=${selectedTerm}`,
+            `${API_CONFIG.BASE_URL}/grades/classes/${selectedClass}/students?academicCalendarId=${selectedAcademicCalendar}&termId=${selectedTerm}`,
             { headers: { Authorization: `Bearer ${token}` } }
           );
           if (!response.ok) throw new Error("Failed to fetch students");
@@ -1578,12 +1582,12 @@ const ExamResults = () => {
                           </td>
                           <td className="border border-border p-3">
                             <Badge variant="secondary">
-                              {Math.round(studentResult.averageScore || 0)}%
+                              {Number.isFinite(studentResult.averageScore) ? Math.round(studentResult.averageScore as number) : 0}%
                             </Badge>
                           </td>
                           <td className="border border-border p-3">
                             <Badge variant="outline">
-                              {(studentResult.overallGPA || 0).toFixed(1)}
+                              {Number.isFinite(studentResult.overallGPA) ? (studentResult.overallGPA as number).toFixed(1) : '0.0'}
                             </Badge>
                           </td>
                           <td className="border border-border p-3">
