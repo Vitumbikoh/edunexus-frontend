@@ -91,6 +91,7 @@ import LibraryReports from "./pages/library/LibraryReports";
 // Admin specific pages
 import StaffManagement from "./pages/admin/StaffManagement";
 import GradingFormat from "./pages/admin/GradingFormat";
+import WeightingScheme from "./pages/admin/WeightingScheme";
 
 // Protected route component - immediately redirects if not authenticated
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -889,6 +890,19 @@ const AppRoutes = () => {
             <AdminRoute>
               <Layout>
                 <GradingFormat />
+              </Layout>
+            </AdminRoute>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/admin/weighting-scheme"
+        element={
+          <ProtectedRoute>
+            <AdminRoute>
+              <Layout>
+                <WeightingScheme />
               </Layout>
             </AdminRoute>
           </ProtectedRoute>

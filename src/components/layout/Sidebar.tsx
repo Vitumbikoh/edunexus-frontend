@@ -199,6 +199,11 @@ const adminNavItems: NavItem[] = [
         href: "/admin/grading-format",
         roles: ["admin"],
       },
+      {
+        label: "Weighting Scheme",
+        href: "/admin/weighting-scheme",
+        roles: ["admin"],
+      },
       // { label: 'Add Schedules', href: '/schedules/add', roles: ['admin'] },
     ],
   },
