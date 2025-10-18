@@ -507,299 +507,267 @@ const ExamResults = () => {
           <style>
             * { margin: 0; padding: 0; box-sizing: border-box; }
             body { 
-              font-family: 'Georgia', 'Times New Roman', serif; 
-              background: #f8f9fa;
+              font-family: 'Times New Roman', Georgia, serif; 
+              background: white;
               padding: 20px;
               color: #2c3e50;
-              line-height: 1.6;
+              line-height: 1.5;
             }
             .report-card {
-              max-width: 900px;
+              max-width: 800px;
               margin: 0 auto;
               background: white;
-              border: 3px solid #34495e;
-              border-radius: 15px;
-              overflow: hidden;
-              box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+              border: 2px solid #2c3e50;
             }
+            
+            /* Header Section */
             .header {
-              background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
-              color: white;
-              padding: 40px 30px;
               text-align: center;
-              position: relative;
+              padding: 30px;
+              border-bottom: 2px solid #2c3e50;
             }
-            .header::before {
-              content: '';
-              position: absolute;
-              top: 0;
-              left: 0;
-              right: 0;
-              height: 6px;
-              background: linear-gradient(90deg, #e74c3c, #f39c12, #f1c40f, #27ae60, #3498db, #9b59b6, #e74c3c);
+            .school-header {
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              gap: 20px;
+              margin-bottom: 20px;
             }
             .school-logo {
               width: 80px;
               height: 80px;
               border-radius: 50%;
-              background: rgba(255,255,255,0.2);
-              margin: 0 auto 20px;
               display: flex;
               align-items: center;
               justify-content: center;
-              border: 3px solid rgba(255,255,255,0.3);
+              border: 2px solid #ccc;
             }
             .school-logo img {
-              width: 60px;
-              height: 60px;
+              width: 70px;
+              height: 70px;
               object-fit: contain;
               border-radius: 50%;
             }
+            .school-info {
+              text-align: left;
+            }
             .school-name {
-              font-size: 32px;
+              font-size: 28px;
               font-weight: bold;
-              margin-bottom: 8px;
-              text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-              letter-spacing: 1px;
+              color: #2c3e50;
+              margin-bottom: 5px;
             }
             .school-motto {
-              font-size: 14px;
+              font-size: 16px;
               font-style: italic;
-              opacity: 0.9;
-              margin-bottom: 15px;
+              color: #666;
             }
             .report-title {
-              font-size: 20px;
-              font-weight: 600;
-              background: rgba(255,255,255,0.2);
-              padding: 10px 20px;
-              border-radius: 25px;
-              display: inline-block;
+              font-size: 24px;
+              font-weight: bold;
+              color: #2c3e50;
+              margin-bottom: 20px;
             }
+            
+            /* Academic Period - Horizontal Layout */
             .academic-period {
-              background: linear-gradient(135deg, #ecf0f1 0%, #ffffff 100%);
-              padding: 25px 30px;
-              border-bottom: 2px solid #bdc3c7;
-            }
-            .period-grid {
               display: grid;
-              grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+              grid-template-columns: repeat(4, 1fr);
               gap: 20px;
-              text-align: center;
+              background: #f8f9fa;
+              padding: 20px;
+              border: 1px solid #ddd;
+              margin-bottom: 20px;
             }
             .period-item {
-              background: white;
-              padding: 15px;
-              border-radius: 10px;
-              border: 2px solid #3498db;
-              box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+              text-align: center;
             }
             .period-label {
               font-size: 12px;
               font-weight: bold;
-              color: #7f8c8d;
-              text-transform: uppercase;
-              letter-spacing: 1px;
+              color: #666;
+              margin-bottom: 5px;
             }
             .period-value {
-              font-size: 18px;
+              font-size: 14px;
               font-weight: bold;
               color: #2c3e50;
-              margin-top: 5px;
             }
-            .student-info {
-              padding: 30px;
-              background: white;
-              border-bottom: 2px solid #ecf0f1;
-            }
-            .info-grid {
-              display: grid;
-              grid-template-columns: 1fr 1fr;
-              gap: 25px;
-            }
-            .info-section {
-              background: #f8f9fa;
-              padding: 20px;
-              border-radius: 12px;
-              border-left: 5px solid #3498db;
+            
+            /* Student Details Section */
+            .student-section {
+              padding: 20px 30px;
+              border-bottom: 1px solid #eee;
             }
             .section-title {
-              font-size: 16px;
+              font-size: 18px;
               font-weight: bold;
               color: #2c3e50;
               margin-bottom: 15px;
               display: flex;
               align-items: center;
+              gap: 8px;
             }
-            .info-item {
-              margin-bottom: 10px;
+            .student-grid {
+              display: grid;
+              grid-template-columns: 1fr 1fr;
+              gap: 20px;
+              background: #f8f9fa;
+              padding: 15px;
+              border-radius: 8px;
+              border: 1px solid #ddd;
             }
-            .info-label {
-              font-weight: 600;
-              color: #34495e;
-              display: inline-block;
-              min-width: 120px;
+            .student-item {
+              display: flex;
+              gap: 10px;
             }
-            .info-value {
+            .student-label {
+              font-weight: bold;
+              color: #666;
+              min-width: 100px;
+            }
+            .student-value {
               color: #2c3e50;
               font-weight: 500;
             }
-            .performance-summary {
-              background: linear-gradient(135deg, #f8f9fa 0%, #ecf0f1 100%);
-              padding: 30px;
-              border-bottom: 2px solid #bdc3c7;
-            }
-            .summary-title {
-              font-size: 22px;
-              font-weight: bold;
-              color: #2c3e50;
-              text-align: center;
-              margin-bottom: 25px;
+            
+            /* Performance Summary */
+            .performance-section {
+              padding: 20px 30px;
+              border-bottom: 1px solid #eee;
             }
             .summary-grid {
               display: grid;
-              grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-              gap: 20px;
+              grid-template-columns: repeat(5, 1fr);
+              gap: 15px;
             }
             .summary-card {
-              background: white;
-              padding: 20px;
-              border-radius: 15px;
               text-align: center;
-              box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-              border: 2px solid transparent;
-              transition: all 0.3s ease;
+              padding: 15px;
+              border-radius: 8px;
+              border: 2px solid #ddd;
             }
-            .summary-card:hover {
-              transform: translateY(-5px);
-              box-shadow: 0 8px 25px rgba(0,0,0,0.15);
-            }
-            .gpa-card { border-color: #27ae60; }
-            .score-card { border-color: #3498db; }
-            .courses-card { border-color: #f39c12; }
-            .marks-card { border-color: #9b59b6; }
-            .performance-card { border-color: #e74c3c; }
+            .gpa-card { border-color: #3498db; background: #f0f8ff; }
+            .score-card { border-color: #27ae60; background: #f0fff0; }
+            .courses-card { border-color: #9b59b6; background: #f8f0ff; }
+            .marks-card { border-color: #f39c12; background: #fff8f0; }
+            .performance-card { border-color: #e74c3c; background: #fff0f0; }
+            
             .summary-value {
-              font-size: 28px;
+              font-size: 20px;
               font-weight: bold;
-              margin-bottom: 8px;
+              margin-bottom: 5px;
             }
             .summary-label {
-              font-size: 12px;
-              color: #7f8c8d;
-              text-transform: uppercase;
-              letter-spacing: 1px;
+              font-size: 11px;
+              color: #666;
               font-weight: 600;
             }
+            
+            /* Course Results Table */
             .results-section {
-              padding: 30px;
-            }
-            .results-title {
-              font-size: 22px;
-              font-weight: bold;
-              color: #2c3e50;
-              margin-bottom: 25px;
-              text-align: center;
-              padding-bottom: 15px;
-              border-bottom: 3px solid #3498db;
+              padding: 20px 30px;
             }
             .results-table {
               width: 100%;
               border-collapse: collapse;
-              margin-top: 20px;
-              box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-              border-radius: 10px;
-              overflow: hidden;
+              margin-top: 15px;
+              border: 1px solid #ddd;
             }
             .results-table th {
-              background: linear-gradient(135deg, #34495e 0%, #2c3e50 100%);
-              color: white;
-              padding: 15px 12px;
-              text-align: left;
+              background: #f5f5f5;
+              padding: 12px 8px;
+              text-align: center;
               font-weight: bold;
-              font-size: 14px;
-              text-transform: uppercase;
-              letter-spacing: 0.5px;
+              font-size: 12px;
+              color: #333;
+              border: 1px solid #ddd;
             }
             .results-table td {
-              padding: 15px 12px;
-              border-bottom: 1px solid #ecf0f1;
-              vertical-align: middle;
+              padding: 10px 8px;
+              border: 1px solid #ddd;
+              text-align: center;
+              font-size: 14px;
             }
             .results-table tr:nth-child(even) {
-              background: #f8f9fa;
+              background: #f9f9f9;
             }
-            .results-table tr:hover {
-              background: #e8f4fd;
-            }
+            .course-name { text-align: left; font-weight: 500; }
+            .course-code { font-family: monospace; color: #666; }
+            .percentage { font-weight: bold; }
+            
             .grade-badge {
-              display: inline-block;
-              padding: 6px 15px;
-              border-radius: 25px;
+              padding: 4px 8px;
+              border-radius: 4px;
               font-weight: bold;
-              font-size: 13px;
-              text-align: center;
-              min-width: 45px;
-            }
-            .grade-a { background: linear-gradient(135deg, #27ae60, #2ecc71); color: white; }
-            .grade-b { background: linear-gradient(135deg, #3498db, #5dade2); color: white; }
-            .grade-c { background: linear-gradient(135deg, #f39c12, #f5b041); color: white; }
-            .grade-d { background: linear-gradient(135deg, #e67e22, #eb984e); color: white; }
-            .grade-f { background: linear-gradient(135deg, #e74c3c, #ec7063); color: white; }
-            .status-pass {
-              background: linear-gradient(135deg, #27ae60, #2ecc71);
-              color: white;
-              padding: 4px 12px;
-              border-radius: 20px;
               font-size: 12px;
-              font-weight: bold;
-            }
-            .status-fail {
-              background: linear-gradient(135deg, #e74c3c, #ec7063);
               color: white;
-              padding: 4px 12px;
-              border-radius: 20px;
-              font-size: 12px;
-              font-weight: bold;
             }
+            .grade-a { background: #27ae60; }
+            .grade-b { background: #3498db; }
+            .grade-c { background: #f39c12; }
+            .grade-d { background: #e67e22; }
+            .grade-f { background: #e74c3c; }
+            
+            .status-badge {
+              padding: 3px 8px;
+              border-radius: 4px;
+              font-size: 11px;
+              font-weight: bold;
+              color: white;
+            }
+            .status-pass { background: #27ae60; }
+            .status-fail { background: #e74c3c; }
+            
+            /* Footer */
             .footer {
-              background: linear-gradient(135deg, #34495e 0%, #2c3e50 100%);
-              color: white;
               padding: 25px 30px;
               text-align: center;
+              background: #f8f9fa;
+              border-top: 2px solid #2c3e50;
+              font-size: 12px;
+              color: #666;
+              line-height: 1.6;
             }
             .footer-content {
-              opacity: 0.9;
-              font-size: 13px;
-              line-height: 1.8;
+              margin-bottom: 15px;
+            }
+            .school-about {
+              font-weight: bold;
+              margin: 10px 0;
+              color: #2c3e50;
             }
             .school-contact {
-              margin-top: 15px;
-              font-size: 12px;
-              opacity: 0.8;
+              display: flex;
+              justify-content: center;
+              gap: 20px;
+              font-size: 11px;
+              color: #666;
             }
+            
             @media print {
-              body { background: white; padding: 0; }
-              .report-card { box-shadow: none; border: 2px solid #2c3e50; }
-              .summary-card:hover { transform: none; }
+              body { padding: 0; }
+              .report-card { box-shadow: none; }
             }
           </style>
         </head>
         <body>
           <div class="report-card">
-            <!-- School Header -->
+            <!-- Professional Header -->
             <div class="header">
-              <div class="school-logo">
-                ${logoUrl ? `<img src="${logoUrl}" alt="${schoolName} Logo">` : '<div style="color: white; font-size: 24px;">🎓</div>'}
+              <div class="school-header">
+                <div class="school-logo">
+                  ${logoUrl ? `<img src="${logoUrl}" alt="${schoolName} Logo">` : '<div style="color: #666; font-size: 24px;">🎓</div>'}
+                </div>
+                <div class="school-info">
+                  <div class="school-name">${schoolName}</div>
+                  <div class="school-motto">"${schoolSettings?.schoolAbout || 'Excellence in Education'}"</div>
+                </div>
               </div>
-              <div class="school-name">${schoolName}</div>
-              <div class="school-motto">"${schoolSettings?.schoolMotto || 'Excellence in Education'}"</div>
               <div class="report-title">Academic Performance Report</div>
-            </div>
-
-            <!-- Academic Period -->
-            <div class="academic-period">
-              <div class="period-grid">
+              
+              <!-- Academic Period - Horizontal Layout -->
+              <div class="academic-period">
                 <div class="period-item">
                   <div class="period-label">Academic Year</div>
                   <div class="period-value">${academicYear}</div>
@@ -819,111 +787,89 @@ const ExamResults = () => {
               </div>
             </div>
 
-            <!-- Student Information -->
-            <div class="student-info">
-              <div class="info-grid">
-                <div class="info-section">
-                  <div class="section-title">👤 Student Details</div>
-                  <div class="info-item">
-                    <span class="info-label">Full Name:</span>
-                    <span class="info-value">${studentResults.student.firstName} ${studentResults.student.lastName}</span>
-                  </div>
-                  <div class="info-item">
-                    <span class="info-label">Student ID:</span>
-                    <span class="info-value">${studentResults.student.studentId}</span>
-                  </div>
-
+            <!-- Student Details Section -->
+            <div class="student-section">
+              <div class="section-title">👤 Student Details</div>
+              <div class="student-grid">
+                <div class="student-item">
+                  <span class="student-label">Full Name:</span>
+                  <span class="student-value">${studentResults.student.firstName} ${studentResults.student.lastName}</span>
                 </div>
-                
-                <div class="info-section">
-                  <div class="section-title">🏫 School Information</div>
-                  ${schoolSettings?.schoolAddress ? `
-                  <div class="info-item">
-                    <span class="info-label">Address:</span>
-                    <span class="info-value">${schoolSettings.schoolAddress}</span>
-                  </div>` : ''}
-                  ${schoolSettings?.schoolPhone ? `
-                  <div class="info-item">
-                    <span class="info-label">Phone:</span>
-                    <span class="info-value">${schoolSettings.schoolPhone}</span>
-                  </div>` : ''}
-                  ${schoolSettings?.schoolEmail ? `
-                  <div class="info-item">
-                    <span class="info-label">Email:</span>
-                    <span class="info-value">${schoolSettings.schoolEmail}</span>
-                  </div>` : ''}
+                <div class="student-item">
+                  <span class="student-label">Student ID:</span>
+                  <span class="student-value">${studentResults.student.studentId}</span>
                 </div>
               </div>
             </div>
 
-            <!-- Performance Summary -->
-            <div class="performance-summary">
-              <div class="summary-title">📊 Academic Performance Summary</div>
+            <!-- Academic Performance Summary -->
+            <div class="performance-section">
+              <div class="section-title">📊 Academic Performance Summary</div>
               <div class="summary-grid">
                 <div class="summary-card gpa-card">
-                  <div class="summary-value" style="color: #27ae60;">${(studentResults.summary?.overallGPA || 0).toFixed(2)}</div>
+                  <div class="summary-value" style="color: #3498db;">${(studentResults.summary?.overallGPA || 0).toFixed(2)}</div>
                   <div class="summary-label">Overall GPA</div>
                 </div>
                 <div class="summary-card score-card">
-                  <div class="summary-value" style="color: #3498db;">${Math.round(studentResults.summary?.averageScore || 0)}%</div>
+                  <div class="summary-value" style="color: #27ae60;">${Math.round(studentResults.summary?.averageScore || 0)}%</div>
                   <div class="summary-label">Average Score</div>
                 </div>
                 <div class="summary-card courses-card">
-                  <div class="summary-value" style="color: #f39c12;">${studentResults.summary?.totalResults || 0}</div>
+                  <div class="summary-value" style="color: #9b59b6;">${studentResults.summary?.totalResults || 0}</div>
                   <div class="summary-label">Total Courses</div>
                 </div>
                 <div class="summary-card marks-card">
-                  <div class="summary-value" style="color: #9b59b6;">${studentResults.summary?.totalMarks || 0}/${studentResults.summary?.totalPossible || 0}</div>
+                  <div class="summary-value" style="color: #f39c12;">${studentResults.summary?.totalMarks || 0}/${studentResults.summary?.totalPossible || 0}</div>
                   <div class="summary-label">Marks Obtained</div>
                 </div>
                 <div class="summary-card performance-card">
-                  <div class="summary-value" style="color: #e74c3c; font-size: 18px;">${studentResults.summary?.remarks || "No Assessment"}</div>
+                  <div class="summary-value" style="color: #e74c3c; font-size: 16px;">${studentResults.summary?.remarks || "No Assessment"}</div>
                   <div class="summary-label">Performance Level</div>
                 </div>
               </div>
             </div>
 
-            <!-- Course Results -->
+            <!-- Course Results Table -->
             <div class="results-section">
-              <div class="results-title">📚 Detailed Course Results</div>
+              <div class="section-title">📚 Detailed Course Results</div>
               <table class="results-table">
                 <thead>
                   <tr>
-                    <th>Course Name</th>
-                    <th>Code</th>
-                    <th>Percentage</th>
-                    <th>Grade</th>
-                    <th>Points</th>
-                    <th>Status</th>
+                    <th style="width: 35%;">Course Name</th>
+                    <th style="width: 15%;">Code</th>
+                    <th style="width: 15%;">Percentage</th>
+                    <th style="width: 10%;">Grade</th>
+                    <th style="width: 10%;">Points</th>
+                    <th style="width: 15%;">Status</th>
                   </tr>
                 </thead>
                 <tbody>
                   ${studentResults.results.map(result => `
                     <tr>
-                      <td style="font-weight: 600;">${result.courseName}</td>
-                      <td style="font-family: 'Courier New', monospace; color: #7f8c8d;">${result.courseCode}</td>
-                      <td style="font-weight: bold; font-size: 16px;">${Math.round(result.finalPercentage)}%</td>
+                      <td class="course-name">${result.courseName}</td>
+                      <td class="course-code">${result.courseCode}</td>
+                      <td class="percentage">${Math.round(result.finalPercentage)}%</td>
                       <td><span class="grade-badge grade-${(result.finalGradeCode || 'f').toLowerCase().replace('+', '')}">${result.finalGradeCode || 'N/A'}</span></td>
                       <td style="font-weight: 600;">${calculateGradePoints(result.finalGradeCode || 'F').toFixed(1)}</td>
-                      <td><span class="status-${result.pass ? 'pass' : 'fail'}">${result.pass ? 'Pass' : 'Fail'}</span></td>
+                      <td><span class="status-badge status-${result.pass ? 'pass' : 'fail'}">${result.pass ? 'Pass' : 'Fail'}</span></td>
                     </tr>
                   `).join('')}
                 </tbody>
               </table>
             </div>
 
-            <!-- Footer -->
+            <!-- Professional Footer -->
             <div class="footer">
               <div class="footer-content">
-                This official academic report card has been generated electronically by the ${schoolName} Management System.<br>
-                For verification or any academic inquiries, please contact the school administration office.
-                ${schoolSettings?.schoolAbout ? `<br><br><strong>About ${schoolName}:</strong> ${schoolSettings.schoolAbout}` : ''}
+                <p><strong>This official academic report card has been generated electronically by the ${schoolName} Management System.</strong></p>
+                <p>For verification or any academic inquiries, please contact the school administration office.</p>
+                ${schoolSettings?.schoolAbout ? `<div class="school-about">About ${schoolName}: ${schoolSettings.schoolAbout}</div>` : ''}
               </div>
               ${(schoolSettings?.schoolAddress || schoolSettings?.schoolPhone || schoolSettings?.schoolEmail) ? `
               <div class="school-contact">
-                ${schoolSettings.schoolAddress ? `📍 ${schoolSettings.schoolAddress}` : ''}
-                ${schoolSettings.schoolPhone ? `📞 ${schoolSettings.schoolPhone}` : ''}
-                ${schoolSettings.schoolEmail ? `📧 ${schoolSettings.schoolEmail}` : ''}
+                ${schoolSettings.schoolAddress ? `<span>📍 ${schoolSettings.schoolAddress}</span>` : ''}
+                ${schoolSettings.schoolPhone ? `<span>📞 ${schoolSettings.schoolPhone}</span>` : ''}
+                ${schoolSettings.schoolEmail ? `<span>📧 ${schoolSettings.schoolEmail}</span>` : ''}
               </div>` : ''}
             </div>
           </div>
