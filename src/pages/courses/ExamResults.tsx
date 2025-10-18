@@ -464,7 +464,7 @@ const ExamResults = () => {
     return pick; // Fallback if it already maybe says Term
   };
 
-  const generateReportCard = () => {
+  const generateReportCard = async () => {
     if (!studentResults || !studentResults.results.length) {
       toast({
         title: "No Results",
@@ -479,7 +479,19 @@ const ExamResults = () => {
 
     // Get school information
     const schoolName = schoolSettings?.schoolName || "School Name";
-    const logoUrl = getLogoUrl(schoolSettings?.schoolLogo || null);
+    let logoBase64 = '';
+    
+    // Load logo as base64 if available
+    if (schoolSettings?.schoolLogo) {
+      const logoUrl = getLogoUrl(schoolSettings.schoolLogo);
+      if (logoUrl) {
+        try {
+          logoBase64 = await loadImageAsBase64(logoUrl);
+        } catch (error) {
+          console.error('Error loading logo for print:', error);
+        }
+      }
+    }
     const academicCalendar = academicCalendars.find(ac => ac.id === selectedAcademicCalendar);
     const academicYear = academicCalendar?.term || "Unknown Year";
 
@@ -754,7 +766,7 @@ const ExamResults = () => {
             <div class="header">
               <div class="school-header">
                 <div class="school-logo">
-                  ${logoUrl ? `<img src="${logoUrl}" alt="${schoolName} Logo">` : '<div style="color: #666; font-size: 24px;">🎓</div>'}
+                  ${logoBase64 ? `<img src="${logoBase64}" alt="${schoolName} Logo">` : '<div style="color: #666; font-size: 24px;">🎓</div>'}
                 </div>
                 <div class="school-info">
                   <div class="school-name">${schoolName}</div>
