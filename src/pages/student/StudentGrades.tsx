@@ -99,10 +99,10 @@ export default function StudentGrades() {
             const termsData = await termsResponse.json();
             if (Array.isArray(termsData) && termsData.length > 0) {
               // Transform backend terms to our Term interface
-              termsToUse = termsData.map((term: any) => ({
+              termsToUse = termsData.map((term: any, index: number) => ({
                 id: term.id,
-                name: term.periodName ? `${term.periodName} (${activeAcademicYear})` : `Term ${term.termNumber || 1} (${activeAcademicYear})`,
-                termNumber: term.termNumber,
+                name: term.periodName ? `${term.periodName} (${activeAcademicYear})` : `Term ${term.termNumber || (index + 1)} (${activeAcademicYear})`,
+                termNumber: term.termNumber || (index + 1),
                 startDate: term.startDate,
                 endDate: term.endDate,
                 isActive: term.isCurrent,
@@ -116,18 +116,50 @@ export default function StudentGrades() {
           console.log('Could not fetch real terms from backend:', termsErr);
         }
 
-        // If no real terms, generate mock terms with the correct academic year
+        // If no real terms, try to get terms from active academic calendar
         if (termsToUse.length === 0) {
-          termsToUse = generateMockTerms(activeAcademicYear);
-          console.log('Generated mock terms for academic year:', activeAcademicYear, termsToUse);
+          try {
+            const calendarTermsResponse = await fetch(`${API_CONFIG.BASE_URL}/settings/active-academic-calendar`, {
+              headers: { Authorization: `Bearer ${token}` },
+            });
+            if (calendarTermsResponse.ok) {
+              const calendarData = await calendarTermsResponse.json();
+              if (calendarData?.terms && Array.isArray(calendarData.terms)) {
+                termsToUse = calendarData.terms.map((term: any, index: number) => ({
+                  id: term.id,
+                  name: `Term ${term.termNumber || (index + 1)} (${activeAcademicYear})`,
+                  termNumber: term.termNumber || (index + 1),
+                  startDate: term.startDate,
+                  endDate: term.endDate,
+                  isActive: term.isCurrent,
+                  academicCalendarId: term.academicCalendarId,
+                  periodId: term.periodId,
+                }));
+                console.log('Got terms from active academic calendar:', termsToUse);
+              }
+            }
+          } catch (calendarTermsErr) {
+            console.log('Could not fetch terms from active academic calendar:', calendarTermsErr);
+          }
+        }
+
+        // If still no real terms, generate standard academic terms for the year
+        if (termsToUse.length === 0) {
+          termsToUse = generateStandardTerms(activeAcademicYear);
+          console.log('Generated standard terms for academic year:', activeAcademicYear, termsToUse);
         }
 
         setTerms(termsToUse);
-        setActiveTerm(termsToUse[0]);
-        setSelectedTermWithDebug(termsToUse[0].id);
+        
+        // Find the current/active term, or default to the first term
+        const currentTerm = termsToUse.find(t => t.isActive) || termsToUse[0];
+        setActiveTerm(currentTerm);
+        setSelectedTermWithDebug(currentTerm.id);
 
         console.log('Final terms set:', termsToUse);
-        console.log('Selected term ID:', termsToUse[0].id);
+        console.log('Terms with details:', termsToUse.map(t => ({ id: t.id, name: t.name, termNumber: t.termNumber, isActive: t.isActive })));
+        console.log('Current/Active term:', currentTerm);
+        console.log('Selected term ID:', currentTerm.id);
 
         // Set school info (mock data)
         setSchoolInfo({
@@ -152,9 +184,9 @@ export default function StudentGrades() {
           console.log('Profile fetch failed, using defaults:', profileErr);
         }
 
-        // Fetch exam results for the first term
-        console.log('Fetching exam results for first term with ID:', termsToUse[0].id);
-        await fetchExamResults(termsToUse[0].id);
+        // Fetch exam results for the current/active term
+        console.log('Fetching exam results for current term with ID:', currentTerm.id);
+        await fetchExamResults(currentTerm.id);
         
         console.log('Initial data loading completed');
       } catch (err) {
@@ -202,20 +234,34 @@ export default function StudentGrades() {
               courseCode: data.results[0].courseCode
             });
             
-            // If we got real results but are using mock terms, update our terms to include the real term
+            // If we got real results, ensure the term is in our terms list
             const realTermId = data.results[0].termId;
             const realTermName = data.results[0].termName || 'Term 1';
             if (realTermId && !terms.find(t => t.id === realTermId)) {
               console.log('Adding real term from backend results:', realTermId, realTermName);
+              
+              // Extract term number from term name or default based on position
+              const termNumber = parseInt(realTermName.match(/Term (\d+)/)?.[1] || '1');
+              
               const realTerm = {
                 id: realTermId,
                 name: `${realTermName} (2022-2023)`,
-                termNumber: 1,
+                termNumber: termNumber,
                 startDate: '2022-09-01', 
                 endDate: '2022-12-15',
-                isActive: true,
+                isActive: true, // Mark as active since it has current results
               };
-              setTerms(prev => [realTerm, ...prev]);
+              setTerms(prev => {
+                // Insert the term in the correct position based on term number
+                const newTerms = [...prev];
+                const insertIndex = newTerms.findIndex(t => t.termNumber > termNumber);
+                if (insertIndex >= 0) {
+                  newTerms.splice(insertIndex, 0, realTerm);
+                } else {
+                  newTerms.push(realTerm);
+                }
+                return newTerms;
+              });
               setSelectedTermWithDebug(realTermId);
               setActiveTerm(realTerm);
             }
@@ -242,6 +288,14 @@ export default function StudentGrades() {
         } catch (backendErr) {
           console.error('Failed to fetch exam results from backend:', backendErr);
           console.log('Error details:', backendErr);
+          
+          // If it's a 404 (no results for this term), that's okay - just set empty results
+          if (backendErr instanceof Error && backendErr.message.includes('404')) {
+            console.log('No exam results found for this term - setting empty results');
+            setExamResultsWithDebug([]);
+            setError(null);
+            return;
+          }
         }
       }
 
@@ -381,36 +435,36 @@ export default function StudentGrades() {
     }
   }, [examResults, selectedTerm, terms, user, studentProfile]);
 
-  const generateMockTerms = (academicYear?: string): Term[] => {
+  const generateStandardTerms = (academicYear?: string): Term[] => {
     // Use the provided academic year or fall back to 2022-2023 to match system
     const yearToUse = academicYear || '2022-2023';
-    const [startYear, endYear] = yearToUse.split('-').map(y => parseInt(y));
+    const [startYear] = yearToUse.split('-').map(y => parseInt(y));
     
     return [
       {
-        id: 'term-1-2022',
+        id: `term-1-${startYear}`,
         name: `Term 1 (${yearToUse})`,
         termNumber: 1,
         startDate: `${startYear}-09-01`,
         endDate: `${startYear}-12-15`,
-        isActive: true,
+        isActive: true, // Mark Term 1 as current/active by default
       },
       {
-        id: 'term-2-2022', 
+        id: `term-2-${startYear}`, 
         name: `Term 2 (${yearToUse})`,
         termNumber: 2,
-        startDate: `${endYear}-01-15`,
-        endDate: `${endYear}-04-30`,
+        startDate: `${startYear + 1}-01-15`,
+        endDate: `${startYear + 1}-04-30`,
         isActive: false,
       },
       {
-        id: 'term-3-2022',
-        name: `Term 3 (${yearToUse})`, 
+        id: `term-3-${startYear}`,
+        name: `Term 3 (${yearToUse})`,
         termNumber: 3,
-        startDate: `${endYear}-05-15`,
-        endDate: `${endYear}-08-30`,
+        startDate: `${startYear + 1}-05-15`,
+        endDate: `${startYear + 1}-08-31`,
         isActive: false,
-      }
+      },
     ];
   };
 
@@ -538,6 +592,7 @@ export default function StudentGrades() {
               {terms.map((term) => (
                 <SelectItem key={term.id} value={term.id}>
                   {term.name || `Term ${term.termNumber || term.id}`}
+                  {term.isActive && ' (Current)'}
                 </SelectItem>
               ))}
             </SelectContent>
