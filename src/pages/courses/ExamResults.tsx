@@ -492,10 +492,7 @@ const ExamResults = () => {
       filteredTermsCount: filteredTerms.length
     });
 
-    const termName = selectedTermObj?.name ||
-                     selectedTermObj?.periodName ||
-                     selectedTermObj?.term ||
-                     (selectedTermObj?.termNumber ? `Term ${selectedTermObj.termNumber}` : "Unknown Term");
+    const termName = selectedTermObj ? formatTerm(selectedTermObj) : "Unknown Term";
 
     const className = classes.find(c => c.id === selectedClass)?.name || "Unknown Class";
 
