@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from "@/contexts/AuthContext";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
@@ -14,9 +14,15 @@ export default function StudentMaterials() {
   const { user, token } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const location = useLocation();
   const [courses, setCourses] = useState([]);
   const [materials, setMaterials] = useState([]);
-  const [selectedCourse, setSelectedCourse] = useState("all");
+  
+  // Get courseId from URL parameters
+  const urlParams = new URLSearchParams(location.search);
+  const courseIdFromUrl = urlParams.get('courseId');
+  
+  const [selectedCourse, setSelectedCourse] = useState(courseIdFromUrl || "all");
   const [selectedType, setSelectedType] = useState("all");
   const [loading, setLoading] = useState(true);
   const [apiError, setApiError] = useState(null);

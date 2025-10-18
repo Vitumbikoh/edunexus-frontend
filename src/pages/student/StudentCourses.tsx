@@ -1,13 +1,196 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from "@/contexts/AuthContext";
-import { useNavigate } from "react-router-dom";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
-import { BookOpen, Clock, Users, Calendar } from "lucide-react";
-import { useToast } from "@/components/ui/use-toast";
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/components/ui/use-toast';
 import { API_CONFIG } from '@/config/api';
-import { PagePreloader } from "@/components/ui/preloader";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
+import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { PagePreloader } from '@/components/ui/preloader';
+import { BookOpen, Calendar, Clock, MessageSquare, Users } from 'lucide-react';
+import { courseService } from '@/services/courseService';
+
+// Local helper types for rendering
+type CourseSchedule = {
+  day: string;
+  startTime: string;
+  endTime: string;
+  classroom?: { name?: string };
+};
+
+type EnhancedCourse = {
+  id: string;
+  code: string;
+  name: string;
+  description?: string;
+  teacherName?: string;
+  className?: string;
+  statusLabel: 'Active' | 'Upcoming' | 'Completed';
+  schedules: CourseSchedule[];
+  progress: { completedItems: number; totalItems: number; percentage: number; averageScore: number };
+  nextExam: string;
+};
+
+function CourseDetailModal({ course, token }: { course: EnhancedCourse; token: string }) {
+  const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [exams, setExams] = useState<any[]>([]);
+  const [courseDetails, setCourseDetails] = useState<any>(null);
+
+  const fetchCourseDetails = async () => {
+    if (!course.id || loading) return;
+    setLoading(true);
+    try {
+      const [details, courseExams] = await Promise.all([
+        courseService.getCourseDetails(token, course.id),
+        courseService.getCourseExams(token, course.id),
+      ]);
+      setCourseDetails(details);
+      setExams(courseExams);
+    } catch (err) {
+      console.error('Error fetching course details:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    if (!dateString) return 'No date';
+    return new Date(dateString).toLocaleDateString();
+  };
+
+  const formatTime = (timeString: string) => {
+    if (!timeString) return 'TBD';
+    return timeString.substring(0, 5);
+  };
+
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next);
+        if (next) fetchCourseDetails();
+      }}
+    >
+      <DialogTrigger asChild>
+        <Button variant="outline" size="sm" className="flex-1">
+          View Details
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <BookOpen className="h-5 w-5" />
+            {course.name} ({course.code})
+          </DialogTitle>
+        </DialogHeader>
+
+        {loading ? (
+          <div className="p-8 text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+            <p className="mt-4 text-muted-foreground">Loading course details...</p>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg">Course Information</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Teacher:</span>
+                    <span className="font-medium">{course.teacherName || 'Not assigned'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Status:</span>
+                    <Badge variant={course.statusLabel === 'Active' ? 'default' : 'secondary'}>
+                      {course.statusLabel}
+                    </Badge>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Progress:</span>
+                    <span className="font-medium">{course.progress?.percentage || 0}%</span>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg">Schedule</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {course.schedules && course.schedules.length > 0 ? (
+                    <div className="space-y-2">
+                      {course.schedules.map((schedule, index) => (
+                        <div key={index} className="flex justify-between items-center py-1">
+                          <span className="font-medium">{schedule.day}</span>
+                          <span className="text-muted-foreground">
+                            {formatTime(schedule.startTime)} - {formatTime(schedule.endTime)}
+                          </span>
+                          <span className="text-sm text-muted-foreground">
+                            {schedule.classroom?.name || 'TBD'}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-muted-foreground">No scheduled classes</p>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+
+            {course.description && (
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg">Description</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground">{course.description}</p>
+                </CardContent>
+              </Card>
+            )}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <MessageSquare className="h-4 w-4" />
+                    Exams ({exams.length})
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {exams.length > 0 ? (
+                    <div className="space-y-3">
+                      {exams.slice(0, 5).map((exam) => (
+                        <div key={exam.id} className="border-l-2 border-blue-500 pl-4">
+                          <h4 className="font-medium">{exam.title}</h4>
+                          <p className="text-sm text-muted-foreground">Date: {formatDate(exam.date)}</p>
+                          <p className="text-sm text-muted-foreground">Duration: {exam.duration || 'TBD'}</p>
+                          <Badge variant={exam.status === 'graded' ? 'default' : 'secondary'} className="mt-1">
+                            {exam.status || 'Upcoming'}
+                          </Badge>
+                        </div>
+                      ))}
+                      {exams.length > 5 && (
+                        <p className="text-sm text-muted-foreground">And {exams.length - 5} more...</p>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-muted-foreground">No exams scheduled</p>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 export default function StudentCourses() {
   const { user, token } = useAuth();
@@ -16,10 +199,11 @@ export default function StudentCourses() {
   const [courses, setCourses] = useState({ completed: [], active: [], upcoming: [] });
   const [loading, setLoading] = useState(true);
   const [apiError, setApiError] = useState(null);
+  const [enhancedCourses, setEnhancedCourses] = useState<EnhancedCourse[]>([]);
 
-  // Fetch courses from backend
+  // Fetch courses and enhance with real data
   useEffect(() => {
-    const fetchCourses = async () => {
+    const fetchCoursesData = async () => {
       try {
         setLoading(true);
         setApiError(null);
@@ -32,6 +216,7 @@ export default function StudentCourses() {
           throw new Error("User ID not found. Please log in again.");
         }
 
+        // Fetch basic course data
         const response = await fetch(`${API_CONFIG.BASE_URL}/student/${user.id}/courses`, {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -53,6 +238,43 @@ export default function StudentCourses() {
         const result = await response.json();
         if (result.success) {
           setCourses(result.courses);
+          
+          // Enhance courses with additional data
+          const allCourses = [
+            ...result.courses.active.map(course => ({ ...course, statusLabel: 'Active' })),
+            ...result.courses.upcoming.map(course => ({ ...course, statusLabel: 'Upcoming' })),
+            ...result.courses.completed.map(course => ({ ...course, statusLabel: 'Completed' })),
+          ];
+
+          // Fetch enhanced data for each course
+          const enhanced = await Promise.all(
+            allCourses.map(async (course) => {
+              try {
+                const [schedules, progress, nextExam] = await Promise.all([
+                  courseService.getCourseSchedule(token, course.id),
+                  courseService.getStudentCourseProgress(token, user.id, course.id),
+                  courseService.getNextCourseItem(token, course.id)
+                ]);
+
+                return {
+                  ...course,
+                  schedules: schedules || [],
+                  progress: progress || { completedItems: 0, totalItems: 0, percentage: 0, averageScore: 0 },
+                  nextExam: nextExam || 'No upcoming exams'
+                };
+              } catch (error) {
+                console.error(`Error enhancing course ${course.id}:`, error);
+                return {
+                  ...course,
+                  schedules: [],
+                  progress: { completedItems: 0, totalItems: 0, percentage: 0, averageScore: 0 },
+                  nextExam: 'Unable to load'
+                };
+              }
+            })
+          );
+
+          setEnhancedCourses(enhanced);
         } else {
           throw new Error("Failed to fetch courses");
         }
@@ -69,68 +291,17 @@ export default function StudentCourses() {
       }
     };
 
-    fetchCourses();
+    fetchCoursesData();
   }, [user.id, token, toast, navigate]);
 
-  // Combine all courses for display
-  const allCourses = [
-    ...courses.active.map(course => ({
-      ...course,
-      statusLabel: 'Active',
-      progress: course.enrollmentStatus === 'active' ? Math.floor(Math.random() * 40) + 60 : 100,
-    })),
-    ...courses.upcoming.map(course => ({
-      ...course,
-      statusLabel: 'Upcoming',
-      progress: 0,
-    })),
-    ...courses.completed.map(course => ({
-      ...course,
-      statusLabel: 'Completed',
-      progress: 100,
-    })),
-  ];
-
-  // Format schedule display
-  const formatSchedule = (schedule) => {
-    if (!schedule || !schedule.days || !schedule.time) {
-      return 'Schedule TBD';
-    }
-    const days = schedule.days.join(', ');
-    return `${days} ${schedule.time} at ${schedule.location}`;
+  // Navigation handlers
+  const handleViewMaterials = (course: EnhancedCourse) => {
+    navigate(`/student/materials?courseId=${course.id}`);
   };
 
-  // Mock grade
-  const getRandomGrade = () => {
-    const grades = ['A+', 'A', 'A-', 'B+', 'B', 'B-'];
-    return grades[Math.floor(Math.random() * grades.length)];
-  };
-
-  // Mock hours
-  const getMockHours = (status) => {
-    if (status === 'Completed') {
-      const total = Math.floor(Math.random() * 20) + 30;
-      return { completedHours: total, totalHours: total };
-    } else if (status === 'Active') {
-      const total = Math.floor(Math.random() * 20) + 30;
-      const completed = Math.floor(Math.random() * 15) + 15;
-      return { completedHours: completed, totalHours: total };
-    }
-    return { completedHours: 0, totalHours: Math.floor(Math.random() * 20) + 30 };
-  };
-
-  // Mock next assignment
-  const getNextAssignment = (courseName) => {
-    const assignments = {
-      'Mathematics': 'Calculus Problem Set #5',
-      'Physics': 'Lab Report: Motion Dynamics',
-      'English': 'Essay: Shakespearean Themes',
-      'History': 'Research Paper: WWII Impact',
-      'Computer Science': 'Project: Web Application',
-      'Chemistry': 'Lab Experiment Analysis',
-      'Biology': 'Cell Structure Diagram',
-    };
-    return assignments[courseName] || 'Assignment TBD';
+  // Format schedule display (placeholder, will show today's schedule below)
+  const formatScheduleDisplay = (schedules: CourseSchedule[]): string => {
+    return courseService.formatScheduleDisplay(schedules);
   };
 
   if (loading) {
@@ -155,77 +326,84 @@ export default function StudentCourses() {
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {allCourses.map((course) => {
-          const { completedHours, totalHours } = getMockHours(course.statusLabel);
-          return (
-            <Card key={course.id} className="hover:shadow-lg transition-shadow">
-              <CardHeader className="pb-3">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-2">
-                    <BookOpen className="h-5 w-5 text-primary" />
-                    <div>
-                      <CardTitle className="text-lg">{course.name}</CardTitle>
-                      <CardDescription className="text-sm">{course.code}</CardDescription>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-lg font-bold text-primary">
-                      {course.statusLabel === 'Completed' ? getRandomGrade() : course.statusLabel}
-                    </div>
+        {enhancedCourses.map((course) => (
+          <Card key={course.id} className="hover:shadow-lg transition-shadow">
+            <CardHeader className="pb-3">
+              <div className="flex items-start justify-between">
+                <div className="flex items-center gap-2">
+                  <BookOpen className="h-5 w-5 text-primary" />
+                  <div>
+                    <CardTitle className="text-lg">{course.name}</CardTitle>
+                    <CardDescription className="text-sm">{course.code}</CardDescription>
                   </div>
                 </div>
-              </CardHeader>
+                <div className="text-right">
+                  <Badge 
+                    variant={course.statusLabel === 'Active' ? 'default' : 
+                            course.statusLabel === 'Completed' ? 'secondary' : 'outline'}
+                  >
+                    {course.statusLabel}
+                  </Badge>
+                </div>
+              </div>
+            </CardHeader>
+            
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground line-clamp-2">
+                {course.description || 'No description available'}
+              </p>
               
-              <CardContent className="space-y-4">
-                <p className="text-sm text-muted-foreground line-clamp-2">
-                  {course.description}
-                </p>
-                
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2 text-sm">
-                    <Users className="h-4 w-4 text-muted-foreground" />
-                    <span>{course.teacherName}</span>
-                  </div>
-                  
-                  <div className="flex items-center gap-2 text-sm">
-                    <Calendar className="h-4 w-4 text-muted-foreground" />
-                    <span>{formatSchedule(course.schedule)}</span>
-                  </div>
-                  
-                  <div className="flex items-center gap-2 text-sm">
-                    <Clock className="h-4 w-4 text-muted-foreground" />
-                    <span>{completedHours}/{totalHours} hours completed</span>
-                  </div>
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 text-sm">
+                  <Users className="h-4 w-4 text-muted-foreground" />
+                  <span>{course.teacherName || 'No teacher assigned'}</span>
                 </div>
                 
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span>Progress</span>
-                    <span>{course.progress}%</span>
-                  </div>
-                  <Progress value={course.progress} className="h-2" />
+                <div className="flex items-center gap-2 text-sm">
+                  <Calendar className="h-4 w-4 text-muted-foreground" />
+                  <span>
+                    {(() => {
+                      const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+                      const todayName = dayNames[new Date().getDay()];
+                      const today = (course.schedules || []).filter(s => s.day === todayName);
+                      if (today.length === 0) return '';
+                      return today
+                        .map(s => `${s.startTime || '00:00'}-${s.endTime || '00:00'}`)
+                        .join(', ');
+                    })()}
+                  </span>
                 </div>
                 
+                {/* Removed items completed display */}
+              </div>
+              
+              {/* Removed progress bar and percentage */}
+              
+              {/* Show next exam only if available */}
+              {course.statusLabel === 'Active' && course.nextExam && course.nextExam !== 'No upcoming exams' && course.nextExam !== 'Unable to load' && (
                 <div className="bg-muted/50 rounded-lg p-3">
-                  <div className="text-sm font-medium">Next Assignment</div>
-                  <div className="text-sm text-muted-foreground">{getNextAssignment(course.name)}</div>
+                  <div className="text-sm font-medium">Next Exam</div>
+                  <div className="text-sm text-muted-foreground">{course.nextExam}</div>
                 </div>
-                
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm" className="flex-1">
-                    View Details
-                  </Button>
-                  <Button variant="default" size="sm" className="flex-1">
-                    Materials
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
+              )}
+              
+              <div className="flex gap-2">
+                <CourseDetailModal course={course} token={token} />
+                <Button
+                  variant="default"
+                  size="sm"
+                  className="flex-1"
+                  onClick={() => handleViewMaterials(course)}
+                >
+                  Materials
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
       </div>
       
-      {allCourses.length === 0 && (
+      {enhancedCourses.length === 0 && (
         <Card>
           <CardContent className="text-center py-8">
             <BookOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4" />

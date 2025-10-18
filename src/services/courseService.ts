@@ -273,6 +273,162 @@ class CourseService {
       throw error;
     }
   }
+
+  // NEW METHODS FOR STUDENT COURSE FUNCTIONALITY
+
+  /**
+   * Get detailed course information for a student
+   */
+  async getCourseDetails(token: string, courseId: string): Promise<any> {
+    try {
+      const response = await fetch(
+        `${API_CONFIG.BASE_URL}/course/${courseId}`,
+        {
+          headers: this.getAuthHeaders(token),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch course details');
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching course details:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get course schedule for a specific course
+   */
+  async getCourseSchedule(token: string, courseId: string): Promise<any[]> {
+    try {
+      const response = await fetch(
+        `${API_CONFIG.BASE_URL}/schedules/course/${courseId}`,
+        {
+          headers: this.getAuthHeaders(token),
+        }
+      );
+
+      if (!response.ok) {
+        console.warn(`Schedule endpoint for course ${courseId} not available`);
+        return [];
+      }
+
+      const data = await response.json();
+      return Array.isArray(data) ? data : data.schedules || [];
+    } catch (error) {
+      console.error('Error fetching course schedule:', error);
+      return []; // Return empty array on error
+    }
+  }
+
+  /**
+   * Get exams for a course
+   */
+  async getCourseExams(token: string, courseId: string): Promise<any[]> {
+    try {
+      // Use general exams endpoint - backend doesn't have course-specific endpoint
+      const response = await fetch(
+        `${API_CONFIG.BASE_URL}/exams`,
+        {
+          headers: this.getAuthHeaders(token),
+        }
+      );
+
+      if (!response.ok) {
+        console.warn(`Exams endpoint not available`);
+        return [];
+      }
+
+      const data = await response.json();
+      // Filter exams by course on frontend since backend doesn't support course filter
+      const exams = Array.isArray(data) ? data : data.exams || [];
+      return exams.filter((exam: any) => exam.courseId === courseId || exam.course?.id === courseId);
+    } catch (error) {
+      console.error('Error fetching course exams:', error);
+      return []; // Return empty array on error
+    }
+  }
+
+  /**
+   * Get student progress for a course - simplified since backend doesn't have this endpoint
+   */
+  async getStudentCourseProgress(token: string, studentId: string, courseId: string): Promise<any> {
+    // Backend doesn't have a progress endpoint, return basic structure
+    return {
+      completedItems: 0,
+      totalItems: 1,
+      percentage: 0,
+      averageScore: 0
+    };
+  }
+
+  /**
+   * Format schedule for display
+   */
+  formatScheduleDisplay(schedules: any[]): string {
+    if (!schedules || schedules.length === 0) {
+      return 'No scheduled classes';
+    }
+
+    // Group by day and time
+    const scheduleByDay = schedules.reduce((acc, schedule) => {
+      const day = schedule.day || 'Unknown';
+      if (!acc[day]) acc[day] = [];
+      acc[day].push({
+        time: `${schedule.startTime || '00:00'}-${schedule.endTime || '00:00'}`,
+        room: schedule.classroom?.name || 'TBD'
+      });
+      return acc;
+    }, {});
+
+    // Format for display
+    const dayOrder = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    const formattedDays = dayOrder
+      .filter(day => scheduleByDay[day])
+      .map(day => {
+        const times = scheduleByDay[day].map(s => s.time).join(', ');
+        return `${day.substring(0, 3)} ${times}`;
+      });
+
+    return formattedDays.length > 0 ? formattedDays.join(' • ') : 'Schedule TBD';
+  }
+
+  /**
+   * Get the next upcoming exam for a course (no assignments)
+   */
+  async getNextCourseItem(token: string, courseId: string): Promise<string> {
+    try {
+      // Only fetch exams, no assignments
+      const exams = await this.getCourseExams(token, courseId);
+
+      const now = new Date();
+      
+      // Filter upcoming exams
+      const upcomingExams = exams.filter(e => 
+        e.date && new Date(e.date) > now
+      );
+
+      // Get the next exam (earliest date)
+      let nextItem = null;
+      let nextDate = null;
+
+      upcomingExams.forEach(exam => {
+        const examDate = new Date(exam.date);
+        if (!nextDate || examDate < nextDate) {
+          nextDate = examDate;
+          nextItem = `Exam: ${exam.title}`;
+        }
+      });
+
+      return nextItem || 'No upcoming exams';
+    } catch (error) {
+      console.error('Error fetching next course item:', error);
+      return 'Unable to load';
+    }
+  }
 }
 
 export const courseService = new CourseService();
