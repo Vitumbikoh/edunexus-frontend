@@ -98,10 +98,10 @@ export default function StudentGrades() {
           if (termsResponse.ok) {
             const termsData = await termsResponse.json();
             if (Array.isArray(termsData) && termsData.length > 0) {
-              // Transform backend terms to our Term interface
+              // Transform backend terms to our Term interface - always use "Term X" format
               termsToUse = termsData.map((term: any, index: number) => ({
                 id: term.id,
-                name: term.periodName ? `${term.periodName} (${activeAcademicYear})` : `Term ${term.termNumber || (index + 1)} (${activeAcademicYear})`,
+                name: `Term ${term.termNumber || (index + 1)}`,
                 termNumber: term.termNumber || (index + 1),
                 startDate: term.startDate,
                 endDate: term.endDate,
@@ -127,7 +127,7 @@ export default function StudentGrades() {
               if (calendarData?.terms && Array.isArray(calendarData.terms)) {
                 termsToUse = calendarData.terms.map((term: any, index: number) => ({
                   id: term.id,
-                  name: `Term ${term.termNumber || (index + 1)} (${activeAcademicYear})`,
+                  name: `Term ${term.termNumber || (index + 1)}`,
                   termNumber: term.termNumber || (index + 1),
                   startDate: term.startDate,
                   endDate: term.endDate,
@@ -245,7 +245,7 @@ export default function StudentGrades() {
               
               const realTerm = {
                 id: realTermId,
-                name: `${realTermName} (2022-2023)`,
+                name: `Term ${termNumber}`,
                 termNumber: termNumber,
                 startDate: '2022-09-01', 
                 endDate: '2022-12-15',
@@ -443,7 +443,7 @@ export default function StudentGrades() {
     return [
       {
         id: `term-1-${startYear}`,
-        name: `Term 1 (${yearToUse})`,
+        name: `Term 1`,
         termNumber: 1,
         startDate: `${startYear}-09-01`,
         endDate: `${startYear}-12-15`,
@@ -451,7 +451,7 @@ export default function StudentGrades() {
       },
       {
         id: `term-2-${startYear}`, 
-        name: `Term 2 (${yearToUse})`,
+        name: `Term 2`,
         termNumber: 2,
         startDate: `${startYear + 1}-01-15`,
         endDate: `${startYear + 1}-04-30`,
@@ -459,7 +459,7 @@ export default function StudentGrades() {
       },
       {
         id: `term-3-${startYear}`,
-        name: `Term 3 (${yearToUse})`,
+        name: `Term 3`,
         termNumber: 3,
         startDate: `${startYear + 1}-05-15`,
         endDate: `${startYear + 1}-08-31`,
@@ -579,7 +579,7 @@ export default function StudentGrades() {
         <div>
           <h1 className="text-2xl font-bold text-foreground">Exam Results</h1>
           <p className="text-muted-foreground">
-            Official academic performance report
+            Official academic performance report • Academic Year: 2022-2023
           </p>
         </div>
         
