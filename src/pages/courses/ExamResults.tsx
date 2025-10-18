@@ -1473,7 +1473,7 @@ const ExamResults = () => {
             lastName: studentResults.student.lastName,
             className: classes.find(c => c.id === selectedClass)?.name || "Unknown Class",
             academicYear: academicCalendars.find(ac => ac.id === selectedAcademicCalendar)?.term || "Unknown Year",
-            term: terms.find(t => t.id === selectedTerm)?.name || "Unknown Term"
+            term: terms.find(t => t.id === selectedTerm) ? formatTerm(terms.find(t => t.id === selectedTerm)!) : "Unknown Term"
           }}
           summary={{
             overallGPA: studentResults.summary?.overallGPA || 0,
@@ -1582,12 +1582,12 @@ const ExamResults = () => {
                           </td>
                           <td className="border border-border p-3">
                             <Badge variant="secondary">
-                              {Number.isFinite(studentResult.averageScore) ? Math.round(studentResult.averageScore as number) : 0}%
+                              {studentResult.averageScore != null && studentResult.averageScore > 0 ? Math.round(studentResult.averageScore) : 0}%
                             </Badge>
                           </td>
                           <td className="border border-border p-3">
                             <Badge variant="outline">
-                              {Number.isFinite(studentResult.overallGPA) ? (studentResult.overallGPA as number).toFixed(1) : '0.0'}
+                              {studentResult.overallGPA != null && studentResult.overallGPA > 0 ? studentResult.overallGPA.toFixed(1) : '0.0'}
                             </Badge>
                           </td>
                           <td className="border border-border p-3">

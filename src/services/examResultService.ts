@@ -24,6 +24,7 @@ export interface CourseResult {
   breakdown?: any;
   computedAt: Date;
   schemeVersion: number;
+  status?: string; // Include status to differentiate between COMPLETE and PENDING
 }
 
 export interface StudentExamResult {
@@ -56,6 +57,7 @@ export interface ClassExamResult {
     finalPercentage: number;
     finalGradeCode: string;
     pass: boolean;
+    status?: string; // Include status to differentiate between COMPLETE and PENDING
   }>;
 }
 

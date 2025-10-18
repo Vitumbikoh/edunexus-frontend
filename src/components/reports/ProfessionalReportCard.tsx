@@ -113,218 +113,208 @@ const ProfessionalReportCard: React.FC<ProfessionalReportCardProps> = ({
   className
 }) => {
   return (
-    <div className={cn("max-w-6xl mx-auto space-y-8 print:space-y-6", className)}>
-      {/* School Header - More Professional */}
-      <Card className="border-4 border-primary/30 shadow-2xl bg-gradient-to-br from-white via-primary/5 to-primary/10">
-        <CardHeader className="bg-gradient-to-r from-primary via-primary/90 to-primary/80 text-white border-b-4 border-primary/50">
+    <div className={cn("max-w-4xl mx-auto space-y-6 print:space-y-4", className)}>
+      {/* School Header - Clean and Professional */}
+      <Card className="shadow-sm">
+        <CardHeader className="pb-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-8">
+            <div className="flex items-center gap-4">
               {school.logoUrl ? (
-                <div className="h-24 w-24 bg-white rounded-full flex items-center justify-center shadow-xl border-4 border-white/50">
+                <div className="h-16 w-16 bg-muted rounded-lg flex items-center justify-center">
                   <img
                     src={school.logoUrl}
                     alt={`${school.name} Logo`}
-                    className="h-20 w-20 object-contain"
+                    className="h-12 w-12 object-contain"
                     onError={(e) => {
                       e.currentTarget.style.display = 'none';
-                      e.currentTarget.parentElement!.innerHTML = '<div class="text-primary text-2xl font-bold">🎓</div>';
+                      e.currentTarget.parentElement!.innerHTML = '<div class="text-primary text-xl font-bold">🎓</div>';
                     }}
                   />
                 </div>
               ) : (
-                <div className="h-24 w-24 bg-white/20 rounded-full flex items-center justify-center border-4 border-white/50">
-                  <School className="h-12 w-12 text-white" />
+                <div className="h-16 w-16 bg-muted rounded-lg flex items-center justify-center">
+                  <School className="h-8 w-8 text-muted-foreground" />
                 </div>
               )}
 
-              <div className="space-y-2">
-                <h1 className="text-4xl font-bold tracking-wide">{school.name}</h1>
-                {school.motto && (
-                  <p className="text-lg italic text-white/90 font-medium">"{school.motto}"</p>
-                )}
-                <div className="flex flex-wrap gap-6 text-sm text-white/80">
+              <div className="space-y-1">
+                <h1 className="text-2xl font-semibold">{school.name}</h1>
+                <div className="flex flex-col gap-1 text-sm text-muted-foreground">
                   {school.address && (
                     <div className="flex items-center gap-2">
-                      <MapPin className="h-4 w-4" />
-                      <span className="font-medium">{school.address}</span>
+                      <MapPin className="h-3 w-3" />
+                      <span>{school.address}</span>
                     </div>
                   )}
-                  {school.phone && (
-                    <div className="flex items-center gap-2">
-                      <Phone className="h-4 w-4" />
-                      <span className="font-medium">{school.phone}</span>
-                    </div>
-                  )}
-                  {school.email && (
-                    <div className="flex items-center gap-2">
-                      <Mail className="h-4 w-4" />
-                      <span className="font-medium">{school.email}</span>
-                    </div>
-                  )}
+                  <div className="flex items-center gap-4">
+                    {school.phone && (
+                      <div className="flex items-center gap-1">
+                        <Phone className="h-3 w-3" />
+                        <span>{school.phone}</span>
+                      </div>
+                    )}
+                    {school.email && (
+                      <div className="flex items-center gap-1">
+                        <Mail className="h-3 w-3" />
+                        <span>{school.email}</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
 
             {onPrint && (
-              <Button onClick={onPrint} variant="secondary" size="lg" className="gap-3 shadow-lg hover:shadow-xl transition-all duration-300">
-                <PrinterIcon className="h-5 w-5" />
+              <Button onClick={onPrint} variant="outline" size="sm" className="gap-2">
+                <PrinterIcon className="h-4 w-4" />
                 Print Report Card
               </Button>
             )}
           </div>
         </CardHeader>
-
-        {/* Report Title */}
-        <CardContent className="bg-gradient-to-r from-primary/10 to-primary/5 py-8">
+        <CardContent className="pt-4 border-t">
           <div className="text-center">
-            <h2 className="text-3xl font-bold text-primary mb-2">Academic Performance Report</h2>
-            <p className="text-lg text-muted-foreground">Official Student Report Card</p>
-            <div className="mt-4 h-1 w-32 bg-primary mx-auto rounded-full"></div>
+            <h2 className="text-lg font-semibold mb-1">Academic Performance Report</h2>
+            <p className="text-sm text-muted-foreground">Official Student Report Card</p>
           </div>
         </CardContent>
       </Card>
 
-      {/* Academic Period & Student Info - Enhanced Professional Layout */}
-      <div className="grid lg:grid-cols-3 gap-8">
+      {/* Academic Period & Student Info - Clean Layout */}
+      <div className="grid md:grid-cols-2 gap-6">
         {/* Academic Period Card */}
-        <Card className="border-2 border-primary/20 shadow-xl bg-gradient-to-br from-primary/5 to-primary/10">
-          <CardHeader className="bg-gradient-to-r from-primary/10 to-primary/20 border-b-2 border-primary/30">
-            <h2 className="text-xl font-bold flex items-center gap-3 text-primary">
-              <Calendar className="h-6 w-6" />
+        <Card>
+          <CardHeader>
+            <h2 className="text-lg font-semibold flex items-center gap-2">
+              <Calendar className="h-5 w-5" />
               Academic Period
             </h2>
           </CardHeader>
-          <CardContent className="pt-6 space-y-6">
-            <div className="space-y-2">
-              <label className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Academic Year</label>
-              <p className="text-lg font-bold text-foreground bg-white/50 px-3 py-2 rounded-lg border">{student.academicYear}</p>
+          <CardContent className="space-y-4">
+            <div className="space-y-1">
+              <label className="text-sm font-medium text-muted-foreground">Academic Year</label>
+              <p className="text-base font-semibold">{student.academicYear}</p>
             </div>
-            <div className="space-y-2">
-              <label className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Academic Term</label>
-              <p className="text-lg font-bold text-foreground bg-white/50 px-3 py-2 rounded-lg border">{student.term}</p>
+            <div className="space-y-1">
+              <label className="text-sm font-medium text-muted-foreground">Academic Term</label>
+              <p className="text-base font-semibold">{student.term}</p>
             </div>
-            <div className="space-y-2">
-              <label className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Class</label>
-              <p className="text-lg font-bold text-foreground bg-white/50 px-3 py-2 rounded-lg border">{student.className}</p>
+            <div className="space-y-1">
+              <label className="text-sm font-medium text-muted-foreground">Class</label>
+              <p className="text-base font-semibold">{student.className}</p>
             </div>
-            <div className="space-y-2">
-              <label className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Report Date</label>
-              <p className="text-base font-medium text-foreground bg-white/50 px-3 py-2 rounded-lg border">{new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+            <div className="space-y-1">
+              <label className="text-sm font-medium text-muted-foreground">Report Date</label>
+              <p className="text-sm">{new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
             </div>
           </CardContent>
         </Card>
 
         {/* Student Information Card */}
-        <Card className="border-2 border-primary/20 shadow-xl bg-gradient-to-br from-primary/5 to-primary/10 lg:col-span-2">
-          <CardHeader className="bg-gradient-to-r from-primary/10 to-primary/20 border-b-2 border-primary/30">
-            <h2 className="text-xl font-bold flex items-center gap-3 text-primary">
-              <User className="h-6 w-6" />
+        <Card>
+          <CardHeader>
+            <h2 className="text-lg font-semibold flex items-center gap-2">
+              <User className="h-5 w-5" />
               Student Information
             </h2>
           </CardHeader>
-          <CardContent className="pt-6">
-            <div className="grid md:grid-cols-2 gap-6">
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Full Name</label>
-                  <p className="text-xl font-bold text-foreground bg-white/50 px-4 py-3 rounded-lg border">{student.firstName} {student.lastName}</p>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Student ID</label>
-                  <p className="text-lg font-semibold text-foreground bg-white/50 px-4 py-3 rounded-lg border">{student.studentId}</p>
-                </div>
+          <CardContent className="space-y-4">
+            <div className="space-y-1">
+              <label className="text-sm font-medium text-muted-foreground">Full Name</label>
+              <p className="text-lg font-semibold">{student.firstName} {student.lastName}</p>
+            </div>
+            <div className="space-y-1">
+              <label className="text-sm font-medium text-muted-foreground">Student ID</label>
+              <p className="text-base font-semibold">{student.studentId}</p>
+            </div>
+            {summary.position && summary.totalStudents && (
+              <div className="space-y-1">
+                <label className="text-sm font-medium text-muted-foreground">Class Position</label>
+                <p className="text-base font-semibold">{summary.position} of {summary.totalStudents}</p>
               </div>
-              <div className="space-y-4">
-                {summary.position && summary.totalStudents && (
-                  <div className="space-y-2">
-                    <label className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Class Position</label>
-                    <p className="text-lg font-semibold text-foreground bg-white/50 px-4 py-3 rounded-lg border">{summary.position} of {summary.totalStudents}</p>
-                  </div>
-                )}
-                <div className="space-y-2">
-                  <label className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Performance Level</label>
-                  <div className="flex items-center gap-2">
-                    {getPerformanceIcon(summary.overallGPA)}
-                    <p className="text-lg font-semibold text-foreground bg-white/50 px-4 py-3 rounded-lg border flex-1">{summary.performance}</p>
-                  </div>
-                </div>
+            )}
+            <div className="space-y-1">
+              <label className="text-sm font-medium text-muted-foreground">Performance Level</label>
+              <div className="flex items-center gap-2">
+                {getPerformanceIcon(summary.overallGPA)}
+                <p className="text-base font-semibold">{summary.performance}</p>
               </div>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Performance Summary - Enhanced Professional Design */}
-      <Card className="border border-border/50">
-        <CardHeader className="bg-muted/30 border-b">
+      {/* Performance Summary */}
+      <Card>
+        <CardHeader>
           <h2 className="text-lg font-semibold flex items-center gap-2">
             {getPerformanceIcon(summary.overallGPA)}
             Academic Performance Summary
           </h2>
         </CardHeader>
-        <CardContent className="pt-8">
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-6">
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
             {/* GPA Card */}
-            <div className="text-center p-6 bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-xl border-2 border-emerald-200 shadow-lg hover:shadow-xl transition-all duration-300">
-              <div className="flex items-center justify-center mb-3">
+            <div className="text-center p-4 bg-muted/30 rounded-lg">
+              <div className="flex items-center justify-center mb-2">
                 {getPerformanceIcon(summary.overallGPA)}
               </div>
-              <div className="text-3xl font-bold text-emerald-700 mb-2">
+              <div className="text-2xl font-bold mb-1">
                 {summary.overallGPA.toFixed(2)}
               </div>
-              <div className="text-sm font-semibold text-emerald-600 uppercase tracking-wide">
+              <div className="text-xs text-muted-foreground">
                 Overall GPA
               </div>
             </div>
 
             {/* Average Score Card */}
-            <div className="text-center p-6 bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl border-2 border-blue-200 shadow-lg hover:shadow-xl transition-all duration-300">
-              <div className="flex items-center justify-center mb-3">
-                <TrendingUp className="h-6 w-6 text-blue-600" />
+            <div className="text-center p-4 bg-muted/30 rounded-lg">
+              <div className="flex items-center justify-center mb-2">
+                <TrendingUp className="h-5 w-5 text-blue-600" />
               </div>
-              <div className="text-3xl font-bold text-blue-700 mb-2">
+              <div className="text-2xl font-bold mb-1">
                 {Math.round(summary.averageScore)}%
               </div>
-              <div className="text-sm font-semibold text-blue-600 uppercase tracking-wide">
+              <div className="text-xs text-muted-foreground">
                 Average Score
               </div>
             </div>
 
             {/* Total Courses Card */}
-            <div className="text-center p-6 bg-gradient-to-br from-amber-50 to-amber-100 rounded-xl border-2 border-amber-200 shadow-lg hover:shadow-xl transition-all duration-300">
-              <div className="flex items-center justify-center mb-3">
-                <BookOpen className="h-6 w-6 text-amber-600" />
+            <div className="text-center p-4 bg-muted/30 rounded-lg">
+              <div className="flex items-center justify-center mb-2">
+                <BookOpen className="h-5 w-5 text-amber-600" />
               </div>
-              <div className="text-3xl font-bold text-amber-700 mb-2">
+              <div className="text-2xl font-bold mb-1">
                 {summary.totalCourses}
               </div>
-              <div className="text-sm font-semibold text-amber-600 uppercase tracking-wide">
+              <div className="text-xs text-muted-foreground">
                 Total Courses
               </div>
             </div>
 
             {/* Total Marks Card */}
-            <div className="text-center p-6 bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl border-2 border-purple-200 shadow-lg hover:shadow-xl transition-all duration-300">
-              <div className="flex items-center justify-center mb-3">
-                <GraduationCap className="h-6 w-6 text-purple-600" />
+            <div className="text-center p-4 bg-muted/30 rounded-lg">
+              <div className="flex items-center justify-center mb-2">
+                <GraduationCap className="h-5 w-5 text-purple-600" />
               </div>
-              <div className="text-3xl font-bold text-purple-700 mb-2 text-lg">
+              <div className="text-lg font-bold mb-1">
                 {summary.totalMarks}/{summary.totalPossible}
               </div>
-              <div className="text-sm font-semibold text-purple-600 uppercase tracking-wide">
+              <div className="text-xs text-muted-foreground">
                 Total Marks
               </div>
             </div>
 
             {/* Performance Level Card */}
-            <div className="text-center p-6 bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl border-2 border-orange-200 shadow-lg hover:shadow-xl transition-all duration-300">
-              <div className="flex items-center justify-center mb-3">
-                <Award className="h-6 w-6 text-orange-600" />
+            <div className="text-center p-4 bg-muted/30 rounded-lg">
+              <div className="flex items-center justify-center mb-2">
+                <Award className="h-5 w-5 text-orange-600" />
               </div>
-              <div className="text-2xl font-bold text-orange-700 mb-2">
+              <div className="text-lg font-bold mb-1">
                 {summary.performance}
               </div>
-              <div className="text-sm font-semibold text-orange-600 uppercase tracking-wide">
+              <div className="text-xs text-muted-foreground">
                 Performance Level
               </div>
             </div>
@@ -332,11 +322,11 @@ const ProfessionalReportCard: React.FC<ProfessionalReportCardProps> = ({
         </CardContent>
       </Card>
 
-      {/* Course Results - Enhanced Professional Table */}
-      <Card className="border-2 border-primary/20 shadow-xl bg-gradient-to-br from-primary/5 to-primary/10">
-        <CardHeader className="bg-gradient-to-r from-primary/10 to-primary/20 border-b-2 border-primary/30">
-          <h2 className="text-2xl font-bold flex items-center gap-3 text-primary text-center justify-center">
-            <BookOpen className="h-7 w-7" />
+      {/* Course Results Table */}
+      <Card>
+        <CardHeader>
+          <h2 className="text-lg font-semibold flex items-center gap-2">
+            <BookOpen className="h-5 w-5" />
             Detailed Course Performance
           </h2>
         </CardHeader>
@@ -345,52 +335,47 @@ const ProfessionalReportCard: React.FC<ProfessionalReportCardProps> = ({
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b-2 border-primary/30 bg-gradient-to-r from-primary/10 to-primary/20">
-                    <th className="text-left p-6 font-bold text-primary uppercase tracking-wide text-sm">Course Code</th>
-                    <th className="text-left p-6 font-bold text-primary uppercase tracking-wide text-sm">Course Name</th>
-                    <th className="text-center p-6 font-bold text-primary uppercase tracking-wide text-sm">Percentage</th>
-                    <th className="text-center p-6 font-bold text-primary uppercase tracking-wide text-sm">Grade</th>
-                    <th className="text-center p-6 font-bold text-primary uppercase tracking-wide text-sm">Points</th>
-                    <th className="text-center p-6 font-bold text-primary uppercase tracking-wide text-sm">Status</th>
+                  <tr className="border-b bg-muted/50">
+                    <th className="text-left p-4 font-medium text-sm">Course Code</th>
+                    <th className="text-left p-4 font-medium text-sm">Course Name</th>
+                    <th className="text-center p-4 font-medium text-sm">Percentage</th>
+                    <th className="text-center p-4 font-medium text-sm">Grade</th>
+                    <th className="text-center p-4 font-medium text-sm">Points</th>
+                    <th className="text-center p-4 font-medium text-sm">Status</th>
                   </tr>
                 </thead>
                 <tbody>
                   {courses.map((course, index) => (
                     <tr key={course.courseCode} className={cn(
-                      "border-b border-primary/10 hover:bg-primary/5 transition-colors duration-200",
-                      index % 2 === 0 ? "bg-white/50" : "bg-primary/5/30"
+                      "border-b hover:bg-muted/30 transition-colors",
+                      index % 2 === 0 ? "bg-white" : "bg-muted/10"
                     )}>
-                      <td className="p-6 font-mono text-sm font-bold text-primary bg-primary/5 rounded-l-lg">
+                      <td className="p-4 font-mono text-sm font-medium">
                         {course.courseCode}
                       </td>
-                      <td className="p-6 font-semibold text-foreground">
+                      <td className="p-4 font-medium">
                         {course.courseName}
                       </td>
-                      <td className="p-6 text-center">
-                        <span className="font-bold text-xl text-primary bg-primary/10 px-3 py-1 rounded-lg">
+                      <td className="p-4 text-center">
+                        <span className="font-semibold">
                           {Math.round(course.finalPercentage)}%
                         </span>
                       </td>
-                      <td className="p-6 text-center">
+                      <td className="p-4 text-center">
                         <Badge className={cn(
-                          "font-bold text-sm px-4 py-2 text-lg shadow-md",
+                          "font-medium",
                           GradeColorMap[course.grade] || "bg-gray-100 text-gray-800"
                         )}>
                           {course.grade}
                         </Badge>
                       </td>
-                      <td className="p-6 text-center">
-                        <span className="font-bold text-lg text-primary bg-primary/10 px-3 py-1 rounded-lg">
+                      <td className="p-4 text-center">
+                        <span className="font-semibold">
                           {course.points.toFixed(1)}
                         </span>
                       </td>
-                      <td className="p-6 text-center">
-                        <Badge className={cn(
-                          "font-bold text-sm px-4 py-2",
-                          course.status === 'Pass'
-                            ? "bg-emerald-100 text-emerald-800 border-emerald-300"
-                            : "bg-red-100 text-red-800 border-red-300"
-                        )}>
+                      <td className="p-4 text-center">
+                        <Badge variant={course.status === 'Pass' ? "default" : "destructive"}>
                           {course.status}
                         </Badge>
                       </td>
@@ -402,7 +387,7 @@ const ProfessionalReportCard: React.FC<ProfessionalReportCardProps> = ({
           ) : (
             <div className="text-center py-12">
               <BookOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground text-lg">No course results available</p>
+              <p className="text-muted-foreground">No course results available</p>
             </div>
           )}
         </CardContent>
@@ -410,7 +395,7 @@ const ProfessionalReportCard: React.FC<ProfessionalReportCardProps> = ({
 
       {/* School About Section (for print) */}
       {school.about && (
-        <Card className="border border-border/50 print:block hidden">
+        <Card className="print:block hidden">
           <CardContent className="pt-6">
             <h3 className="text-sm font-semibold mb-2">About {school.name}</h3>
             <p className="text-xs text-muted-foreground leading-relaxed">
