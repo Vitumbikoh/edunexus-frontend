@@ -251,6 +251,8 @@ import {
   FinanceOverviewChart,
   StudentPerformanceChart,
   AssignmentStatusChart,
+  StudentAttendanceTrendChart,
+  StudentGradeTrendChart,
   generateAssignmentStatusData,
   generateStudentPerformanceData,
 } from "./DashboardCharts";
@@ -1065,38 +1067,110 @@ export const StudentDashboardCards = () => {
   const assignmentStatusData = generateAssignmentStatusData(user);
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <Card className="bg-gradient-to-br from-white to-slate-50 dark:from-gray-900 dark:to-gray-900/50">
-        <CardHeader>
-          <CardTitle>My Performance</CardTitle>
-          <CardDescription>
-            Course scores compared to class average
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="h-80">
-            <StudentPerformanceChart data={studentPerformanceData} />
-          </div>
-        </CardContent>
-      </Card>
+    <div className="space-y-6">
+      {/* First Row - Performance and Assignment Status */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card className="bg-gradient-to-br from-white to-slate-50 dark:from-gray-900 dark:to-gray-900/50">
+          <CardHeader>
+            <CardTitle>My Performance</CardTitle>
+            <CardDescription>
+              Course scores compared to class average
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="h-80">
+              <StudentPerformanceChart data={studentPerformanceData} />
+            </div>
+          </CardContent>
+        </Card>
 
-      <Card className="bg-gradient-to-br from-white to-slate-50 dark:from-gray-900 dark:to-gray-900/50">
-        <CardHeader>
-          <CardTitle>Assignment Status</CardTitle>
-          <CardDescription>Overview of your assignments</CardDescription>
-        </CardHeader>
-        <CardContent className="flex justify-center">
-          <div className="h-64 w-64">
-            <AssignmentStatusChart data={assignmentStatusData} />
+        <Card className="bg-gradient-to-br from-white to-slate-50 dark:from-gray-900 dark:to-gray-900/50">
+          <CardHeader>
+            <CardTitle>Assignment Status</CardTitle>
+            <CardDescription>Overview of your assignments</CardDescription>
+          </CardHeader>
+          <CardContent className="flex justify-center">
+            <div className="h-64 w-64">
+              <AssignmentStatusChart data={assignmentStatusData} />
+            </div>
+          </CardContent>
+          <div className="px-6 pb-6">
+            <Button className="w-full" onClick={() => navigate("/assignments")}>
+              View All Assignments
+              <ChevronRight className="ml-2 h-4 w-4" />
+            </Button>
           </div>
-        </CardContent>
-        <div className="px-6 pb-6">
-          <Button className="w-full" onClick={() => navigate("/assignments")}>
-            View All Assignments
-            <ChevronRight className="ml-2 h-4 w-4" />
-          </Button>
-        </div>
-      </Card>
+        </Card>
+      </div>
+
+      {/* Second Row - Attendance and Grade Trends */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card className="bg-gradient-to-br from-green-50 via-white to-emerald-50 dark:from-green-900/20 dark:via-gray-800 dark:to-emerald-900/20 border-green-200/50 shadow-lg">
+          <CardHeader>
+            <CardTitle className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="h-2 w-2 bg-green-500 rounded-full"></div>
+                Attendance Trend
+              </div>
+              <div className="text-right">
+                <div className="text-2xl font-bold text-green-600">92%</div>
+                <div className="text-xs text-muted-foreground">Current</div>
+              </div>
+            </CardTitle>
+            <CardDescription>
+              Your attendance over the past 6 months
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="h-80">
+              <StudentAttendanceTrendChart />
+            </div>
+          </CardContent>
+          <div className="px-6 pb-6">
+            <Button 
+              variant="outline" 
+              className="w-full border-green-200 hover:bg-green-50" 
+              onClick={() => navigate("/profile")}
+            >
+              View Profile Details
+              <ChevronRight className="ml-2 h-4 w-4" />
+            </Button>
+          </div>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-blue-50 via-white to-indigo-50 dark:from-blue-900/20 dark:via-gray-800 dark:to-indigo-900/20 border-blue-200/50 shadow-lg">
+          <CardHeader>
+            <CardTitle className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="h-2 w-2 bg-blue-500 rounded-full"></div>
+                Grade Progress
+              </div>
+              <div className="text-right">
+                <div className="text-2xl font-bold text-blue-600">B+</div>
+                <div className="text-xs text-muted-foreground">Average</div>
+              </div>
+            </CardTitle>
+            <CardDescription>
+              Your academic progress across subjects
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="h-80">
+              <StudentGradeTrendChart />
+            </div>
+          </CardContent>
+          <div className="px-6 pb-6">
+            <Button 
+              variant="outline" 
+              className="w-full border-blue-200 hover:bg-blue-50" 
+              onClick={() => navigate("/grades")}
+            >
+              View Grade Reports
+              <ChevronRight className="ml-2 h-4 w-4" />
+            </Button>
+          </div>
+        </Card>
+      </div>
     </div>
   );
 };

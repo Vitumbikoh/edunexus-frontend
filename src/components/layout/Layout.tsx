@@ -2,6 +2,7 @@
 import React from 'react';
 import Sidebar from './Sidebar';
 import Header from './Header';
+import ErrorBoundary from '@/components/common/ErrorBoundary';
 import { useSidebar } from '@/contexts/SidebarContext';
 import { cn } from '@/lib/utils';
 
@@ -21,7 +22,9 @@ export default function Layout({ children }: LayoutProps) {
       )}>
         <Header />
         <main className="flex-1 overflow-y-auto p-4">
-          {children}
+          <ErrorBoundary>
+            {children}
+          </ErrorBoundary>
         </main>
       </div>
     </div>

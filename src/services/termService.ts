@@ -82,7 +82,8 @@ export const termService = {
   // Get the active/current academic year
   getActiveTerm: async (token: string): Promise<Term | null> => {
     try {
-      const response = await fetch(`${API_BASE}/settings/active-term`, {
+      // Backend exposes the active calendar at /settings/active-academic-calendar
+      const response = await fetch(`${API_BASE}/settings/active-academic-calendar`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
