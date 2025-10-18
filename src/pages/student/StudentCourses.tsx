@@ -201,7 +201,7 @@ export default function StudentCourses() {
   const [apiError, setApiError] = useState(null);
   const [enhancedCourses, setEnhancedCourses] = useState<EnhancedCourse[]>([]);
 
-  // Fetch courses and enhance with real data
+  // Fetch courses with optimized loading
   useEffect(() => {
     const fetchCoursesData = async () => {
       try {
@@ -239,42 +239,56 @@ export default function StudentCourses() {
         if (result.success) {
           setCourses(result.courses);
           
-          // Enhance courses with additional data
+          // Create enhanced courses with basic data first for fast initial render
           const allCourses = [
             ...result.courses.active.map(course => ({ ...course, statusLabel: 'Active' })),
             ...result.courses.upcoming.map(course => ({ ...course, statusLabel: 'Upcoming' })),
             ...result.courses.completed.map(course => ({ ...course, statusLabel: 'Completed' })),
           ];
 
-          // Fetch enhanced data for each course
-          const enhanced = await Promise.all(
-            allCourses.map(async (course) => {
-              try {
-                const [schedules, progress, nextExam] = await Promise.all([
-                  courseService.getCourseSchedule(token, course.id),
-                  courseService.getStudentCourseProgress(token, user.id, course.id),
-                  courseService.getNextCourseItem(token, course.id)
-                ]);
+          // Set initial enhanced courses with basic data only
+          const initialEnhanced = allCourses.map(course => ({
+            ...course,
+            schedules: [],
+            progress: { completedItems: 0, totalItems: 0, percentage: 0, averageScore: 0 },
+            nextExam: 'No upcoming exams'
+          }));
 
-                return {
-                  ...course,
-                  schedules: schedules || [],
-                  progress: progress || { completedItems: 0, totalItems: 0, percentage: 0, averageScore: 0 },
-                  nextExam: nextExam || 'No upcoming exams'
-                };
-              } catch (error) {
-                console.error(`Error enhancing course ${course.id}:`, error);
-                return {
-                  ...course,
-                  schedules: [],
-                  progress: { completedItems: 0, totalItems: 0, percentage: 0, averageScore: 0 },
-                  nextExam: 'Unable to load'
-                };
-              }
-            })
-          );
+          setEnhancedCourses(initialEnhanced);
+          setLoading(false); // Stop loading immediately after basic data
 
-          setEnhancedCourses(enhanced);
+          // Load additional data in background (non-blocking)
+          setTimeout(async () => {
+            try {
+              const enhanced = await Promise.all(
+                allCourses.map(async (course) => {
+                  try {
+                    // Only fetch schedules for now - remove expensive calls
+                    const schedules = await courseService.getCourseSchedule(token, course.id);
+                    
+                    return {
+                      ...course,
+                      schedules: schedules || [],
+                      progress: { completedItems: 0, totalItems: 0, percentage: 0, averageScore: 0 },
+                      nextExam: 'No upcoming exams'
+                    };
+                  } catch (error) {
+                    console.error(`Error enhancing course ${course.id}:`, error);
+                    return {
+                      ...course,
+                      schedules: [],
+                      progress: { completedItems: 0, totalItems: 0, percentage: 0, averageScore: 0 },
+                      nextExam: 'Unable to load'
+                    };
+                  }
+                })
+              );
+
+              setEnhancedCourses(enhanced);
+            } catch (error) {
+              console.error('Error in background enhancement:', error);
+            }
+          }, 100);
         } else {
           throw new Error("Failed to fetch courses");
         }
@@ -286,7 +300,6 @@ export default function StudentCourses() {
           description: errorMessage,
           variant: "destructive",
         });
-      } finally {
         setLoading(false);
       }
     };
@@ -296,7 +309,7 @@ export default function StudentCourses() {
 
   // Navigation handlers
   const handleViewMaterials = (course: EnhancedCourse) => {
-    navigate(`/student/materials?courseId=${course.id}`);
+    navigate(`/materials?courseId=${course.id}`);
   };
 
   // Format schedule display (placeholder, will show today's schedule below)
@@ -362,15 +375,10 @@ export default function StudentCourses() {
                 <div className="flex items-center gap-2 text-sm">
                   <Calendar className="h-4 w-4 text-muted-foreground" />
                   <span>
-                    {(() => {
-                      const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-                      const todayName = dayNames[new Date().getDay()];
-                      const today = (course.schedules || []).filter(s => s.day === todayName);
-                      if (today.length === 0) return '';
-                      return today
-                        .map(s => `${s.startTime || '00:00'}-${s.endTime || '00:00'}`)
-                        .join(', ');
-                    })()}
+                    {course.schedules && course.schedules.length > 0 
+                      ? formatScheduleDisplay(course.schedules)
+                      : 'No schedule'
+                    }
                   </span>
                 </div>
                 
@@ -379,10 +387,13 @@ export default function StudentCourses() {
               
               {/* Removed progress bar and percentage */}
               
-              {/* Show next exam only if available */}
-              {course.statusLabel === 'Active' && course.nextExam && course.nextExam !== 'No upcoming exams' && course.nextExam !== 'Unable to load' && (
+              {/* Show next exam only if available and not the default message */}
+              {course.statusLabel === 'Active' && course.nextExam && 
+               course.nextExam !== 'No upcoming exams' && 
+               course.nextExam !== 'Unable to load' && 
+               course.nextExam !== 'Loading...' && (
                 <div className="bg-muted/50 rounded-lg p-3">
-                  <div className="text-sm font-medium">Next Exam</div>
+                  <div className="text-sm font-medium">Next Item</div>
                   <div className="text-sm text-muted-foreground">{course.nextExam}</div>
                 </div>
               )}

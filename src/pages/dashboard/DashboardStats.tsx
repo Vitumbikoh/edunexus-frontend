@@ -241,60 +241,72 @@ export const useDashboardStats = () => {
               // My Courses count
               const coursesRes = await fetch(`http://localhost:5000/api/v1/student/${user?.id}/courses`, { headers: { Authorization: `Bearer ${token}` } });
               let coursesCount = 0;
+              let activeCoursesCount = 0;
               if (coursesRes.ok) {
                 const c = await coursesRes.json();
                 if (c?.courses) {
                   const all = [ ...(c.courses.active||[]), ...(c.courses.completed||[]), ...(c.courses.upcoming||[]) ];
                   coursesCount = all.length;
+                  activeCoursesCount = (c.courses.active || []).length;
                 } else if (Array.isArray(c)) {
                   coursesCount = c.length;
+                  activeCoursesCount = c.length;
                 }
               }
 
-              // Today's Classes via weekly schedule
-              const schedRes = await fetch(`http://localhost:5000/api/v1/schedules/student/${user?.id}/weekly`, { headers: { Authorization: `Bearer ${token}` } });
-              let todaysClasses = 0;
-              if (schedRes.ok) {
-                const sd = await schedRes.json();
-                const days = sd?.days || [];
-                const dayNames = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-                const todayName = dayNames[new Date().getDay()];
-                const today = days.find((d: any) => d.day === todayName);
-                if (today?.items && Array.isArray(today.items)) todaysClasses = today.items.length;
-              }
-
-              // Assignments count (if endpoint exists); fallback to 0
-              let assignmentsCount = 0;
+              // Get student's current attendance rate
+              let attendanceRate = '-';
               try {
-                const asgRes = await fetch(`http://localhost:5000/api/v1/student/${user?.id}/assignments/count`, { headers: { Authorization: `Bearer ${token}` } });
-                if (asgRes.ok) {
-                  const a = await asgRes.json();
-                  assignmentsCount = a?.count ?? 0;
+                const attendRes = await fetch(`http://localhost:5000/api/v1/attendance/student/${user?.id}/rate`, { headers: { Authorization: `Bearer ${token}` } });
+                if (attendRes.ok) {
+                  const att = await attendRes.json();
+                  const rate = att?.attendanceRate ?? att?.rate ?? att?.percentage;
+                  if (typeof rate === 'number') {
+                    attendanceRate = `${Math.round(rate)}%`;
+                  }
                 }
               } catch {}
 
-              // Class Rank (requires backend support); fallback to '-'
-              let classRank: string = '-';
+              // Get upcoming exams count
+              let upcomingExams = 0;
               try {
-                const rankRes = await fetch(`http://localhost:5000/api/v1/grades/student/${user?.id}/rank`, { headers: { Authorization: `Bearer ${token}` } });
-                if (rankRes.ok) {
-                  const r = await rankRes.json();
-                  if (r && (r.rank || r.position)) classRank = String(r.rank || r.position);
+                const examsRes = await fetch(`http://localhost:5000/api/v1/exams`, { headers: { Authorization: `Bearer ${token}` } });
+                if (examsRes.ok) {
+                  const exams = await examsRes.json();
+                  const examsList = Array.isArray(exams) ? exams : (exams?.data || []);
+                  const now = new Date();
+                  upcomingExams = examsList.filter((e: any) => {
+                    const examDate = new Date(e.date || e.examDate);
+                    return examDate > now;
+                  }).length;
+                }
+              } catch {}
+
+              // Average grade
+              let avgGrade = '-';
+              try {
+                const resultsRes = await fetch(`http://localhost:5000/api/v1/exam-results/student/${user?.id}`, { headers: { Authorization: `Bearer ${token}` } });
+                if (resultsRes.ok) {
+                  const results = await resultsRes.json();
+                  const avg = results?.summary?.averageScore ?? results?.averageScore;
+                  if (typeof avg === 'number') {
+                    avgGrade = `${Math.round(avg)}%`;
+                  }
                 }
               } catch {}
 
               studentStats = [
                 { title: 'My Courses', value: String(coursesCount), icon: <BookOpen size={24} />, className: "bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-900/10" },
-                { title: 'Assignments', value: String(assignmentsCount), icon: <FileText size={24} />, className: "bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-900/10" },
-                { title: 'Class Rank', value: classRank, icon: <Award size={24} />, className: "bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-900/10" },
-                { title: "Today's Classes", value: String(todaysClasses), icon: <Calendar size={24} />, className: "bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-900/10" },
+                { title: 'Average Grade', value: avgGrade, icon: <Award size={24} />, className: "bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-900/10" },
+                { title: 'Attendance', value: attendanceRate, icon: <UserCheck size={24} />, className: "bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-900/10" },
+                { title: 'Upcoming Exams', value: String(upcomingExams), icon: <FileText size={24} />, className: "bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-900/10" },
               ];
             } catch (e) {
               studentStats = [
                 { title: 'My Courses', value: user?.studentData?.courses?.length?.toString() || '0', icon: <BookOpen size={24} />, className: "bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-900/10" },
-                { title: 'Assignments', value: user?.studentData?.assignments?.length?.toString() || '0', icon: <FileText size={24} />, className: "bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-900/10" },
-                { title: 'Class Rank', value: '-', icon: <Award size={24} />, className: "bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-900/10" },
-                { title: "Today's Classes", value: '0', icon: <Calendar size={24} />, className: "bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-900/10" },
+                { title: 'Average Grade', value: '-', icon: <Award size={24} />, className: "bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-900/10" },
+                { title: 'Attendance', value: '-', icon: <UserCheck size={24} />, className: "bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-900/10" },
+                { title: 'Upcoming Exams', value: '0', icon: <FileText size={24} />, className: "bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-900/10" },
               ];
             }
           }

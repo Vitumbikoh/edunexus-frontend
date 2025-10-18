@@ -1041,15 +1041,26 @@ export const StudentAttendanceTrendChart = () => {
 };
 
 // Student Grade Trend Chart - shows grade progression over time
-export const StudentGradeTrendChart = () => {
-  const { user, token } = useAuth();
+export const StudentGradeTrendChart = ({ 
+  studentId, 
+  token, 
+  resultsData 
+}: { 
+  studentId?: string; 
+  token?: string | null; 
+  resultsData?: any[];
+}) => {
+  const { user, token: contextToken } = useAuth();
   const [gradeData, setGradeData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const activeToken = token || contextToken;
+  const activeStudentId = studentId || user?.id;
+
   useEffect(() => {
     const fetchStudentGrades = async () => {
-      if (!token || !user || user.role !== 'student') {
+      if (!activeToken || !activeStudentId || user?.role !== 'student') {
         setLoading(false);
         return;
       }
@@ -1058,10 +1069,26 @@ export const StudentGradeTrendChart = () => {
         setLoading(true);
         setError(null);
         
-        // Try to fetch real student grade data
+        // If resultsData is provided (from dashboard), use it directly
+        if (resultsData && resultsData.length > 0) {
+          // Transform results data into trend format
+          // Group by time period if available, otherwise show current snapshot
+          const trendData = [{
+            month: 'Current',
+            ...resultsData.reduce((acc, course) => {
+              acc[course.name] = course.score;
+              return acc;
+            }, {} as any)
+          }];
+          setGradeData(trendData);
+          setLoading(false);
+          return;
+        }
+        
+        // Try to fetch real student grade trend data from backend
         const response = await fetch(`${API_CONFIG.BASE_URL}/student/grade-trend`, {
           headers: {
-            'Authorization': `Bearer ${token}`,
+            'Authorization': `Bearer ${activeToken}`,
             'Content-Type': 'application/json',
           },
         });
@@ -1070,50 +1097,50 @@ export const StudentGradeTrendChart = () => {
           const data = await response.json();
           setGradeData(data);
         } else {
-          // Fallback to mock data if endpoint doesn't exist
-          throw new Error('Endpoint not available');
+          // Fallback: try to fetch exam results and build trend
+          try {
+            const resultsResponse = await fetch(`${API_CONFIG.BASE_URL}/exam-results/student/${activeStudentId}`, {
+              headers: {
+                'Authorization': `Bearer ${activeToken}`,
+                'Content-Type': 'application/json',
+              },
+            });
+            
+            if (resultsResponse.ok) {
+              const resultsJson = await resultsResponse.json();
+              const results = resultsJson?.results || [];
+              
+              if (results.length > 0) {
+                // Create a single data point from current results
+                const currentGrades = {
+                  month: 'Current Term',
+                  ...results.reduce((acc: any, r: any) => {
+                    acc[r.courseName || r.courseCode] = r.finalPercentage || 0;
+                    return acc;
+                  }, {})
+                };
+                setGradeData([currentGrades]);
+              } else {
+                throw new Error('No results available');
+              }
+            } else {
+              throw new Error('Unable to fetch data');
+            }
+          } catch (fallbackError) {
+            throw new Error('No grade data available');
+          }
         }
       } catch (err) {
-        console.log('Using mock grade trend data for student dashboard');
-        // Generate realistic mock data based on academic year progression
-        const subjects = ['Mathematics', 'Science', 'English', 'History'];
-        const months = ['Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan'];
-        
-        // Create subject-specific base grades and trends
-        const subjectProfiles = {
-          Mathematics: { base: 78, trend: 1.5, difficulty: 0.8 },
-          Science: { base: 82, trend: 1.2, difficulty: 0.7 },
-          English: { base: 85, trend: 0.8, difficulty: 0.6 },
-          History: { base: 80, trend: 1.0, difficulty: 0.5 }
-        };
-        
-        const mockData = months.map((month, monthIndex) => {
-          const dataPoint: any = { month };
-          
-          subjects.forEach(subject => {
-            const profile = subjectProfiles[subject as keyof typeof subjectProfiles];
-            
-            // Calculate progressive improvement with some realistic variation
-            const progression = profile.trend * monthIndex;
-            const seasonalFactor = monthIndex < 4 ? 1 : 0.95; // Slight dip in winter
-            const randomVariation = (Math.random() - 0.5) * profile.difficulty * 5;
-            
-            const calculatedGrade = profile.base + progression + randomVariation;
-            const finalGrade = Math.max(65, Math.min(95, calculatedGrade * seasonalFactor));
-            
-            dataPoint[subject] = Math.round(finalGrade * 10) / 10; // One decimal place
-          });
-          
-          return dataPoint;
-        });
-        setGradeData(mockData);
+        console.log('Using display message for grade trend:', err);
+        setError('No historical grade data available yet');
+        setGradeData([]);
       } finally {
         setLoading(false);
       }
     };
 
     fetchStudentGrades();
-  }, [token, user]);
+  }, [activeToken, activeStudentId, user?.role, resultsData]);
 
   if (loading) {
     return (
@@ -1123,13 +1150,10 @@ export const StudentGradeTrendChart = () => {
     );
   }
 
-  if (error) {
+  if (error || gradeData.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-64">
-        <p className="text-sm text-red-600 mb-2">Failed to load grade data</p>
-        <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
-          Retry
-        </Button>
+        <p className="text-sm text-muted-foreground mb-2">{error || 'No grade data available'}</p>
       </div>
     );
   }
@@ -1146,7 +1170,7 @@ export const StudentGradeTrendChart = () => {
           stroke="#6b7280"
         />
         <YAxis 
-          domain={[60, 100]}
+          domain={[0, 100]}
           tick={{ fontSize: 12 }}
           stroke="#6b7280"
           label={{ value: 'Grade %', angle: -90, position: 'insideLeft' }}

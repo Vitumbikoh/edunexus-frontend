@@ -250,16 +250,14 @@ import {
   FeeCollectionChart,
   FinanceOverviewChart,
   StudentPerformanceChart,
-  AssignmentStatusChart,
-  StudentAttendanceTrendChart,
   StudentGradeTrendChart,
-  generateAssignmentStatusData,
-  generateStudentPerformanceData,
+  
 } from "./DashboardCharts";
 import { useToast } from "@/components/ui/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@radix-ui/react-progress";
+import { ExamResultService } from "@/services/examResultService";
 
 export const AdminDashboardCards = () => {
   const navigate = useNavigate();
@@ -1060,82 +1058,111 @@ export const ParentDashboardCards = () => {
 };
 
 export const StudentDashboardCards = () => {
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const navigate = useNavigate();
 
-  const studentPerformanceData = generateStudentPerformanceData(user);
-  const assignmentStatusData = generateAssignmentStatusData(user);
+  // My Performance: load real data from backend (exam results + course averages)
+  const [perfLoading, setPerfLoading] = useState<boolean>(true);
+  const [perfError, setPerfError] = useState<string | null>(null);
+  const [studentPerformanceData, setStudentPerformanceData] = useState<any[]>([]);
+  const [avgPercentage, setAvgPercentage] = useState<number | null>(null);
+
+  useEffect(() => {
+    const load = async () => {
+      if (!user || user.role !== 'student' || !token) { setPerfLoading(false); return; }
+      try {
+        setPerfLoading(true); setPerfError(null);
+        const studentId = (user as any).id;
+        
+        // Fetch exam results for this student
+        const resultsResp = await ExamResultService.getStudentResults(studentId, token);
+        const results = resultsResp?.results || [];
+        
+        // Build chart data from results
+        // For "class average", we'll use a baseline comparison or omit if not available
+        const chartData = results.map((r: any) => {
+          return {
+            name: r.courseName || r.courseCode || 'Course',
+            score: typeof r.finalPercentage === 'number' ? r.finalPercentage : 0,
+            average: 0, // Will be updated below if course averages are accessible
+          };
+        });
+
+        // Try to fetch course averages (students may not have access, so handle gracefully)
+        try {
+          const averagesResp = await fetch(`${API_CONFIG.BASE_URL}/analytics/course-averages`, { 
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          
+          if (averagesResp && averagesResp.ok) {
+            const averagesJson = await averagesResp.json();
+            const averagesArr: any[] = Array.isArray(averagesJson) ? averagesJson : (averagesJson?.courseAverages || []);
+            const avgByCourse: Record<string, number> = {};
+            averagesArr.forEach((a: any) => {
+              const key = (a.courseId || a.courseName || a.name || '').toString();
+              const val = a.averageGrade ?? a.average ?? a.averageScore ?? a.value;
+              if (key && typeof val === 'number') avgByCourse[key] = val;
+            });
+            
+            // Update chart data with averages
+            chartData.forEach((cd: any) => {
+              const avg = avgByCourse[results.find((r: any) => r.courseName === cd.name)?.courseId] ?? 
+                          avgByCourse[cd.name];
+              if (typeof avg === 'number') cd.average = avg;
+            });
+          }
+        } catch (avgError) {
+          console.log('Course averages not accessible for student, showing scores only');
+          // Leave average as 0 or remove the average bar from chart
+        }
+
+        setStudentPerformanceData(chartData);
+        
+        if (results.length > 0) {
+          const avgPct = results.reduce((s: number, r: any) => s + (Number(r.finalPercentage) || 0), 0) / results.length;
+          setAvgPercentage(Math.round(avgPct * 10) / 10);
+        } else {
+          setAvgPercentage(null);
+        }
+      } catch (e: any) {
+        console.warn('Student performance data unavailable', e);
+        setPerfError(e?.message || 'Unable to load performance data');
+        setStudentPerformanceData([]);
+        setAvgPercentage(null);
+      } finally {
+        setPerfLoading(false);
+      }
+    };
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, token]);
 
   return (
     <div className="space-y-6">
-      {/* First Row - Performance and Assignment Status */}
+      {/* Single Row - Both Charts Side by Side */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card className="bg-gradient-to-br from-white to-slate-50 dark:from-gray-900 dark:to-gray-900/50">
           <CardHeader>
             <CardTitle>My Performance</CardTitle>
             <CardDescription>
-              Course scores compared to class average
+              Course scores compared to class/course averages
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="h-80">
-              <StudentPerformanceChart data={studentPerformanceData} />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-white to-slate-50 dark:from-gray-900 dark:to-gray-900/50">
-          <CardHeader>
-            <CardTitle>Assignment Status</CardTitle>
-            <CardDescription>Overview of your assignments</CardDescription>
-          </CardHeader>
-          <CardContent className="flex justify-center">
-            <div className="h-64 w-64">
-              <AssignmentStatusChart data={assignmentStatusData} />
-            </div>
-          </CardContent>
-          <div className="px-6 pb-6">
-            <Button className="w-full" onClick={() => navigate("/assignments")}>
-              View All Assignments
-              <ChevronRight className="ml-2 h-4 w-4" />
-            </Button>
-          </div>
-        </Card>
-      </div>
-
-      {/* Second Row - Attendance and Grade Trends */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="bg-gradient-to-br from-green-50 via-white to-emerald-50 dark:from-green-900/20 dark:via-gray-800 dark:to-emerald-900/20 border-green-200/50 shadow-lg">
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="h-2 w-2 bg-green-500 rounded-full"></div>
-                Attendance Trend
+            {perfLoading ? (
+              <div className="h-80 flex items-center justify-center">
+                <Loader2 className="h-5 w-5 animate-spin text-primary" />
               </div>
-              <div className="text-right">
-                <div className="text-2xl font-bold text-green-600">92%</div>
-                <div className="text-xs text-muted-foreground">Current</div>
+            ) : studentPerformanceData.length > 0 ? (
+              <div className="h-80">
+                <StudentPerformanceChart data={studentPerformanceData} />
               </div>
-            </CardTitle>
-            <CardDescription>
-              Your attendance over the past 6 months
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="h-80">
-              <StudentAttendanceTrendChart />
-            </div>
+            ) : (
+              <div className="h-32 flex items-center justify-center text-sm text-muted-foreground">
+                {perfError || 'No performance data yet'}
+              </div>
+            )}
           </CardContent>
-          <div className="px-6 pb-6">
-            <Button 
-              variant="outline" 
-              className="w-full border-green-200 hover:bg-green-50" 
-              onClick={() => navigate("/profile")}
-            >
-              View Profile Details
-              <ChevronRight className="ml-2 h-4 w-4" />
-            </Button>
-          </div>
         </Card>
 
         <Card className="bg-gradient-to-br from-blue-50 via-white to-indigo-50 dark:from-blue-900/20 dark:via-gray-800 dark:to-indigo-900/20 border-blue-200/50 shadow-lg">
@@ -1146,7 +1173,7 @@ export const StudentDashboardCards = () => {
                 Grade Progress
               </div>
               <div className="text-right">
-                <div className="text-2xl font-bold text-blue-600">B+</div>
+                <div className="text-2xl font-bold text-blue-600">{avgPercentage != null ? `${avgPercentage}%` : '—'}</div>
                 <div className="text-xs text-muted-foreground">Average</div>
               </div>
             </CardTitle>
@@ -1155,9 +1182,19 @@ export const StudentDashboardCards = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="h-80">
-              <StudentGradeTrendChart />
-            </div>
+            {perfLoading ? (
+              <div className="h-80 flex items-center justify-center">
+                <Loader2 className="h-5 w-5 animate-spin text-primary" />
+              </div>
+            ) : studentPerformanceData.length > 0 ? (
+              <div className="h-80">
+                <StudentGradeTrendChart studentId={user?.id} token={token} resultsData={studentPerformanceData} />
+              </div>
+            ) : (
+              <div className="h-32 flex items-center justify-center text-sm text-muted-foreground">
+                {perfError || 'No grade data yet'}
+              </div>
+            )}
           </CardContent>
           <div className="px-6 pb-6">
             <Button 
