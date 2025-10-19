@@ -14,6 +14,7 @@ import ProfessionalReportCard, {
 import { API_CONFIG } from '@/config/api';
 import { termService, Term } from '@/services/termService';
 import { ExamResultService } from '@/services/examResultService';
+import { schoolSettingsService, SchoolSettings } from "@/services/schoolSettingsService";
 import ErrorBoundary from "@/components/common/ErrorBoundary";
 export default function StudentGrades() {
   const { user, token } = useAuth();
@@ -26,6 +27,7 @@ export default function StudentGrades() {
   const [schoolInfo, setSchoolInfo] = useState<SchoolInfo | null>(null);
   const [studentProfile, setStudentProfile] = useState<any>(null);
   const [fetchingTerm, setFetchingTerm] = useState<string | null>(null); // Track which term is being fetched
+  const [schoolSettings, setSchoolSettings] = useState<SchoolSettings | null>(null);
 
   // Add debugging to state changes
   const setExamResultsWithDebug = (results: any[]) => {
@@ -44,6 +46,31 @@ export default function StudentGrades() {
     console.log('📊 STATE UPDATE - examResults:', examResults.length, 'results');
     console.log('📊 STATE UPDATE - selectedTerm:', selectedTerm);
   }, [examResults, selectedTerm]);
+
+  // Helper functions for print functionality
+  const loadImageAsBase64 = (url: string): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        ctx?.drawImage(img, 0, 0);
+        const dataUrl = canvas.toDataURL('image/png');
+        resolve(dataUrl);
+      };
+      img.onerror = reject;
+      img.src = url;
+    });
+  };
+
+  const getLogoUrl = (logoPath: string | null): string | null => {
+    if (!logoPath) return null;
+    if (logoPath.startsWith('http')) return logoPath;
+    return `${API_CONFIG.BASE_URL}/uploads/${logoPath}`;
+  };
 
   // Early return for permission check - after all hooks
   if (!user || user.role !== 'student') {
@@ -176,6 +203,26 @@ export default function StudentGrades() {
           logoUrl: undefined,
           about: "Committed to excellence in education and character development.",
         });
+
+        // Fetch school settings for print functionality
+        try {
+          const settings = await schoolSettingsService.getSettings(token);
+          setSchoolSettings(settings);
+          
+          // Update school info with real data if available
+          if (settings) {
+            setSchoolInfo({
+              name: settings.schoolName || "Rumphi Secondary School",
+              address: settings.schoolAddress || "P.O. Box, 133, Rumphi",
+              phone: settings.schoolPhone || "0980517768",
+              email: settings.schoolEmail || "rusesco@edu.ac.mw",
+              logoUrl: settings.schoolLogo ? getLogoUrl(settings.schoolLogo) : undefined,
+              about: settings.schoolAbout || "Committed to excellence in education and character development.",
+            });
+          }
+        } catch (settingsErr) {
+          console.log('School settings fetch failed, using defaults:', settingsErr);
+        }
 
         // Try to fetch profile (optional)
         try {
@@ -558,7 +605,7 @@ export default function StudentGrades() {
     });
   };
 
-  const handlePrint = () => {
+  const handlePrint = async () => {
     if (!transformedResults || !transformedResults.courses.length) {
       toast({
         title: 'No results to print',
@@ -568,7 +615,416 @@ export default function StudentGrades() {
       return;
     }
 
-    window.print();
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) return;
+
+    // Get school information
+    const schoolName = schoolSettings?.schoolName || schoolInfo?.name || "School Name";
+    let logoBase64 = '';
+    
+    // Load logo as base64 if available
+    if (schoolSettings?.schoolLogo) {
+      const logoUrl = getLogoUrl(schoolSettings.schoolLogo);
+      if (logoUrl) {
+        try {
+          logoBase64 = await loadImageAsBase64(logoUrl);
+        } catch (error) {
+          console.error('Error loading logo for print:', error);
+        }
+      }
+    }
+
+    // Get current term information
+    const currentTerm = terms.find(t => t.id === selectedTerm);
+    const termName = currentTerm?.name || "Unknown Term";
+    const academicYear = "2022-2023"; // You can make this dynamic if needed
+
+    const reportHTML = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Academic Report Card - ${transformedResults.student.firstName} ${transformedResults.student.lastName}</title>
+          <style>
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body { 
+              font-family: 'Times New Roman', Georgia, serif; 
+              background: white;
+              padding: 20px;
+              color: #2c3e50;
+              line-height: 1.5;
+            }
+            .report-card {
+              max-width: 800px;
+              margin: 0 auto;
+              background: white;
+              border: 2px solid #2c3e50;
+            }
+            
+            /* Header Section */
+            .header {
+              text-align: center;
+              padding: 30px;
+              border-bottom: 2px solid #2c3e50;
+            }
+            .school-header {
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              gap: 20px;
+              margin-bottom: 20px;
+            }
+            .school-logo {
+              width: 80px;
+              height: 80px;
+              border-radius: 50%;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              border: 2px solid #ccc;
+            }
+            .school-logo img {
+              width: 70px;
+              height: 70px;
+              object-fit: contain;
+              border-radius: 50%;
+            }
+            .school-info {
+              text-align: left;
+            }
+            .school-name {
+              font-size: 28px;
+              font-weight: bold;
+              color: #2c3e50;
+              margin-bottom: 5px;
+            }
+            .school-motto {
+              font-size: 16px;
+              font-style: italic;
+              color: #666;
+            }
+            .report-title {
+              font-size: 24px;
+              font-weight: bold;
+              color: #2c3e50;
+              margin-bottom: 20px;
+            }
+            
+            /* Academic Period */
+            .academic-period {
+              display: grid;
+              grid-template-columns: repeat(4, 1fr);
+              gap: 20px;
+              background: #f8f9fa;
+              padding: 20px;
+              border: 1px solid #ddd;
+              margin-bottom: 20px;
+            }
+            .period-item {
+              text-align: center;
+            }
+            .period-label {
+              font-size: 12px;
+              font-weight: bold;
+              color: #666;
+              margin-bottom: 5px;
+            }
+            .period-value {
+              font-size: 14px;
+              font-weight: bold;
+              color: #2c3e50;
+            }
+            
+            /* Student Details Section */
+            .student-section {
+              padding: 20px 30px;
+              border-bottom: 1px solid #eee;
+            }
+            .section-title {
+              font-size: 18px;
+              font-weight: bold;
+              color: #2c3e50;
+              margin-bottom: 15px;
+              display: flex;
+              align-items: center;
+              gap: 8px;
+            }
+            .student-grid {
+              display: grid;
+              grid-template-columns: 1fr 1fr;
+              gap: 20px;
+              background: #f8f9fa;
+              padding: 15px;
+              border-radius: 8px;
+              border: 1px solid #ddd;
+            }
+            .student-item {
+              display: flex;
+              gap: 10px;
+            }
+            .student-label {
+              font-weight: bold;
+              color: #666;
+              min-width: 100px;
+            }
+            .student-value {
+              color: #2c3e50;
+              font-weight: 500;
+            }
+            
+            /* Performance Summary */
+            .performance-section {
+              padding: 20px 30px;
+              border-bottom: 1px solid #eee;
+            }
+            .summary-grid {
+              display: grid;
+              grid-template-columns: repeat(5, 1fr);
+              gap: 15px;
+            }
+            .summary-card {
+              text-align: center;
+              padding: 15px;
+              border-radius: 8px;
+              border: 2px solid #ddd;
+            }
+            .gpa-card { border-color: #3498db; background: #f0f8ff; }
+            .score-card { border-color: #27ae60; background: #f0fff0; }
+            .courses-card { border-color: #9b59b6; background: #f8f0ff; }
+            .marks-card { border-color: #f39c12; background: #fff8f0; }
+            .performance-card { border-color: #e74c3c; background: #fff0f0; }
+            
+            .summary-value {
+              font-size: 20px;
+              font-weight: bold;
+              margin-bottom: 5px;
+            }
+            .summary-label {
+              font-size: 11px;
+              color: #666;
+              font-weight: 600;
+            }
+            
+            /* Course Results Table */
+            .results-section {
+              padding: 20px 30px;
+            }
+            .results-table {
+              width: 100%;
+              border-collapse: collapse;
+              margin-top: 15px;
+              border: 1px solid #ddd;
+            }
+            .results-table th {
+              background: #f5f5f5;
+              padding: 12px 8px;
+              text-align: center;
+              font-weight: bold;
+              font-size: 12px;
+              color: #333;
+              border: 1px solid #ddd;
+            }
+            .results-table td {
+              padding: 10px 8px;
+              border: 1px solid #ddd;
+              text-align: center;
+              font-size: 14px;
+            }
+            .results-table tr:nth-child(even) {
+              background: #f9f9f9;
+            }
+            .course-name { text-align: left; font-weight: 500; }
+            .course-code { font-family: monospace; color: #666; }
+            .percentage { font-weight: bold; }
+            
+            .grade-badge {
+              padding: 4px 8px;
+              border-radius: 4px;
+              font-weight: bold;
+              font-size: 12px;
+              color: white;
+            }
+            .grade-a { background: #27ae60; }
+            .grade-b { background: #3498db; }
+            .grade-c { background: #f39c12; }
+            .grade-d { background: #e67e22; }
+            .grade-f { background: #e74c3c; }
+            
+            .status-badge {
+              padding: 3px 8px;
+              border-radius: 4px;
+              font-size: 11px;
+              font-weight: bold;
+              color: white;
+            }
+            .status-pass { background: #27ae60; }
+            .status-fail { background: #e74c3c; }
+            
+            /* Footer */
+            .footer {
+              padding: 25px 30px;
+              text-align: center;
+              background: #f8f9fa;
+              border-top: 2px solid #2c3e50;
+              font-size: 12px;
+              color: #666;
+              line-height: 1.6;
+            }
+            .footer-content {
+              margin-bottom: 15px;
+            }
+            .school-about {
+              font-weight: bold;
+              margin: 10px 0;
+              color: #2c3e50;
+            }
+            .school-contact {
+              display: flex;
+              justify-content: center;
+              gap: 20px;
+              font-size: 11px;
+              color: #666;
+            }
+            
+            @media print {
+              body { padding: 0; }
+              .report-card { box-shadow: none; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="report-card">
+            <!-- Professional Header -->
+            <div class="header">
+              <div class="school-header">
+                <div class="school-logo">
+                  ${logoBase64 ? `<img src="${logoBase64}" alt="${schoolName} Logo">` : '<div style="color: #666; font-size: 24px;">🎓</div>'}
+                </div>
+                <div class="school-info">
+                  <div class="school-name">${schoolName}</div>
+                  <div class="school-motto">"${schoolSettings?.schoolAbout || schoolInfo?.about || 'Excellence in Education'}"</div>
+                </div>
+              </div>
+              <div class="report-title">Academic Performance Report</div>
+              
+              <!-- Academic Period -->
+              <div class="academic-period">
+                <div class="period-item">
+                  <div class="period-label">Academic Year</div>
+                  <div class="period-value">${academicYear}</div>
+                </div>
+                <div class="period-item">
+                  <div class="period-label">Academic Term</div>
+                  <div class="period-value">${termName}</div>
+                </div>
+                <div class="period-item">
+                  <div class="period-label">Class</div>
+                  <div class="period-value">${transformedResults.student.className}</div>
+                </div>
+                <div class="period-item">
+                  <div class="period-label">Report Date</div>
+                  <div class="period-value">${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Student Details Section -->
+            <div class="student-section">
+              <div class="section-title">👤 Student Details</div>
+              <div class="student-grid">
+                <div class="student-item">
+                  <span class="student-label">Full Name:</span>
+                  <span class="student-value">${transformedResults.student.firstName} ${transformedResults.student.lastName}</span>
+                </div>
+                <div class="student-item">
+                  <span class="student-label">Student ID:</span>
+                  <span class="student-value">${transformedResults.student.studentId}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Academic Performance Summary -->
+            <div class="performance-section">
+              <div class="section-title">📊 Academic Performance Summary</div>
+              <div class="summary-grid">
+                <div class="summary-card gpa-card">
+                  <div class="summary-value" style="color: #3498db;">${transformedResults.summary.overallGPA.toFixed(2)}</div>
+                  <div class="summary-label">Overall GPA</div>
+                </div>
+                <div class="summary-card score-card">
+                  <div class="summary-value" style="color: #27ae60;">${Math.round(transformedResults.summary.averageScore)}%</div>
+                  <div class="summary-label">Average Score</div>
+                </div>
+                <div class="summary-card courses-card">
+                  <div class="summary-value" style="color: #9b59b6;">${transformedResults.summary.totalCourses}</div>
+                  <div class="summary-label">Total Courses</div>
+                </div>
+                <div class="summary-card marks-card">
+                  <div class="summary-value" style="color: #f39c12;">${transformedResults.summary.totalMarks}/${transformedResults.summary.totalPossible}</div>
+                  <div class="summary-label">Marks Obtained</div>
+                </div>
+                <div class="summary-card performance-card">
+                  <div class="summary-value" style="color: #e74c3c; font-size: 16px;">${transformedResults.summary.performance}</div>
+                  <div class="summary-label">Performance Level</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Course Results Table -->
+            <div class="results-section">
+              <div class="section-title">📚 Detailed Course Results</div>
+              <table class="results-table">
+                <thead>
+                  <tr>
+                    <th style="width: 35%;">Course Name</th>
+                    <th style="width: 15%;">Code</th>
+                    <th style="width: 15%;">Percentage</th>
+                    <th style="width: 10%;">Grade</th>
+                    <th style="width: 10%;">Points</th>
+                    <th style="width: 15%;">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${transformedResults.courses.map(course => `
+                    <tr>
+                      <td class="course-name">${course.courseName}</td>
+                      <td class="course-code">${course.courseCode}</td>
+                      <td class="percentage">${Math.round(course.finalPercentage)}%</td>
+                      <td><span class="grade-badge grade-${(course.grade || 'f').toLowerCase().replace('+', '')}">${course.grade || 'N/A'}</span></td>
+                      <td style="font-weight: 600;">${course.points.toFixed(1)}</td>
+                      <td><span class="status-badge status-${course.status === 'Pass' ? 'pass' : 'fail'}">${course.status}</span></td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Professional Footer -->
+            <div class="footer">
+              <div class="footer-content">
+                <p><strong>This official academic report card has been generated electronically by the ${schoolName} Management System.</strong></p>
+                <p>For verification or any academic inquiries, please contact the school administration office.</p>
+                ${schoolSettings?.schoolAbout ? `<div class="school-about">About ${schoolName}: ${schoolSettings.schoolAbout}</div>` : ''}
+              </div>
+              ${(schoolSettings?.schoolAddress || schoolSettings?.schoolPhone || schoolSettings?.schoolEmail) ? `
+              <div class="school-contact">
+                ${schoolSettings.schoolAddress ? `<span>📍 ${schoolSettings.schoolAddress}</span>` : ''}
+                ${schoolSettings.schoolPhone ? `<span>📞 ${schoolSettings.schoolPhone}</span>` : ''}
+                ${schoolSettings.schoolEmail ? `<span>📧 ${schoolSettings.schoolEmail}</span>` : ''}
+              </div>` : ''}
+            </div>
+          </div>
+          
+          <script>
+            window.onload = function() {
+              setTimeout(() => window.print(), 1000);
+            }
+          </script>
+        </body>
+      </html>
+    `;
+
+    printWindow.document.write(reportHTML);
+    printWindow.document.close();
   };
 
   const handleRefresh = () => {
