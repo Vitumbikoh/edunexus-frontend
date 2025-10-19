@@ -52,7 +52,10 @@ export default function PaymentForm() {
   const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split('T')[0]);
   const [receiptNumber, setReceiptNumber] = useState("");
   const [notes, setNotes] = useState("");
-  const [feeTypes, setFeeTypes] = useState<FeeTypeOption[]>([{ value: 'Tuition', label: 'Tuition' }]);
+  const [feeTypes, setFeeTypes] = useState<FeeTypeOption[]>([
+    { value: 'Tuition', label: 'Tuition' },
+    { value: 'School Uniform', label: 'School Uniform' }
+  ]);
   const [studentSearch, setStudentSearch] = useState("");
 
   // Check permissions
@@ -140,23 +143,59 @@ export default function PaymentForm() {
     fetchStudents();
   }, [token, navigate, toast]);
 
-  // Fetch dynamic fee types
+  // Fetch fee types from fee structure (defined fees)
   useEffect(() => {
     const fetchFeeTypes = async () => {
       if (!token) return;
       try {
-        const data = await apiFetch<{ feeTypes: string[] }>(`/finance/fee-types`);
-        const list: string[] = Array.isArray(data) ? (data as any) : (data?.feeTypes || []);
-        if (list.length) {
-          setFeeTypes(list.map(ft => ({ value: ft, label: ft })));
-          if (!list.includes(selectedPaymentType)) {
-            setSelectedPaymentType(list[0]);
-          }
+        const data = await apiFetch<any>(`/finance/fee-structure`);
+        console.log('Fee structure API response:', data); // Debug log
+        
+        // Extract fee names from fee structure
+        let feeList: string[] = [];
+        if (Array.isArray(data)) {
+          // If data is directly an array of fee structures
+          feeList = data
+            .filter((item: any) => item.isActive !== false) // Only active fees
+            .map((item: any) => item.feeType?.trim() || item.feeName?.trim())
+            .filter(Boolean);
+        } else if (data?.feeStructure && Array.isArray(data.feeStructure)) {
+          // If data has feeStructure property
+          feeList = data.feeStructure
+            .filter((item: any) => item.isActive !== false) // Only active fees
+            .map((item: any) => item.feeType?.trim() || item.feeName?.trim())
+            .filter(Boolean);
         }
-      } catch {/* ignore */}
+
+        // Remove duplicates
+        const uniqueFees = Array.from(new Set(feeList));
+        
+        if (uniqueFees.length > 0) {
+          setFeeTypes(uniqueFees.map(fee => ({ value: fee, label: fee })));
+          // Set first fee as default if current selection is not in the list
+          if (!uniqueFees.includes(selectedPaymentType)) {
+            setSelectedPaymentType(uniqueFees[0]);
+          }
+          console.log('Loaded fee types from fee management:', uniqueFees);
+        } else {
+          console.warn('No active fees found in fee structure');
+          // Keep default fees if no active fees found
+          setFeeTypes([
+            { value: 'Tuition', label: 'Tuition' },
+            { value: 'School Uniform', label: 'School Uniform' }
+          ]);
+        }
+      } catch (error) {
+        console.error('Failed to fetch fee structure:', error);
+        // Keep default fees on error
+        setFeeTypes([
+          { value: 'Tuition', label: 'Tuition' },
+          { value: 'School Uniform', label: 'School Uniform' }
+        ]);
+      }
     };
     fetchFeeTypes();
-  }, [token]);
+  }, [token, selectedPaymentType]);
 
   // Token refresh is now handled by apiClient
 
@@ -255,32 +294,84 @@ export default function PaymentForm() {
             <div className="space-y-2">
               <Label htmlFor="student">Student</Label>
               <div className="space-y-2">
-                <Input
-                  placeholder="Search student..."
-                  value={studentSearch}
-                  onChange={e => setStudentSearch(e.target.value)}
-                  disabled={isLoadingStudents}
-                />
-                <div className="max-h-48 overflow-y-auto border rounded-md p-2 bg-background">
-                  {isLoadingStudents ? (
-                    <div className="text-sm text-muted-foreground">Loading...</div>
-                  ) : students.filter(s => (
-                      `${s.firstName} ${s.lastName}`.toLowerCase().includes(studentSearch.toLowerCase()) ||
-                      (s.studentId || '').toLowerCase().includes(studentSearch.toLowerCase())
-                    )).map(s => (
-                      <button
+                {!selectedStudent ? (
+                  // Search and selection mode
+                  <>
+                    <Input
+                      placeholder="Search student..."
+                      value={studentSearch}
+                      onChange={e => setStudentSearch(e.target.value)}
+                      disabled={isLoadingStudents}
+                    />
+                    <div className="max-h-48 overflow-y-auto border rounded-md p-2 bg-background">
+                      {isLoadingStudents ? (
+                        <div className="text-sm text-muted-foreground">Loading...</div>
+                      ) : students.filter(s => (
+                          `${s.firstName} ${s.lastName}`.toLowerCase().includes(studentSearch.toLowerCase()) ||
+                          (s.studentId || '').toLowerCase().includes(studentSearch.toLowerCase())
+                        )).map(s => (
+                          <button
+                            type="button"
+                            key={s.id}
+                            onClick={() => {
+                              setSelectedStudent(s.id);
+                              setStudentSearch(""); // Clear search after selection
+                            }}
+                            className="w-full text-left text-sm px-2 py-1 rounded-md hover:bg-muted transition-colors"
+                          >
+                            {s.firstName} {s.lastName} {s.studentId ? `(${s.studentId})` : ''}
+                            <span className="text-xs text-muted-foreground ml-2">
+                              - Class {s.class.numericalName || s.class.name}
+                            </span>
+                          </button>
+                        ))}
+                      {students.length === 0 && !isLoadingStudents && (
+                        <div className="text-xs text-muted-foreground">No students found</div>
+                      )}
+                      {students.filter(s => (
+                          `${s.firstName} ${s.lastName}`.toLowerCase().includes(studentSearch.toLowerCase()) ||
+                          (s.studentId || '').toLowerCase().includes(studentSearch.toLowerCase())
+                        )).length === 0 && studentSearch && !isLoadingStudents && (
+                        <div className="text-xs text-muted-foreground">No students match your search</div>
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  // Selected student display mode
+                  <div className="border rounded-md p-3 bg-muted/50 border-primary/20">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="font-medium">
+                          {(() => {
+                            const selected = students.find(s => s.id === selectedStudent);
+                            return selected ? `${selected.firstName} ${selected.lastName}` : 'Unknown Student';
+                          })()}
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          {(() => {
+                            const selected = students.find(s => s.id === selectedStudent);
+                            if (!selected) return 'Student not found';
+                            const parts = [];
+                            if (selected.studentId) parts.push(`ID: ${selected.studentId}`);
+                            if (selected.class) parts.push(`Class: ${selected.class.numericalName || selected.class.name}`);
+                            return parts.join(' • ');
+                          })()}
+                        </div>
+                      </div>
+                      <Button
                         type="button"
-                        key={s.id}
-                        onClick={() => setSelectedStudent(s.id)}
-                        className={`w-full text-left text-sm px-2 py-1 rounded-md hover:bg-muted ${selectedStudent === s.id ? 'bg-muted' : ''}`}
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setSelectedStudent("");
+                          setStudentSearch("");
+                        }}
                       >
-                        {s.firstName} {s.lastName} {s.studentId ? `(${s.studentId})` : ''}
-                      </button>
-                    ))}
-                  {students.length === 0 && !isLoadingStudents && (
-                    <div className="text-xs text-muted-foreground">No students found</div>
-                  )}
-                </div>
+                        Change Student
+                      </Button>
+                    </div>
+                  </div>
+                )}
                 <input type="hidden" required value={selectedStudent} onChange={()=>{}} />
               </div>
             </div>

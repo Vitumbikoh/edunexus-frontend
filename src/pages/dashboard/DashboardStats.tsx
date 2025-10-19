@@ -254,21 +254,95 @@ export const useDashboardStats = () => {
                 }
               }
 
-              // Get student's current attendance rate
-              let attendanceRate = '-';
+              // Get student's comprehensive financial balance (all fee types)
+              let balanceInfo = { title: 'Balance', value: 'MK 0.00', icon: <DollarSign size={24} /> };
               try {
-                const attendRes = await fetch(`http://localhost:5000/api/v1/attendance/student/me/rate`, { headers: { Authorization: `Bearer ${token}` } });
-                if (attendRes.ok) {
-                  const att = await attendRes.json();
-                  const rate = att?.attendanceRate ?? att?.rate ?? att?.percentage;
-                  if (typeof rate === 'number') {
-                    attendanceRate = `${Math.round(rate)}%`;
+                console.log('Fetching balance for student:', user?.id); // Debug log
+                
+                // First get current term
+                const termsRes = await fetch(`http://localhost:5000/api/v1/settings/terms`, { headers: { Authorization: `Bearer ${token}` } });
+                let currentTermId = null;
+                
+                console.log('Terms API response status:', termsRes.status); // Debug log
+                if (termsRes.ok) {
+                  const termsData = await termsRes.json();
+                  console.log('Terms data:', termsData); // Debug log
+                  
+                  // Find the current term from the list
+                  const termsList = Array.isArray(termsData) ? termsData : (termsData?.data || []);
+                  const currentTerm = termsList.find((term: any) => term.isCurrent === true);
+                  currentTermId = currentTerm?.id;
+                  console.log('Current term ID:', currentTermId); // Debug log
+                } else {
+                  console.error('Terms API error:', await termsRes.text());
+                }
+
+                if (currentTermId) {
+                  // Get comprehensive fee status for all fee types
+                  const feeStatusUrl = `http://localhost:5000/api/v1/finance/fee-status/${user?.id}?termId=${currentTermId}`;
+                  console.log('Calling finance fee status API:', feeStatusUrl); // Debug log
+                  
+                  const balanceRes = await fetch(feeStatusUrl, { headers: { Authorization: `Bearer ${token}` } });
+                  console.log('Finance fee status API response status:', balanceRes.status); // Debug log
+                  
+                  if (balanceRes.ok) {
+                    const feeStatus = await balanceRes.json();
+                    console.log('Finance fee status response:', feeStatus); // Debug log
+                    
+                    const outstanding = feeStatus?.outstanding || 0;
+                    const totalPaid = feeStatus?.totalPaid || 0;
+                    const totalExpected = feeStatus?.totalExpected || 0;
+                    
+                    console.log('Balance calculation:', { outstanding, totalPaid, totalExpected }); // Debug log
+                    
+                    // Calculate if overpaid (surplus)
+                    const surplus = totalPaid > totalExpected ? totalPaid - totalExpected : 0;
+                    
+                    if (outstanding > 0) {
+                      balanceInfo = {
+                        title: 'Outstanding Balance',
+                        value: `MK ${outstanding.toLocaleString('en-US', { minimumFractionDigits: 2 })}`,
+                        icon: <CreditCard size={24} />
+                      };
+                    } else if (surplus > 0) {
+                      balanceInfo = {
+                        title: 'Overpaid Balance',
+                        value: `MK ${surplus.toLocaleString('en-US', { minimumFractionDigits: 2 })}`,
+                        icon: <Award size={24} />
+                      };
+                    } else {
+                      balanceInfo = {
+                        title: 'Balance',
+                        value: 'MK 0.00',
+                        icon: <DollarSign size={24} />
+                      };
+                    }
+                    console.log('Final balance info:', balanceInfo); // Debug log
+                  } else {
+                    const errorText = await balanceRes.text();
+                    console.error('Finance fee status API error:', errorText);
+                    
+                    // If the endpoint doesn't exist or access is denied, show fallback
+                    if (balanceRes.status === 404 || balanceRes.status === 403) {
+                      console.log('Finance fee status endpoint not accessible, showing fallback...'); // Debug log
+                      // Try to get balance from payments directly
+                      try {
+                        const paymentsRes = await fetch(`http://localhost:5000/api/v1/finance/payments/student/${user?.id}`, { headers: { Authorization: `Bearer ${token}` } });
+                        if (paymentsRes.ok) {
+                          const paymentsData = await paymentsRes.json();
+                          console.log('Payments data:', paymentsData); // Debug log
+                          // This would need custom logic based on payments structure
+                        }
+                      } catch (err) {
+                        console.error('Alternative balance fetch failed:', err);
+                      }
+                    }
                   }
                 } else {
-                  console.error('Attendance API error:', await attendRes.text());
+                  console.warn('No current term found for fee status');
                 }
-              } catch (attendError) {
-                console.error('Failed to fetch attendance:', attendError);
+              } catch (balanceError) {
+                console.error('Failed to fetch comprehensive fee status:', balanceError);
               }
 
               // Get upcoming exams count
@@ -307,14 +381,23 @@ export const useDashboardStats = () => {
               studentStats = [
                 { title: 'My Courses', value: String(coursesCount), icon: <BookOpen size={24} />, className: "bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-900/10" },
                 { title: "Today's Classes", value: String(todaysClasses), icon: <Calendar size={24} />, className: "bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-900/10" },
-                { title: 'Attendance', value: attendanceRate, icon: <UserCheck size={24} />, className: "bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-900/10" },
+                { 
+                  title: balanceInfo.title, 
+                  value: balanceInfo.value, 
+                  icon: balanceInfo.icon, 
+                  className: balanceInfo.title.includes('Outstanding') 
+                    ? "bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-900/10"
+                    : balanceInfo.title.includes('Overpaid')
+                    ? "bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-900/10"  
+                    : "bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900/20 dark:to-gray-900/10"
+                },
                 { title: 'Upcoming Exams', value: String(upcomingExams), icon: <FileText size={24} />, className: "bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-900/10" },
               ];
             } catch (e) {
               studentStats = [
                 { title: 'My Courses', value: user?.studentData?.courses?.length?.toString() || '0', icon: <BookOpen size={24} />, className: "bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-900/10" },
                 { title: "Today's Classes", value: '0', icon: <Calendar size={24} />, className: "bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-900/10" },
-                { title: 'Attendance', value: '-', icon: <UserCheck size={24} />, className: "bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-900/10" },
+                { title: 'Balance', value: 'MK 0.00', icon: <DollarSign size={24} />, className: "bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900/20 dark:to-gray-900/10" },
                 { title: 'Upcoming Exams', value: '0', icon: <FileText size={24} />, className: "bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-900/10" },
               ];
             }
