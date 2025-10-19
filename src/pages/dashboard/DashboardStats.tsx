@@ -282,29 +282,34 @@ export const useDashboardStats = () => {
                 }
               } catch {}
 
-              // Average grade
-              let avgGrade = '-';
+              // Today's classes count
+              let todaysClasses = 0;
               try {
-                const resultsRes = await fetch(`http://localhost:5000/api/v1/exam-results/student/${user?.id}`, { headers: { Authorization: `Bearer ${token}` } });
-                if (resultsRes.ok) {
-                  const results = await resultsRes.json();
-                  const avg = results?.summary?.averageScore ?? results?.averageScore;
-                  if (typeof avg === 'number') {
-                    avgGrade = `${Math.round(avg)}%`;
-                  }
+                const schedulesRes = await fetch(`http://localhost:5000/api/v1/student/my-schedules?limit=100`, { headers: { Authorization: `Bearer ${token}` } });
+                if (schedulesRes.ok) {
+                  const schedulesData = await schedulesRes.json();
+                  const schedules = schedulesData?.schedules || [];
+                  
+                  // Get today's day name
+                  const today = new Date().toLocaleDateString('en-US', { weekday: 'long' });
+                  
+                  // Filter schedules for today
+                  todaysClasses = schedules.filter((schedule: any) => 
+                    schedule.day === today
+                  ).length;
                 }
               } catch {}
 
               studentStats = [
                 { title: 'My Courses', value: String(coursesCount), icon: <BookOpen size={24} />, className: "bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-900/10" },
-                { title: 'Average Grade', value: avgGrade, icon: <Award size={24} />, className: "bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-900/10" },
+                { title: "Today's Classes", value: String(todaysClasses), icon: <Calendar size={24} />, className: "bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-900/10" },
                 { title: 'Attendance', value: attendanceRate, icon: <UserCheck size={24} />, className: "bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-900/10" },
                 { title: 'Upcoming Exams', value: String(upcomingExams), icon: <FileText size={24} />, className: "bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-900/10" },
               ];
             } catch (e) {
               studentStats = [
                 { title: 'My Courses', value: user?.studentData?.courses?.length?.toString() || '0', icon: <BookOpen size={24} />, className: "bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-900/10" },
-                { title: 'Average Grade', value: '-', icon: <Award size={24} />, className: "bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-900/10" },
+                { title: "Today's Classes", value: '0', icon: <Calendar size={24} />, className: "bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-900/10" },
                 { title: 'Attendance', value: '-', icon: <UserCheck size={24} />, className: "bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-900/10" },
                 { title: 'Upcoming Exams', value: '0', icon: <FileText size={24} />, className: "bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-900/10" },
               ];
