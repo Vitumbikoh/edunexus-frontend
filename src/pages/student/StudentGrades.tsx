@@ -363,12 +363,12 @@ export default function StudentGrades() {
     return gradeMap[grade.toUpperCase()] || 0.0;
   };
 
-  const getPerformanceLevel = (gpa: number): string => {
-    if (gpa >= 3.5) return "Excellent";
-    if (gpa >= 3.0) return "Good";
-    if (gpa >= 2.5) return "Satisfactory";
-    if (gpa >= 2.0) return "Needs Improvement";
-    return "Poor";
+  const getPerformanceLevel = (averageScore: number): string => {
+    if (averageScore >= 80) return "Very Good";
+    if (averageScore >= 70) return "Good";
+    if (averageScore >= 60) return "Satisfactory";
+    if (averageScore >= 50) return "Needs Improvement";
+    return "Needs Improvement";
   };
 
   // Handle term selection change
@@ -446,7 +446,7 @@ export default function StudentGrades() {
       const totalPoints = courseResults.reduce((sum, course) => sum + (Number(course.points) || 0), 0);
       const overallGPA = courseResults.length > 0 ? totalPoints / courseResults.length : 0;
       
-      const performanceLevel = getPerformanceLevel(overallGPA);
+      const performanceLevel = getPerformanceLevel(averageScore);
       
       const summary: PerformanceSummary = {
         overallGPA: Number.isFinite(overallGPA) ? overallGPA : 0,
