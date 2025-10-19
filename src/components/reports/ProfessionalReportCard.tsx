@@ -348,7 +348,7 @@ const ProfessionalReportCard: React.FC<ProfessionalReportCardProps> = ({
                   {courses.map((course, index) => (
                     <tr key={course.courseCode} className={cn(
                       "border-b hover:bg-muted/30 transition-colors",
-                      index % 2 === 0 ? "bg-white" : "bg-muted/10"
+                      index % 2 === 0 ? "bg-background" : "bg-muted/10"
                     )}>
                       <td className="p-4 font-mono text-sm font-medium">
                         {course.courseCode}
