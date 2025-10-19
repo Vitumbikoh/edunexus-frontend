@@ -25,6 +25,7 @@ export default function StudentGrades() {
   const [activeTerm, setActiveTerm] = useState<Term | null>(null);
   const [schoolInfo, setSchoolInfo] = useState<SchoolInfo | null>(null);
   const [studentProfile, setStudentProfile] = useState<any>(null);
+  const [fetchingTerm, setFetchingTerm] = useState<string | null>(null); // Track which term is being fetched
 
   // Add debugging to state changes
   const setExamResultsWithDebug = (results: any[]) => {
@@ -149,15 +150,20 @@ export default function StudentGrades() {
           console.log('Generated standard terms for academic year:', activeAcademicYear, termsToUse);
         }
 
-        setTerms(termsToUse);
+        // Remove any potential duplicates before setting terms
+        const uniqueTerms = termsToUse.filter((term, index, self) => 
+          index === self.findIndex(t => t.id === term.id)
+        );
+
+        setTerms(uniqueTerms);
         
         // Find the current/active term, or default to the first term
-        const currentTerm = termsToUse.find(t => t.isActive) || termsToUse[0];
+        const currentTerm = uniqueTerms.find(t => t.isActive) || uniqueTerms[0];
         setActiveTerm(currentTerm);
         setSelectedTermWithDebug(currentTerm.id);
 
-        console.log('Final terms set:', termsToUse);
-        console.log('Terms with details:', termsToUse.map(t => ({ id: t.id, name: t.name, termNumber: t.termNumber, isActive: t.isActive })));
+        console.log('Final terms set:', uniqueTerms);
+        console.log('Terms with details:', uniqueTerms.map(t => ({ id: t.id, name: t.name, termNumber: t.termNumber, isActive: t.isActive })));
         console.log('Current/Active term:', currentTerm);
         console.log('Selected term ID:', currentTerm.id);
 
@@ -199,7 +205,7 @@ export default function StudentGrades() {
     };
 
     fetchInitialData();
-  }, [token, user?.id]); // Use user.id to prevent infinite rerenders
+  }, [token, user?.id, user?.role]); // Add user.role to prevent re-runs when role changes
 
   const fetchExamResults = async (termId: string) => {
     if (!termId) {
@@ -207,10 +213,18 @@ export default function StudentGrades() {
       return;
     }
 
+    // Prevent duplicate fetches for the same term
+    if (fetchingTerm === termId) {
+      console.log('Already fetching results for term:', termId);
+      return;
+    }
+
     console.log('=== FETCH EXAM RESULTS DEBUG ===');
     console.log('Fetching exam results for term:', termId);
     console.log('Token exists:', !!token);
     console.log('User role:', user?.role);
+
+    setFetchingTerm(termId);
 
     try {
       // Try to fetch real exam results for the authenticated student using 'me' alias
@@ -237,33 +251,58 @@ export default function StudentGrades() {
             // If we got real results, ensure the term is in our terms list
             const realTermId = data.results[0].termId;
             const realTermName = data.results[0].termName || 'Term 1';
-            if (realTermId && !terms.find(t => t.id === realTermId)) {
-              console.log('Adding real term from backend results:', realTermId, realTermName);
+            if (realTermId) {
+              // Check if this term already exists in our current terms list
+              const existingTerm = terms.find(t => t.id === realTermId);
               
-              // Extract term number from term name or default based on position
-              const termNumber = parseInt(realTermName.match(/Term (\d+)/)?.[1] || '1');
-              
-              const realTerm = {
-                id: realTermId,
-                name: `Term ${termNumber}`,
-                termNumber: termNumber,
-                startDate: '2022-09-01', 
-                endDate: '2022-12-15',
-                isActive: true, // Mark as active since it has current results
-              };
-              setTerms(prev => {
-                // Insert the term in the correct position based on term number
-                const newTerms = [...prev];
-                const insertIndex = newTerms.findIndex(t => t.termNumber > termNumber);
-                if (insertIndex >= 0) {
-                  newTerms.splice(insertIndex, 0, realTerm);
-                } else {
-                  newTerms.push(realTerm);
+              if (!existingTerm) {
+                console.log('Adding real term from backend results:', realTermId, realTermName);
+                
+                // Extract term number from term name or default based on position
+                const termNumber = parseInt(realTermName.match(/Term (\d+)/)?.[1] || '1');
+                
+                const realTerm = {
+                  id: realTermId,
+                  name: `Term ${termNumber}`,
+                  termNumber: termNumber,
+                  startDate: '2022-09-01', 
+                  endDate: '2022-12-15',
+                  isActive: true, // Mark as active since it has current results
+                };
+                
+                setTerms(prev => {
+                  // Only add if not already present (double-check to prevent race conditions)
+                  if (prev.find(t => t.id === realTermId)) {
+                    console.log('Term already exists, skipping addition');
+                    return prev;
+                  }
+                  
+                  // Insert the term in the correct position based on term number
+                  const newTerms = [...prev];
+                  const insertIndex = newTerms.findIndex(t => t.termNumber > termNumber);
+                  if (insertIndex >= 0) {
+                    newTerms.splice(insertIndex, 0, realTerm);
+                  } else {
+                    newTerms.push(realTerm);
+                  }
+                  
+                  // Remove any potential duplicates in the final array
+                  const uniqueNewTerms = newTerms.filter((term, index, self) => 
+                    index === self.findIndex(t => t.id === term.id)
+                  );
+                  
+                  return uniqueNewTerms;
+                });
+                setSelectedTermWithDebug(realTermId);
+                setActiveTerm(realTerm);
+              } else {
+                console.log('Term already exists in list:', existingTerm);
+                // Just make sure it's selected if it wasn't already
+                if (selectedTerm !== realTermId) {
+                  setSelectedTermWithDebug(realTermId);
+                  setActiveTerm(existingTerm);
                 }
-                return newTerms;
-              });
-              setSelectedTermWithDebug(realTermId);
-              setActiveTerm(realTerm);
+              }
             }
           } else {
             console.log('WARNING: Backend returned empty results array');
@@ -307,6 +346,8 @@ export default function StudentGrades() {
     } catch (err) {
       console.error('Error in fetchExamResults:', err);
       setError('Failed to generate exam results');
+    } finally {
+      setFetchingTerm(null); // Reset fetching state
     }
   };
 
@@ -332,9 +373,12 @@ export default function StudentGrades() {
 
   // Handle term selection change
   const handleTermChange = (termId: string) => {
-    setSelectedTermWithDebug(termId);
-    if (termId) {
-      fetchExamResults(termId);
+    // Only proceed if it's actually a different term
+    if (termId !== selectedTerm) {
+      setSelectedTermWithDebug(termId);
+      if (termId) {
+        fetchExamResults(termId);
+      }
     }
   };
 
@@ -528,7 +572,7 @@ export default function StudentGrades() {
   };
 
   const handleRefresh = () => {
-    if (selectedTerm) {
+    if (selectedTerm && !fetchingTerm) {
       fetchExamResults(selectedTerm);
     }
   };
@@ -589,8 +633,8 @@ export default function StudentGrades() {
               <SelectValue placeholder="Select Term" />
             </SelectTrigger>
             <SelectContent>
-              {terms.map((term) => (
-                <SelectItem key={term.id} value={term.id}>
+              {terms.map((term, index) => (
+                <SelectItem key={`${term.id}-${index}`} value={term.id}>
                   {term.name || `Term ${term.termNumber || term.id}`}
                   {term.isActive && ' (Current)'}
                 </SelectItem>
@@ -602,10 +646,10 @@ export default function StudentGrades() {
             onClick={handleRefresh} 
             variant="outline" 
             size="sm"
-            disabled={isLoading || !selectedTerm}
+            disabled={isLoading || !selectedTerm || !!fetchingTerm}
           >
-            <RefreshCw className="mr-2 h-4 w-4" />
-            Refresh
+            <RefreshCw className={`mr-2 h-4 w-4 ${fetchingTerm ? 'animate-spin' : ''}`} />
+            {fetchingTerm ? 'Loading...' : 'Refresh'}
           </Button>
         </div>
       </div>
