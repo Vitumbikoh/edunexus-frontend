@@ -873,35 +873,75 @@ export const FinanceDashboardCards = () => {
 
   return (
     <div className="space-y-6">
-      {/* Revenue Trend Chart */}
-      <Card className="bg-gradient-to-br from-white via-blue-50/30 to-blue-100/50 dark:from-gray-900 dark:via-blue-900/10 dark:to-blue-900/20 border-blue-200/50 shadow-lg">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="text-xl font-semibold text-gray-900 dark:text-gray-100">Revenue Trends</CardTitle>
-              <CardDescription className="text-gray-600 dark:text-gray-400">
-                Monthly revenue vs targets
-              </CardDescription>
+      {/* Revenue Trends and Expense Analytics - Side by Side */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Revenue Trend Chart */}
+        <Card className="bg-gradient-to-br from-white via-blue-50/30 to-blue-100/50 dark:from-gray-900 dark:via-blue-900/10 dark:to-blue-900/20 border-blue-200/50 shadow-lg">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-xl font-semibold text-gray-900 dark:text-gray-100">Revenue Trends</CardTitle>
+                <CardDescription className="text-gray-600 dark:text-gray-400">
+                  Monthly revenue vs targets
+                </CardDescription>
+              </div>
+              <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-full">
+                <TrendingUp className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+              </div>
             </div>
-            <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-full">
-              <TrendingUp className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+          </CardHeader>
+          <CardContent>
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={revenueChartData}>
+                  <XAxis dataKey="month" />
+                  <YAxis />
+                  <Tooltip formatter={(value) => [`${formatCurrency(Number(value), getDefaultCurrency())}`, '']} />
+                  <Area type="monotone" dataKey="revenue" stackId="1" stroke="#3B82F6" fill="#3B82F6" fillOpacity={0.6} />
+                  <Area type="monotone" dataKey="target" stackId="2" stroke="#10B981" fill="#10B981" fillOpacity={0.3} />
+                </AreaChart>
+              </ResponsiveContainer>
             </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={revenueChartData}>
-                <XAxis dataKey="month" />
-                <YAxis />
-                <Tooltip formatter={(value) => [`${formatCurrency(Number(value), getDefaultCurrency())}`, '']} />
-                <Area type="monotone" dataKey="revenue" stackId="1" stroke="#3B82F6" fill="#3B82F6" fillOpacity={0.6} />
-                <Area type="monotone" dataKey="target" stackId="2" stroke="#10B981" fill="#10B981" fillOpacity={0.3} />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+
+        {/* Expense Analytics */}
+        <Card className="bg-gradient-to-br from-white via-indigo-50/30 to-indigo-100/50 dark:from-gray-900 dark:via-indigo-900/10 dark:to-indigo-900/20 border-indigo-200/50 shadow-lg">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-xl font-semibold text-gray-900 dark:text-gray-100">Expense Analytics</CardTitle>
+                <CardDescription className="text-gray-600 dark:text-gray-400">
+                  Key expense metrics and trends
+                </CardDescription>
+              </div>
+              <div className="p-2 bg-indigo-100 dark:bg-indigo-900/30 rounded-full">
+                <TrendingUp className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-center py-8">
+              <div className="mb-4">
+                <TrendingUp className="h-12 w-12 mx-auto text-indigo-500 mb-4" />
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                  Expense Insights
+                </h3>
+                <p className="text-gray-600 dark:text-gray-400 mb-4">
+                  View detailed expense analytics, budget utilization, and spending trends
+                </p>
+              </div>
+              <Button
+                onClick={() => navigate('/expense-analytics')}
+                className="bg-indigo-600 hover:bg-indigo-700"
+              >
+                View Analytics
+                <ChevronRight className="ml-2 h-4 w-4" />
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Payment Methods Distribution */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -998,43 +1038,6 @@ export const FinanceDashboardCards = () => {
           </CardContent>
         </Card>
       </div>
-
-      {/* Expense Analytics */}
-      <Card className="bg-gradient-to-br from-white via-indigo-50/30 to-indigo-100/50 dark:from-gray-900 dark:via-indigo-900/10 dark:to-indigo-900/20 border-indigo-200/50 shadow-lg">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="text-xl font-semibold text-gray-900 dark:text-gray-100">Expense Analytics</CardTitle>
-              <CardDescription className="text-gray-600 dark:text-gray-400">
-                Key expense metrics and trends
-              </CardDescription>
-            </div>
-            <div className="p-2 bg-indigo-100 dark:bg-indigo-900/30 rounded-full">
-              <TrendingUp className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center py-8">
-            <div className="mb-4">
-              <TrendingUp className="h-12 w-12 mx-auto text-indigo-500 mb-4" />
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
-                Expense Insights
-              </h3>
-              <p className="text-gray-600 dark:text-gray-400 mb-4">
-                View detailed expense analytics, budget utilization, and spending trends
-              </p>
-            </div>
-            <Button
-              onClick={() => navigate('/expense-analytics')}
-              className="bg-indigo-600 hover:bg-indigo-700"
-            >
-              View Analytics
-              <ChevronRight className="ml-2 h-4 w-4" />
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Recent Transactions */}
       <Card className="bg-gradient-to-br from-white via-purple-50/30 to-purple-100/50 dark:from-gray-900 dark:via-purple-900/10 dark:to-purple-900/20 border-purple-200/50 shadow-lg">
