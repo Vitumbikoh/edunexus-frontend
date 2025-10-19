@@ -1099,7 +1099,7 @@ export const StudentGradeTrendChart = ({
         } else {
           // Fallback: try to fetch exam results and build trend
           try {
-            const resultsResponse = await fetch(`${API_CONFIG.BASE_URL}/exam-results/student/${activeStudentId}`, {
+            const resultsResponse = await fetch(`${API_CONFIG.BASE_URL}/exam-results/student/me`, {
               headers: {
                 'Authorization': `Bearer ${activeToken}`,
                 'Content-Type': 'application/json',

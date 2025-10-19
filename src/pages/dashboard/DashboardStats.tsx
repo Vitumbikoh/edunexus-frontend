@@ -257,7 +257,7 @@ export const useDashboardStats = () => {
               // Get student's current attendance rate
               let attendanceRate = '-';
               try {
-                const attendRes = await fetch(`http://localhost:5000/api/v1/attendance/student/${user?.id}/rate`, { headers: { Authorization: `Bearer ${token}` } });
+                const attendRes = await fetch(`http://localhost:5000/api/v1/attendance/student/me/rate`, { headers: { Authorization: `Bearer ${token}` } });
                 if (attendRes.ok) {
                   const att = await attendRes.json();
                   const rate = att?.attendanceRate ?? att?.rate ?? att?.percentage;

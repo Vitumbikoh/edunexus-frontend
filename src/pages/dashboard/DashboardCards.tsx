@@ -1072,7 +1072,8 @@ export const StudentDashboardCards = () => {
       if (!user || user.role !== 'student' || !token) { setPerfLoading(false); return; }
       try {
         setPerfLoading(true); setPerfError(null);
-        const studentId = (user as any).id;
+        // Use 'me' alias instead of user.id for student endpoints
+        const studentId = 'me';
         
         // Fetch exam results for this student
         const resultsResp = await ExamResultService.getStudentResults(studentId, token);
