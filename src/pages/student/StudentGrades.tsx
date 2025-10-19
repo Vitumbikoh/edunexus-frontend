@@ -69,7 +69,14 @@ export default function StudentGrades() {
   const getLogoUrl = (logoPath: string | null): string | null => {
     if (!logoPath) return null;
     if (logoPath.startsWith('http')) return logoPath;
-    return `${API_CONFIG.BASE_URL}/uploads/${logoPath}`;
+    
+    // If the logoPath already contains the full path from the backend
+    if (logoPath.startsWith('/uploads/logos/')) {
+      return `${API_CONFIG.BASE_URL}${logoPath}`;
+    }
+    
+    // Otherwise, construct the full path
+    return `${API_CONFIG.BASE_URL}/uploads/logos/${logoPath}`;
   };
 
   // Early return for permission check - after all hooks
@@ -206,22 +213,33 @@ export default function StudentGrades() {
 
         // Fetch school settings for print functionality
         try {
+          console.log('Attempting to fetch school settings...');
           const settings = await schoolSettingsService.getSettings(token);
+          console.log('Fetched school settings:', JSON.stringify(settings, null, 2));
           setSchoolSettings(settings);
           
           // Update school info with real data if available
           if (settings) {
+            const logoUrl = settings.schoolLogo ? getLogoUrl(settings.schoolLogo) : undefined;
+            console.log('School logo processing:', {
+              originalLogo: settings.schoolLogo,
+              processedLogoUrl: logoUrl,
+              settingsHasLogo: !!settings.schoolLogo
+            });
+            
             setSchoolInfo({
               name: settings.schoolName || "Rumphi Secondary School",
               address: settings.schoolAddress || "P.O. Box, 133, Rumphi",
               phone: settings.schoolPhone || "0980517768",
               email: settings.schoolEmail || "rusesco@edu.ac.mw",
-              logoUrl: settings.schoolLogo ? getLogoUrl(settings.schoolLogo) : undefined,
+              logoUrl: logoUrl,
               about: settings.schoolAbout || "Committed to excellence in education and character development.",
             });
+          } else {
+            console.log('No settings returned from API');
           }
         } catch (settingsErr) {
-          console.log('School settings fetch failed, using defaults:', settingsErr);
+          console.error('School settings fetch failed:', settingsErr);
         }
 
         // Try to fetch profile (optional)
@@ -493,6 +511,20 @@ export default function StudentGrades() {
       const totalPoints = courseResults.reduce((sum, course) => sum + (Number(course.points) || 0), 0);
       const overallGPA = courseResults.length > 0 ? totalPoints / courseResults.length : 0;
       
+      console.log('📊 SUMMARY CALCULATION DEBUG:', {
+        courseResultsCount: courseResults.length,
+        totalMarks: totalMarks,
+        totalPossible: totalPossible,
+        averageScore: averageScore,
+        totalPoints: totalPoints,
+        overallGPA: overallGPA,
+        courseResults: courseResults.map(c => ({
+          courseCode: c.courseCode,
+          finalPercentage: c.finalPercentage,
+          points: c.points
+        }))
+      });
+      
       const performanceLevel = getPerformanceLevel(averageScore);
       
       const summary: PerformanceSummary = {
@@ -503,6 +535,8 @@ export default function StudentGrades() {
         totalPossible,
         performance: performanceLevel,
       };
+
+      console.log('📊 FINAL SUMMARY:', summary);
 
       // Student information
       const studentInfo: StudentInfo = {
@@ -622,14 +656,43 @@ export default function StudentGrades() {
     const schoolName = schoolSettings?.schoolName || schoolInfo?.name || "School Name";
     let logoBase64 = '';
     
+    console.log('Print debug - School settings:', {
+      schoolLogo: schoolSettings?.schoolLogo,
+      schoolName: schoolSettings?.schoolName,
+      hasSchoolSettings: !!schoolSettings,
+      schoolSettingsKeys: schoolSettings ? Object.keys(schoolSettings) : []
+    });
+    
     // Load logo as base64 if available
     if (schoolSettings?.schoolLogo) {
       const logoUrl = getLogoUrl(schoolSettings.schoolLogo);
+      console.log('Print debug - Logo URL constructed:', logoUrl);
       if (logoUrl) {
         try {
+          console.log('Print debug - Attempting to load logo from:', logoUrl);
           logoBase64 = await loadImageAsBase64(logoUrl);
+          console.log('Print debug - Logo loaded successfully, base64 length:', logoBase64.length);
         } catch (error) {
           console.error('Error loading logo for print:', error);
+          console.log('Print debug - Logo loading failed, will use default icon');
+        }
+      } else {
+        console.log('Print debug - logoUrl is null or empty');
+      }
+    } else {
+      console.log('Print debug - No school logo found in settings');
+      if (schoolSettings) {
+        console.log('Print debug - School settings exist but no logo field:', Object.keys(schoolSettings));
+      }
+      
+      // Try fallback to schoolInfo logoUrl
+      if (schoolInfo?.logoUrl) {
+        console.log('Print debug - Trying fallback logo from schoolInfo:', schoolInfo.logoUrl);
+        try {
+          logoBase64 = await loadImageAsBase64(schoolInfo.logoUrl);
+          console.log('Print debug - Fallback logo loaded successfully');
+        } catch (error) {
+          console.error('Print debug - Fallback logo loading failed:', error);
         }
       }
     }

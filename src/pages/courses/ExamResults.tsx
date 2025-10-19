@@ -174,8 +174,96 @@ const ExamResults = () => {
   // Helper function to get school logo URL
   const getLogoUrl = (logoPath: string | null): string | null => {
     if (!logoPath) return null;
+    if (logoPath.startsWith('http')) return logoPath;
+    
+    // If the logoPath already contains the full path from the backend
+    if (logoPath.startsWith('/uploads/logos/')) {
+      return `${API_CONFIG.BASE_URL}${logoPath}`;
+    }
+    
+    // Otherwise, construct the full path
     return `${API_CONFIG.BASE_URL}/uploads/logos/${logoPath}`;
   };
+
+  // Helper function to get performance level based on average score
+  const getPerformanceLevel = (averageScore: number): string => {
+    if (averageScore >= 90) return "Excellent";
+    if (averageScore >= 80) return "Very Good";
+    if (averageScore >= 70) return "Good";
+    if (averageScore >= 60) return "Satisfactory";
+    if (averageScore >= 50) return "Needs Improvement";
+    if (averageScore >= 40) return "Below Average";
+    return "Needs Improvement";
+  };
+
+  // Calculate correct summary from student results using the same logic as student side
+  const transformedStudentResults = useMemo(() => {
+    if (!studentResults?.results || studentResults.results.length === 0) {
+      return null;
+    }
+
+    console.log('🔧 ADMIN CALCULATION DEBUG - Input results:', studentResults.results);
+
+    // Transform results to match the student side format
+    const courseResults = studentResults.results.map((result, index) => {
+      const gradePoints = calculateGradePoints(result.finalGradeCode || 'F');
+
+      const courseResult = {
+        courseId: result.courseId,
+        courseCode: result.courseCode,
+        courseName: result.courseName,
+        finalPercentage: result.finalPercentage,
+        finalGradeCode: result.finalGradeCode || 'F',
+        points: gradePoints,
+        pass: result.pass,
+        computedAt: result.computedAt,
+        breakdown: result.breakdown,
+      };
+
+      console.log(`🔧 ADMIN - Course result ${index}:`, courseResult);
+      return courseResult;
+    });
+
+    // Calculate performance summary using the same logic as student side
+    const totalMarks = courseResults.reduce((sum, course) => sum + (Number(course.finalPercentage) || 0), 0);
+    const totalPossible = courseResults.length * 100;
+    const averageScore = courseResults.length > 0 ? totalMarks / courseResults.length : 0;
+    const totalPoints = courseResults.reduce((sum, course) => sum + (Number(course.points) || 0), 0);
+    const overallGPA = courseResults.length > 0 ? totalPoints / courseResults.length : 0;
+    
+    console.log('🔧 ADMIN SUMMARY CALCULATION DEBUG:', {
+      courseResultsCount: courseResults.length,
+      totalMarks: totalMarks,
+      totalPossible: totalPossible,
+      averageScore: averageScore,
+      totalPoints: totalPoints,
+      overallGPA: overallGPA,
+      courseResults: courseResults.map(c => ({
+        courseCode: c.courseCode,
+        finalPercentage: c.finalPercentage,
+        points: c.points
+      }))
+    });
+    
+    const performanceLevel = getPerformanceLevel(averageScore);
+    
+    const summary = {
+      overallGPA: Number.isFinite(overallGPA) ? overallGPA : 0,
+      averageScore: Number.isFinite(averageScore) ? averageScore : 0,
+      totalResults: courseResults.length,
+      totalMarks: Math.round(totalMarks),
+      totalPossible,
+      remarks: performanceLevel,
+    };
+
+    console.log('🔧 ADMIN FINAL SUMMARY:', summary);
+
+    return {
+      ...studentResults,
+      summary: summary,
+      results: courseResults
+    };
+  }, [studentResults]);
 
   // Initial load
   useEffect(() => {
@@ -465,7 +553,7 @@ const ExamResults = () => {
   };
 
   const generateReportCard = async () => {
-    if (!studentResults || !studentResults.results.length) {
+    if (!transformedStudentResults || !transformedStudentResults.results.length) {
       toast({
         title: "No Results",
         description: "No results available to generate a report card.",
@@ -484,11 +572,18 @@ const ExamResults = () => {
     // Load logo as base64 if available
     if (schoolSettings?.schoolLogo) {
       const logoUrl = getLogoUrl(schoolSettings.schoolLogo);
+      console.log('🖼️ ADMIN LOGO DEBUG:', {
+        schoolSettings: schoolSettings,
+        schoolLogo: schoolSettings.schoolLogo,
+        logoUrl: logoUrl,
+        baseUrl: API_CONFIG.BASE_URL
+      });
       if (logoUrl) {
         try {
           logoBase64 = await loadImageAsBase64(logoUrl);
+          console.log('🖼️ ADMIN LOGO - Base64 conversion successful, length:', logoBase64.length);
         } catch (error) {
-          console.error('Error loading logo for print:', error);
+          console.error('🖼️ ADMIN LOGO - Error loading logo for print:', error);
         }
       }
     }
@@ -512,7 +607,7 @@ const ExamResults = () => {
       <!DOCTYPE html>
       <html>
         <head>
-          <title>Academic Report Card - ${studentResults.student.firstName} ${studentResults.student.lastName}</title>
+          <title>Academic Report Card - ${transformedStudentResults.student.firstName} ${transformedStudentResults.student.lastName}</title>
           <style>
             * { margin: 0; padding: 0; box-sizing: border-box; }
             body { 
@@ -802,11 +897,11 @@ const ExamResults = () => {
               <div class="student-grid">
                 <div class="student-item">
                   <span class="student-label">Full Name:</span>
-                  <span class="student-value">${studentResults.student.firstName} ${studentResults.student.lastName}</span>
+                  <span class="student-value">${transformedStudentResults.student.firstName} ${transformedStudentResults.student.lastName}</span>
                 </div>
                 <div class="student-item">
                   <span class="student-label">Student ID:</span>
-                  <span class="student-value">${studentResults.student.studentId}</span>
+                  <span class="student-value">${transformedStudentResults.student.studentId}</span>
                 </div>
               </div>
             </div>
@@ -816,23 +911,23 @@ const ExamResults = () => {
               <div class="section-title">📊 Academic Performance Summary</div>
               <div class="summary-grid">
                 <div class="summary-card gpa-card">
-                  <div class="summary-value" style="color: #3498db;">${(studentResults.summary?.overallGPA || 0).toFixed(2)}</div>
+                  <div class="summary-value" style="color: #3498db;">${(transformedStudentResults.summary?.overallGPA || 0).toFixed(2)}</div>
                   <div class="summary-label">Overall GPA</div>
                 </div>
                 <div class="summary-card score-card">
-                  <div class="summary-value" style="color: #27ae60;">${Math.round(studentResults.summary?.averageScore || 0)}%</div>
+                  <div class="summary-value" style="color: #27ae60;">${Math.round(transformedStudentResults.summary?.averageScore || 0)}%</div>
                   <div class="summary-label">Average Score</div>
                 </div>
                 <div class="summary-card courses-card">
-                  <div class="summary-value" style="color: #9b59b6;">${studentResults.summary?.totalResults || 0}</div>
+                  <div class="summary-value" style="color: #9b59b6;">${transformedStudentResults.summary?.totalResults || 0}</div>
                   <div class="summary-label">Total Courses</div>
                 </div>
                 <div class="summary-card marks-card">
-                  <div class="summary-value" style="color: #f39c12;">${studentResults.summary?.totalMarks || 0}/${studentResults.summary?.totalPossible || 0}</div>
+                  <div class="summary-value" style="color: #f39c12;">${transformedStudentResults.summary?.totalMarks || 0}/${transformedStudentResults.summary?.totalPossible || 0}</div>
                   <div class="summary-label">Marks Obtained</div>
                 </div>
                 <div class="summary-card performance-card">
-                  <div class="summary-value" style="color: #e74c3c; font-size: 16px;">${studentResults.summary?.remarks || "No Assessment"}</div>
+                  <div class="summary-value" style="color: #e74c3c; font-size: 16px;">${transformedStudentResults.summary?.remarks || "No Assessment"}</div>
                   <div class="summary-label">Performance Level</div>
                 </div>
               </div>
@@ -853,7 +948,7 @@ const ExamResults = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  ${studentResults.results.map(result => `
+                  ${transformedStudentResults.results.map(result => `
                     <tr>
                       <td class="course-name">${result.courseName}</td>
                       <td class="course-code">${result.courseCode}</td>
@@ -953,7 +1048,11 @@ const ExamResults = () => {
     // Add school logo if available
     if (schoolSettings?.schoolLogo) {
       const logoUrl = getLogoUrl(schoolSettings.schoolLogo);
-      console.log('Logo URL:', logoUrl);
+      console.log('🖼️ ADMIN PDF LOGO DEBUG:', {
+        schoolSettings: schoolSettings,
+        schoolLogo: schoolSettings.schoolLogo,
+        logoUrl: logoUrl
+      });
       if (logoUrl) {
         try {
           const logoBase64 = await loadImageAsBase64(logoUrl);
@@ -973,7 +1072,7 @@ const ExamResults = () => {
           
           yPos = 50;
         } catch (error) {
-          console.error('Error loading logo:', error);
+          console.error('🖼️ ADMIN PDF LOGO - Error loading logo:', error);
           // Fallback to text-only header
           doc.setFontSize(16);
           doc.setFont("helvetica", "bold");
@@ -989,7 +1088,7 @@ const ExamResults = () => {
         }
       }
     } else {
-      console.log('No school logo found');
+      console.log('🖼️ ADMIN PDF LOGO - No school logo found');
       // No logo, use text-only header
       doc.setFontSize(16);
       doc.setFont("helvetica", "bold");
@@ -1409,7 +1508,7 @@ const ExamResults = () => {
         </Card>
       )}
 
-      {studentResults && (
+      {transformedStudentResults && (
         <ProfessionalReportCard
           school={{
             name: schoolSettings?.schoolName || "School Name",
@@ -1422,26 +1521,26 @@ const ExamResults = () => {
             about: schoolSettings?.schoolAbout
           }}
           student={{
-            id: studentResults.student.id,
-            studentId: studentResults.student.studentId,
-            firstName: studentResults.student.firstName,
-            lastName: studentResults.student.lastName,
+            id: transformedStudentResults.student.id,
+            studentId: transformedStudentResults.student.studentId,
+            firstName: transformedStudentResults.student.firstName,
+            lastName: transformedStudentResults.student.lastName,
             className: classes.find(c => c.id === selectedClass)?.name || "Unknown Class",
             academicYear: academicCalendars.find(ac => ac.id === selectedAcademicCalendar)?.term || "Unknown Year",
             term: terms.find(t => t.id === selectedTerm) ? formatTerm(terms.find(t => t.id === selectedTerm)!) : "Unknown Term"
           }}
           summary={{
-            overallGPA: studentResults.summary?.overallGPA || 0,
-            averageScore: studentResults.summary?.averageScore || 0,
-            totalCourses: studentResults.summary?.totalResults || 0,
-            totalMarks: studentResults.summary?.totalMarks || 0,
-            totalPossible: studentResults.summary?.totalPossible || 0,
-            performance: studentResults.summary?.remarks || "No Assessment",
+            overallGPA: transformedStudentResults.summary?.overallGPA || 0,
+            averageScore: transformedStudentResults.summary?.averageScore || 0,
+            totalCourses: transformedStudentResults.summary?.totalResults || 0,
+            totalMarks: transformedStudentResults.summary?.totalMarks || 0,
+            totalPossible: transformedStudentResults.summary?.totalPossible || 0,
+            performance: transformedStudentResults.summary?.remarks || "No Assessment",
             position: undefined,
             totalStudents: undefined
           }}
           courses={
-            studentResults.results.map((result) => ({
+            transformedStudentResults.results.map((result) => ({
               courseCode: result.courseCode,
               courseName: result.courseName,
               finalPercentage: result.finalPercentage,
