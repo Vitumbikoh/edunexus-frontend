@@ -258,6 +258,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@radix-ui/react-progress";
 import { ExamResultService } from "@/services/examResultService";
+import { systemHealthService, SystemHealthData } from "@/services/systemHealthService";
 
 export const AdminDashboardCards = () => {
   const navigate = useNavigate();
@@ -266,12 +267,15 @@ export const AdminDashboardCards = () => {
     undefined
   );
   const [loadingAY, setLoadingAY] = useState<boolean>(false);
-  const [systemHealth, setSystemHealth] = useState({
+  const [systemHealth, setSystemHealth] = useState<SystemHealthData>({
     uptime: "99.9%",
     activeUsers: 234,
     serverStatus: "operational",
-    lastBackup: "2 hours ago"
+    lastBackup: "2 hours ago",
+    databasePerformance: 97,
+    storageUsage: 73
   });
+  const [systemHealthLoading, setSystemHealthLoading] = useState<boolean>(false);
 
   // Academic Performance state
   const [academicStats, setAcademicStats] = useState({
@@ -285,27 +289,67 @@ export const AdminDashboardCards = () => {
     try {
       setAcademicStats(prev => ({ ...prev, loading: true }));
       
-      const [studentsRes, coursesRes, performanceRes] = await Promise.all([
+      const [studentsRes, coursesRes] = await Promise.all([
         fetch(`${API_CONFIG.BASE_URL}/student/total-students`, {
           headers: { Authorization: `Bearer ${token}` },
         }),
         fetch(`${API_CONFIG.BASE_URL}/course/stats/total-courses`, {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
-        fetch(`${API_CONFIG.BASE_URL}/analytics/course-averages`, {
           headers: { Authorization: `Bearer ${token}` },
         })
       ]);
 
       const studentsData = studentsRes.ok ? await studentsRes.json() : { totalStudents: 0 };
       const coursesData = coursesRes.ok ? await coursesRes.json() : { value: 0 };
-      const performanceData = performanceRes.ok ? await performanceRes.json() : [];
 
-      // Calculate overall average from course averages
+      // Calculate overall average from exam results instead of analytics endpoint
       let overallAverage = 0;
-      if (Array.isArray(performanceData) && performanceData.length > 0) {
-        const total = performanceData.reduce((sum: number, item: any) => sum + (item.average || 0), 0);
-        overallAverage = Math.round(total / performanceData.length);
+      try {
+        // Get average from exam results across all classes
+        const classResponse = await fetch(`${API_CONFIG.BASE_URL}/grades/classes`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (classResponse.ok) {
+          const classes = await classResponse.json();
+          const allScores: number[] = [];
+
+          // Process each class to get exam results and calculate overall average
+          for (const classItem of classes) {
+            try {
+              const resultsResponse = await fetch(
+                `${API_CONFIG.BASE_URL}/exam-results/class/${classItem.id}${termId ? `?termId=${termId}` : ''}`,
+                {
+                  headers: { Authorization: `Bearer ${token}` },
+                }
+              );
+
+              if (resultsResponse.ok) {
+                const classResults = await resultsResponse.json();
+                
+                if (classResults.students && Array.isArray(classResults.students)) {
+                  classResults.students.forEach((studentResult: any) => {
+                    if (studentResult.results && Array.isArray(studentResult.results)) {
+                      studentResult.results.forEach((result: any) => {
+                        if (typeof result.finalPercentage === 'number' && result.finalPercentage > 0) {
+                          allScores.push(result.finalPercentage);
+                        }
+                      });
+                    }
+                  });
+                }
+              }
+            } catch (classError) {
+              console.warn(`Failed to fetch results for class ${classItem.id}:`, classError);
+            }
+          }
+
+          if (allScores.length > 0) {
+            overallAverage = Math.round(allScores.reduce((sum, score) => sum + score, 0) / allScores.length);
+          }
+        }
+      } catch (error) {
+        console.warn('Failed to calculate overall average from exam results:', error);
+        // Keep overallAverage as 0
       }
 
       setAcademicStats({
@@ -318,7 +362,7 @@ export const AdminDashboardCards = () => {
       console.error('Failed to fetch academic stats:', error);
       setAcademicStats(prev => ({ ...prev, loading: false }));
     }
-  }, [token]);
+  }, [token, termId]);
 
   useEffect(() => {
     const fetchCurrentTerm = async () => {
@@ -347,9 +391,35 @@ export const AdminDashboardCards = () => {
     fetchCurrentTerm();
   }, [token]);
 
+  // Fetch system health data
+  const fetchSystemHealth = useCallback(async () => {
+    if (!token) return;
+    
+    try {
+      setSystemHealthLoading(true);
+      const healthData = await systemHealthService.getSystemHealth(token);
+      setSystemHealth(healthData);
+    } catch (error) {
+      console.error('Failed to fetch system health:', error);
+      // Keep using default/fallback data on error
+    } finally {
+      setSystemHealthLoading(false);
+    }
+  }, [token]);
+
   useEffect(() => {
     fetchAcademicStats();
-  }, [fetchAcademicStats]);
+    fetchSystemHealth();
+    
+    // Set up periodic refresh for system health (every 30 seconds)
+    const healthInterval = setInterval(() => {
+      fetchSystemHealth();
+    }, 30000);
+    
+    return () => {
+      clearInterval(healthInterval);
+    };
+  }, [fetchAcademicStats, fetchSystemHealth]);
 
   return (
     <div className="space-y-8">
@@ -460,14 +530,6 @@ export const AdminDashboardCards = () => {
                 <ClassPerformanceChart termId={termId} />
               </div>
             </div>
-            <Button 
-              variant="outline" 
-              className="w-full border-green-200 hover:bg-green-50 dark:border-green-800 dark:hover:bg-green-900/20"
-              onClick={() => navigate("/reports/academic")}
-            >
-              View Academic Reports
-              <ChevronRight className="ml-2 h-4 w-4" />
-            </Button>
           </CardContent>
         </Card>
 
@@ -508,10 +570,27 @@ export const AdminDashboardCards = () => {
                 <CardTitle className="text-xl font-semibold text-gray-900 dark:text-gray-100">System Health</CardTitle>
                 <CardDescription className="text-gray-600 dark:text-gray-400">
                   Real-time system monitoring & status
+                  {systemHealthLoading && (
+                    <span className="text-xs text-muted-foreground ml-2">
+                      (updating...)
+                    </span>
+                  )}
                 </CardDescription>
               </div>
-              <div className="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-full">
-                <CheckCircle className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+              <div className="flex items-center space-x-2">
+                <Button 
+                  size="icon" 
+                  variant="ghost" 
+                  onClick={fetchSystemHealth} 
+                  className="h-8 w-8" 
+                  title="Refresh system health data"
+                  disabled={systemHealthLoading}
+                >
+                  <RefreshCcw className={`h-4 w-4 ${systemHealthLoading ? 'animate-spin' : ''}`} />
+                </Button>
+                <div className="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-full">
+                  <CheckCircle className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+                </div>
               </div>
             </div>
           </CardHeader>
@@ -534,8 +613,20 @@ export const AdminDashboardCards = () => {
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Server Status</span>
                     <div className="flex items-center space-x-2">
-                      <div className="h-2 w-2 bg-emerald-500 rounded-full animate-pulse"></div>
-                      <span className="text-sm font-medium text-emerald-600 dark:text-emerald-400 capitalize">
+                      <div className={`h-2 w-2 rounded-full ${
+                        systemHealth.serverStatus === 'operational' || systemHealth.serverStatus === 'healthy' 
+                          ? 'bg-emerald-500 animate-pulse' 
+                          : systemHealth.serverStatus === 'warning' 
+                          ? 'bg-yellow-500 animate-pulse' 
+                          : 'bg-red-500 animate-pulse'
+                      }`}></div>
+                      <span className={`text-sm font-medium capitalize ${
+                        systemHealth.serverStatus === 'operational' || systemHealth.serverStatus === 'healthy' 
+                          ? 'text-emerald-600 dark:text-emerald-400' 
+                          : systemHealth.serverStatus === 'warning' 
+                          ? 'text-yellow-600 dark:text-yellow-400' 
+                          : 'text-red-600 dark:text-red-400'
+                      }`}>
                         {systemHealth.serverStatus}
                       </span>
                     </div>
@@ -550,20 +641,38 @@ export const AdminDashboardCards = () => {
               <div className="space-y-3">
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600 dark:text-gray-400">Database Performance</span>
-                  <span className="text-gray-900 dark:text-gray-100 font-medium">97%</span>
+                  <span className="text-gray-900 dark:text-gray-100 font-medium">{systemHealth.databasePerformance}%</span>
                 </div>
                 <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                  <div className="bg-emerald-500 h-2 rounded-full" style={{ width: '97%' }}></div>
+                  <div 
+                    className={`h-2 rounded-full transition-all duration-300 ${
+                      systemHealth.databasePerformance >= 95 
+                        ? 'bg-emerald-500' 
+                        : systemHealth.databasePerformance >= 80 
+                        ? 'bg-yellow-500' 
+                        : 'bg-red-500'
+                    }`} 
+                    style={{ width: `${systemHealth.databasePerformance}%` }}
+                  ></div>
                 </div>
               </div>
               
               <div className="space-y-3">
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600 dark:text-gray-400">Storage Usage</span>
-                  <span className="text-gray-900 dark:text-gray-100 font-medium">73%</span>
+                  <span className="text-gray-900 dark:text-gray-100 font-medium">{systemHealth.storageUsage}%</span>
                 </div>
                 <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                  <div className="bg-blue-500 h-2 rounded-full" style={{ width: '73%' }}></div>
+                  <div 
+                    className={`h-2 rounded-full transition-all duration-300 ${
+                      systemHealth.storageUsage <= 70 
+                        ? 'bg-blue-500' 
+                        : systemHealth.storageUsage <= 85 
+                        ? 'bg-yellow-500' 
+                        : 'bg-red-500'
+                    }`} 
+                    style={{ width: `${systemHealth.storageUsage}%` }}
+                  ></div>
                 </div>
               </div>
             </div>

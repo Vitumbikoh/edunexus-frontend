@@ -378,33 +378,153 @@ export const ClassPerformanceChart = ({ termId }: { termId?: string }) => {
     try {
       setLoading(true);
       setError(null);
+      console.log('🚀 Starting to fetch performance data...');
 
+      // First try the analytics endpoint
       const query = termId ? `?termId=${termId}` : '';
-      const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.CLASS_PERFORMANCE}${query}`, {
+      console.log('📊 Trying analytics endpoint:', `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.CLASS_PERFORMANCE}${query}`);
+      
+      let response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.CLASS_PERFORMANCE}${query}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to fetch class performance data');
+      let data = null;
+      let dataSource = 'analytics';
+
+      if (response.ok) {
+        data = await response.json();
+        console.log('📊 Analytics response:', data);
+        
+        const raw = Array.isArray(data) ? data : (data.courseAverages || data.classPerformance || []);
+        console.log('📊 Processed analytics data:', raw);
+        
+        if (raw.length === 0) {
+          // If analytics endpoint returns no data, try to get data from exam results
+          console.log('📊 Analytics returned no data, trying exam results...');
+          dataSource = 'exam-results';
+          data = await fetchCourseAveragesFromExamResults();
+        } else {
+          data = raw.map((item: any) => ({
+            courseName: item.courseName || item.name,
+            studentsCount: item.gradeCount ?? item.numericGradeCount ?? item.studentsCount ?? item.students ?? item.studentCount ?? 0,
+            averageScore: item.averageScore ?? item.average ?? item.score ?? 0,
+          }));
+        }
+      } else {
+        // If analytics endpoint fails, try exam results
+        console.warn('📊 Analytics endpoint failed, trying exam results approach');
+        dataSource = 'exam-results';
+        data = await fetchCourseAveragesFromExamResults();
       }
 
-      const data = await response.json();
-      const raw = Array.isArray(data) ? data : (data.courseAverages || data.classPerformance || []);
-      const normalized = raw.map((item: any) => ({
-        courseName: item.courseName || item.name,
-        studentsCount: item.gradeCount ?? item.numericGradeCount ?? item.studentsCount ?? item.students ?? item.studentCount ?? 0,
-        averageScore: item.averageScore ?? item.average ?? item.score ?? 0,
-      }));
-      setPerformanceData(normalized);
+      console.log(`📊 Final performance data loaded from ${dataSource}:`, data);
+      setPerformanceData(Array.isArray(data) ? data : []);
     } catch (err) {
-      console.error('Error fetching performance data:', err);
+      console.error('❌ Error fetching performance data:', err);
       setError(err instanceof Error ? err.message : 'Failed to load performance data');
       setPerformanceData([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // New function to calculate course averages from exam results
+  const fetchCourseAveragesFromExamResults = async () => {
+    try {
+      console.log('📚 Fetching course averages from exam results...');
+      
+      // Get all classes first
+      const classResponse = await fetch(`${API_CONFIG.BASE_URL}/grades/classes`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!classResponse.ok) {
+        throw new Error('Failed to fetch classes');
+      }
+
+      const classes = await classResponse.json();
+      console.log('📚 Found classes:', classes.length);
+      
+      const courseAverages = new Map<string, { name: string; scores: number[]; students: Set<string> }>();
+
+      // Process each class to get exam results
+      for (const classItem of classes) {
+        try {
+          console.log(`📚 Processing class: ${classItem.name} (${classItem.id})`);
+          
+          const resultsResponse = await fetch(
+            `${API_CONFIG.BASE_URL}/exam-results/class/${classItem.id}${termId ? `?termId=${termId}` : ''}`,
+            {
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+              },
+            }
+          );
+
+          if (resultsResponse.ok) {
+            const classResults = await resultsResponse.json();
+            console.log(`📚 Results for class ${classItem.name}:`, classResults);
+            
+            // Process student results to calculate course averages
+            if (classResults.students && Array.isArray(classResults.students)) {
+              console.log(`📚 Processing ${classResults.students.length} students in ${classItem.name}`);
+              
+              classResults.students.forEach((studentResult: any) => {
+                if (studentResult.results && Array.isArray(studentResult.results)) {
+                  studentResult.results.forEach((result: any) => {
+                    const courseKey = `${result.courseId}-${result.courseName}`;
+                    
+                    if (!courseAverages.has(courseKey)) {
+                      courseAverages.set(courseKey, {
+                        name: result.courseName || result.courseCode || 'Unknown Course',
+                        scores: [],
+                        students: new Set()
+                      });
+                    }
+                    
+                    const courseData = courseAverages.get(courseKey)!;
+                    if (typeof result.finalPercentage === 'number' && result.finalPercentage > 0) {
+                      courseData.scores.push(result.finalPercentage);
+                      courseData.students.add(studentResult.student.id);
+                      console.log(`📚 Added score ${result.finalPercentage}% for ${courseData.name}`);
+                    }
+                  });
+                }
+              });
+            }
+          } else {
+            console.log(`📚 No results found for class ${classItem.name}`);
+          }
+        } catch (classError) {
+          console.warn(`📚 Failed to fetch results for class ${classItem.id}:`, classError);
+        }
+      }
+
+      // Calculate averages and format data
+      const formattedData = Array.from(courseAverages.entries()).map(([courseKey, courseData]) => {
+        const averageScore = courseData.scores.length > 0 
+          ? courseData.scores.reduce((sum, score) => sum + score, 0) / courseData.scores.length 
+          : 0;
+        
+        return {
+          courseName: courseData.name,
+          studentsCount: courseData.students.size,
+          averageScore: Math.round(averageScore * 10) / 10, // Round to 1 decimal place
+        };
+      }).filter(course => course.averageScore > 0); // Only include courses with actual data
+
+      console.log('📚 Final formatted course averages:', formattedData);
+      return formattedData;
+    } catch (error) {
+      console.error('📚 Error fetching course averages from exam results:', error);
+      return [];
     }
   };
 
@@ -447,9 +567,12 @@ export const ClassPerformanceChart = ({ termId }: { termId?: string }) => {
   return (
     <ChartContainer
       config={{
-        students: { theme: { light: "#374151", dark: "#374151" } },
-        average: { theme: { light: "#6b7280", dark: "#6b7280" } },
+        averageScore: { 
+          label: "Average Score",
+          color: "hsl(var(--chart-1))"
+        },
       }}
+      className="h-full w-full"
     >
       <BarChart
         data={performanceData}
@@ -459,7 +582,7 @@ export const ClassPerformanceChart = ({ termId }: { termId?: string }) => {
           dataKey="courseName" 
           axisLine={false}
           tickLine={false}
-          tick={{ fontSize: 11, fill: '#6b7280' }}
+          tick={{ fontSize: 10, fill: '#6b7280' }}
           angle={-45}
           textAnchor="end"
           height={80}
@@ -469,28 +592,33 @@ export const ClassPerformanceChart = ({ termId }: { termId?: string }) => {
           axisLine={false}
           tickLine={false}
           tick={{ fontSize: 12, fill: '#6b7280' }}
+          domain={[0, 100]}
+          label={{ value: 'Average Score (%)', angle: -90, position: 'insideLeft' }}
         />
         <ChartTooltip 
-          content={<ChartTooltipContent />}
-          contentStyle={{
-            backgroundColor: '#ffffff',
-            border: '1px solid #e5e7eb',
-            borderRadius: '8px',
-            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-            fontSize: '14px'
+          content={({ active, payload, label }) => {
+            if (active && payload && payload.length) {
+              const data = payload[0].payload;
+              return (
+                <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-md">
+                  <p className="font-medium text-gray-900">{label}</p>
+                  <p className="text-sm text-green-600">
+                    Average Score: {data.averageScore}%
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    Students: {data.studentsCount}
+                  </p>
+                </div>
+              );
+            }
+            return null;
           }}
         />
         <Bar 
-          dataKey="studentsCount" 
-          fill="#374151" 
-          name="Grade Count" 
-          radius={[2, 2, 0, 0]}
-        />
-        <Bar 
           dataKey="averageScore" 
-          fill="#6b7280" 
-          name="Average Score" 
-          radius={[2, 2, 0, 0]}
+          fill="hsl(142, 71%, 45%)"
+          name="Average Score (%)" 
+          radius={[4, 4, 0, 0]}
         />
       </BarChart>
     </ChartContainer>
