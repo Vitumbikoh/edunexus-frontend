@@ -1089,33 +1089,9 @@ export const StudentDashboardCards = () => {
           };
         });
 
-        // Try to fetch course averages (students may not have access, so handle gracefully)
-        try {
-          const averagesResp = await fetch(`${API_CONFIG.BASE_URL}/analytics/course-averages`, { 
-            headers: { Authorization: `Bearer ${token}` }
-          });
-          
-          if (averagesResp && averagesResp.ok) {
-            const averagesJson = await averagesResp.json();
-            const averagesArr: any[] = Array.isArray(averagesJson) ? averagesJson : (averagesJson?.courseAverages || []);
-            const avgByCourse: Record<string, number> = {};
-            averagesArr.forEach((a: any) => {
-              const key = (a.courseId || a.courseName || a.name || '').toString();
-              const val = a.averageGrade ?? a.average ?? a.averageScore ?? a.value;
-              if (key && typeof val === 'number') avgByCourse[key] = val;
-            });
-            
-            // Update chart data with averages
-            chartData.forEach((cd: any) => {
-              const avg = avgByCourse[results.find((r: any) => r.courseName === cd.name)?.courseId] ?? 
-                          avgByCourse[cd.name];
-              if (typeof avg === 'number') cd.average = avg;
-            });
-          }
-        } catch (avgError) {
-          console.log('Course averages not accessible for student, showing scores only');
-          // Leave average as 0 or remove the average bar from chart
-        }
+        // Skip course averages for students (403 Forbidden - admin only endpoint)
+        // Students will see their individual scores without class averages
+        console.log('Displaying student scores without class averages (admin-only data)');
 
         setStudentPerformanceData(chartData);
         

@@ -264,8 +264,12 @@ export const useDashboardStats = () => {
                   if (typeof rate === 'number') {
                     attendanceRate = `${Math.round(rate)}%`;
                   }
+                } else {
+                  console.error('Attendance API error:', await attendRes.text());
                 }
-              } catch {}
+              } catch (attendError) {
+                console.error('Failed to fetch attendance:', attendError);
+              }
 
               // Get upcoming exams count
               let upcomingExams = 0;
