@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import payrollService, { SalaryRun, StaffWithSalary } from '@/services/payrollService';
+import { getCurrencySymbol } from '@/lib/currency';
 import { toast } from 'sonner';
 
 interface CreateRunDialogProps {
@@ -30,6 +31,9 @@ export default function CreateRunDialog({ open, onOpenChange, onRunCreated }: Cr
   });
   const [staff, setStaff] = useState<StaffWithSalary[]>([]);
   const [loadingStaff, setLoadingStaff] = useState(false);
+
+  // Use MWK currency (Malawian Kwacha) as default
+  const currencySymbol = getCurrencySymbol('MWK'); // Returns "MK"
 
   useEffect(() => {
     if (open && step === 2) {
@@ -232,10 +236,10 @@ export default function CreateRunDialog({ open, onOpenChange, onRunCreated }: Cr
                             <TableCell>{member.department}</TableCell>
                             <TableCell>{member.email}</TableCell>
                             <TableCell className="text-right font-medium">
-                              KES {member.grossPay.toLocaleString()}
+                              {currencySymbol} {member.grossPay.toLocaleString()}
                             </TableCell>
                             <TableCell className="text-right font-medium text-green-600">
-                              KES {member.netPay.toLocaleString()}
+                              {currencySymbol} {member.netPay.toLocaleString()}
                             </TableCell>
                           </TableRow>
                         ))}
@@ -266,7 +270,7 @@ export default function CreateRunDialog({ open, onOpenChange, onRunCreated }: Cr
                     </div>
                     <div>
                       <div className="text-2xl font-bold text-blue-600">
-                        KES {staff
+                        {currencySymbol} {staff
                           .filter(s => formData.staffIds.includes(s.id))
                           .reduce((sum, s) => sum + s.grossPay, 0)
                           .toLocaleString()}
@@ -275,7 +279,7 @@ export default function CreateRunDialog({ open, onOpenChange, onRunCreated }: Cr
                     </div>
                     <div>
                       <div className="text-2xl font-bold text-green-600">
-                        KES {staff
+                        {currencySymbol} {staff
                           .filter(s => formData.staffIds.includes(s.id))
                           .reduce((sum, s) => sum + s.netPay, 0)
                           .toLocaleString()}

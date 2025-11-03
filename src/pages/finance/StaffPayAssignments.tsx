@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Plus, Edit, Trash2, User, Power, PowerOff } from 'lucide-react';
 import payrollService, { StaffPayAssignment, PayComponent, Staff, CreateStaffAssignmentRequest, UpdateStaffAssignmentRequest } from '@/services/payrollService';
 import { useAuth } from '@/contexts/AuthContext';
+import { getCurrencySymbol } from '@/lib/currency';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 
@@ -19,6 +20,9 @@ export default function StaffPayAssignments() {
   const [payComponents, setPayComponents] = useState<PayComponent[]>([]);
   const [staff, setStaff] = useState<Staff[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Use MWK currency (Malawian Kwacha) as default
+  const currencySymbol = getCurrencySymbol('MWK'); // Returns "MK"
   const [searchTerm, setSearchTerm] = useState('');
   const [staffFilter, setStaffFilter] = useState<string>('ALL');
   const [showCreateDialog, setShowCreateDialog] = useState(false);
@@ -245,7 +249,7 @@ export default function StaffPayAssignments() {
                       </Badge>
                     )}
                   </TableCell>
-                  <TableCell className="text-right font-medium">${assignment.amount.toLocaleString()}</TableCell>
+                  <TableCell className="text-right font-medium">{currencySymbol} {assignment.amount.toLocaleString()}</TableCell>
                   <TableCell>{assignment.effectiveFrom ? format(new Date(assignment.effectiveFrom), 'MMM dd, yyyy') : '—'}</TableCell>
                   <TableCell>
                     <Badge variant={assignment.isActive ? 'default' : 'secondary'}>

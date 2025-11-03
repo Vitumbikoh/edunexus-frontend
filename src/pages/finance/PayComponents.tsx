@@ -12,6 +12,7 @@ import { Switch } from '@/components/ui/switch';
 import { Plus, Edit, Trash2, DollarSign, Calculator, Search } from 'lucide-react';
 import payrollService, { PayComponent, PayComponentType, CreatePayComponentRequest } from '@/services/payrollService';
 import { useAuth } from '@/contexts/AuthContext';
+import { getCurrencySymbol } from '@/lib/currency';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 
@@ -23,6 +24,9 @@ export default function PayComponents() {
   const [typeFilter, setTypeFilter] = useState<PayComponentType | 'ALL'>('ALL');
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [editingComponent, setEditingComponent] = useState<PayComponent | null>(null);
+
+  // Use MWK currency (Malawian Kwacha) as default
+  const currencySymbol = getCurrencySymbol('MWK'); // Returns "MK"
   const [formData, setFormData] = useState<CreatePayComponentRequest>({
     name: '',
     type: 'BASIC',
@@ -54,12 +58,24 @@ export default function PayComponents() {
 
   const handleSubmit = async () => {
     try {
+      // Ensure defaultAmount is a number before sending
+      const submitData = {
+        ...formData,
+        defaultAmount: typeof formData.defaultAmount === 'string' 
+          ? parseFloat(formData.defaultAmount) || 0 
+          : formData.defaultAmount,
+      };
+
+      console.log('Submitting data:', submitData); // Debug log
+      console.log('Form data department:', formData.department); // Debug log
+
       if (editingComponent) {
-        const updated = await payrollService.updatePayComponent(editingComponent.id, formData);
+        const updated = await payrollService.updatePayComponent(editingComponent.id, submitData);
+        console.log('Updated component received:', updated); // Debug log
         setComponents(prev => prev.map(c => c.id === editingComponent.id ? updated : c));
         toast.success('Pay component updated successfully');
       } else {
-        const newComponent = await payrollService.createPayComponent(formData);
+        const newComponent = await payrollService.createPayComponent(submitData);
         setComponents(prev => [newComponent, ...prev]);
         toast.success('Pay component created successfully');
       }
@@ -71,14 +87,24 @@ export default function PayComponents() {
   };
 
   const handleEdit = (component: PayComponent) => {
+    console.log('Editing component:', component); // Debug log
+    console.log('Component department:', component.department); // Debug log
+    
     setEditingComponent(component);
-    setFormData({
+    const editFormData = {
       name: component.name,
       type: component.type,
       isFixed: component.isFixed,
-      defaultAmount: component.defaultAmount,
+      defaultAmount: typeof component.defaultAmount === 'string' 
+        ? parseFloat(component.defaultAmount) || 0 
+        : component.defaultAmount,
       formula: component.formula || '',
-    });
+      department: component.department || '',
+      autoAssign: component.autoAssign || false,
+    };
+    
+    console.log('Setting form data:', editFormData); // Debug log
+    setFormData(editFormData);
     setShowCreateDialog(true);
   };
 
@@ -106,6 +132,8 @@ export default function PayComponents() {
       isFixed: true,
       defaultAmount: 0,
       formula: '',
+      department: '',
+      autoAssign: false,
     });
   };
 
@@ -215,7 +243,7 @@ export default function PayComponents() {
                       {typeLabels[component.type]}
                     </Badge>
                   </TableCell>
-                  <TableCell>${component.defaultAmount.toLocaleString()}</TableCell>
+                  <TableCell>{currencySymbol} {component.defaultAmount.toLocaleString()}</TableCell>
                   <TableCell>
                     <div className="flex items-center gap-1">
                       {component.isFixed ? (
@@ -303,7 +331,7 @@ export default function PayComponents() {
 
       {/* Create/Edit Dialog */}
       <Dialog open={showCreateDialog} onOpenChange={handleCloseDialog}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               {editingComponent ? 'Edit Pay Component' : 'Create New Pay Component'}
@@ -316,82 +344,101 @@ export default function PayComponents() {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4">
-            <div className="grid w-full items-center gap-1.5">
-              <Label htmlFor="name">Component Name</Label>
-              <Input
-                id="name"
-                value={formData.name}
-                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                placeholder="e.g., Basic Salary, Transport Allowance, PAYE Tax"
-              />
+          <div className="space-y-3 py-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid w-full items-center gap-1.5">
+                <Label htmlFor="name">Component Name</Label>
+                <Input
+                  id="name"
+                  value={formData.name}
+                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                  placeholder="e.g., Basic Salary, Transport Allowance"
+                />
+              </div>
+
+              <div className="grid w-full items-center gap-1.5">
+                <Label htmlFor="type">Component Type</Label>
+                <Select value={formData.type} onValueChange={(value) => setFormData(prev => ({ ...prev, type: value as PayComponentType }))}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select component type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="BASIC">Basic Pay</SelectItem>
+                    <SelectItem value="ALLOWANCE">Allowance</SelectItem>
+                    <SelectItem value="DEDUCTION">Deduction</SelectItem>
+                    <SelectItem value="EMPLOYER_CONTRIBUTION">Employer Contribution</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
-            <div className="grid w-full items-center gap-1.5">
-              <Label htmlFor="type">Component Type</Label>
-              <Select value={formData.type} onValueChange={(value) => setFormData(prev => ({ ...prev, type: value as PayComponentType }))}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select component type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="BASIC">Basic Pay</SelectItem>
-                  <SelectItem value="ALLOWANCE">Allowance</SelectItem>
-                  <SelectItem value="DEDUCTION">Deduction</SelectItem>
-                  <SelectItem value="EMPLOYER_CONTRIBUTION">Employer Contribution</SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid w-full items-center gap-1.5">
+                <Label htmlFor="defaultAmount">Default Amount ({currencySymbol})</Label>
+                <Input
+                  id="defaultAmount"
+                  type="number"
+                  value={formData.defaultAmount}
+                  onChange={(e) => setFormData(prev => ({ ...prev, defaultAmount: parseFloat(e.target.value) || 0 }))}
+                  placeholder="500000.00"
+                  step="0.01"
+                />
+              </div>
+
+              <div className="grid w-full items-center gap-1.5">
+                <Label htmlFor="department">Apply to Department (Optional)</Label>
+                <Select 
+                  value={formData.department || 'ALL'} 
+                  onValueChange={(value) => {
+                    console.log('Department changed:', value); // Debug log
+                    setFormData(prev => ({ 
+                      ...prev, 
+                      department: value === 'ALL' ? '' : value 
+                    }));
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="All Departments" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ALL">All Departments</SelectItem>
+                    <SelectItem value="Teaching">Teaching</SelectItem>
+                    <SelectItem value="Finance">Finance</SelectItem>
+                    <SelectItem value="Administration">Administration</SelectItem>
+                    <SelectItem value="Library">Library</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
-            <div className="grid w-full items-center gap-1.5">
-              <Label htmlFor="defaultAmount">Default Amount ($)</Label>
-              <Input
-                id="defaultAmount"
-                type="number"
-                value={formData.defaultAmount}
-                onChange={(e) => setFormData(prev => ({ ...prev, defaultAmount: parseFloat(e.target.value) || 0 }))}
-                placeholder="0.00"
-                step="0.01"
-              />
-            </div>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label htmlFor="autoAssign">Auto-assign to staff</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Automatically assign to all staff in selected department during payroll preparation
+                  </p>
+                </div>
+                <Switch
+                  id="autoAssign"
+                  checked={formData.autoAssign}
+                  onCheckedChange={(checked) => setFormData(prev => ({ ...prev, autoAssign: checked }))}
+                />
+              </div>
 
-            <div className="grid w-full items-center gap-1.5">
-              <Label htmlFor="department">Apply to Department (Optional)</Label>
-              <Select value={formData.department || 'ALL'} onValueChange={(value) => setFormData(prev => ({ ...prev, department: value === 'ALL' ? '' : value }))}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select department or all" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ALL">All Departments</SelectItem>
-                  <SelectItem value="Teaching">Teaching</SelectItem>
-                  <SelectItem value="Finance">Finance</SelectItem>
-                  <SelectItem value="Administration">Administration</SelectItem>
-                  <SelectItem value="Library">Library</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="flex items-center space-x-2">
-              <Switch
-                id="autoAssign"
-                checked={formData.autoAssign}
-                onCheckedChange={(checked) => setFormData(prev => ({ ...prev, autoAssign: checked }))}
-              />
-              <Label htmlFor="autoAssign">Auto-assign to staff</Label>
-              <p className="text-sm text-muted-foreground">
-                Automatically assign to all staff in selected department during payroll preparation
-              </p>
-            </div>
-
-            <div className="flex items-center space-x-2">
-              <Switch
-                id="isFixed"
-                checked={formData.isFixed}
-                onCheckedChange={(checked) => setFormData(prev => ({ ...prev, isFixed: checked }))}
-              />
-              <Label htmlFor="isFixed">Fixed Amount</Label>
-              <p className="text-sm text-muted-foreground">
-                If unchecked, a formula will be used for calculation
-              </p>
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label htmlFor="isFixed">Fixed Amount</Label>
+                  <p className="text-xs text-muted-foreground">
+                    If unchecked, a formula will be used for calculation
+                  </p>
+                </div>
+                <Switch
+                  id="isFixed"
+                  checked={formData.isFixed}
+                  onCheckedChange={(checked) => setFormData(prev => ({ ...prev, isFixed: checked }))}
+                />
+              </div>
             </div>
 
             {!formData.isFixed && (
@@ -402,16 +449,17 @@ export default function PayComponents() {
                   value={formData.formula}
                   onChange={(e) => setFormData(prev => ({ ...prev, formula: e.target.value }))}
                   placeholder="e.g., basicSalary * 0.1 (for 10% of basic salary)"
-                  rows={3}
+                  rows={2}
+                  className="resize-none"
                 />
-                <p className="text-sm text-muted-foreground">
+                <p className="text-xs text-muted-foreground">
                   Enter a formula for dynamic calculation. Use variables like 'basicSalary', 'grossSalary', etc.
                 </p>
               </div>
             )}
           </div>
 
-          <DialogFooter>
+          <DialogFooter className="mt-4">
             <Button variant="outline" onClick={handleCloseDialog}>
               Cancel
             </Button>

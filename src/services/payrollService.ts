@@ -44,9 +44,11 @@ export interface PayComponent {
   name: string;
   type: PayComponentType;
   isFixed: boolean;
-  defaultAmount: number;
+  defaultAmount: number | string; // Can be string from API
   formula: string | null;
   isActive: boolean;
+  department?: string;
+  autoAssign?: boolean;
   createdAt: string;
   updatedAt: string;
 }
