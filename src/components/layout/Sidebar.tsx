@@ -395,10 +395,12 @@ export default function Sidebar() {
               isOpen ? "justify-start" : "justify-center w-full"
             )}
           >
-            <div className="rounded-lg bg-primary w-8 h-8 flex items-center justify-center">
-              <span className="text-primary-foreground font-semibold text-sm">
-                SA
-              </span>
+            <div className="rounded-lg w-8 h-8 flex items-center justify-center">
+              <img 
+                src="/polymilesicon.png" 
+                alt="Schomas Academy" 
+                className="w-8 h-8 rounded-lg object-contain"
+              />
             </div>
             {isOpen && (
               <span className="ml-3 font-semibold text-foreground">

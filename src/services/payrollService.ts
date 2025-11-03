@@ -54,10 +54,12 @@ export interface PayComponent {
 export interface StaffPayAssignment {
   id: string;
   userId: string;
+  staffName: string;
   componentId: string;
   amount: number;
   isActive: boolean;
-  effectiveDate: string;
+  effectiveFrom?: string | null;
+  effectiveTo?: string | null;
   createdAt: string;
   updatedAt: string;
   component?: PayComponent;

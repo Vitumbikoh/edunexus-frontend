@@ -7,8 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Edit, Trash2, User, Search } from 'lucide-react';
+import { Plus, Edit, Trash2, User, Power, PowerOff } from 'lucide-react';
 import payrollService, { StaffPayAssignment, PayComponent, Staff, CreateStaffAssignmentRequest, UpdateStaffAssignmentRequest } from '@/services/payrollService';
 import { useAuth } from '@/contexts/AuthContext';
 import { format } from 'date-fns';
@@ -140,23 +139,16 @@ export default function StaffPayAssignments() {
   };
 
   const filteredAssignments = assignments.filter(assignment => {
-    const matchesSearch = assignment.staffName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         assignment.component.name.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStaff = staffFilter === 'ALL' || assignment.userId === staffFilter;
+    const q = searchTerm.trim().toLowerCase();
+    const matchesSearch = !q ||
+      (assignment.staffName?.toLowerCase().includes(q) || assignment.component?.name?.toLowerCase().includes(q));
+    // Filter by staff role instead of individual staff ID
+    const staffMember = staff.find(s => s.id === assignment.userId);
+    const matchesStaff = staffFilter === 'ALL' || staffMember?.role === staffFilter;
     return matchesSearch && matchesStaff;
   });
 
-  // Group assignments by staff
-  const assignmentsByStaff = filteredAssignments.reduce((acc, assignment) => {
-    if (!acc[assignment.userId]) {
-      acc[assignment.userId] = {
-        staffName: assignment.staffName,
-        assignments: [],
-      };
-    }
-    acc[assignment.userId].assignments.push(assignment);
-    return acc;
-  }, {} as Record<string, { staffName: string; assignments: StaffPayAssignment[] }>);
+  // Unified view: no grouping, rely on filters
 
   if (loading) {
     return (
@@ -200,131 +192,121 @@ export default function StaffPayAssignments() {
             </div>
             <Select value={staffFilter} onValueChange={setStaffFilter}>
               <SelectTrigger className="w-[200px]">
-                <SelectValue placeholder="Filter by staff" />
+                <SelectValue placeholder="Filter by staff role" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="ALL">All Staff</SelectItem>
-                {staff.map((member) => (
-                  <SelectItem key={member.id} value={member.id}>
-                    {member.firstName} {member.lastName}
-                  </SelectItem>
-                ))}
+                {/* Extract unique roles from staff and show them as filter options */}
+                {Array.from(new Set(staff.map(member => member.role)))
+                  .filter(role => role) // Remove any null/undefined roles
+                  .sort()
+                  .map((role) => (
+                    <SelectItem key={role} value={role}>
+                      {role.charAt(0).toUpperCase() + role.slice(1)}
+                    </SelectItem>
+                  ))}
               </SelectContent>
             </Select>
           </div>
         </CardContent>
       </Card>
 
-      <Tabs defaultValue="grouped" className="w-full">
-        <TabsList>
-          <TabsTrigger value="grouped">Grouped by Staff</TabsTrigger>
-          <TabsTrigger value="list">All Assignments</TabsTrigger>
-        </TabsList>
+      {/* Unified list view (tabs removed) */}
+      <Card>
+        <CardHeader>
+          <CardTitle>All Assignments</CardTitle>
+          <CardDescription>
+            {filteredAssignments.length} assignment{filteredAssignments.length !== 1 ? 's' : ''} found
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="min-w-[150px]">Staff</TableHead>
+                <TableHead className="min-w-[120px]">Component</TableHead>
+                <TableHead className="w-[100px]">Type</TableHead>
+                <TableHead className="w-[100px] text-right">Amount</TableHead>
+                <TableHead className="w-[120px]">Effective From</TableHead>
+                <TableHead className="w-[80px]">Status</TableHead>
+                <TableHead className="w-[120px]">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredAssignments.map((assignment) => (
+                <TableRow key={assignment.id}>
+                  <TableCell className="font-medium">{assignment.staffName}</TableCell>
+                  <TableCell>{assignment.component?.name}</TableCell>
+                  <TableCell>
+                    {assignment.component && (
+                      <Badge className={typeColors[assignment.component.type]}>
+                        {assignment.component.type.replace('_', ' ')}
+                      </Badge>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-right font-medium">${assignment.amount.toLocaleString()}</TableCell>
+                  <TableCell>{assignment.effectiveFrom ? format(new Date(assignment.effectiveFrom), 'MMM dd, yyyy') : '—'}</TableCell>
+                  <TableCell>
+                    <Badge variant={assignment.isActive ? 'default' : 'secondary'}>
+                      {assignment.isActive ? 'Active' : 'Inactive'}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    {isFinanceOfficer && (
+                      <div className="flex gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleEdit(assignment)}
+                          className="h-8 w-8"
+                          title="Edit assignment"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleToggleActive(assignment)}
+                          className={`h-8 w-8 ${assignment.isActive ? 'text-red-600 hover:text-red-700' : 'text-green-600 hover:text-green-700'}`}
+                          title={assignment.isActive ? 'Deactivate assignment' : 'Activate assignment'}
+                        >
+                          {assignment.isActive ? <PowerOff className="h-4 w-4" /> : <Power className="h-4 w-4" />}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDelete(assignment)}
+                          className="h-8 w-8 text-red-600 hover:text-red-700"
+                          title="Delete assignment"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+          </div>
 
-        <TabsContent value="grouped" className="space-y-4">
-          {Object.entries(assignmentsByStaff).map(([staffId, staffData]) => (
-            <Card key={staffId}>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <User className="h-5 w-5" />
-                  {staffData.staffName}
-                </CardTitle>
-                <CardDescription>
-                  {staffData.assignments.length} assignment{staffData.assignments.length !== 1 ? 's' : ''}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Component</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Amount</TableHead>
-                      <TableHead>Effective From</TableHead>
-                      <TableHead>Effective To</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {staffData.assignments.map((assignment) => (
-                      <TableRow key={assignment.id}>
-                        <TableCell className="font-medium">{assignment.component.name}</TableCell>
-                        <TableCell>
-                          <Badge className={typeColors[assignment.component.type]}>
-                            {assignment.component.type.replace('_', ' ')}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>${assignment.amount.toLocaleString()}</TableCell>
-                        <TableCell>{format(new Date(assignment.effectiveFrom), 'MMM dd, yyyy')}</TableCell>
-                        <TableCell>
-                          {assignment.effectiveTo 
-                            ? format(new Date(assignment.effectiveTo), 'MMM dd, yyyy')
-                            : 'Ongoing'
-                          }
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={assignment.isActive ? 'default' : 'secondary'}>
-                            {assignment.isActive ? 'Active' : 'Inactive'}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          {isFinanceOfficer && (
-                            <div className="flex gap-2">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleEdit(assignment)}
-                              >
-                                <Edit className="h-4 w-4 mr-1" />
-                                Edit
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleToggleActive(assignment)}
-                                className={assignment.isActive ? 'text-red-600 hover:text-red-700' : 'text-green-600 hover:text-green-700'}
-                              >
-                                {assignment.isActive ? 'Deactivate' : 'Activate'}
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleDelete(assignment)}
-                                className="text-red-600 hover:text-red-700"
-                              >
-                                <Trash2 className="h-4 w-4 mr-1" />
-                                Delete
-                              </Button>
-                            </div>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-          ))}
-
-          {Object.keys(assignmentsByStaff).length === 0 && (
-            <Card>
-              <CardContent className="text-center py-12">
-                <div className="mx-auto w-24 h-24 bg-muted rounded-full flex items-center justify-center mb-4">
-                  <User className="h-12 w-12 text-muted-foreground" />
-                </div>
-                <h3 className="text-lg font-semibold mb-2">No Staff Assignments Yet</h3>
-                <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-                  {payComponents.length === 0 
-                    ? "You need to create pay components first before you can assign them to staff."
-                    : "Assign pay components to your staff members to define their compensation structure."
-                  }
-                </p>
-                
-                {isFinanceOfficer && (
-                  <div className="space-y-4">
-                    {payComponents.length === 0 ? (
-                      <Button onClick={() => window.location.href = '/finance/pay-components'}>
+          {filteredAssignments.length === 0 && (
+            <div className="text-center py-8 text-muted-foreground">
+              {assignments.length === 0 ? (
+                <div className="space-y-4">
+                  <div className="mx-auto w-24 h-24 bg-muted rounded-full flex items-center justify-center mb-4">
+                    <User className="h-12 w-12 text-muted-foreground" />
+                  </div>
+                  <h3 className="text-lg font-semibold">No Staff Assignments Yet</h3>
+                  <p className="max-w-md mx-auto">
+                    {payComponents.length === 0
+                      ? 'You need to create pay components first before you can assign them to staff.'
+                      : 'Assign pay components to your staff members to define their compensation structure.'}
+                  </p>
+                  {isFinanceOfficer && (
+                    payComponents.length === 0 ? (
+                      <Button onClick={() => (window.location.href = '/finance/pay-components')}>
                         <Plus className="h-4 w-4 mr-2" />
                         Create Pay Components First
                       </Button>
@@ -333,89 +315,16 @@ export default function StaffPayAssignments() {
                         <Plus className="h-4 w-4 mr-2" />
                         Create Your First Assignment
                       </Button>
-                    )}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
-        </TabsContent>
-
-        <TabsContent value="list">
-          <Card>
-            <CardHeader>
-              <CardTitle>All Assignments</CardTitle>
-              <CardDescription>
-                {filteredAssignments.length} assignment{filteredAssignments.length !== 1 ? 's' : ''} found
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Staff</TableHead>
-                    <TableHead>Component</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Amount</TableHead>
-                    <TableHead>Effective From</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredAssignments.map((assignment) => (
-                    <TableRow key={assignment.id}>
-                      <TableCell className="font-medium">{assignment.staffName}</TableCell>
-                      <TableCell>{assignment.component.name}</TableCell>
-                      <TableCell>
-                        <Badge className={typeColors[assignment.component.type]}>
-                          {assignment.component.type.replace('_', ' ')}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>${assignment.amount.toLocaleString()}</TableCell>
-                      <TableCell>{format(new Date(assignment.effectiveFrom), 'MMM dd, yyyy')}</TableCell>
-                      <TableCell>
-                        <Badge variant={assignment.isActive ? 'default' : 'secondary'}>
-                          {assignment.isActive ? 'Active' : 'Inactive'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {isFinanceOfficer && (
-                          <div className="flex gap-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleEdit(assignment)}
-                            >
-                              <Edit className="h-4 w-4 mr-1" />
-                              Edit
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleDelete(assignment)}
-                              className="text-red-600 hover:text-red-700"
-                            >
-                              <Trash2 className="h-4 w-4 mr-1" />
-                              Delete
-                            </Button>
-                          </div>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-
-              {filteredAssignments.length === 0 && (
-                <div className="text-center py-8 text-muted-foreground">
-                  No assignments found matching your filters.
+                    )
+                  )}
                 </div>
+              ) : (
+                'No assignments found matching your filters.'
               )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Create/Edit Dialog */}
       <Dialog open={showCreateDialog} onOpenChange={handleCloseDialog}>
