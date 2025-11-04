@@ -203,10 +203,12 @@ export default function PayComponents() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="ALL">All Types</SelectItem>
-                <SelectItem value="BASIC">Basic Pay</SelectItem>
+                <SelectItem value="BASIC">Basic Salary</SelectItem>
                 <SelectItem value="ALLOWANCE">Allowance</SelectItem>
                 <SelectItem value="DEDUCTION">Deduction</SelectItem>
                 <SelectItem value="EMPLOYER_CONTRIBUTION">Employer Contribution</SelectItem>
+                <SelectItem value="BONUS">Bonus</SelectItem>
+                <SelectItem value="OVERTIME">Overtime</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -363,10 +365,12 @@ export default function PayComponents() {
                     <SelectValue placeholder="Select component type" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="BASIC">Basic Pay</SelectItem>
+                    <SelectItem value="BASIC">Basic Salary</SelectItem>
                     <SelectItem value="ALLOWANCE">Allowance</SelectItem>
                     <SelectItem value="DEDUCTION">Deduction</SelectItem>
                     <SelectItem value="EMPLOYER_CONTRIBUTION">Employer Contribution</SelectItem>
+                    <SelectItem value="BONUS">Bonus</SelectItem>
+                    <SelectItem value="OVERTIME">Overtime</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

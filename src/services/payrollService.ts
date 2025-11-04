@@ -1,7 +1,7 @@
 import { api } from '@/lib/api';
 
 export type SalaryRunStatus = 'DRAFT' | 'PREPARED' | 'SUBMITTED' | 'APPROVED' | 'REJECTED' | 'FINALIZED';
-export type PayComponentType = 'BASIC' | 'ALLOWANCE' | 'DEDUCTION' | 'EMPLOYER_CONTRIBUTION';
+export type PayComponentType = 'BASIC' | 'ALLOWANCE' | 'DEDUCTION' | 'EMPLOYER_CONTRIBUTION' | 'BONUS' | 'OVERTIME';
 
 export interface SalaryRun {
   id: string;
@@ -269,13 +269,26 @@ class PayrollService {
 
   // Reports & Exports
   async generatePayslip(runId: string, staffId: string): Promise<Blob> {
-    const res = await api.get(`${this.baseUrl}/runs/${runId}/payslip/${staffId}`);
-    return res as any;
+    // Use direct fetch for binary responses (PDF)
+    const baseUrl = (await import('@/config/api')).API_CONFIG.BASE_URL;
+    const response = await fetch(`${baseUrl}${this.baseUrl}/runs/${runId}/payslip/${staffId}`, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('access_token') || ''}`,
+      }
+    });
+    if (!response.ok) throw new Error(`Failed to generate payslip: ${response.statusText}`);
+    return await response.blob();
   }
 
   async exportPayroll(runId: string, format: 'pdf' | 'excel' = 'pdf'): Promise<Blob> {
-    const res = await api.get(`${this.baseUrl}/runs/${runId}/export?format=${format}`);
-    return res as any;
+    const baseUrl = (await import('@/config/api')).API_CONFIG.BASE_URL;
+    const response = await fetch(`${baseUrl}${this.baseUrl}/runs/${runId}/export?format=${format}`, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('access_token') || ''}`,
+      }
+    });
+    if (!response.ok) throw new Error(`Failed to export payroll: ${response.statusText}`);
+    return await response.blob();
   }
 
   async getApprovalHistory(runId: string): Promise<PayrollApprovalHistory[]> {

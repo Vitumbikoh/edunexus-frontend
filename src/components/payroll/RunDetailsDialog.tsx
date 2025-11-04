@@ -156,7 +156,7 @@ export default function RunDetailsDialog({ run, open, onOpenChange, onRunUpdated
                   <DollarSign className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">${run.totalGross.toLocaleString()}</div>
+                  <div className="text-2xl font-bold">MK {run.totalGross.toLocaleString()}</div>
                   <p className="text-xs text-muted-foreground">
                     Total before deductions
                   </p>
@@ -169,7 +169,7 @@ export default function RunDetailsDialog({ run, open, onOpenChange, onRunUpdated
                   <TrendingUp className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">${run.totalNet.toLocaleString()}</div>
+                  <div className="text-2xl font-bold">MK {run.totalNet.toLocaleString()}</div>
                   <p className="text-xs text-muted-foreground">
                     Total after deductions
                   </p>
@@ -205,7 +205,7 @@ export default function RunDetailsDialog({ run, open, onOpenChange, onRunUpdated
                   </div>
                   <div>
                     <Label>Employer Cost</Label>
-                    <p className="text-lg font-medium">${run.employerCost.toLocaleString()}</p>
+                    <p className="text-lg font-medium">MK {run.employerCost.toLocaleString()}</p>
                   </div>
                   <div>
                     <Label>Posted to Expenses</Label>
@@ -243,10 +243,10 @@ export default function RunDetailsDialog({ run, open, onOpenChange, onRunUpdated
                       {salaryItems.map((item) => (
                         <TableRow key={item.id}>
                           <TableCell className="font-medium">{item.staffName || 'Unknown Staff'}</TableCell>
-                          <TableCell>${(item.grossPay || 0).toLocaleString()}</TableCell>
-                          <TableCell>${(item.otherDeductions || 0).toLocaleString()}</TableCell>
-                          <TableCell>${(item.netPay || 0).toLocaleString()}</TableCell>
-                          <TableCell>${(item.employerContrib || 0).toLocaleString()}</TableCell>
+                          <TableCell>MK {(item.grossPay || 0).toLocaleString()}</TableCell>
+                          <TableCell>MK {(item.otherDeductions || 0).toLocaleString()}</TableCell>
+                          <TableCell>MK {(item.netPay || 0).toLocaleString()}</TableCell>
+                          <TableCell>MK {(item.employerContrib || 0).toLocaleString()}</TableCell>
                           <TableCell>
                             <div className="flex gap-2">
                               {run.status === 'FINALIZED' && (
