@@ -122,7 +122,6 @@ const adminNavItems: NavItem[] = [
     subItems: [
       { label: "Catalog", href: "/library/catalog", roles: ["admin", "teacher", "student", "finance"] },
       { label: "Borrowings", href: "/library/borrowings", roles: ["admin", "teacher", "finance"] },
-      { label: "Reports", href: "/library/reports", roles: ["admin", "finance"] },
     ],
   },
 

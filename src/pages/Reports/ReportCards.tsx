@@ -603,57 +603,7 @@ export const ReportCards: React.FC<ReportCardsProps> = ({
         </CardContent>
       </Card>
 
-      {/* Comprehensive Report Card - Full Width */}
-      <Card className="lg:col-span-2">
-        <CardHeader>
-          <div className="flex items-center gap-3">
-            <Download className="h-5 w-5 text-primary" />
-            <div>
-              <CardTitle>Comprehensive Report</CardTitle>
-              <p className="text-muted-foreground text-sm">Complete school data export</p>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="p-4 space-y-4">
-          <p className="text-muted-foreground text-sm">
-            Generate a comprehensive report containing all school data including students, teachers, courses, enrollments, and financial records.
-          </p>
-          
-          <div className="bg-muted/50 p-4 rounded-lg">
-            <h4 className="font-medium text-foreground mb-2 flex items-center gap-2">
-              <FileText className="h-4 w-4" />
-              Report Contents
-            </h4>
-            <ul className="text-sm text-muted-foreground space-y-1">
-              <li>• Student enrollment and academic records</li>
-              <li>• Teacher profiles and course assignments</li>
-              <li>• Course catalog and enrollment statistics</li>
-              <li>• Financial records and payment history</li>
-              <li>• Attendance tracking and analytics</li>
-            </ul>
-          </div>
 
-          <div className="flex gap-2 pt-2">
-            <Button
-              onClick={() => onGenerateReport("excel", "comprehensive")}
-              disabled={!!generatingCategory}
-              className="flex-1"
-            >
-              <FileSpreadsheet className="h-4 w-4 mr-2" />
-              {generatingCategory?.category === 'comprehensive' && generatingCategory.format === 'excel' ? <Loader2 className="h-4 w-4 animate-spin" /> : "Excel"}
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => onGenerateReport("pdf", "comprehensive")}
-              disabled={!!generatingCategory}
-              className="flex-1"
-            >
-              <FileDown className="h-4 w-4 mr-2" />
-              {generatingCategory?.category === 'comprehensive' && generatingCategory.format === 'pdf' ? <Loader2 className="h-4 w-4 animate-spin" /> : 'PDF'}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
     </>
   );
 };

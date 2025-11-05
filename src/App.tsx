@@ -86,7 +86,6 @@ import Activities from "./pages/activities/Activities";
 import ActivityDetail from "./pages/activities/ActivityDetail";
 import LibraryCatalog from "./pages/library/LibraryCatalog";
 import Borrowings from "./pages/library/Borrowings";
-import LibraryReports from "./pages/library/LibraryReports";
 
 // Admin specific pages
 import StaffManagement from "./pages/admin/StaffManagement";
@@ -422,16 +421,7 @@ const AppRoutes = () => {
             </ProtectedRoute>
           }
         />
-        <Route
-          path="/library/reports"
-          element={
-            <ProtectedRoute>
-              <Layout>
-                <LibraryReports />
-              </Layout>
-            </ProtectedRoute>
-          }
-        />
+
       <Route
         path="/courses/add"
         element={

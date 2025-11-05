@@ -1,7 +1,8 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Users, BookOpen, DollarSign, GraduationCap, TrendingUp, FileSpreadsheet } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Loader2, Users, BookOpen, DollarSign, GraduationCap, TrendingUp, FileSpreadsheet, Download, FileDown, FileText } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 // Use local report service implementation co-located with this page to avoid alias resolution issues
 import { reportService } from "./reportService";
@@ -9,8 +10,8 @@ import { classService } from "@/services/classService";
 import { academicCalendarService } from "@/services/academicCalendarService";
 import { termService } from "@/services/termService";
 import { ReportCards } from "./ReportCards";
-import { ReportCharts } from "./ReportCharts";
 import { formatCurrency, getDefaultCurrency } from '@/lib/currency';
+import LibraryReportCard from '@/components/reports/LibraryReportCard';
 
 interface ReportDataAPI {
   totalStudents: number;
@@ -457,11 +458,78 @@ export default function Reports() {
         />
       </div>
 
-      <ReportCharts
-        reportData={reportData}
-        isLoading={isLoading}
-        error={error}
-      />
+      {/* Library Reports and Comprehensive Report - Side by Side */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Library Reports Section */}
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-2xl font-bold text-foreground">Library Reports</h2>
+              <p className="text-muted-foreground mt-1">
+                Complete library management and borrowing analytics
+              </p>
+            </div>
+          </div>
+
+          <LibraryReportCard
+            title="Borrowing History"
+            description="Complete record of all book borrowings with filters for date range and status"
+            reportType="borrowings"
+          />
+        </div>
+
+        {/* Comprehensive Report Card */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-3">
+              <Download className="h-5 w-5 text-primary" />
+              <div>
+                <CardTitle>Comprehensive Report</CardTitle>
+                <p className="text-muted-foreground text-sm">Complete school data export</p>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="p-4 space-y-4">
+            <p className="text-muted-foreground text-sm">
+              Generate a comprehensive report containing all school data including students, teachers, courses, enrollments, and financial records.
+            </p>
+            
+            <div className="bg-muted/50 p-4 rounded-lg">
+              <h4 className="font-medium text-foreground mb-2 flex items-center gap-2">
+                <FileText className="h-4 w-4" />
+                Report Contents
+              </h4>
+              <ul className="text-sm text-muted-foreground space-y-1">
+                <li>• Student enrollment and academic records</li>
+                <li>• Teacher profiles and course assignments</li>
+                <li>• Course catalog and enrollment statistics</li>
+                <li>• Financial records and payment history</li>
+                <li>• Attendance tracking and analytics</li>
+              </ul>
+            </div>
+
+            <div className="flex gap-2 pt-2">
+              <Button
+                onClick={() => handleGenerateReport("excel", "comprehensive")}
+                disabled={!!generatingCategory}
+                className="flex-1"
+              >
+                <FileSpreadsheet className="h-4 w-4 mr-2" />
+                {generatingCategory?.category === 'comprehensive' && generatingCategory.format === 'excel' ? <Loader2 className="h-4 w-4 animate-spin" /> : "Excel"}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => handleGenerateReport("pdf", "comprehensive")}
+                disabled={!!generatingCategory}
+                className="flex-1"
+              >
+                <FileDown className="h-4 w-4 mr-2" />
+                {generatingCategory?.category === 'comprehensive' && generatingCategory.format === 'pdf' ? <Loader2 className="h-4 w-4 animate-spin" /> : 'PDF'}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
