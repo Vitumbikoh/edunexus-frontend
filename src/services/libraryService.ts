@@ -7,6 +7,8 @@ export type Book = {
   isbn?: string;
   totalCopies: number;
   availableCopies: number;
+  classId?: string;
+  class?: { id: string; name: string; numericalName: number };
   schoolId: string;
   createdAt: string;
   updatedAt: string;
@@ -34,11 +36,11 @@ export const libraryApi = {
     return apiClient.get(`/library/books${query ? `?${query}` : ''}`, opts.token) as Promise<Book[]>;
   },
 
-  createBook: (data: { title: string; author?: string; isbn?: string; totalCopies: number; schoolId?: string }, token?: string) => {
+  createBook: (data: { title: string; author?: string; isbn?: string; totalCopies: number; classId?: string; schoolId?: string }, token?: string) => {
     return apiClient.post(`/library/books${data.schoolId ? `?schoolId=${encodeURIComponent(data.schoolId)}` : ''}`, data, token) as Promise<Book>;
   },
 
-  updateBook: (id: string, data: Partial<{ title: string; author?: string; isbn?: string; totalCopies: number }>, token?: string) => {
+  updateBook: (id: string, data: Partial<{ title: string; author?: string; isbn?: string; totalCopies: number; classId?: string }>, token?: string) => {
     return apiClient.put(`/library/books/${id}`, data, token) as Promise<Book>;
   },
 
@@ -92,6 +94,13 @@ export const libraryApi = {
     if (opts.limit) params.set('limit', String(opts.limit));
     if (opts.schoolId) params.set('schoolId', opts.schoolId);
     const query = params.toString();
-    return apiClient.get(`/library/students/search?${query}`, opts.token) as Promise<Array<{ id: string; studentId: string; firstName: string; lastName: string }>>;
+    return apiClient.get(`/library/students/search?${query}`, opts.token) as Promise<Array<{ id: string; studentId: string; firstName: string; lastName: string; class?: { id: string; name: string; numericalName: number } }>>;
+  },
+
+  listClasses: (opts: { token?: string; schoolId?: string } = {}) => {
+    const params = new URLSearchParams();
+    if (opts.schoolId) params.set('schoolId', opts.schoolId);
+    const query = params.toString();
+    return apiClient.get(`/classes${query ? `?${query}` : ''}`, opts.token) as Promise<Array<{ id: string; name: string; numericalName: number }>>;
   },
 };

@@ -15,7 +15,8 @@ import {
   Area,
   LabelList,
   ReferenceLine,
-  Legend
+  Legend,
+  CartesianGrid
 } from 'recharts';
 import { 
   ChartContainer, 
@@ -316,43 +317,112 @@ export const AttendanceOverview = ({ termId }: { termId?: string }) => {
       <BarChart
         data={attendanceData}
         margin={{
-          top: 20,
+          top: 30,
           right: 30,
           left: 20,
-          bottom: 5,
+          bottom: 60,
         }}
       >
+        <defs>
+          {/* Attendance-based gradients */}
+          <linearGradient id="excellentAttendance" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#059669" stopOpacity={1} />
+            <stop offset="50%" stopColor="#10b981" stopOpacity={0.95} />
+            <stop offset="100%" stopColor="#34d399" stopOpacity={0.85} />
+          </linearGradient>
+          <linearGradient id="goodAttendance" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#0284c7" stopOpacity={1} />
+            <stop offset="50%" stopColor="#0ea5e9" stopOpacity={0.95} />
+            <stop offset="100%" stopColor="#38bdf8" stopOpacity={0.85} />
+          </linearGradient>
+          <linearGradient id="improvementAttendance" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#d97706" stopOpacity={1} />
+            <stop offset="50%" stopColor="#f59e0b" stopOpacity={0.95} />
+            <stop offset="100%" stopColor="#fbbf24" stopOpacity={0.85} />
+          </linearGradient>
+          <linearGradient id="poorAttendance" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#dc2626" stopOpacity={1} />
+            <stop offset="50%" stopColor="#ef4444" stopOpacity={0.95} />
+            <stop offset="100%" stopColor="#f87171" stopOpacity={0.85} />
+          </linearGradient>
+          
+          {/* Professional shadow filter */}
+          <filter id="attendanceBarShadow" x="-50%" y="-50%" width="200%" height="200%">
+            <feDropShadow dx="0" dy="3" stdDeviation="2" floodOpacity="0.25"/>
+          </filter>
+        </defs>
+        
+        <CartesianGrid 
+          strokeDasharray="3 3" 
+          stroke="#e5e7eb" 
+          strokeOpacity={0.4}
+          vertical={false}
+        />
+        
         <XAxis
           dataKey="name"
-          tick={{ fontSize: 12 }}
+          tick={{ fontSize: 11, fontWeight: 500, fill: '#6b7280' }}
+          axisLine={{ stroke: '#d1d5db', strokeWidth: 1 }}
+          tickLine={{ stroke: '#d1d5db' }}
           angle={-45}
           textAnchor="end"
           height={60}
         />
         <YAxis
           domain={[0, 100]}
-          tick={{ fontSize: 12 }}
-          label={{ value: 'Attendance %', angle: -90, position: 'insideLeft' }}
+          tick={{ fontSize: 11, fontWeight: 500, fill: '#6b7280' }}
+          axisLine={{ stroke: '#d1d5db', strokeWidth: 1 }}
+          tickLine={{ stroke: '#d1d5db' }}
+          label={{ 
+            value: 'Attendance Rate (%)', 
+            angle: -90, 
+            position: 'insideLeft',
+            style: { textAnchor: 'middle', fontSize: '12px', fontWeight: '600', fill: '#4b5563' }
+          }}
         />
         <Tooltip
-          formatter={(value: number) => [`${value}%`, 'Attendance Rate']}
-          labelStyle={{ color: '#000' }}
+          formatter={(value: number) => [`${Math.round(value)}%`, 'Attendance Rate']}
+          labelFormatter={(label) => `Class: ${label}`}
+          contentStyle={{
+            backgroundColor: 'rgba(255, 255, 255, 0.98)',
+            border: 'none',
+            borderRadius: '12px',
+            boxShadow: '0 10px 25px rgba(0, 0, 0, 0.15)',
+            fontSize: '13px',
+            fontWeight: '500',
+            backdropFilter: 'blur(10px)',
+            padding: '12px 16px'
+          }}
+          itemStyle={{ 
+            color: '#374151',
+            fontWeight: '600'
+          }}
+          labelStyle={{ 
+            color: '#1f2937',
+            fontWeight: '700',
+            marginBottom: '6px'
+          }}
         />
         <Bar
           dataKey="attendanceRate"
-          fill="#8b5cf6"
-          radius={[4, 4, 0, 0]}
+          radius={[8, 8, 0, 0]}
+          stroke="#ffffff"
+          strokeWidth={1}
+          style={{ filter: "url(#attendanceBarShadow)" }}
+          className="transition-all duration-300 hover:opacity-80"
         >
           {attendanceData.map((entry, index) => {
             const percentage = Math.round(entry.attendanceRate || entry.value);
+            let fill;
+            if (percentage >= 90) fill = 'url(#excellentAttendance)';
+            else if (percentage >= 80) fill = 'url(#goodAttendance)';
+            else if (percentage >= 70) fill = 'url(#improvementAttendance)';
+            else fill = 'url(#poorAttendance)';
+            
             return (
               <Cell
                 key={`cell-${index}`}
-                fill={
-                  percentage >= 90 ? '#10b981' : // green for excellent
-                  percentage >= 80 ? '#3b82f6' : // blue for good
-                  '#f59e0b' // amber for needs improvement
-                }
+                fill={fill}
               />
             );
           })}
@@ -360,9 +430,33 @@ export const AttendanceOverview = ({ termId }: { termId?: string }) => {
             dataKey="attendanceRate"
             position="top"
             formatter={(value: number) => `${Math.round(value)}%`}
-            style={{ fontSize: '12px', fill: '#374151' }}
+            style={{ 
+              fontSize: '11px', 
+              fontWeight: '600',
+              fill: '#374151'
+            }}
           />
         </Bar>
+        
+        {/* Attendance threshold lines - updated for professional styling */}
+        <ReferenceLine 
+          y={90} 
+          stroke="#059669" 
+          strokeDasharray="4 4" 
+          strokeOpacity={0.6}
+        />
+        <ReferenceLine 
+          y={80} 
+          stroke="#0284c7" 
+          strokeDasharray="4 4" 
+          strokeOpacity={0.6}
+        />
+        <ReferenceLine 
+          y={70} 
+          stroke="#d97706" 
+          strokeDasharray="4 4" 
+          strokeOpacity={0.6}
+        />
       </BarChart>
     </ResponsiveContainer>
   );
@@ -564,6 +658,14 @@ export const ClassPerformanceChart = ({ termId }: { termId?: string }) => {
     );
   }
 
+  // Color function based on performance level
+  const getPerformanceColor = (average: number) => {
+    if (average >= 85) return 'url(#excellentGradient)';
+    if (average >= 75) return 'url(#goodGradient)';
+    if (average >= 65) return 'url(#averageGradient)';
+    return 'url(#improvementGradient)';
+  };
+
   return (
     <ChartContainer
       config={{
@@ -578,11 +680,36 @@ export const ClassPerformanceChart = ({ termId }: { termId?: string }) => {
         data={performanceData}
         margin={{ top: 20, right: 30, left: 20, bottom: 80 }}
       >
+        <defs>
+          {/* Performance-based gradients */}
+          <linearGradient id="excellentGradient" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#059669" stopOpacity={1} />
+            <stop offset="100%" stopColor="#10b981" stopOpacity={0.8} />
+          </linearGradient>
+          <linearGradient id="goodGradient" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#0ea5e9" stopOpacity={1} />
+            <stop offset="100%" stopColor="#38bdf8" stopOpacity={0.8} />
+          </linearGradient>
+          <linearGradient id="averageGradient" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#f59e0b" stopOpacity={1} />
+            <stop offset="100%" stopColor="#fbbf24" stopOpacity={0.8} />
+          </linearGradient>
+          <linearGradient id="improvementGradient" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#dc2626" stopOpacity={1} />
+            <stop offset="100%" stopColor="#ef4444" stopOpacity={0.8} />
+          </linearGradient>
+          
+          {/* Shadow filter */}
+          <filter id="barShadow" x="-50%" y="-50%" width="200%" height="200%">
+            <feDropShadow dx="0" dy="4" stdDeviation="3" floodOpacity="0.2"/>
+          </filter>
+        </defs>
+        
         <XAxis 
           dataKey="courseName" 
           axisLine={false}
           tickLine={false}
-          tick={{ fontSize: 10, fill: '#6b7280' }}
+          tick={{ fontSize: 10, fill: '#6b7280', fontWeight: 500 }}
           angle={-45}
           textAnchor="end"
           height={80}
@@ -591,34 +718,72 @@ export const ClassPerformanceChart = ({ termId }: { termId?: string }) => {
         <YAxis 
           axisLine={false}
           tickLine={false}
-          tick={{ fontSize: 12, fill: '#6b7280' }}
+          tick={{ fontSize: 12, fill: '#6b7280', fontWeight: 500 }}
           domain={[0, 100]}
-          label={{ value: 'Average Score (%)', angle: -90, position: 'insideLeft' }}
+          label={{ 
+            value: 'Performance (%)', 
+            angle: -90, 
+            position: 'insideLeft',
+            style: { textAnchor: 'middle', fontSize: '12px', fontWeight: '600', fill: '#4b5563' }
+          }}
         />
         <ChartTooltip 
           content={({ active, payload, label }) => {
             if (active && payload && payload.length) {
               const data = payload[0].payload;
               return (
-                <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-md">
-                  <p className="font-medium text-gray-900">{label}</p>
-                  <p className="text-sm text-green-600">
-                    Average Score: {data.averageScore}%
-                  </p>
-                  <p className="text-sm text-gray-600">
-                    Students: {data.studentsCount}
-                  </p>
+                <div className="bg-white/98 p-4 border-none rounded-xl shadow-lg backdrop-blur-sm">
+                  <p className="font-bold text-gray-900 mb-2">{label}</p>
+                  <div className="space-y-1">
+                    <p className="text-sm text-emerald-600 font-semibold">
+                      Average Score: {data.averageScore}%
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      Students: {data.studentsCount}
+                    </p>
+                  </div>
                 </div>
               );
             }
             return null;
           }}
         />
+        
         <Bar 
           dataKey="averageScore" 
-          fill="hsl(142, 71%, 45%)"
           name="Average Score (%)" 
-          radius={[4, 4, 0, 0]}
+          radius={[6, 6, 0, 0]}
+          stroke="#ffffff"
+          strokeWidth={1}
+          style={{ filter: "url(#barShadow)" }}
+          className="transition-all duration-200 hover:opacity-80"
+        >
+          {performanceData.map((entry, index) => (
+            <Cell 
+              key={`cell-${index}`} 
+              fill={getPerformanceColor(entry.averageScore)}
+            />
+          ))}
+        </Bar>
+        
+        {/* Performance threshold lines */}
+        <ReferenceLine 
+          y={85} 
+          stroke="#059669" 
+          strokeDasharray="4 4" 
+          strokeOpacity={0.6}
+        />
+        <ReferenceLine 
+          y={75} 
+          stroke="#0ea5e9" 
+          strokeDasharray="4 4" 
+          strokeOpacity={0.6}
+        />
+        <ReferenceLine 
+          y={65} 
+          stroke="#f59e0b" 
+          strokeDasharray="4 4" 
+          strokeOpacity={0.6}
         />
       </BarChart>
     </ChartContainer>
@@ -765,37 +930,102 @@ export const FeeCollectionChart = ({ termId }: { termId?: string }) => {
     );
   }
 
+  // Calculate total for percentage display
+  const total = feeData.reduce((sum, item) => sum + item.amount, 0);
+
   return (
     <ResponsiveContainer width="100%" height="100%">
       <PieChart margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
+        <defs>
+          {/* Premium gradient definitions */}
+          <linearGradient id="collectedGradient" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="#059669" stopOpacity={1} />
+            <stop offset="50%" stopColor="#10b981" stopOpacity={0.95} />
+            <stop offset="100%" stopColor="#34d399" stopOpacity={0.9} />
+          </linearGradient>
+          <linearGradient id="outstandingGradient" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="#dc2626" stopOpacity={1} />
+            <stop offset="50%" stopColor="#ef4444" stopOpacity={0.95} />
+            <stop offset="100%" stopColor="#f87171" stopOpacity={0.9} />
+          </linearGradient>
+          {/* Shadow filters for depth */}
+          <filter id="dropshadow" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur in="SourceAlpha" stdDeviation="3"/>
+            <feOffset dx="2" dy="2" result="offset" />
+            <feComponentTransfer>
+              <feFuncA type="linear" slope="0.2"/>
+            </feComponentTransfer>
+            <feMerge> 
+              <feMergeNode/>
+              <feMergeNode in="SourceGraphic"/> 
+            </feMerge>
+          </filter>
+        </defs>
+        
         <Pie
           data={feeData}
           dataKey="amount"
           nameKey="status"
           cx="50%"
           cy="50%"
-          outerRadius={80}
-          innerRadius={40}
-          paddingAngle={5}
-          label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(1)}%`}
+          outerRadius={90}
+          innerRadius={45}
+          paddingAngle={3}
+          startAngle={90}
+          endAngle={450}
+          strokeWidth={2}
+          stroke="#ffffff"
+          style={{ filter: "url(#dropshadow)" }}
+          label={({ name, value, percent }) => {
+            const percentage = (percent * 100).toFixed(1);
+            const formattedValue = formatCurrency(value, getDefaultCurrency());
+            return `${name}\n${percentage}%\n${formattedValue}`;
+          }}
+          labelLine={false}
         >
-          {feeData.map((entry, index) => (
-            <Cell 
-              key={`cell-${index}`} 
-              fill={index === 0 ? '#10B981' : '#F97316'} 
-            />
-          ))}
+          {feeData.map((entry, index) => {
+            const isCollected = entry.status === 'Collected';
+            return (
+              <Cell 
+                key={`cell-${index}`} 
+                fill={isCollected ? 'url(#collectedGradient)' : 'url(#outstandingGradient)'}
+                className="transition-all duration-300 hover:opacity-80"
+              />
+            );
+          })}
         </Pie>
+        
         <Tooltip 
-          formatter={(value: number) => [`${formatCurrency(value, getDefaultCurrency())}`, 'Amount']}
+          formatter={(value: number, name: string) => [
+            formatCurrency(value, getDefaultCurrency()), 
+            name
+          ]}
           contentStyle={{
-            backgroundColor: '#ffffff',
-            border: '1px solid #e5e7eb',
-            borderRadius: '8px',
-            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-            fontSize: '14px'
+            backgroundColor: 'rgba(255, 255, 255, 0.98)',
+            border: 'none',
+            borderRadius: '12px',
+            boxShadow: '0 10px 25px rgba(0, 0, 0, 0.15)',
+            fontSize: '14px',
+            fontWeight: '500',
+            backdropFilter: 'blur(10px)',
+            padding: '12px 16px'
+          }}
+          itemStyle={{ 
+            color: '#374151',
+            fontWeight: '600'
+          }}
+          labelStyle={{ 
+            color: '#1f2937',
+            fontWeight: '700',
+            marginBottom: '4px'
           }}
         />
+        
+        {/* Center text showing total */}
+        <text x="50%" y="50%" textAnchor="middle" dominantBaseline="middle" className="text-lg font-bold fill-gray-700">
+          <tspan x="50%" dy="-8">Total</tspan>
+          <tspan x="50%" dy="20" className="text-sm font-semibold">{formatCurrency(total, getDefaultCurrency())}</tspan>
+        </text>
       </PieChart>
     </ResponsiveContainer>
   );
@@ -949,56 +1179,146 @@ export const ClassStudentsRatioChart = ({ termId }: { termId?: string }) => {
     <ResponsiveContainer width="100%" height="100%">
       <BarChart
         data={prepared}
-        margin={{ top: 8, right: 8, left: 8, bottom: 40 }}
-        barCategoryGap="20%"
+        margin={{ top: 40, right: 30, left: 20, bottom: 60 }}
+        barCategoryGap="15%"
       >
         <defs>
-          <linearGradient id="gradStudents" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#1f2937" stopOpacity={0.95} />
-            <stop offset="100%" stopColor="#6b7280" stopOpacity={0.85} />
+          {/* Professional gradient for class enrollment */}
+          <linearGradient id="enrollmentGradient" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#4338ca" stopOpacity={1} />
+            <stop offset="30%" stopColor="#6366f1" stopOpacity={0.95} />
+            <stop offset="70%" stopColor="#8b5cf6" stopOpacity={0.9} />
+            <stop offset="100%" stopColor="#a855f7" stopOpacity={0.85} />
           </linearGradient>
+          
+          {/* Premium shadow filter */}
+          <filter id="enrollmentShadow" x="-50%" y="-50%" width="200%" height="200%">
+            <feDropShadow dx="0" dy="4" stdDeviation="3" floodOpacity="0.25"/>
+          </filter>
+          
+          {/* Glow effect for bars */}
+          <filter id="barGlow" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+            <feMerge>
+              <feMergeNode in="coloredBlur"/>
+              <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+          </filter>
         </defs>
+        
+        <CartesianGrid 
+          strokeDasharray="3 3" 
+          stroke="#e5e7eb" 
+          strokeOpacity={0.3}
+          vertical={false}
+        />
+        
         <XAxis
           dataKey="className"
-          axisLine={false}
-          tickLine={false}
-          tick={{ fontSize: 12, fill: '#374151' }}
-          angle={-30}
+          axisLine={{ stroke: '#d1d5db', strokeWidth: 1 }}
+          tickLine={{ stroke: '#d1d5db' }}
+          tick={{ fontSize: 11, fill: '#6b7280', fontWeight: 500 }}
+          angle={-35}
           textAnchor="end"
-          height={72}
+          height={80}
           interval={0}
         />
         <YAxis
-          axisLine={false}
-          tickLine={false}
-          tick={{ fontSize: 12, fill: '#374151' }}
+          axisLine={{ stroke: '#d1d5db', strokeWidth: 1 }}
+          tickLine={{ stroke: '#d1d5db' }}
+          tick={{ fontSize: 11, fill: '#6b7280', fontWeight: 500 }}
+          label={{ 
+            value: 'Student Count', 
+            angle: -90, 
+            position: 'insideLeft',
+            style: { textAnchor: 'middle', fontSize: '12px', fontWeight: '600', fill: '#4b5563' }
+          }}
         />
         <Tooltip
-          formatter={(value: number, name: string, props: any) => [`${value} students`, 'Enrollment']}
+          formatter={(value: number, name: string, props: any) => [
+            `${value} students`, 
+            'Class Enrollment',
+            `${props.payload?.percent}% of total`
+          ]}
+          labelFormatter={(label) => `Class: ${label}`}
           contentStyle={{
-            backgroundColor: '#ffffff',
-            border: '1px solid #e5e7eb',
-            borderRadius: '8px',
-            boxShadow: '0 6px 12px rgba(0,0,0,0.08)',
-            fontSize: '13px'
+            backgroundColor: 'rgba(255, 255, 255, 0.98)',
+            border: 'none',
+            borderRadius: '12px',
+            boxShadow: '0 10px 25px rgba(0, 0, 0, 0.15)',
+            fontSize: '13px',
+            fontWeight: '500',
+            backdropFilter: 'blur(10px)',
+            padding: '12px 16px'
+          }}
+          itemStyle={{ 
+            color: '#374151',
+            fontWeight: '600'
+          }}
+          labelStyle={{ 
+            color: '#1f2937',
+            fontWeight: '700',
+            marginBottom: '6px'
           }}
         />
         <Bar
           dataKey="studentCount"
-          fill="url(#gradStudents)"
+          fill="url(#enrollmentGradient)"
           name="Students"
-          radius={[6, 6, 2, 2]}
-          animationDuration={800}
+          radius={[8, 8, 0, 0]}
+          stroke="#ffffff"
+          strokeWidth={1}
+          style={{ filter: "url(#enrollmentShadow)" }}
+          className="transition-all duration-300 hover:opacity-80"
+          animationDuration={1000}
+          animationBegin={200}
         >
           {prepared.map((entry, idx) => (
-            <Cell key={`cell-${idx}`} fillOpacity={0.95} />
+            <Cell 
+              key={`cell-${idx}`} 
+              style={{ filter: idx % 2 === 0 ? "url(#barGlow)" : "none" }}
+            />
           ))}
         </Bar>
-        {/* numeric label on top of bars */}
-        <LabelList dataKey="label" position="top" style={{ fontSize: 11, fill: '#111827' }} />
-        {/* average line */}
-        <ReferenceLine y={Math.round(total / prepared.length)} stroke="#e5e7eb" strokeDasharray="3 3" />
-        <Legend verticalAlign="top" height={24} />
+        
+        {/* Enhanced label display */}
+        <LabelList 
+          dataKey="label" 
+          position="top" 
+          style={{ 
+            fontSize: 10, 
+            fill: '#374151',
+            fontWeight: '600'
+          }} 
+        />
+        
+        {/* Average enrollment line */}
+        <ReferenceLine 
+          y={Math.round(total / prepared.length)} 
+          stroke="#6366f1" 
+          strokeDasharray="5 5" 
+          strokeOpacity={0.7}
+          strokeWidth={2}
+        />
+        
+        {/* Class size thresholds */}
+        <ReferenceLine 
+          y={35} 
+          stroke="#f59e0b" 
+          strokeDasharray="3 3" 
+          strokeOpacity={0.5}
+        />
+        
+        <Legend 
+          verticalAlign="top" 
+          height={32}
+          iconType="rect"
+          wrapperStyle={{
+            fontSize: '12px',
+            fontWeight: '500',
+            color: '#374151'
+          }}
+        />
       </BarChart>
     </ResponsiveContainer>
   );

@@ -18,10 +18,26 @@ export default function Borrowings() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState<{ bookId?: string; bookName?: string; studentId: string; dueAt: string }>({ studentId: '', dueAt: new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 16) });
   const [studentQuery, setStudentQuery] = useState('');
-  const [studentOptions, setStudentOptions] = useState<Array<{ id: string; studentId: string; firstName: string; lastName: string }>>([]);
-  const [selectedStudent, setSelectedStudent] = useState<{ id: string; studentId: string; firstName: string; lastName: string } | null>(null);
+  const [studentOptions, setStudentOptions] = useState<Array<{ id: string; studentId: string; firstName: string; lastName: string; class?: { id: string; name: string; numericalName: number } }>>([]);
+  const [selectedStudent, setSelectedStudent] = useState<{ id: string; studentId: string; firstName: string; lastName: string; class?: { id: string; name: string; numericalName: number } } | null>(null);
   const isStaff = useMemo(() => ['admin', 'super_admin', 'teacher', 'finance'].includes(user?.role || ''), [user]);
   const superAdminSchoolId = user?.role === 'super_admin' ? user.schoolId : undefined;
+
+  // Filter books based on selected student's class level
+  const availableBooks = useMemo(() => {
+    if (!selectedStudent) return books;
+    
+    return books.filter(book => {
+      // If book has no class restriction (N/A), anyone can borrow
+      if (!book.classId || !book.class) return true;
+      
+      // If student has no class, they can only borrow N/A books
+      if (!selectedStudent.class) return false;
+      
+      // Student can borrow books for their class level and below
+      return book.class.numericalName <= selectedStudent.class.numericalName;
+    });
+  }, [books, selectedStudent]);
 
   const load = async () => {
     try {
@@ -100,24 +116,11 @@ export default function Borrowings() {
                   <DialogTitle>Borrow a Book</DialogTitle>
                 </DialogHeader>
                 <div className="grid gap-3 py-2">
-                  <Label>Select Catalog Book (optional)</Label>
-                  <Select disabled={!!form.bookName} onValueChange={(v) => setForm({ ...form, bookId: v, bookName: undefined })}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Choose a book" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {books.map((b) => (
-                        <SelectItem key={b.id} value={b.id}>{b.title} ({b.availableCopies}/{b.totalCopies})</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Label>Or enter custom book name</Label>
-                  <Input disabled={!!form.bookId} value={form.bookName || ''} onChange={(e) => setForm({ ...form, bookName: e.target.value, bookId: undefined })} placeholder="Book name" />
                   <Label>Student</Label>
                   <div className="space-y-2">
                     <Input
-                      value={selectedStudent ? `${selectedStudent.studentId} - ${selectedStudent.firstName} ${selectedStudent.lastName}` : studentQuery}
-                      onChange={(e) => { setSelectedStudent(null); setStudentQuery(e.target.value); setForm({ ...form, studentId: '' }); }}
+                      value={selectedStudent ? `${selectedStudent.studentId} - ${selectedStudent.firstName} ${selectedStudent.lastName}${selectedStudent.class ? ` (${selectedStudent.class.name})` : ''}` : studentQuery}
+                      onChange={(e) => { setSelectedStudent(null); setStudentQuery(e.target.value); setForm({ ...form, studentId: '', bookId: undefined }); }}
                       placeholder="Type student number or name"
                     />
                     {studentOptions.length > 0 && !selectedStudent && (
@@ -129,16 +132,43 @@ export default function Borrowings() {
                             onClick={() => {
                               setSelectedStudent(opt);
                               setStudentQuery('');
-                              setForm({ ...form, studentId: opt.id });
+                              setForm({ ...form, studentId: opt.id, bookId: undefined }); // Clear book selection when student changes
                             }}
                           >
                             <span className="font-medium">{opt.studentId}</span>
                             <span className="ml-2 text-slate-500">{opt.firstName} {opt.lastName}</span>
+                            {opt.class && <span className="ml-2 text-xs text-blue-500">({opt.class.name})</span>}
                           </div>
                         ))}
                       </div>
                     )}
                   </div>
+                  
+                  <Label>Select Catalog Book (optional)</Label>
+                  {selectedStudent && (
+                    <p className="text-xs text-slate-600 mb-2">
+                      {selectedStudent.class 
+                        ? `Showing books for ${selectedStudent.class.name} and below, plus general books`
+                        : 'Student has no class assigned - showing only general books'
+                      }
+                    </p>
+                  )}
+                  <Select disabled={!!form.bookName || !selectedStudent} onValueChange={(v) => setForm({ ...form, bookId: v, bookName: undefined })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder={!selectedStudent ? "Select student first" : "Choose a book"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableBooks.map((b) => (
+                        <SelectItem key={b.id} value={b.id}>
+                          {b.title} ({b.availableCopies}/{b.totalCopies}) 
+                          {b.class ? ` - ${b.class.name}` : ' - N/A'}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Label>Or enter custom book name</Label>
+                  <Input disabled={!!form.bookId || !selectedStudent} value={form.bookName || ''} onChange={(e) => setForm({ ...form, bookName: e.target.value, bookId: undefined })} placeholder={!selectedStudent ? "Select student first" : "Book name"} />
+                  
                   <Label>Due Date</Label>
                   <Input type="datetime-local" value={form.dueAt} onChange={(e) => setForm({ ...form, dueAt: e.target.value })} />
                 </div>

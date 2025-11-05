@@ -191,7 +191,7 @@ export default function TeacherStudents() {
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <Preloader variant="spinner" size="md" text="Loading students..." height="16rem" />
+            <Preloader variant="skeleton" rows={4} className="space-y-6" />
           ) : error ? (
             <div className="text-center py-8 text-red-600">{error}</div>
           ) : filteredStudents.length > 0 ? (

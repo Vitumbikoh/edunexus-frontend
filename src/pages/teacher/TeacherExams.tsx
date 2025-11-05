@@ -8,7 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { API_CONFIG } from '@/config/api';
-import { TablePreloader } from '@/components/ui/preloader';
+import { Preloader } from '@/components/ui/preloader';
 import { examService } from '@/services/examService';
 import { useToast } from '@/components/ui/use-toast';
 
@@ -116,7 +116,11 @@ export default function TeacherExams() {
               </TableHeader>
               <TableBody>
                 {loading ? (
-                  <TablePreloader colSpan={6} text="Loading exams..." />
+                  <TableRow>
+                    <TableCell colSpan={6}>
+                      <Preloader variant="skeleton" rows={4} className="space-y-6" />
+                    </TableCell>
+                  </TableRow>
                 ) : filtered.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={6} className="py-8 text-center text-muted-foreground">No exams found</TableCell>

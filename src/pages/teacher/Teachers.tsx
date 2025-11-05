@@ -10,14 +10,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Search, Eye, Pencil, Trash2 } from 'lucide-react';
+import { Search, Eye, Pencil, UserX } from 'lucide-react';
 import { useAuth } from "@/contexts/AuthContext";
 import { Link, useNavigate } from 'react-router-dom';
 import { Badge } from "@/components/ui/badge";
 import { Pagination, PaginationContent, PaginationItem, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { useToast } from "@/components/ui/use-toast";
 import { API_CONFIG } from '@/config/api';
-import { TablePreloader } from "@/components/ui/preloader";
+import { Preloader } from "@/components/ui/preloader";
 
 interface Teacher {
   id: string;
@@ -134,6 +134,46 @@ export default function Teachers() {
     }
   };
 
+  const handleToggleTeacherStatus = async (teacherId: string, currentStatus: string) => {
+    try {
+      const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
+      const action = newStatus === 'active' ? 'activate' : 'deactivate';
+      
+      const response = await fetch(
+        `${API_CONFIG.BASE_URL}/teacher/teachers/${teacherId}/status`,
+        {
+          method: 'PATCH',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ status: newStatus }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || `Failed to ${action} teacher`);
+      }
+
+      // Refresh the teachers list
+      await fetchTeachers(currentPage, itemsPerPage, searchPeriod);
+      
+      toast({
+        title: "Success",
+        description: `Teacher ${action}d successfully`,
+        variant: "default",
+      });
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : `Failed to update teacher status`;
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    }
+  };
+
   if (!canShow) {
     return (
       <div className="flex items-center justify-center h-96">
@@ -184,21 +224,7 @@ export default function Teachers() {
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Contact</TableHead>
-                  <TableHead>Specialization</TableHead>
-                  <TableHead>Experience</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                <TablePreloader colSpan={6} text="Loading teachers..." />
-              </TableBody>
-            </Table>
+            <Preloader variant="skeleton" rows={4} className="space-y-6" />
           ) : (
             <>
               <Table>
@@ -235,9 +261,10 @@ export default function Teachers() {
                         <TableCell>
                           <Badge 
                             variant={teacher.status === 'active' ? 'default' : 
-                                    teacher.status === 'on-leave' ? 'secondary' : 'destructive'}
+                                    teacher.status === 'on-leave' ? 'secondary' : 
+                                    teacher.status === 'inactive' ? 'outline' : 'destructive'}
                           >
-                            {teacher.status.charAt(0).toUpperCase() + teacher.status.slice(1)}
+                            {teacher.status.charAt(0).toUpperCase() + teacher.status.slice(1).replace('-', ' ')}
                           </Badge>
                         </TableCell>
                         <TableCell className="text-right space-x-2">
@@ -254,8 +281,13 @@ export default function Teachers() {
                             </Button>
                           )} 
                           {canEdit && (
-                            <Button variant="ghost" size="sm">
-                              <Trash2 className="h-4 w-4 text-destructive" />
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              title={teacher.status === 'active' ? 'Deactivate Teacher' : 'Activate Teacher'}
+                              onClick={() => handleToggleTeacherStatus(teacher.id, teacher.status)}
+                            >
+                              <UserX className={`h-4 w-4 ${teacher.status === 'active' ? 'text-orange-600' : 'text-green-600'}`} />
                             </Button>
                           )}
                         </TableCell>

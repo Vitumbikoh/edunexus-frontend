@@ -37,6 +37,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogT
 import { Label } from "@/components/ui/label";
 import { API_CONFIG } from '@/config/api';
 import { formatCurrency, getDefaultCurrency } from '@/lib/currency';
+import { Preloader } from "@/components/ui/preloader";
 
 interface Transaction {
   id: string;
@@ -523,7 +524,15 @@ export default function Finance() {
       )}
 
       {isLoading ? (
-        <div>Loading...</div>
+        <div className="space-y-6">
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+            <Preloader variant="skeleton" rows={1} className="h-24" />
+            <Preloader variant="skeleton" rows={1} className="h-24" />
+            <Preloader variant="skeleton" rows={1} className="h-24" />
+            <Preloader variant="skeleton" rows={1} className="h-24" />
+          </div>
+          <Preloader variant="skeleton" rows={4} className="space-y-6" />
+        </div>
       ) : (
         <>
           {/* Summary Cards */}
@@ -693,7 +702,7 @@ export default function Finance() {
                   </CardHeader>
                   <CardContent>
                     {loadingStatuses ? (
-                      <div className="py-6 text-sm text-muted-foreground">Loading statuses...</div>
+                      <Preloader variant="skeleton" rows={4} className="space-y-6" />
                     ) : statusesError ? (
                       <div className="py-6 text-sm text-red-600">{statusesError}</div>
                     ) : filteredFeeStatuses.length === 0 ? (
