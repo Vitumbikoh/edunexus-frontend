@@ -456,30 +456,15 @@ export default function Reports() {
           generatingCategory={generatingCategory}
           onGenerateReport={handleGenerateReport}
         />
-      </div>
 
-      {/* Library Reports and Comprehensive Report - Side by Side */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Library Reports Section */}
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-2xl font-bold text-foreground">Library Reports</h2>
-              <p className="text-muted-foreground mt-1">
-                Complete library management and borrowing analytics
-              </p>
-            </div>
-          </div>
-
-          <LibraryReportCard
-            title="Borrowing History"
-            description="Complete record of all book borrowings with filters for date range and status"
-            reportType="borrowings"
-          />
-        </div>
+        {/* Library Report Card - Integrated with other reports */}
+        <LibraryReportCard
+          onGenerateReport={handleGenerateReport}
+          generatingCategory={generatingCategory}
+        />
 
         {/* Comprehensive Report Card */}
-        <Card>
+        <Card className="flex flex-col h-full">
           <CardHeader>
             <div className="flex items-center gap-3">
               <Download className="h-5 w-5 text-primary" />
@@ -489,7 +474,7 @@ export default function Reports() {
               </div>
             </div>
           </CardHeader>
-          <CardContent className="p-4 space-y-4">
+          <CardContent className="p-4 flex flex-col h-full space-y-4">
             <p className="text-muted-foreground text-sm">
               Generate a comprehensive report containing all school data including students, teachers, courses, enrollments, and financial records.
             </p>
@@ -508,22 +493,28 @@ export default function Reports() {
               </ul>
             </div>
 
-            <div className="flex gap-2 pt-2">
+            {/* Spacer to push buttons to bottom */}
+            <div className="flex-1" />
+
+            {/* Action buttons positioned at bottom */}
+            <div className="flex gap-2 pt-4 mt-auto">
               <Button
                 onClick={() => handleGenerateReport("excel", "comprehensive")}
                 disabled={!!generatingCategory}
+                size="sm"
                 className="flex-1"
               >
-                <FileSpreadsheet className="h-4 w-4 mr-2" />
+                <FileSpreadsheet className="h-4 w-4 mr-1" />
                 {generatingCategory?.category === 'comprehensive' && generatingCategory.format === 'excel' ? <Loader2 className="h-4 w-4 animate-spin" /> : "Excel"}
               </Button>
               <Button
-                variant="outline"
                 onClick={() => handleGenerateReport("pdf", "comprehensive")}
                 disabled={!!generatingCategory}
+                variant="outline"
+                size="sm"
                 className="flex-1"
               >
-                <FileDown className="h-4 w-4 mr-2" />
+                <FileDown className="h-4 w-4 mr-1" />
                 {generatingCategory?.category === 'comprehensive' && generatingCategory.format === 'pdf' ? <Loader2 className="h-4 w-4 animate-spin" /> : 'PDF'}
               </Button>
             </div>

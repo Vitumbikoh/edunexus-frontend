@@ -62,7 +62,7 @@ export const ReportCards: React.FC<ReportCardsProps> = ({
   return (
     <>
       {/* Enrollment Report Card (Previously Missing) */}
-      <Card>
+      <Card className="flex flex-col h-full">
         <CardHeader>
           <div className="flex items-center gap-3">
             <TrendingUp className="h-5 w-5 text-primary" />
@@ -72,7 +72,7 @@ export const ReportCards: React.FC<ReportCardsProps> = ({
             </div>
           </div>
         </CardHeader>
-        <CardContent className="p-4 space-y-4">
+        <CardContent className="p-4 flex flex-col h-full space-y-4">
           <p className="text-muted-foreground text-sm">
             Detailed enrollment information including student-class-course relationships and timelines.
           </p>
@@ -141,29 +141,35 @@ export const ReportCards: React.FC<ReportCardsProps> = ({
             </div>
           </div>
 
-          <div className="flex gap-2 pt-2">
+          {/* Spacer to push buttons to bottom */}
+          <div className="flex-1" />
+
+          {/* Action buttons positioned at bottom */}
+          <div className="flex gap-2 pt-4 mt-auto">
             <Button
               onClick={() => onGenerateReport("excel", "enrollments")}
               disabled={!!generatingCategory}
+              size="sm"
               className="flex-1"
             >
-              <FileSpreadsheet className="h-4 w-4 mr-2" />
+              <FileSpreadsheet className="h-4 w-4 mr-1" />
               {generatingCategory?.category === 'enrollments' && generatingCategory.format === 'excel' ? <Loader2 className="h-4 w-4 animate-spin" /> : "Excel"}
             </Button>
             <Button
-              variant="outline"
               onClick={() => onGenerateReport("pdf", "enrollments")}
               disabled={!!generatingCategory}
+              variant="outline"
+              size="sm"
               className="flex-1"
             >
-              <FileDown className="h-4 w-4 mr-2" />
+              <FileDown className="h-4 w-4 mr-1" />
               {generatingCategory?.category === 'enrollments' && generatingCategory.format === 'pdf' ? <Loader2 className="h-4 w-4 animate-spin" /> : 'PDF'}
             </Button>
           </div>
         </CardContent>
       </Card>
       {/* Students Report Card */}
-      <Card>
+      <Card className="flex flex-col h-full">
         <CardHeader>
           <div className="flex items-center gap-3">
             <Users className="h-5 w-5 text-primary" />
@@ -173,7 +179,7 @@ export const ReportCards: React.FC<ReportCardsProps> = ({
             </div>
           </div>
         </CardHeader>
-        <CardContent className="p-4 space-y-4">
+        <CardContent className="p-4 flex flex-col h-full space-y-4">
           <p className="text-muted-foreground text-sm">
             Detailed student information including enrollment status, academic performance, and personal details.
           </p>
@@ -216,22 +222,28 @@ export const ReportCards: React.FC<ReportCardsProps> = ({
             </div>
           </div>
 
-          <div className="flex gap-2 pt-2">
+          {/* Spacer to push buttons to bottom */}
+          <div className="flex-1" />
+
+          {/* Action buttons positioned at bottom */}
+          <div className="flex gap-2 pt-4 mt-auto">
             <Button
               onClick={() => onGenerateReport("excel", "students")}
               disabled={!!generatingCategory}
+              size="sm"
               className="flex-1"
             >
-              <FileSpreadsheet className="h-4 w-4 mr-2" />
+              <FileSpreadsheet className="h-4 w-4 mr-1" />
               {generatingCategory?.category === 'students' && generatingCategory.format === 'excel' ? <Loader2 className="h-4 w-4 animate-spin" /> : "Excel"}
             </Button>
             <Button
-              variant="outline"
               onClick={() => onGenerateReport("pdf", "students")}
               disabled={!!generatingCategory}
+              variant="outline"
+              size="sm"
               className="flex-1"
             >
-              <FileDown className="h-4 w-4 mr-2" />
+              <FileDown className="h-4 w-4 mr-1" />
               {generatingCategory?.category === 'students' && generatingCategory.format === 'pdf' ? <Loader2 className="h-4 w-4 animate-spin" /> : 'PDF'}
             </Button>
           </div>
@@ -239,7 +251,7 @@ export const ReportCards: React.FC<ReportCardsProps> = ({
       </Card>
 
       {/* Teachers Report Card */}
-      <Card>
+      <Card className="flex flex-col h-full">
         <CardHeader>
           <div className="flex items-center gap-3">
             <GraduationCap className="h-5 w-5 text-primary" />
@@ -249,7 +261,7 @@ export const ReportCards: React.FC<ReportCardsProps> = ({
             </div>
           </div>
         </CardHeader>
-        <CardContent className="p-4 space-y-4">
+        <CardContent className="p-4 flex flex-col h-full space-y-4">
           <p className="text-muted-foreground text-sm">
             Comprehensive teacher profiles including course assignments, qualifications, and contact information.
           </p>
@@ -292,22 +304,28 @@ export const ReportCards: React.FC<ReportCardsProps> = ({
             </div>
           </div>
 
-          <div className="flex gap-2 pt-2">
+          {/* Spacer to push buttons to bottom */}
+          <div className="flex-1" />
+
+          {/* Action buttons positioned at bottom */}
+          <div className="flex gap-2 pt-4 mt-auto">
             <Button
               onClick={() => onGenerateReport("excel", "teachers")}
               disabled={!!generatingCategory}
+              size="sm"
               className="flex-1"
             >
-              <FileSpreadsheet className="h-4 w-4 mr-2" />
+              <FileSpreadsheet className="h-4 w-4 mr-1" />
               {generatingCategory?.category === 'teachers' && generatingCategory.format === 'excel' ? <Loader2 className="h-4 w-4 animate-spin" /> : "Excel"}
             </Button>
             <Button
-              variant="outline"
               onClick={() => onGenerateReport("pdf", "teachers")}
               disabled={!!generatingCategory}
+              variant="outline"
+              size="sm"
               className="flex-1"
             >
-              <FileDown className="h-4 w-4 mr-2" />
+              <FileDown className="h-4 w-4 mr-1" />
               {generatingCategory?.category === 'teachers' && generatingCategory.format === 'pdf' ? <Loader2 className="h-4 w-4 animate-spin" /> : 'PDF'}
             </Button>
           </div>
@@ -315,7 +333,7 @@ export const ReportCards: React.FC<ReportCardsProps> = ({
       </Card>
 
       {/* Courses Report Card */}
-      <Card>
+      <Card className="flex flex-col h-full">
         <CardHeader>
           <div className="flex items-center gap-3">
             <BookOpen className="h-5 w-5 text-primary" />
@@ -325,7 +343,7 @@ export const ReportCards: React.FC<ReportCardsProps> = ({
             </div>
           </div>
         </CardHeader>
-        <CardContent className="p-4 space-y-4">
+        <CardContent className="p-4 flex flex-col h-full space-y-4">
           <p className="text-muted-foreground text-sm">
             Complete course listings with enrollment statistics, teacher assignments, and curriculum details.
           </p>
@@ -368,22 +386,28 @@ export const ReportCards: React.FC<ReportCardsProps> = ({
             </div>
           </div>
 
-          <div className="flex gap-2 pt-2">
+          {/* Spacer to push buttons to bottom */}
+          <div className="flex-1" />
+
+          {/* Action buttons positioned at bottom */}
+          <div className="flex gap-2 pt-4 mt-auto">
             <Button
               onClick={() => onGenerateReport("excel", "courses")}
               disabled={!!generatingCategory}
+              size="sm"
               className="flex-1"
             >
-              <FileSpreadsheet className="h-4 w-4 mr-2" />
+              <FileSpreadsheet className="h-4 w-4 mr-1" />
               {generatingCategory?.category === 'courses' && generatingCategory.format === 'excel' ? <Loader2 className="h-4 w-4 animate-spin" /> : "Excel"}
             </Button>
             <Button
-              variant="outline"
               onClick={() => onGenerateReport("pdf", "courses")}
               disabled={!!generatingCategory}
+              variant="outline"
+              size="sm"
               className="flex-1"
             >
-              <FileDown className="h-4 w-4 mr-2" />
+              <FileDown className="h-4 w-4 mr-1" />
               {generatingCategory?.category === 'courses' && generatingCategory.format === 'pdf' ? <Loader2 className="h-4 w-4 animate-spin" /> : 'PDF'}
             </Button>
           </div>
@@ -391,7 +415,7 @@ export const ReportCards: React.FC<ReportCardsProps> = ({
       </Card>
 
       {/* Financial Report Card */}
-      <Card>
+      <Card className="flex flex-col h-full">
         <CardHeader>
           <div className="flex items-center gap-3">
             <DollarSign className="h-5 w-5 text-primary" />
@@ -401,7 +425,7 @@ export const ReportCards: React.FC<ReportCardsProps> = ({
             </div>
           </div>
         </CardHeader>
-        <CardContent className="p-4 space-y-4">
+        <CardContent className="p-4 flex flex-col h-full space-y-4">
           <p className="text-muted-foreground text-sm">
             Detailed financial records including fee payments, outstanding balances, and revenue analytics.
           </p>
@@ -472,22 +496,28 @@ export const ReportCards: React.FC<ReportCardsProps> = ({
             </div>
           </div>
 
-          <div className="flex gap-2 pt-2">
+          {/* Spacer to push buttons to bottom */}
+          <div className="flex-1" />
+
+          {/* Action buttons positioned at bottom */}
+          <div className="flex gap-2 pt-4 mt-auto">
             <Button
               onClick={() => onGenerateReport("excel", "financial")}
               disabled={!!generatingCategory}
+              size="sm"
               className="flex-1"
             >
-              <FileSpreadsheet className="h-4 w-4 mr-2" />
+              <FileSpreadsheet className="h-4 w-4 mr-1" />
               {generatingCategory?.category === 'financial' && generatingCategory.format === 'excel' ? <Loader2 className="h-4 w-4 animate-spin" /> : "Excel"}
             </Button>
             <Button
-              variant="outline"
               onClick={() => onGenerateReport("pdf", "financial")}
               disabled={!!generatingCategory}
+              variant="outline"
+              size="sm"
               className="flex-1"
             >
-              <FileDown className="h-4 w-4 mr-2" />
+              <FileDown className="h-4 w-4 mr-1" />
               {generatingCategory?.category === 'financial' && generatingCategory.format === 'pdf' ? <Loader2 className="h-4 w-4 animate-spin" /> : 'PDF'}
             </Button>
           </div>
@@ -495,7 +525,7 @@ export const ReportCards: React.FC<ReportCardsProps> = ({
       </Card>
 
       {/* Attendance Report Card */}
-      <Card>
+      <Card className="flex flex-col h-full">
         <CardHeader>
           <div className="flex items-center gap-3">
             <TrendingUp className="h-5 w-5 text-primary" />
@@ -505,7 +535,7 @@ export const ReportCards: React.FC<ReportCardsProps> = ({
             </div>
           </div>
         </CardHeader>
-        <CardContent className="p-4 space-y-4">
+        <CardContent className="p-4 flex flex-col h-full space-y-4">
           <p className="text-muted-foreground text-sm">
             Comprehensive attendance records with daily tracking, absence summaries, and attendance analytics.
           </p>
@@ -581,22 +611,28 @@ export const ReportCards: React.FC<ReportCardsProps> = ({
             </div>
           </div>
 
-          <div className="flex gap-2 pt-2">
+          {/* Spacer to push buttons to bottom */}
+          <div className="flex-1" />
+
+          {/* Action buttons positioned at bottom */}
+          <div className="flex gap-2 pt-4 mt-auto">
             <Button
               onClick={() => onGenerateReport("excel", "attendance")}
               disabled={!!generatingCategory}
+              size="sm"
               className="flex-1"
             >
-              <FileSpreadsheet className="h-4 w-4 mr-2" />
+              <FileSpreadsheet className="h-4 w-4 mr-1" />
               {generatingCategory?.category === 'attendance' && generatingCategory.format === 'excel' ? <Loader2 className="h-4 w-4 animate-spin" /> : "Excel"}
             </Button>
             <Button
-              variant="outline"
               onClick={() => onGenerateReport("pdf", "attendance")}
               disabled={!!generatingCategory}
+              variant="outline"
+              size="sm"
               className="flex-1"
             >
-              <FileDown className="h-4 w-4 mr-2" />
+              <FileDown className="h-4 w-4 mr-1" />
               {generatingCategory?.category === 'attendance' && generatingCategory.format === 'pdf' ? <Loader2 className="h-4 w-4 animate-spin" /> : 'PDF'}
             </Button>
           </div>
