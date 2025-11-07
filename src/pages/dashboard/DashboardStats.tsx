@@ -68,7 +68,7 @@ export const useDashboardStats = () => {
               title: "Total Students",
               value: studentsData.totalStudents?.toLocaleString() || "0",
               icon: <Users size={24} />,
-              trend: { value: 12, isPositive: true },
+              trend: studentsData.trend || { value: 0, isPositive: true },
               className: "bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-900/10",
             },
             {
@@ -97,14 +97,14 @@ export const useDashboardStats = () => {
                 }
               })(),
               icon: <Users size={24} />,
-              trend: { value: 100, isPositive: true },
+              trend: teachersData.trend || { value: 0, isPositive: true },
               className: "bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-900/10",
             },
             {
               title: "Fee Collection",
               value: financesData.totalRevenue || "MWK0",
               icon: <DollarSign size={24} />,
-              trend: { value: 8, isPositive: false },
+              trend: financesData.trend || { value: 0, isPositive: true },
               className: "bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-900/10",
             },
           ]);
