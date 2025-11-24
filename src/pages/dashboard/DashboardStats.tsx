@@ -69,14 +69,12 @@ export const useDashboardStats = () => {
               value: studentsData.totalStudents?.toLocaleString() || "0",
               icon: <Users size={24} />,
               trend: studentsData.trend || { value: 0, isPositive: true },
-              className: "bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-900/10",
             },
             {
               title: "Total Courses",
               value: coursesData.value?.toString() || "0",
               icon: <BookOpen size={24} />,
               trend: coursesData.trend || { value: 0, isPositive: true },
-              className: "bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-900/10",
             },
             {
               title: "Total Teachers",
@@ -98,14 +96,12 @@ export const useDashboardStats = () => {
               })(),
               icon: <Users size={24} />,
               trend: teachersData.trend || { value: 0, isPositive: true },
-              className: "bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-900/10",
             },
             {
               title: "Fee Collection",
               value: financesData.totalRevenue || "MWK0",
               icon: <DollarSign size={24} />,
               trend: financesData.trend || { value: 0, isPositive: true },
-              className: "bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-900/10",
             },
           ]);
         } else if (role === "finance") {
@@ -135,27 +131,23 @@ export const useDashboardStats = () => {
               value: `MWK${monthlyRevenue.toLocaleString()}`,
               icon: <TrendingUp size={24} />,
               trend: { value: Math.abs(Math.round(revenueChange)), isPositive: revenueChange >= 0 },
-              className: "bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-900/10",
             },
             {
               title: "Outstanding Fees",
               value: `MWK${currentOutstanding.toLocaleString()}`,
               icon: <DollarSign size={24} />,
               trend: { value: Math.abs(Math.round(outstandingChange)), isPositive: outstandingChange <= 0 },
-              className: "bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-900/10",
             },
             {
               title: "Payments Today",
               value: financeData.paymentsToday?.toString() || "0",
               icon: <CreditCard size={24} />,
-              className: "bg-gradient-to-br from-green-200 to-green-100 dark:from-green-900/20 dark:to-green-900/10",
             },
             {
               title: "Collection Rate",
               value: `${financeData.collectionRate || 0}%`,
               icon: <UserCheck size={24} />,
               trend: { value: 2, isPositive: true }, // This would need historical data to calculate properly
-              className: "bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-900/10",
             },
           ]);
         } else if (role === "teacher") {
@@ -212,25 +204,21 @@ export const useDashboardStats = () => {
               title: "My Students",
               value: studentsCountData.totalStudents?.toLocaleString() || "0",
               icon: <Users size={24} />,
-              className: "bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-900/10",
             },
             {
               title: "My Courses",
               value: coursesData.totalCourses?.toString() || "0",
               icon: <BookOpen size={24} />,
-              className: "bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-900/10",
             },
             {
               title: "My Classes",
               value: weeklyCount.toString(),
               icon: <Calendar size={24} />,
-              className: "bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-900/10",
             },
             {
               title: "Today's Classes",
               value: todayCount.toString(),
               icon: <Calendar size={24} />,
-              className: "bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-900/10",
             },
           ]);
         } else {
@@ -379,26 +367,14 @@ export const useDashboardStats = () => {
               } catch {}
 
               studentStats = [
-                { title: 'My Courses', value: String(coursesCount), icon: <BookOpen size={24} />, className: "bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-900/10" },
-                { title: "Today's Classes", value: String(todaysClasses), icon: <Calendar size={24} />, className: "bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-900/10" },
                 { 
                   title: balanceInfo.title, 
                   value: balanceInfo.value, 
-                  icon: balanceInfo.icon, 
-                  className: balanceInfo.title.includes('Outstanding') 
-                    ? "bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-900/10"
-                    : balanceInfo.title.includes('Overpaid')
-                    ? "bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-900/10"  
-                    : "bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900/20 dark:to-gray-900/10"
+                  icon: balanceInfo.icon
                 },
-                { title: 'Upcoming Exams', value: String(upcomingExams), icon: <FileText size={24} />, className: "bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-900/10" },
               ];
             } catch (e) {
               studentStats = [
-                { title: 'My Courses', value: user?.studentData?.courses?.length?.toString() || '0', icon: <BookOpen size={24} />, className: "bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-900/10" },
-                { title: "Today's Classes", value: '0', icon: <Calendar size={24} />, className: "bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-900/10" },
-                { title: 'Balance', value: 'MK 0.00', icon: <DollarSign size={24} />, className: "bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900/20 dark:to-gray-900/10" },
-                { title: 'Upcoming Exams', value: '0', icon: <FileText size={24} />, className: "bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-900/10" },
               ];
             }
           }
@@ -410,50 +386,42 @@ export const useDashboardStats = () => {
                 title: `${child.name}'s Attendance`,
                 value: `${child.attendance?.present || 0}%`,
                 icon: <Users size={24} />,
-                className: "bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-900/10",
               },
               {
                 title: `${child.name}'s Classes`,
                 value: `${child.courses?.length || 0}`,
                 icon: <BookOpen size={24} />,
-                className: "bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-900/10",
               },
               {
                 title: `${child.name}'s Assignments`,
                 value: `${child.assignments?.length || 0}`,
                 icon: <FileText size={24} />,
-                className: "bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-900/10",
               },
               {
                 title: `${child.name}'s Fees Due`,
                 value: `MWK${child.fees?.pending || 0}`,
                 icon: <DollarSign size={24} />,
-                className: "bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-900/10",
               },
             ]) || [
               {
                 title: "Children Enrolled",
                 value: "2",
                 icon: <Users size={24} />,
-                className: "bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-900/10",
               },
               {
                 title: "Total courses",
                 value: "12",
                 icon: <BookOpen size={24} />,
-                className: "bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-900/10",
               },
               {
                 title: "Pending Assignments",
                 value: "5",
                 icon: <FileText size={24} />,
-                className: "bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-900/10",
               },
               {
                 title: "Total Fees Due",
                 value: "MWK450",
                 icon: <DollarSign size={24} />,
-                className: "bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-900/10",
               },
             ],
           };
@@ -489,7 +457,7 @@ export const DashboardStats = () => {
           {[...Array(4)].map((_, index) => (
             <div
               key={index}
-              className="h-36 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 rounded-xl animate-pulse shadow-lg"
+              className="h-36 bg-muted rounded-xl animate-pulse"
             />
           ))}
         </div>

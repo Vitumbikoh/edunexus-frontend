@@ -109,12 +109,12 @@ const TeacherPerformanceCard: React.FC = () => {
   const top = data?.topPerformer;
 
   return (
-    <Card className="bg-gradient-to-br from-white via-orange-50/30 to-orange-100/50 dark:from-gray-900 dark:via-orange-900/10 dark:to-orange-900/20 border-orange-200/50 shadow-lg h-96 flex flex-col">
+    <Card className="h-96 flex flex-col">
       <CardHeader className="pb-2 flex-shrink-0">
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle className="text-xl font-semibold text-gray-900 dark:text-gray-100">Teacher Performance</CardTitle>
-            <CardDescription className="text-gray-600 dark:text-gray-400 flex items-center space-x-2">
+            <CardTitle className="text-xl font-semibold">Teacher Performance</CardTitle>
+            <CardDescription className="flex items-center space-x-2">
               <span>Student outcome metrics</span>
             </CardDescription>
           </div>
@@ -425,12 +425,12 @@ export const AdminDashboardCards = () => {
     <div className="space-y-8">
       {/* Primary Analytics Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="bg-gradient-to-br from-white via-blue-50/30 to-blue-100/50 dark:from-gray-900 dark:via-blue-900/10 dark:to-blue-900/20 border-blue-200/50 shadow-lg h-96 flex flex-col">
+        <Card className="h-96 flex flex-col">
           <CardHeader className="pb-2 flex-shrink-0">
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="text-xl font-semibold text-gray-900 dark:text-gray-100">Fee Collection Analytics</CardTitle>
-                <CardDescription className="text-gray-600 dark:text-gray-400">
+                <CardTitle className="text-xl font-semibold">Fee Collection Analytics</CardTitle>
+                <CardDescription>
                   Track fee collection trends and payment patterns{" "}
                   {loadingAY && (
                     <span className="text-xs text-muted-foreground">
@@ -439,8 +439,8 @@ export const AdminDashboardCards = () => {
                   )}
                 </CardDescription>
               </div>
-              <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-full">
-                <TrendingUp className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
+                <TrendingUp className="h-4 w-4 text-primary" />
               </div>
             </div>
           </CardHeader>
@@ -451,12 +451,12 @@ export const AdminDashboardCards = () => {
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-white via-indigo-50/30 to-indigo-100/50 dark:from-gray-900 dark:via-indigo-900/10 dark:to-indigo-900/20 border-indigo-200/50 shadow-lg h-96 flex flex-col">
+        <Card className="h-96 flex flex-col">
           <CardHeader className="pb-2 flex-shrink-0">
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="text-xl font-semibold text-gray-900 dark:text-gray-100">Class Students Ratio</CardTitle>
-                <CardDescription className="text-gray-600 dark:text-gray-400">
+                <CardTitle className="text-xl font-semibold">Class Students Ratio</CardTitle>
+                <CardDescription>
                   Student distribution by class{" "}
                   {loadingAY && (
                     <span className="text-xs text-muted-foreground">
@@ -465,8 +465,8 @@ export const AdminDashboardCards = () => {
                   )}
                 </CardDescription>
               </div>
-              <div className="p-2 bg-indigo-100 dark:bg-indigo-900/30 rounded-full">
-                <Users2 className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
+                <Users2 className="h-4 w-4 text-primary" />
               </div>
             </div>
           </CardHeader>
@@ -482,12 +482,12 @@ export const AdminDashboardCards = () => {
 
       {/* Academic Performance Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="bg-gradient-to-br from-white via-green-50/30 to-green-100/50 dark:from-gray-900 dark:via-green-900/10 dark:to-green-900/20 border-green-200/50 shadow-lg h-96 flex flex-col">
+        <Card className="h-96 flex flex-col">
           <CardHeader className="pb-2 flex-shrink-0">
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="text-xl font-semibold text-gray-900 dark:text-gray-100">Academic Performance</CardTitle>
-                <CardDescription className="text-gray-600 dark:text-gray-400">
+                <CardTitle className="text-xl font-semibold">Academic Performance</CardTitle>
+                <CardDescription>
                   Average scores by course{" "}
                   {loadingAY && (
                     <span className="text-xs text-muted-foreground">
@@ -496,8 +496,8 @@ export const AdminDashboardCards = () => {
                   )}
                 </CardDescription>
               </div>
-              <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-full">
-                <GraduationCap className="h-5 w-5 text-green-600 dark:text-green-400" />
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
+                <GraduationCap className="h-4 w-4 text-primary" />
               </div>
             </div>
           </CardHeader>
@@ -533,12 +533,12 @@ export const AdminDashboardCards = () => {
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-white via-purple-50/30 to-purple-100/50 dark:from-gray-900 dark:via-purple-900/10 dark:to-purple-900/20 border-purple-200/50 shadow-lg h-96 flex flex-col">
+        <Card className="h-96 flex flex-col">
           <CardHeader className="pb-2 flex-shrink-0">
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="text-xl font-semibold text-gray-900 dark:text-gray-100">Attendance Insights</CardTitle>
-                <CardDescription className="text-gray-600 dark:text-gray-400">
+                <CardTitle className="text-xl font-semibold">Attendance Insights</CardTitle>
+                <CardDescription>
                   Class attendance overview{" "}
                   {loadingAY && (
                     <span className="text-xs text-muted-foreground">
@@ -547,8 +547,8 @@ export const AdminDashboardCards = () => {
                   )}
                 </CardDescription>
               </div>
-              <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-full">
-                <Users2 className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
+                <Users2 className="h-4 w-4 text-primary" />
               </div>
             </div>
           </CardHeader>
@@ -563,12 +563,12 @@ export const AdminDashboardCards = () => {
       {/* New Additional Cards Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* System Health Monitoring Card */}
-        <Card className="bg-gradient-to-br from-white via-emerald-50/30 to-emerald-100/50 dark:from-gray-900 dark:via-emerald-900/10 dark:to-emerald-900/20 border-emerald-200/50 shadow-lg h-96 flex flex-col">
+        <Card className="h-96 flex flex-col">
           <CardHeader className="pb-2 flex-shrink-0">
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="text-xl font-semibold text-gray-900 dark:text-gray-100">System Health</CardTitle>
-                <CardDescription className="text-gray-600 dark:text-gray-400">
+                <CardTitle className="text-xl font-semibold">System Health</CardTitle>
+                <CardDescription>
                   Real-time system monitoring & status
                   {systemHealthLoading && (
                     <span className="text-xs text-muted-foreground ml-2">
@@ -588,8 +588,8 @@ export const AdminDashboardCards = () => {
                 >
                   <RefreshCcw className={`h-4 w-4 ${systemHealthLoading ? 'animate-spin' : ''}`} />
                 </Button>
-                <div className="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-full">
-                  <CheckCircle className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
+                  <CheckCircle className="h-4 w-4 text-primary" />
                 </div>
               </div>
             </div>
@@ -876,17 +876,17 @@ export const FinanceDashboardCards = () => {
       {/* Revenue Trends and Expense Analytics - Side by Side */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Revenue Trend Chart */}
-        <Card className="bg-gradient-to-br from-white via-blue-50/30 to-blue-100/50 dark:from-gray-900 dark:via-blue-900/10 dark:to-blue-900/20 border-blue-200/50 shadow-lg">
+        <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="text-xl font-semibold text-gray-900 dark:text-gray-100">Revenue Trends</CardTitle>
-                <CardDescription className="text-gray-600 dark:text-gray-400">
+                <CardTitle className="text-xl font-semibold">Revenue Trends</CardTitle>
+                <CardDescription>
                   Monthly revenue vs targets
                 </CardDescription>
               </div>
-              <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-full">
-                <TrendingUp className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
+                <TrendingUp className="h-4 w-4 text-primary" />
               </div>
             </div>
           </CardHeader>
@@ -906,17 +906,17 @@ export const FinanceDashboardCards = () => {
         </Card>
 
         {/* Expense Analytics */}
-        <Card className="bg-gradient-to-br from-white via-indigo-50/30 to-indigo-100/50 dark:from-gray-900 dark:via-indigo-900/10 dark:to-indigo-900/20 border-indigo-200/50 shadow-lg">
+        <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="text-xl font-semibold text-gray-900 dark:text-gray-100">Expense Analytics</CardTitle>
-                <CardDescription className="text-gray-600 dark:text-gray-400">
+                <CardTitle className="text-xl font-semibold">Expense Analytics</CardTitle>
+                <CardDescription>
                   Key expense metrics and trends
                 </CardDescription>
               </div>
-              <div className="p-2 bg-indigo-100 dark:bg-indigo-900/30 rounded-full">
-                <TrendingUp className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
+                <TrendingUp className="h-4 w-4 text-primary" />
               </div>
             </div>
           </CardHeader>
@@ -945,17 +945,17 @@ export const FinanceDashboardCards = () => {
 
       {/* Payment Methods Distribution */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="bg-gradient-to-br from-white via-green-50/30 to-green-100/50 dark:from-gray-900 dark:via-green-900/10 dark:to-green-900/20 border-green-200/50 shadow-lg">
+        <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="text-xl font-semibold text-gray-900 dark:text-gray-100">Payment Methods</CardTitle>
-                <CardDescription className="text-gray-600 dark:text-gray-400">
+                <CardTitle className="text-xl font-semibold">Payment Methods</CardTitle>
+                <CardDescription>
                   Distribution of payment methods used
                 </CardDescription>
               </div>
-              <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-full">
-                <CreditCard className="h-5 w-5 text-green-600 dark:text-green-400" />
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
+                <CreditCard className="h-4 w-4 text-primary" />
               </div>
             </div>
           </CardHeader>
@@ -983,17 +983,17 @@ export const FinanceDashboardCards = () => {
         </Card>
 
         {/* Outstanding Fees Breakdown */}
-        <Card className="bg-gradient-to-br from-white via-orange-50/30 to-orange-100/50 dark:from-gray-900 dark:via-orange-900/10 dark:to-orange-900/20 border-orange-200/50 shadow-lg">
+        <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="text-xl font-semibold text-gray-900 dark:text-gray-100">Outstanding Fees by Class</CardTitle>
-                <CardDescription className="text-gray-600 dark:text-gray-400">
+                <CardTitle className="text-xl font-semibold">Outstanding Fees by Class</CardTitle>
+                <CardDescription>
                   Outstanding fees breakdown by class
                 </CardDescription>
               </div>
-              <div className="p-2 bg-orange-100 dark:bg-orange-900/30 rounded-full">
-                <DollarSign className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
+                <DollarSign className="h-4 w-4 text-primary" />
               </div>
             </div>
           </CardHeader>
@@ -1040,12 +1040,12 @@ export const FinanceDashboardCards = () => {
       </div>
 
       {/* Recent Transactions */}
-      <Card className="bg-gradient-to-br from-white via-purple-50/30 to-purple-100/50 dark:from-gray-900 dark:via-purple-900/10 dark:to-purple-900/20 border-purple-200/50 shadow-lg">
+      <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="text-xl font-semibold text-gray-900 dark:text-gray-100">Recent Transactions</CardTitle>
-              <CardDescription className="text-gray-600 dark:text-gray-400">
+              <CardTitle className="text-xl font-semibold">Recent Transactions</CardTitle>
+              <CardDescription>
                 Latest payment activities
               </CardDescription>
             </div>
@@ -1094,7 +1094,7 @@ export const ParentDashboardCards = () => {
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       {user.parentData.children.map((child) => (
         <React.Fragment key={child.id}>
-          <Card className="bg-gradient-to-br from-white to-slate-50 dark:from-gray-900 dark:to-gray-900/50">
+          <Card className="">
             <CardHeader>
               <CardTitle>{child.name}'s Performance</CardTitle>
               <CardDescription>Latest grades in all courses</CardDescription>
@@ -1124,7 +1124,7 @@ export const ParentDashboardCards = () => {
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-white to-slate-50 dark:from-gray-900 dark:to-gray-900/50">
+          <Card className="">
             <CardHeader>
               <CardTitle>{child.name}'s Attendance</CardTitle>
               <CardDescription>Current academic year</CardDescription>
@@ -1230,7 +1230,7 @@ export const StudentDashboardCards = () => {
     <div className="space-y-6">
       {/* Single Row - Both Charts Side by Side */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="bg-gradient-to-br from-white to-slate-50 dark:from-gray-900 dark:to-gray-900/50">
+        <Card className="">
           <CardHeader>
             <CardTitle>My Performance</CardTitle>
             <CardDescription>
@@ -1254,7 +1254,7 @@ export const StudentDashboardCards = () => {
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-blue-50 via-white to-indigo-50 dark:from-blue-900/20 dark:via-gray-800 dark:to-indigo-900/20 border-blue-200/50 shadow-lg">
+        <Card>
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -1493,7 +1493,7 @@ export const TeacherDashboardCards = () => {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <Card className="bg-gradient-to-br from-white to-slate-50 dark:from-gray-900 dark:to-gray-900/50">
+      <Card className="">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
@@ -1588,7 +1588,7 @@ export const TeacherDashboardCards = () => {
         </CardContent>
       </Card>
 
-      <Card className="bg-gradient-to-br from-white to-slate-50 dark:from-gray-900 dark:to-gray-900/50">
+      <Card className="">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
