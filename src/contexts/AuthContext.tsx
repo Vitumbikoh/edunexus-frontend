@@ -200,9 +200,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       localStorage.setItem('user_data', JSON.stringify(userData));
       
       return response;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Login failed:', error);
-      throw new Error('Invalid credentials');
+      
+      // Check if it's a school suspension error
+      if (error.message && error.message.includes('school account has been suspended')) {
+        throw new Error(error.message);
+      }
+      
+      // Check for other specific error messages
+      if (error.response?.data?.message) {
+        throw new Error(error.response.data.message);
+      }
+      
+      // Default error message
+      throw new Error('Invalid username or password');
     }
   };
 

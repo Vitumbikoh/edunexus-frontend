@@ -22,7 +22,21 @@ export const authApi = {
     });
 
     if (!response.ok) {
-      throw new Error('Login failed');
+      // Try to extract error message from response
+      let errorMessage = 'Login failed';
+      try {
+        const errorData = await response.json();
+        if (errorData.message) {
+          errorMessage = errorData.message;
+        }
+      } catch {
+        // If JSON parsing fails, use default message
+        errorMessage = `Login failed (HTTP ${response.status})`;
+      }
+      
+      const error = new Error(errorMessage);
+      (error as any).response = { data: { message: errorMessage } };
+      throw error;
     }
 
     return response.json();

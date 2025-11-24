@@ -55,11 +55,23 @@ export default function Login() {
           description: "Logged in successfully",
         });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Login failed:', error);
+      
+      let errorMessage = "Invalid username or password";
+      let errorTitle = "Login Failed";
+      
+      // Check for school suspension error
+      if (error.message && error.message.includes('school account has been suspended')) {
+        errorTitle = "Account Suspended";
+        errorMessage = error.message;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
       toast({
-        title: "Login Failed",
-        description: "Invalid username or password",
+        title: errorTitle,
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
