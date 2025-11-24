@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Menu, Bell } from 'lucide-react';
+import { Menu, Bell, Clock, AlertCircle, School } from 'lucide-react';
 import { useSidebar } from '@/contexts/SidebarContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from "@/components/ui/button";
@@ -15,121 +15,65 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { Link, useNavigate } from 'react-router-dom';
 import { useToast } from "@/components/ui/use-toast";
-
-interface Notification {
-  id: string;
-  title: string;
-  description: string;
-  time: string;
-  unread?: boolean;
-  actor?: string;
-  target?: string;
-  verb?: string;
-}
+import { useNotifications, useNotificationStats, useMarkNotificationAsRead } from '@/hooks/useNotifications';
+import { Badge } from "@/components/ui/badge";
 
 export default function Header() {
   const { toggle, isOpen } = useSidebar();
   const { user, logout, token } = useAuth();
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
-  const [panelOpen, setPanelOpen] = useState(false);
+  
+  // Only fetch notifications for admin users
+  const isAdmin = user?.role === "admin";
+  const { data: notifications = [], isLoading } = useNotifications(isAdmin);
+  const { data: stats } = useNotificationStats(isAdmin);
+  const markAsReadMutation = useMarkNotificationAsRead();
 
-  useEffect(() => {
-    if (user?.role === "admin") {
-      fetchNotifications();
-  // Poll every 20 minutes instead of 30 seconds to reduce noise
-  const interval = setInterval(fetchNotifications, 1200000);
-      return () => clearInterval(interval);
-    }
-  }, [user]);
-
-  const fetchNotifications = async () => {
-    try {
-      setLoading(true);
-      const response = await fetch('http://localhost:5000/api/v1/activities/recent', {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-      
-      if (!response.ok) throw new Error('Failed to fetch notifications');
-      
-      const data = await response.json();
-      setNotifications(prev => {
-        const existing = new Map(prev.map(p => [p.id, p]));
-        return transformActivitiesToNotifications(data).map(n => ({
-          ...n,
-          unread: existing.has(n.id) ? existing.get(n.id)!.unread : true,
-        }));
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : 'Failed to fetch notifications',
-        variant: "destructive",
-      });
-      setNotifications([]);
-    } finally {
-      setLoading(false);
+  const handleNotificationClick = async (notification: any) => {
+    // Mark as read when clicked
+    if (!notification.read) {
+      try {
+        await markAsReadMutation.mutateAsync(notification.id);
+      } catch (error) {
+        console.error('Failed to mark notification as read:', error);
+        toast({
+          title: "Error",
+          description: "Failed to mark notification as read",
+          variant: "destructive",
+        });
+      }
     }
   };
 
-  const transformActivitiesToNotifications = (activities: any[]): Notification[] => {
-    // Only keep the first 3 activities after transformation and sorting by timestamp desc
-    return activities
-      .sort((a,b) => new Date(b.timestamp || b.date).getTime() - new Date(a.timestamp || a.date).getTime())
-      .slice(0,3)
-      .map(activity => {
-        const { action, level, newValues, metadata, performedBy, module, entityType } = activity;
-        const actor = performedBy?.name || performedBy?.username || performedBy?.email?.split('@')[0] || 'System';
-        const verb = deriveVerb(action, level);
-        const target = deriveTarget(activity, entityType, newValues, metadata);
-        const description = `${actor} ${verb.toLowerCase()} ${target.toLowerCase()}`;
-        return {
-          id: activity.id,
-          title: `${verb} ${target}`,
-            description,
-          time: formatTime(activity.timestamp || activity.date),
-          actor,
-          target,
-          verb,
-        };
-      });
+  const getNotificationIcon = (type: string) => {
+    switch (type) {
+      case 'credentials':
+        return <School className="h-4 w-4" />;
+      case 'alert':
+        return <AlertCircle className="h-4 w-4" />;
+      default:
+        return <Bell className="h-4 w-4" />;
+    }
   };
 
-  const deriveVerb = (action: string, level?: string): string => {
-    if (level === 'error') return 'Error';
-    const a = action?.toUpperCase() || '';
-    if (a.startsWith('CREATE')) return 'Created';
-    if (a.startsWith('UPDATE')) return 'Updated';
-    if (a.startsWith('DELETE')) return 'Deleted';
-    if (a.includes('ENROLL')) return 'Enrolled';
-    if (a.includes('LOGIN')) return 'Logged In';
-    if (a.includes('LOGOUT')) return 'Logged Out';
-    if (a.includes('PAYMENT') || a.includes('FEE')) return 'Processed Payment';
-    if (a.includes('APPROVE')) return 'Approved';
-    if (a.includes('REJECT')) return 'Rejected';
-    return action.replace(/_/g, ' ');
+  const getPriorityColor = (priority: string) => {
+    switch (priority) {
+      case 'high':
+        return 'text-red-500';
+      case 'medium':
+        return 'text-yellow-500';
+      case 'low':
+        return 'text-blue-500';
+      default:
+        return 'text-gray-500';
+    }
   };
-
-  const deriveTarget = (activity: any, entityType?: string, newValues?: any, metadata?: any): string => {
-    if (metadata?.entityName) return metadata.entityName;
-    if (metadata?.studentName) return `Student ${metadata.studentName}`;
-    if (newValues?.studentName) return `Student ${newValues.studentName}`;
-    if (entityType) return entityType;
-    if (activity.action?.includes('PAYMENT')) return 'Fee Payment';
-    return 'Record';
-  };
-
-  // Old helpers removed in favour of deriveVerb/deriveTarget above
 
   const formatTime = (timestamp: string): string => {
     const now = new Date();
-    const activityTime = new Date(timestamp);
-    const diffInMinutes = Math.floor((now.getTime() - activityTime.getTime()) / (1000 * 60));
+    const notificationTime = new Date(timestamp);
+    const diffInMinutes = Math.floor((now.getTime() - notificationTime.getTime()) / (1000 * 60));
     
     if (diffInMinutes < 1) return 'Just now';
     if (diffInMinutes < 60) return `${diffInMinutes} mins ago`;
@@ -145,8 +89,6 @@ export default function Header() {
   };
 
   if (!user) return null;
-  
-  const isAdmin = user.role === "admin";
 
   return (
     <header className="h-16 flex items-center justify-between px-4 border-b border-border bg-background">
@@ -168,54 +110,69 @@ export default function Header() {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="relative">
                 <Bell className="h-5 w-5" />
-                {notifications.some(n => n.unread) && (
-                  <span className="absolute -top-1 -right-1 bg-green-500 text-white text-[10px] rounded-full px-1.5 py-0.5 border border-white font-bold animate-pulse">
-                    {notifications.filter(n => n.unread).length}
-                  </span>
+                {stats?.unread > 0 && (
+                  <Badge className="absolute -right-1 -top-1 h-5 w-5 rounded-full p-0 text-xs bg-red-500 text-white border-white">
+                    {stats.unread > 99 ? '99+' : stats.unread}
+                  </Badge>
                 )}
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-80 max-w-sm" align="end" forceMount>
               <DropdownMenuLabel>
-                Recent Activities
+                Notifications ({stats?.unread || 0} unread)
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              {loading ? (
+              {isLoading ? (
                 <DropdownMenuItem>
                   <span className="text-sm text-muted-foreground">Loading...</span>
                 </DropdownMenuItem>
               ) : notifications.length === 0 ? (
                 <DropdownMenuItem>
-                  <span className="text-sm text-muted-foreground">No recent activities</span>
+                  <span className="text-sm text-muted-foreground">No notifications</span>
                 </DropdownMenuItem>
               ) : (
-                notifications.slice(0,3).map((note) => (
+                notifications.slice(0, 5).map((notification) => (
                   <DropdownMenuItem
-                    key={note.id}
-                    className={`flex flex-col items-start py-3 hover:bg-accent cursor-pointer transition-all relative ${note.unread ? 'bg-accent/40' : ''}`}
-                    onClick={() => {
-                      setNotifications(ns => ns.map(n => n.id === note.id ? { ...n, unread: false } : n));
-                      navigate(`/activities/${note.id}`);
-                    }}
+                    key={notification.id}
+                    className={`flex flex-col items-start py-3 hover:bg-accent cursor-pointer transition-all relative ${!notification.read ? 'bg-accent/40' : ''}`}
+                    onClick={() => handleNotificationClick(notification)}
                   >
-                    <span className="font-medium text-foreground flex items-center gap-2 w-full">
-                      <span className="truncate">{note.title}</span>
-                      {note.unread && <span className="w-2 h-2 bg-blue-500 rounded-full" />}
-                    </span>
-                    <span className="text-xs text-muted-foreground line-clamp-2 w-full text-left">
-                      {note.description}
-                    </span>
-                    <span className="text-[10px] text-muted-foreground mt-1">{note.time}</span>
+                    <div className="flex items-start gap-3 w-full">
+                      <div className={`flex-shrink-0 mt-0.5 ${getPriorityColor(notification.priority)}`}>
+                        {getNotificationIcon(notification.type)}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 w-full mb-1">
+                          <span className="font-medium text-sm truncate">
+                            {notification.title}
+                          </span>
+                          {!notification.read && (
+                            <span className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0" />
+                          )}
+                        </div>
+                        {notification.message && (
+                          <p className="text-xs text-muted-foreground line-clamp-2 mb-1">
+                            {notification.message}
+                          </p>
+                        )}
+                        <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                          <Clock className="h-3 w-3" />
+                          <span>{formatTime(notification.createdAt)}</span>
+                        </div>
+                      </div>
+                    </div>
                   </DropdownMenuItem>
                 ))
               )}
-              {notifications.length > 3 && (
+              {notifications.length > 5 && (
                 <>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
-                    onClick={() => navigate('/activities')}
+                    onClick={() => navigate('/notifications')}
                     className="text-center justify-center text-xs font-medium"
-                  >View all activities</DropdownMenuItem>
+                  >
+                    View all notifications
+                  </DropdownMenuItem>
                 </>
               )}
             </DropdownMenuContent>
