@@ -27,13 +27,23 @@ export type Borrowing = {
   fine: string;
 };
 
+export type PaginatedResponse<T> = {
+  books: T[];
+  totalCount: number;
+  totalPages: number;
+  currentPage: number;
+  itemsPerPage: number;
+};
+
 export const libraryApi = {
-  listBooks: (opts: { token?: string; q?: string; schoolId?: string } = {}) => {
+  listBooks: (opts: { token?: string; q?: string; schoolId?: string; page?: number; limit?: number } = {}) => {
     const params = new URLSearchParams();
     if (opts.q) params.set('q', opts.q);
     if (opts.schoolId) params.set('schoolId', opts.schoolId);
+    params.set('page', (opts.page || 1).toString());
+    params.set('limit', (opts.limit || 10).toString());
     const query = params.toString();
-    return apiClient.get(`/library/books${query ? `?${query}` : ''}`, opts.token) as Promise<Book[]>;
+    return apiClient.get(`/library/books${query ? `?${query}` : ''}`, opts.token) as Promise<PaginatedResponse<Book>>;
   },
 
   createBook: (data: { title: string; author?: string; isbn?: string; totalCopies: number; classId?: string; schoolId?: string }, token?: string) => {

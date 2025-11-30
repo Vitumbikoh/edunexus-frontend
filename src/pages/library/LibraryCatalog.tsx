@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { libraryApi, Book } from '@/services/libraryService';
+import { libraryApi, Book, PaginatedResponse } from '@/services/libraryService';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -17,6 +17,10 @@ export default function LibraryCatalog() {
   const [classes, setClasses] = useState<Array<{ id: string; name: string; numericalName: number }>>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const [itemsPerPage] = useState(10);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editingBook, setEditingBook] = useState<Book | null>(null);
@@ -26,12 +30,21 @@ export default function LibraryCatalog() {
   const isAdminLike = useMemo(() => ['admin', 'super_admin'].includes(user?.role || ''), [user]);
   const superAdminSchoolId = user?.role === 'super_admin' ? user.schoolId : undefined;
 
-  const load = async () => {
+  const load = async (page = currentPage) => {
     try {
       setLoading(true);
       setError(null);
-      const items = await libraryApi.listBooks({ token: token || undefined, q, schoolId: superAdminSchoolId });
-      setBooks(items);
+      const response = await libraryApi.listBooks({ 
+        token: token || undefined, 
+        q, 
+        schoolId: superAdminSchoolId,
+        page,
+        limit: itemsPerPage
+      });
+      setBooks(response.books);
+      setTotalPages(response.totalPages);
+      setTotalCount(response.totalCount);
+      setCurrentPage(response.currentPage);
     } catch (e: any) {
       setError(e.message || 'Failed to load books');
     } finally {
@@ -54,6 +67,17 @@ export default function LibraryCatalog() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Reset to page 1 when search query changes (with debouncing)
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      setCurrentPage(1);
+      load(1);
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [q]);
+
   const onCreate = async () => {
     if (!form.title || form.totalCopies < 0) return;
     try {
@@ -61,7 +85,7 @@ export default function LibraryCatalog() {
       await libraryApi.createBook({ ...form, schoolId: superAdminSchoolId }, token || undefined);
       setDialogOpen(false);
       setForm({ title: '', author: '', isbn: '', totalCopies: 1, classId: undefined });
-      await load();
+      await load(currentPage);
     } catch (e: any) {
       setError(e.message || 'Failed to create book');
     } finally {
@@ -89,7 +113,7 @@ export default function LibraryCatalog() {
       setEditDialogOpen(false);
       setEditingBook(null);
       setEditForm({ title: '', author: '', isbn: '', totalCopies: 1, classId: undefined });
-      await load();
+      await load(currentPage);
     } catch (e: any) {
       setError(e.message || 'Failed to update book');
     } finally {
@@ -101,7 +125,7 @@ export default function LibraryCatalog() {
     if (!confirm('Delete this book?')) return;
     try {
       await libraryApi.deleteBook(id, token || undefined);
-      await load();
+      await load(currentPage);
     } catch (e: any) {
       setError(e.message || 'Failed to delete');
     }
@@ -114,7 +138,7 @@ export default function LibraryCatalog() {
           <CardTitle>Library Catalog</CardTitle>
           <div className="flex items-center gap-2">
             <Input placeholder="Search title/author/isbn" value={q} onChange={(e) => setQ(e.target.value)} />
-            <Button onClick={load} disabled={loading}>Search</Button>
+            <Button onClick={() => load(1)} disabled={loading}>Search</Button>
             {isAdminLike && (
               <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
                 <DialogTrigger asChild>
@@ -234,6 +258,53 @@ export default function LibraryCatalog() {
               ))}
             </TableBody>
           </Table>
+          
+          {/* Pagination Controls */}
+          <div className="flex items-center justify-between space-x-2 py-4">
+            <div className="text-sm text-muted-foreground">
+              Showing {books.length === 0 ? 0 : ((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, totalCount)} of {totalCount} books
+            </div>
+            <div className="flex items-center space-x-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => load(1)}
+                disabled={currentPage <= 1 || loading}
+              >
+                First
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => load(currentPage - 1)}
+                disabled={currentPage <= 1 || loading}
+              >
+                Previous
+              </Button>
+              <div className="flex items-center gap-1">
+                <span className="text-sm">Page</span>
+                <span className="text-sm font-medium">{currentPage}</span>
+                <span className="text-sm">of</span>
+                <span className="text-sm font-medium">{totalPages}</span>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => load(currentPage + 1)}
+                disabled={currentPage >= totalPages || loading}
+              >
+                Next
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => load(totalPages)}
+                disabled={currentPage >= totalPages || loading}
+              >
+                Last
+              </Button>
+            </div>
+          </div>
         </CardContent>
       </Card>
     </div>
