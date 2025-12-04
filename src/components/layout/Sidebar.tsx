@@ -36,6 +36,7 @@ import {
   TooltipTrigger,
   TooltipProvider,
 } from "@/components/ui/tooltip";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 type SubNavItem = {
   label: string;
@@ -417,7 +418,7 @@ export default function Sidebar() {
           </Button>
         </div>
 
-        <div className="flex-1 overflow-y-auto py-4">
+        <ScrollArea className="flex-1 py-4 sidebar-scroll">
           <nav className="px-3 space-y-1">
             {filteredNavItems.map((item) => (
               <div key={item.label}>
@@ -531,7 +532,7 @@ export default function Sidebar() {
               </div>
             ))}
           </nav>
-        </div>
+        </ScrollArea>
       </div>
     </TooltipProvider>
   );
