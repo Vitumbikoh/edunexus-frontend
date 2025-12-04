@@ -367,11 +367,7 @@ export const useDashboardStats = () => {
               } catch {}
 
               studentStats = [
-                { 
-                  title: balanceInfo.title, 
-                  value: balanceInfo.value, 
-                  icon: balanceInfo.icon
-                },
+                // Outstanding balance card removed as requested
               ];
             } catch (e) {
               studentStats = [
