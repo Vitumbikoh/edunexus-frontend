@@ -11,10 +11,24 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 
 export default function Borrowings() {
   const { token, user } = useAuth();
+  const [allBorrowings, setAllBorrowings] = useState<Borrowing[]>([]);
   const [borrowings, setBorrowings] = useState<Borrowing[]>([]);
   const [books, setBooks] = useState<Book[]>([]);
+  const [allClasses, setAllClasses] = useState<Array<{ id: string; name: string; numericalName: number }>>([]);
+  const [classes, setClasses] = useState<Array<{ id: string; name: string; numericalName: number }>>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  // Pagination and filters
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [filters, setFilters] = useState({
+    classId: '',
+    studentSearch: '',
+    activeOnly: false
+  });
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState<{ bookId?: string; bookName?: string; studentId: string; dueAt: string }>({ studentId: '', dueAt: new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 16) });
   const [studentQuery, setStudentQuery] = useState('');
@@ -25,6 +39,7 @@ export default function Borrowings() {
 
   // Filter books based on selected student's class level
   const availableBooks = useMemo(() => {
+    if (!Array.isArray(books)) return [];
     if (!selectedStudent) return books;
     
     return books.filter(book => {
@@ -39,24 +54,170 @@ export default function Borrowings() {
     });
   }, [books, selectedStudent]);
 
-  const load = async () => {
+  // Client-side filtering and pagination
+  const { paginatedBorrowings, totalFilteredCount, totalFilteredPages } = useMemo(() => {
+    let filtered = [...allBorrowings];
+
+    // Apply filters
+    if (filters.studentSearch) {
+      const searchTerm = filters.studentSearch.toLowerCase();
+      filtered = filtered.filter(borrowing => {
+        const student = borrowing.student;
+        if (!student) return false;
+        const fullName = `${student.firstName} ${student.lastName}`.toLowerCase();
+        const studentId = student.studentId.toLowerCase();
+        return fullName.includes(searchTerm) || studentId.includes(searchTerm);
+      });
+    }
+
+    if (filters.classId) {
+      filtered = filtered.filter(borrowing => {
+        // Check multiple possible structures for class ID
+        return borrowing.student?.class?.id === filters.classId ||
+               borrowing.student?.classId === filters.classId;
+      });
+    }
+
+    if (filters.activeOnly) {
+      filtered = filtered.filter(borrowing => !borrowing.returnedAt);
+    }
+
+    // Calculate pagination
+    const totalCount = filtered.length;
+    const totalPages = Math.ceil(totalCount / itemsPerPage);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    const paginated = filtered.slice(startIndex, endIndex);
+
+    return {
+      paginatedBorrowings: paginated,
+      totalFilteredCount: totalCount,
+      totalFilteredPages: totalPages
+    };
+  }, [allBorrowings, filters, currentPage, itemsPerPage]);
+
+  // Get unique classes that have borrowings
+  const classesWithBorrowings = useMemo(() => {
+    console.log('Calculating classes with borrowings...');
+    console.log('All borrowings:', allBorrowings);
+    console.log('All classes:', allClasses);
+    
+    const classIds = new Set();
+    const classesMap = new Map();
+    const classesFromBorrowings = new Map();
+    
+    // First, create a map of all classes
+    allClasses.forEach(cls => {
+      classesMap.set(cls.id, cls);
+    });
+    
+    // Then, find classes from borrowings data
+    allBorrowings.forEach((borrowing, index) => {
+      console.log(`Borrowing ${index}:`, {
+        student: borrowing.student,
+        studentClass: borrowing.student?.class
+      });
+      
+      // Check different possible structures
+      let classInfo = null;
+      
+      if (borrowing.student?.class?.id) {
+        // Standard structure
+        classInfo = borrowing.student.class;
+        classIds.add(classInfo.id);
+      } else if (borrowing.student?.classId) {
+        // Alternative structure where classId is direct property
+        classIds.add(borrowing.student.classId);
+      }
+      
+      if (classInfo) {
+        classesFromBorrowings.set(classInfo.id, classInfo);
+      }
+    });
+    
+    console.log('Found class IDs:', Array.from(classIds));
+    
+    // Return classes from borrowings first, then fallback to all classes
+    const result = Array.from(classIds)
+      .map(id => classesFromBorrowings.get(id) || classesMap.get(id))
+      .filter(Boolean)
+      .sort((a, b) => (a.numericalName || 0) - (b.numericalName || 0));
+    
+    console.log('Final classes with borrowings:', result);
+    return result;
+  }, [allBorrowings, allClasses]);
+
+  const load = async (page = currentPage) => {
     try {
       setLoading(true);
       setError(null);
-      const [brs, bks] = await Promise.all([
-        libraryApi.listBorrowings({ token: token || undefined, activeOnly: false, schoolId: superAdminSchoolId }),
+      console.log('Loading borrowings...');
+      const [borrowingsResponse, booksResponse, classesData] = await Promise.all([
+        libraryApi.listBorrowings({ 
+          token: token || undefined, 
+          activeOnly: false, // Get all borrowings for client-side filtering
+          schoolId: superAdminSchoolId
+        }),
         libraryApi.listBooks({ token: token || undefined, schoolId: superAdminSchoolId }),
+        libraryApi.listClasses({ token: token || undefined, schoolId: superAdminSchoolId })
       ]);
-      setBorrowings(brs);
-      setBooks(bks);
+      
+      // Handle both old array format and new paginated format
+      let allBorrowingsData = [];
+      if (Array.isArray(borrowingsResponse)) {
+        // Old format - just an array
+        allBorrowingsData = borrowingsResponse;
+      } else {
+        // New paginated format
+        allBorrowingsData = Array.isArray(borrowingsResponse.borrowings) ? borrowingsResponse.borrowings : [];
+      }
+      
+      console.log('Loaded borrowings data:', allBorrowingsData);
+      console.log('Loaded classes data:', classesData);
+      
+      setAllBorrowings(allBorrowingsData);
+      setBooks(Array.isArray(booksResponse.books) ? booksResponse.books : []);
+      setAllClasses(Array.isArray(classesData) ? classesData : []);
     } catch (e: any) {
+      console.error('Failed to load borrowings:', e);
       setError(e.message || 'Failed to load');
+      setAllBorrowings([]);
+      setBorrowings([]);
+      setBooks([]);
+      setAllClasses([]);
+      setClasses([]);
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, []);
+  // Update display data when filters or pagination change
+  useEffect(() => {
+    setBorrowings(paginatedBorrowings);
+    setTotalCount(totalFilteredCount);
+    setTotalPages(totalFilteredPages);
+  }, [paginatedBorrowings, totalFilteredCount, totalFilteredPages]);
+
+  useEffect(() => { 
+    load(1); 
+    /* eslint-disable-next-line */ 
+  }, []);
+
+  // Reset to first page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+    /* eslint-disable-next-line */
+  }, [filters, itemsPerPage]);
+
+  // Handle page changes
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  // Handle filter changes
+  const handleFilterChange = (key: string, value: string | boolean) => {
+    setFilters(prev => ({ ...prev, [key]: value }));
+  };
 
   // Live search students by human-readable studentId or name
   useEffect(() => {
@@ -66,7 +227,7 @@ export default function Borrowings() {
       if (!q) { setStudentOptions([]); return; }
       try {
         const results = await libraryApi.searchStudents({ token: token || undefined, q, limit: 8, schoolId: superAdminSchoolId });
-        if (active) setStudentOptions(results);
+        if (active) setStudentOptions(Array.isArray(results) ? results : []);
       } catch (e) {
         if (active) setStudentOptions([]);
       }
@@ -82,7 +243,9 @@ export default function Borrowings() {
       await libraryApi.borrow({ ...form, schoolId: superAdminSchoolId, dueAt: new Date(form.dueAt).toISOString() }, token || undefined);
       setDialogOpen(false);
       setForm({ studentId: '', dueAt: new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 16) });
-      await load();
+      setSelectedStudent(null);
+      setStudentQuery('');
+      await load(currentPage);
     } catch (e: any) {
       setError(e.message || 'Failed to borrow');
     } finally {
@@ -95,7 +258,7 @@ export default function Borrowings() {
     if (!confirm) return;
     try {
       await libraryApi.returnBook({ borrowingId: id }, token || undefined);
-      await load();
+      await load(currentPage);
     } catch (e: any) {
       setError(e.message || 'Failed to return');
     }
@@ -105,7 +268,12 @@ export default function Borrowings() {
     <div className="space-y-4">
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Borrowings</CardTitle>
+          <div>
+            <CardTitle>Borrowings</CardTitle>
+            <p className="text-sm text-muted-foreground mt-1">
+              Showing {borrowings.length} of {totalCount} records
+            </p>
+          </div>
           {isStaff && (
             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
               <DialogTrigger asChild>
@@ -123,7 +291,7 @@ export default function Borrowings() {
                       onChange={(e) => { setSelectedStudent(null); setStudentQuery(e.target.value); setForm({ ...form, studentId: '', bookId: undefined }); }}
                       placeholder="Type student number or name"
                     />
-                    {studentOptions.length > 0 && !selectedStudent && (
+                    {Array.isArray(studentOptions) && studentOptions.length > 0 && !selectedStudent && (
                       <div className="border rounded max-h-48 overflow-auto bg-white dark:bg-slate-900">
                         {studentOptions.map(opt => (
                           <div
@@ -158,7 +326,7 @@ export default function Borrowings() {
                       <SelectValue placeholder={!selectedStudent ? "Select student first" : "Choose a book"} />
                     </SelectTrigger>
                     <SelectContent>
-                      {availableBooks.map((b) => (
+                      {Array.isArray(availableBooks) && availableBooks.map((b) => (
                         <SelectItem key={b.id} value={b.id}>
                           {b.title} ({b.availableCopies}/{b.totalCopies}) 
                           {b.class ? ` - ${b.class.name}` : ' - N/A'}
@@ -179,8 +347,83 @@ export default function Borrowings() {
             </Dialog>
           )}
         </CardHeader>
+        
+        {/* Filters Section */}
+        <div className="px-6 pb-4 border-b">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Student Search</Label>
+              <Input
+                placeholder="Search by student name or ID"
+                value={filters.studentSearch}
+                onChange={(e) => handleFilterChange('studentSearch', e.target.value)}
+                className="h-9"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Class</Label>
+              <Select value={filters.classId} onValueChange={(value) => handleFilterChange('classId', value)}>
+                <SelectTrigger className="h-9">
+                  <SelectValue placeholder="All classes" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">All classes</SelectItem>
+                  {console.log('Rendering classes in dropdown:', classesWithBorrowings)}
+                  {Array.isArray(classesWithBorrowings) && classesWithBorrowings.map(cls => (
+                    <SelectItem key={cls.id} value={cls.id}>{cls.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Status</Label>
+              <Select 
+                value={filters.activeOnly ? "active" : "all"} 
+                onValueChange={(value) => handleFilterChange('activeOnly', value === 'active')}
+              >
+                <SelectTrigger className="h-9">
+                  <SelectValue placeholder="All records" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All records</SelectItem>
+                  <SelectItem value="active">Active only</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Items per page</Label>
+              <Select value={itemsPerPage.toString()} onValueChange={(value) => setItemsPerPage(Number(value))}>
+                <SelectTrigger className="h-9">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="5">5</SelectItem>
+                  <SelectItem value="10">10</SelectItem>
+                  <SelectItem value="20">20</SelectItem>
+                  <SelectItem value="50">50</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </div>
+        
         <CardContent>
           {error && <div className="text-red-500 mb-2">{error}</div>}
+          
+          {loading && (
+            <div className="flex items-center justify-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              <span className="ml-2 text-muted-foreground">Loading...</span>
+            </div>
+          )}
+          
+          {!loading && Array.isArray(borrowings) && borrowings.length === 0 && (
+            <div className="text-center py-8 text-muted-foreground">
+              No borrowings found. {Object.values(filters).some(v => v) ? 'Try adjusting your filters.' : 'Start by borrowing a book.'}
+            </div>
+          )}
+          
+          {!loading && Array.isArray(borrowings) && borrowings.length > 0 && (
           <Table>
             <TableHeader>
               <TableRow>
@@ -193,8 +436,8 @@ export default function Borrowings() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {borrowings.map((br) => {
-                const bookLabel = br.bookId ? (books.find(b => b.id === br.bookId)?.title || br.bookId) : (br.bookName || 'Unknown');
+              {Array.isArray(borrowings) && borrowings.map((br) => {
+                const bookLabel = br.bookId ? (Array.isArray(books) ? books.find(b => b.id === br.bookId)?.title || br.bookId : br.bookId) : (br.bookName || 'Unknown');
         const returned = !!br.returnedAt;
         const studentLabel = br.student ? `${br.student.studentId} — ${br.student.firstName} ${br.student.lastName}` : br.studentId;
                 return (
@@ -214,6 +457,53 @@ export default function Borrowings() {
               })}
             </TableBody>
           </Table>
+          )}
+          
+          {/* Pagination */}
+          {!loading && totalPages > 1 && (
+            <div className="flex items-center justify-between px-2 py-4">
+              <div className="flex items-center space-x-2">
+                <p className="text-sm text-muted-foreground">
+                  Page {currentPage} of {totalPages}
+                </p>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage <= 1 || loading}
+                >
+                  Previous
+                </Button>
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  const pageNum = Math.max(1, Math.min(totalPages - 4, currentPage - 2)) + i;
+                  if (pageNum <= totalPages) {
+                    return (
+                      <Button
+                        key={pageNum}
+                        variant={currentPage === pageNum ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => handlePageChange(pageNum)}
+                        disabled={loading}
+                      >
+                        {pageNum}
+                      </Button>
+                    );
+                  }
+                  return null;
+                })}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage >= totalPages || loading}
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

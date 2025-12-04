@@ -58,13 +58,32 @@ export const libraryApi = {
     return apiClient.delete(`/library/books/${id}`, token) as Promise<{ success: boolean }>;
   },
 
-  listBorrowings: (opts: { token?: string; studentId?: string; activeOnly?: boolean; schoolId?: string } = {}) => {
+  listBorrowings: (opts: { 
+    token?: string; 
+    studentId?: string; 
+    activeOnly?: boolean; 
+    schoolId?: string;
+    page?: number;
+    limit?: number;
+    classId?: string;
+    studentSearch?: string;
+  } = {}) => {
     const params = new URLSearchParams();
     if (opts.studentId) params.set('studentId', opts.studentId);
     if (opts.activeOnly) params.set('activeOnly', 'true');
     if (opts.schoolId) params.set('schoolId', opts.schoolId);
+    if (opts.classId) params.set('classId', opts.classId);
+    if (opts.studentSearch) params.set('studentSearch', opts.studentSearch);
+    if (opts.page) params.set('page', opts.page.toString());
+    if (opts.limit) params.set('limit', opts.limit.toString());
     const query = params.toString();
-    return apiClient.get(`/library/borrowings${query ? `?${query}` : ''}`, opts.token) as Promise<Borrowing[]>;
+    return apiClient.get(`/library/borrowings${query ? `?${query}` : ''}`, opts.token) as Promise<Borrowing[] | {
+      borrowings: Borrowing[];
+      totalCount: number;
+      totalPages: number;
+      currentPage: number;
+      itemsPerPage: number;
+    }>;
   },
 
   borrow: (data: { bookId?: string; bookName?: string; studentId: string; dueAt: string; schoolId?: string }, token?: string) => {

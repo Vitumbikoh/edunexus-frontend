@@ -45,14 +45,16 @@ export default function LibraryReportCard({
       try {
         if (!token) return;
         
-        const [classesData, booksData] = await Promise.all([
+        const [classesData, booksResponse] = await Promise.all([
           classService.getClasses(token),
           libraryApi.listBooks({ token: token, schoolId: superAdminSchoolId }),
         ]);
-        setClasses(classesData);
-        setBooks(booksData);
+        setClasses(Array.isArray(classesData) ? classesData : []);
+        setBooks(Array.isArray(booksResponse.books) ? booksResponse.books : []);
       } catch (err) {
         console.error('Failed to load filter options:', err);
+        setClasses([]);
+        setBooks([]);
       }
     };
     loadOptions();
@@ -140,7 +142,7 @@ export default function LibraryReportCard({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="">All classes</SelectItem>
-                  {classes.map(cls => (
+                  {Array.isArray(classes) && classes.map(cls => (
                     <SelectItem key={cls.id} value={cls.id}>{cls.name}</SelectItem>
                   ))}
                 </SelectContent>
@@ -154,7 +156,7 @@ export default function LibraryReportCard({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="">All books</SelectItem>
-                  {books.map(book => (
+                  {Array.isArray(books) && books.map(book => (
                     <SelectItem key={book.id} value={book.id}>
                       {book.title} {book.author ? `by ${book.author}` : ''}
                     </SelectItem>
