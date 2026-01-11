@@ -326,7 +326,8 @@ export default function AcademicAndPeriodsSection() {
       toast({ title: "Success", description: "Academic calendar closed" });
       await fetchAcademicData();
     } catch (e:any) {
-      toast({ title: "Error", description: e.message || "Failed", variant: "destructive" });
+      const friendly = e?.message || "Please complete the required terms before closing the academic calendar.";
+      toast({ title: "Cannot Close Academic Calendar", description: friendly, variant: "default" });
     } finally {
       setLoading(p => ({ ...p, closing: false }));
     }
@@ -343,7 +344,8 @@ export default function AcademicAndPeriodsSection() {
         academicCalendarId: selectedAcademicCalendar.id,
         startDate: currentPeriod.startDate,
         endDate: currentPeriod.endDate,
-        isCurrent: currentPeriod.isCurrent || false,
+        // Prevent setting as current if a term is already active
+        isCurrent: (currentPeriod.isCurrent && !termPeriods.some(t => t.isCurrent)) || false,
       };
       let res;
       if (editingPeriod?.id) {
@@ -392,7 +394,7 @@ export default function AcademicAndPeriodsSection() {
   const onCompleteTerm = async (termId: string) => {
     setLoading(p => ({ ...p, completingTerm: true }));
     try {
-      const res = await fetch(`${API_BASE}/settings/periods/term/${termId}/complete`, {
+      const res = await fetch(`${API_BASE}/settings/periods/term/${termId}/complete?force=true`, {
         method: "PATCH",
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -1101,8 +1103,19 @@ export default function AcademicAndPeriodsSection() {
                         onCheckedChange={(checked) =>
                           setCurrentPeriod({ ...currentPeriod, isCurrent: Boolean(checked) })
                         }
+                        disabled={termPeriods.some(t => t.isCurrent)}
                       />
-                      <Label htmlFor="isCurrent">Set as current term</Label>
+                      <Label
+                        htmlFor="isCurrent"
+                        className={termPeriods.some(t => t.isCurrent) ? 'text-muted-foreground' : ''}
+                      >
+                        Set as current term
+                      </Label>
+                      {termPeriods.some(t => t.isCurrent) && (
+                        <p className="text-xs text-muted-foreground ml-1">
+                          There is already an active term. You can activate this one later.
+                        </p>
+                      )}
                     </div>
                   )}
                   <div className="flex justify-end gap-2">
@@ -1111,12 +1124,36 @@ export default function AcademicAndPeriodsSection() {
                       setEditingPeriod(null);
                       resetCurrentPeriod();
                     }}>Cancel</Button>
-                    <Button
-                      onClick={onSavePeriod}
-                      disabled={loading.period || !currentPeriod.periodId || !currentPeriod.startDate || !currentPeriod.endDate}
-                    >
-                      {loading.period ? "Saving..." : editingPeriod ? "Update Term" : "Save Term"}
-                    </Button>
+                    {(!editingPeriod && currentPeriod.isCurrent && !termPeriods.some(t => t.isCurrent)) ? (
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            disabled={loading.period || !currentPeriod.periodId || !currentPeriod.startDate || !currentPeriod.endDate}
+                          >
+                            {loading.period ? "Saving..." : "Save Term"}
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Set as current term?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This will set this term as current. Earlier terms will be auto-completed if needed.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={onSavePeriod}>Confirm</AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    ) : (
+                      <Button
+                        onClick={onSavePeriod}
+                        disabled={loading.period || !currentPeriod.periodId || !currentPeriod.startDate || !currentPeriod.endDate}
+                      >
+                        {loading.period ? "Saving..." : editingPeriod ? "Update Term" : "Save Term"}
+                      </Button>
+                    )}
                   </div>
                 </div>
               )}
@@ -1160,14 +1197,33 @@ export default function AcademicAndPeriodsSection() {
                                 </Button>
                               )}
                               {canActivateTerm(period) && (
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => period.id && onActivatePeriod(period.id)}
-                                  disabled={loading.activatingPeriod}
-                                >
-                                  {loading.activatingPeriod ? "Activating..." : "Activate"}
-                                </Button>
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      disabled={loading.activatingPeriod}
+                                    >
+                                      {loading.activatingPeriod ? "Activating..." : "Activate"}
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>Activate Term</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        Are you sure you want to activate this term? Earlier terms will be auto-completed if needed.
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                      <AlertDialogAction
+                                        onClick={() => period.id && onActivatePeriod(period.id)}
+                                      >
+                                        Confirm
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
                               )}
                               {period.isCurrent && !period.isCompleted && (
                                 <AlertDialog>
