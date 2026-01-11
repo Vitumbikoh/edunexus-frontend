@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Sidebar from './Sidebar';
 import Header from './Header';
 import MobileStudentLayout from './MobileStudentLayout';
@@ -15,9 +15,22 @@ type LayoutProps = {
 export default function Layout({ children }: LayoutProps) {
   const { isOpen } = useSidebar();
   const { user } = useAuth();
+  const [isMobile, setIsMobile] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return window.matchMedia('(max-width: 1279px)').matches; // include larger tablets
+  });
 
-  // Use mobile-first layout for students
-  if (user?.role === 'student') {
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 1279px)');
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    // Set initial on mount
+    setIsMobile(mq.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
+
+  // Students: use mobile layout on small screens, desktop layout otherwise
+  if (user?.role === 'student' && isMobile) {
     return (
       <MobileStudentLayout>
         {children}

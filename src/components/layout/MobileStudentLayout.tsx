@@ -16,7 +16,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 // Removed title dropdown to avoid duplicate hamburgers on mobile
 import { PullToRefresh } from '@/components/ui/pull-to-refresh';
 import { cn } from '@/lib/utils';
@@ -118,13 +118,20 @@ export default function MobileStudentLayout({ children }: MobileStudentLayoutPro
             {/* Back button removed per request */}
             <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
               <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="md:hidden">
+                <Button variant="ghost" size="icon" className="xl:hidden">
                   <Menu className="h-5 w-5" />
                   <span className="sr-only">Open menu</span>
                 </Button>
               </SheetTrigger>
-              <SheetContent side="left" className="w-80 p-0">
+              <SheetContent side="left" className="w-80 p-0" aria-describedby="student-menu-desc">
                 <div className="flex flex-col h-full">
+                  {/* Accessible title/description for screen readers */}
+                  <SheetHeader className="sr-only">
+                    <SheetTitle>Student Menu</SheetTitle>
+                    <SheetDescription id="student-menu-desc">
+                      Navigation drawer with student links and profile actions.
+                    </SheetDescription>
+                  </SheetHeader>
                   {/* Profile Section */}
                   <div className="p-6 border-b bg-gradient-to-r from-blue-50 to-purple-50 dark:from-gray-800 dark:to-gray-700">
                     <div className="flex items-center space-x-3">
@@ -262,7 +269,7 @@ export default function MobileStudentLayout({ children }: MobileStudentLayoutPro
       </main>
 
       {/* Bottom Navigation for Quick Access */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 md:hidden">
+      <div className="fixed bottom-0 left-0 right-0 z-40 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 xl:hidden">
         <div className="grid grid-cols-4 gap-2 py-3">
           {studentNavItems.slice(0, 4).map((item) => {
             const Icon = item.icon;
@@ -288,7 +295,7 @@ export default function MobileStudentLayout({ children }: MobileStudentLayoutPro
       </div>
 
       {/* Bottom padding to prevent content from being hidden behind bottom nav */}
-      <div className="h-16 md:hidden" />
+      <div className="h-16 xl:hidden" />
     </div>
   );
 }
