@@ -12,6 +12,7 @@ export default function Login() {
   const { login, changePassword } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const currentYear = new Date().getFullYear();
   
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -224,7 +225,7 @@ export default function Login() {
           </CardContent>
           <CardFooter className="flex flex-col">
             <div className="text-sm text-muted-foreground text-center">
-              © 2025 Schomas School Management Portal. All rights reserved.
+              © {currentYear} Schomas School Management Portal. All rights reserved.
             </div>
           </CardFooter>
         </Card>
@@ -294,7 +295,7 @@ export default function Login() {
         </CardContent>
         <CardFooter className="flex flex-col">
           <div className="text-sm text-muted-foreground text-center">
-            © 2025 Schomas School Management Portal. All rights reserved.
+            © {currentYear} Schomas School Management Portal. All rights reserved.
           </div>
         </CardFooter>
       </Card>
