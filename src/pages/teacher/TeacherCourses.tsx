@@ -97,7 +97,21 @@ export default function TeacherCourses() {
         throw new Error("Failed to fetch courses");
       }
 
-      setCourses(data.courses);
+      // Build class order map for sorting courses by Form/Grade
+      const classOrderMap = new Map<string, number>();
+      (classes || []).forEach((c: any) => {
+        const num = typeof c.numericalName === 'number' ? c.numericalName : (parseInt(String(c.name).match(/\b(Form|Grade)\s*(\d+)/i)?.[2] || '999', 10));
+        classOrderMap.set(c.id, num);
+      });
+      const sortedCourses = [...(data.courses || [])].sort((a: any, b: any) => {
+        if (selectedClassId === 'all') {
+          const na = a.class?.id ? (classOrderMap.get(a.class.id) ?? 999) : 999;
+          const nb = b.class?.id ? (classOrderMap.get(b.class.id) ?? 999) : 999;
+          if (na !== nb) return na - nb;
+        }
+        return String(a.name).localeCompare(String(b.name));
+      });
+      setCourses(sortedCourses);
       setPagination(data.pagination);
     } catch (err) {
       const errorMessage =
@@ -124,7 +138,13 @@ export default function TeacherCourses() {
       if (response.ok) {
         const data = await response.json();
         if (data.success) {
-          setClasses(data.classes);
+          const sorted = [...(data.classes || [])].sort((a: any, b: any) => {
+            const na = typeof a.numericalName === 'number' ? a.numericalName : (parseInt(String(a.name).match(/\b(Form|Grade)\s*(\d+)/i)?.[2] || '999', 10));
+            const nb = typeof b.numericalName === 'number' ? b.numericalName : (parseInt(String(b.name).match(/\b(Form|Grade)\s*(\d+)/i)?.[2] || '999', 10));
+            if (na === nb) return String(a.name).localeCompare(String(b.name));
+            return na - nb;
+          });
+          setClasses(sorted);
         }
       }
     } catch (err) {

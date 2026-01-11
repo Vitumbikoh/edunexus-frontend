@@ -49,6 +49,7 @@ interface PaginatedData {
 interface ClassOption {
   id: string;
   name: string;
+  numericalName?: number;
 }
 
 export default function Courses() {
@@ -81,6 +82,12 @@ export default function Courses() {
     user?.role === "student";
   const canShow = canView;
 
+  const parseClassOrder = (name?: string, numericalName?: number) => {
+    if (typeof numericalName === 'number') return numericalName;
+    const m = String(name || '').match(/\b(Form|Grade)\s*(\d+)/i);
+    return m ? parseInt(m[2], 10) : 999;
+  };
+
   const fetchClasses = async () => {
     try {
       if (!token) {
@@ -101,13 +108,18 @@ export default function Courses() {
       }
 
       const result = await response.json();
-      setClasses((prev) => [
-        { id: "all", name: "All Classes" },
-        ...result.map((cls) => ({
-          id: cls.id,
-          name: cls.name,
-        })),
-      ]);
+      const mapped: ClassOption[] = result.map((cls: any) => ({
+        id: cls.id,
+        name: cls.name,
+        numericalName: typeof cls.numericalName === 'number' ? cls.numericalName : undefined,
+      }));
+      const sorted = mapped.sort((a, b) => {
+        const na = parseClassOrder(a.name, a.numericalName);
+        const nb = parseClassOrder(b.name, b.numericalName);
+        if (na === nb) return String(a.name).localeCompare(String(b.name));
+        return na - nb;
+      });
+      setClasses([{ id: 'all', name: 'All Classes' }, ...sorted]);
     } catch (error) {
       console.error("Error fetching classes:", error);
       toast({
@@ -175,8 +187,22 @@ export default function Courses() {
         })
       );
 
+      // Sort courses so that Form 1 (lowest class order) appears first when viewing All Classes
+      const classOrderMap = new Map<string, number>();
+      classes.filter(c => c.id !== 'all').forEach(c => {
+        classOrderMap.set(c.id, parseClassOrder(c.name, c.numericalName));
+      });
+      const sortedCourses = [...enrichedCourses].sort((a: Course, b: Course) => {
+        if (selectedClass === 'all') {
+          const na = a.classId ? (classOrderMap.get(a.classId) ?? parseClassOrder(a.className)) : parseClassOrder(a.className);
+          const nb = b.classId ? (classOrderMap.get(b.classId) ?? parseClassOrder(b.className)) : parseClassOrder(b.className);
+          if (na !== nb) return na - nb;
+        }
+        return String(a.name).localeCompare(String(b.name));
+      });
+
       setPaginatedData({
-        courses: enrichedCourses,
+        courses: sortedCourses,
         totalPages: result.pagination?.totalPages || 1,
         totalItems: result.pagination?.totalItems || courses.length,
         itemsPerPage: result.pagination?.itemsPerPage || limit,

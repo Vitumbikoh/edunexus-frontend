@@ -10,18 +10,24 @@ import {
   Calendar,
   GraduationCap,
   Briefcase,
+  User as UserIcon,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
 import { PagePreloader } from "@/components/ui/preloader";
+import { API_CONFIG } from "@/config/api";
 
 interface Teacher {
   id: string;
   firstName: string;
   lastName: string;
-  email: string;
+  user?: { email?: string; username?: string };
   phoneNumber?: string;
-  courseSpecialization?: string;
+  subjectSpecialization?: string;
+  qualification?: string;
+  address?: string;
+  gender?: string;
+  dateOfBirth?: string;
   yearsOfExperience: number;
   status: string;
   hireDate: string;
@@ -45,7 +51,7 @@ export default function TeacherDetails() {
         setError(null);
 
         const response = await fetch(
-          `http://localhost:5000/api/v1/teacher/teachers/${id}`,
+          `${API_CONFIG.BASE_URL}/teacher/teachers/${id}`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -67,7 +73,7 @@ export default function TeacherDetails() {
         }
 
         const result = await response.json();
-        // Update this line to use result directly instead of result.teacher
+        // API returns a teacher entity directly
         setTeacher(result);
       } catch (error) {
         const errorMessage =
@@ -149,14 +155,26 @@ export default function TeacherDetails() {
               <div className="space-y-4">
                 <h3 className="font-semibold text-lg">Contact Information</h3>
                 <div className="space-y-3">
+                  {teacher.user?.username && (
+                    <div className="flex items-center space-x-3">
+                      <UserIcon className="h-4 w-4 text-muted-foreground" />
+                      <span>{teacher.user.username}</span>
+                    </div>
+                  )}
                   <div className="flex items-center space-x-3">
                     <Mail className="h-4 w-4 text-muted-foreground" />
-                    <span>{teacher.email}</span>
+                    <span>{teacher.user?.email || "-"}</span>
                   </div>
                   {teacher.phoneNumber && (
                     <div className="flex items-center space-x-3">
                       <Phone className="h-4 w-4 text-muted-foreground" />
                       <span>{teacher.phoneNumber}</span>
+                    </div>
+                  )}
+                  {teacher.address && (
+                    <div className="flex items-center space-x-3">
+                      <span className="text-muted-foreground">Address:</span>
+                      <span>{teacher.address}</span>
                     </div>
                   )}
                 </div>
@@ -168,10 +186,28 @@ export default function TeacherDetails() {
                   Professional Information
                 </h3>
                 <div className="space-y-3">
-                  {teacher.courseSpecialization && (
+                  {teacher.subjectSpecialization && (
                     <div className="flex items-center space-x-3">
                       <GraduationCap className="h-4 w-4 text-muted-foreground" />
-                      <span>{teacher.courseSpecialization}</span>
+                      <span>{teacher.subjectSpecialization}</span>
+                    </div>
+                  )}
+                  {teacher.qualification && (
+                    <div className="flex items-center space-x-3">
+                      <span className="text-muted-foreground">Qualification:</span>
+                      <span>{teacher.qualification}</span>
+                    </div>
+                  )}
+                  {teacher.gender && (
+                    <div className="flex items-center space-x-3">
+                      <span className="text-muted-foreground">Gender:</span>
+                      <span className="capitalize">{teacher.gender}</span>
+                    </div>
+                  )}
+                  {teacher.dateOfBirth && (
+                    <div className="flex items-center space-x-3">
+                      <span className="text-muted-foreground">Date of Birth:</span>
+                      <span>{new Date(teacher.dateOfBirth).toLocaleDateString()}</span>
                     </div>
                   )}
                   <div className="flex items-center space-x-3">
