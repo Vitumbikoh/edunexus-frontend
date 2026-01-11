@@ -10,6 +10,27 @@ export const MobileStudentDashboardContent = () => {
   const { user, token } = useAuth();
   const [profile, setProfile] = useState<any>(null);
   const [profileLoading, setProfileLoading] = useState(true);
+  // Rotating study tips (10 total)
+  const tips: string[] = [
+    'Use the Pomodoro approach: focus for 25–40 minutes, then take a short 5–10 minute break. This cadence keeps your mind fresh and reduces fatigue while improving long‑term retention.',
+    'After each study block, write a two‑sentence summary in your own words and one follow‑up question. Summarizing boosts comprehension; the question guides your next review.',
+    'Explain the topic to a friend or an imaginary class. Teaching forces clarity, exposes gaps, and strengthens memory through active recall rather than passive reading.',
+    'Practice with past questions or small exercises as soon as you learn a concept. Turning theory into application makes knowledge stick and highlights weak spots early.',
+    'Start with a tiny, doable task—like opening your notes or outlining a heading—then build momentum. Small wins reduce friction and help you overcome procrastination.',
+    'Space your reviews over several days (spaced repetition). Short, repeated sessions beat long cramming marathons and help ideas move from short‑term to long‑term memory.',
+    'Break big goals into daily steps, then track completion in minutes, not hours. Measurable progress keeps motivation high and makes improvement visible.',
+    'Create a distraction‑free zone: silence notifications, clear your desk, and set a timer. Reducing context switches saves mental energy and deepens focus.',
+    'Protect sleep and hydration—they are part of studying. Good rest consolidates memory, while water keeps your brain alert and improves problem‑solving.',
+    'Celebrate small milestones and show up consistently. Sustainable habits beat intense bursts; consistency compounds and turns effort into mastery.'
+  ];
+  const initialTipIndex = Math.abs(new Date().getDate() + new Date().getMonth()) % tips.length;
+  const [tipIndex, setTipIndex] = useState<number>(initialTipIndex);
+  useEffect(() => {
+    const id = setInterval(() => {
+      setTipIndex((i) => (i + 1) % tips.length);
+    }, 15000); // rotate every 15s for better readability
+    return () => clearInterval(id);
+  }, []);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -78,7 +99,7 @@ export const MobileStudentDashboardContent = () => {
   };
 
   return (
-    <div className="space-y-6 pb-20 md:pb-6">
+    <div className="space-y-6 pb-6 md:pb-6">
       {/* Mobile-Optimized Welcome Header */}
       <div className="bg-gradient-to-br from-blue-500 via-blue-600 to-purple-600 rounded-2xl p-6 text-white shadow-lg">
         <div className="space-y-4">
@@ -129,14 +150,15 @@ export const MobileStudentDashboardContent = () => {
       <Card className="border-0 shadow-md bg-gradient-to-r from-green-50 to-blue-50 dark:from-gray-800 dark:to-gray-700">
         <CardHeader className="pb-3">
           <CardTitle className="text-lg text-green-700 dark:text-green-400">
-            💡 Study Tip of the Day
+            💡 Study Tips
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed">
-            Break your study sessions into 25-minute focused blocks with 5-minute breaks. 
-            This Pomodoro Technique helps maintain concentration and improves retention!
-          </p>
+          <div className="flex items-start gap-4">
+            <p className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed flex-1">
+              {tips[tipIndex]}
+            </p>
+          </div>
         </CardContent>
       </Card>
     </div>

@@ -142,8 +142,31 @@ export default function StudentMaterials() {
   const handleDownload = async (material: { id: string; title: string; filePath: string; type: string }) => {
     try {
       const base = API_CONFIG.BASE_URL.replace('/api/v1', '');
-      let normalizedPath = material.filePath.replace(/\\/g, '/');
-      if (!normalizedPath.startsWith('/')) normalizedPath = `/${normalizedPath}`;
+      const rawPath = material.filePath || '';
+      const normalized = rawPath.replace(/\\/g, '/');
+
+      // Extract a web-served path if present
+      const uploadsIdx = normalized.toLowerCase().indexOf('/uploads/');
+      const uploadsPath = uploadsIdx >= 0 ? normalized.substring(uploadsIdx) : '';
+
+      // Fallback to just the filename if full path is absolute or unknown
+      const filename = normalized.split('/').pop() || normalized;
+
+      // Candidate URL paths to try in order
+      const candidates: string[] = [];
+      if (uploadsPath) {
+        // Try exact case as returned, then alternate case
+        candidates.push(uploadsPath);
+        if (!uploadsPath.startsWith('/Uploads/')) {
+          candidates.push(uploadsPath.replace('/uploads/', '/Uploads/'));
+        } else {
+          candidates.push(uploadsPath.replace('/Uploads/', '/uploads/'));
+        }
+      } else {
+        // No uploads segment; try default Uploads directory with filename
+        candidates.push(`/Uploads/${filename}`);
+        candidates.push(`/uploads/${filename}`);
+      }
 
       const tryFetch = async (path: string) => {
         return await fetch(`${base}${path}`, {
@@ -153,11 +176,12 @@ export default function StudentMaterials() {
         });
       };
 
-      let response = await tryFetch(normalizedPath);
-      // Fallback: some servers serve under lowercase '/uploads'
-      if (!response.ok && normalizedPath.startsWith('/Uploads/')) {
-        const lowerPath = normalizedPath.replace('/Uploads/', '/uploads/');
-        response = await tryFetch(lowerPath);
+      let response: Response | null = null;
+      for (const path of candidates) {
+        response = await tryFetch(path);
+        if (response.ok) {
+          break;
+        }
       }
 
       if (!response.ok) {
@@ -169,7 +193,7 @@ export default function StudentMaterials() {
       const link = document.createElement('a');
       link.href = url;
       // Prefer original extension from path if available
-      const extMatch = normalizedPath.split('.').pop();
+      const extMatch = (normalized.split('.').pop() || '').trim();
       const ext = (extMatch && extMatch.length <= 5) ? extMatch : material.type.toLowerCase();
       link.download = `${material.title}.${ext}`;
       document.body.appendChild(link);
