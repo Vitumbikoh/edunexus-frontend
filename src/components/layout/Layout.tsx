@@ -2,8 +2,10 @@
 import React from 'react';
 import Sidebar from './Sidebar';
 import Header from './Header';
+import MobileStudentLayout from './MobileStudentLayout';
 import ErrorBoundary from '@/components/common/ErrorBoundary';
 import { useSidebar } from '@/contexts/SidebarContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 
 type LayoutProps = {
@@ -12,7 +14,18 @@ type LayoutProps = {
 
 export default function Layout({ children }: LayoutProps) {
   const { isOpen } = useSidebar();
+  const { user } = useAuth();
 
+  // Use mobile-first layout for students
+  if (user?.role === 'student') {
+    return (
+      <MobileStudentLayout>
+        {children}
+      </MobileStudentLayout>
+    );
+  }
+
+  // Default desktop layout for other roles
   return (
     <div className="flex h-screen bg-background">
       <Sidebar />

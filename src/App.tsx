@@ -1076,7 +1076,7 @@ const AppRoutes = () => {
 
       {/* Student specific routes */}
       <Route
-        path="/assignments"
+        path="/student/assignments"
         element={
           <StudentRoute>
             <Layout>
@@ -1084,6 +1084,12 @@ const AppRoutes = () => {
             </Layout>
           </StudentRoute>
         }
+      />
+
+      {/* Legacy route for backward compatibility */}
+      <Route
+        path="/assignments"
+        element={<Navigate to="/student/assignments" replace />}
       />
 
       <Route
@@ -1098,7 +1104,7 @@ const AppRoutes = () => {
       />
 
       <Route
-        path="/materials"
+        path="/student/materials"
         element={
           <StudentRoute>
             <Layout>
@@ -1108,8 +1114,14 @@ const AppRoutes = () => {
         }
       />
 
+      {/* Legacy route for backward compatibility */}
       <Route
-        path="/schedule"
+        path="/materials"
+        element={<Navigate to="/student/materials" replace />}
+      />
+
+      <Route
+        path="/student/schedule"
         element={
           <StudentRoute>
             <Layout>
@@ -1119,6 +1131,24 @@ const AppRoutes = () => {
         }
       />
 
+      {/* Legacy route for backward compatibility */}
+      <Route
+        path="/schedule"
+        element={<Navigate to="/student/schedule" replace />}
+      />
+
+      <Route
+        path="/student/courses"
+        element={
+          <StudentRoute>
+            <Layout>
+              <StudentCourses />
+            </Layout>
+          </StudentRoute>
+        }
+      />
+
+      {/* Legacy route for backward compatibility */}
       <Route
         path="/courses"
         element={

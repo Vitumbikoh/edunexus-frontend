@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { DashboardStats } from './DashboardStats';
 import { AdminDashboardCards, TeacherDashboardCards, FinanceDashboardCards, StudentDashboardCards } from './DashboardCards';
+import { MobileStudentDashboardContent } from './MobileStudentDashboardContent';
 import { Badge } from "@/components/ui/badge";
 import { CalendarDays, Clock, User } from "lucide-react";
 
@@ -21,6 +22,11 @@ export const DashboardContent = () => {
   const isStudent = user?.role === 'student';
   const isParent = user?.role === 'parent';
   const isFinance = user?.role === 'finance';
+
+  // Use mobile-first dashboard for students
+  if (isStudent) {
+    return <MobileStudentDashboardContent />;
+  }
 
   useEffect(() => {
     const fetchProfile = async () => {

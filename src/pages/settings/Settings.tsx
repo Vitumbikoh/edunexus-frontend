@@ -5,10 +5,13 @@ import { useAuth } from "@/contexts/AuthContext";
 import AccountSecuritySection from "./AccountSecuritySection";
 import PreferencesSection from "./PreferencesSection";
 import SchoolInfoSection from "./SchoolInfoSection";
+import { useSearchParams } from "react-router-dom";
 
 export default function Settings() {
   const { user } = useAuth();
   const isAdmin = user?.role === "admin";
+  const [searchParams] = useSearchParams();
+  const currentTab = searchParams.get("tab") ?? "account";
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -19,7 +22,7 @@ export default function Settings() {
         </p>
       </div>
 
-      <Tabs defaultValue="account" className="space-y-6">
+      <Tabs defaultValue={currentTab} className="space-y-6">
         <TabsList className="flex w-full flex-wrap gap-2">
           <TabsTrigger value="account">Account</TabsTrigger>
           <TabsTrigger value="security">Security</TabsTrigger>

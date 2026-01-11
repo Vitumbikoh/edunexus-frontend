@@ -309,7 +309,7 @@ export default function StudentCourses() {
 
   // Navigation handlers
   const handleViewMaterials = (course: EnhancedCourse) => {
-    navigate(`/materials?courseId=${course.id}`);
+    navigate(`/student/materials?courseId=${course.id}`);
   };
 
   // Format schedule display (placeholder, will show today's schedule below)

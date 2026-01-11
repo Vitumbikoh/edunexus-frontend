@@ -141,35 +141,51 @@ export default function StudentMaterials() {
 
   const handleDownload = async (material: { id: string; title: string; filePath: string; type: string }) => {
     try {
-      const response = await fetch(`${API_CONFIG.BASE_URL.replace('/api/v1', '')}${material.filePath}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const base = API_CONFIG.BASE_URL.replace('/api/v1', '');
+      let normalizedPath = material.filePath.replace(/\\/g, '/');
+      if (!normalizedPath.startsWith('/')) normalizedPath = `/${normalizedPath}`;
+
+      const tryFetch = async (path: string) => {
+        return await fetch(`${base}${path}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+      };
+
+      let response = await tryFetch(normalizedPath);
+      // Fallback: some servers serve under lowercase '/uploads'
+      if (!response.ok && normalizedPath.startsWith('/Uploads/')) {
+        const lowerPath = normalizedPath.replace('/Uploads/', '/uploads/');
+        response = await tryFetch(lowerPath);
+      }
 
       if (!response.ok) {
-        throw new Error("Failed to download file");
+        throw new Error('Failed to download file');
       }
 
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `${material.title}.${material.type.toLowerCase()}`;
+      // Prefer original extension from path if available
+      const extMatch = normalizedPath.split('.').pop();
+      const ext = (extMatch && extMatch.length <= 5) ? extMatch : material.type.toLowerCase();
+      link.download = `${material.title}.${ext}`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
 
       toast({
-        title: "Material downloaded",
+        title: 'Material downloaded',
         description: `${material.title} has been downloaded to your device.`,
       });
     } catch (error) {
       toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to download material",
-        variant: "destructive",
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'Failed to download material',
+        variant: 'destructive',
       });
     }
   };
