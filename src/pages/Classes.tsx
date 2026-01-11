@@ -54,7 +54,10 @@ export default function ClassManagement() {
       }
 
       const classesData = await response.json();
-      setClasses(classesData);
+      const sorted = Array.isArray(classesData)
+        ? [...classesData].sort((a: Class, b: Class) => (a.numericalName ?? 0) - (b.numericalName ?? 0))
+        : [];
+      setClasses(sorted);
     } catch (error) {
       setApiError(error instanceof Error ? error.message : "Failed to fetch classes");
       console.error("Fetch error:", error);

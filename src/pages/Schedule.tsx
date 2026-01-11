@@ -140,7 +140,10 @@ export default function ClassScheduleManagement() {
       const processedCourses = coursesData.courses || coursesData;
       const processedTeachers = teachersData.teachers || teachersData;
 
-      setClasses(classesData);
+      const sortedClasses = Array.isArray(classesData)
+        ? [...classesData].sort((a: Class, b: Class) => (a.numericalName ?? 0) - (b.numericalName ?? 0))
+        : [];
+      setClasses(sortedClasses);
       setCourses(Array.isArray(processedCourses) ? processedCourses : []);
       setTeachers(Array.isArray(processedTeachers) ? processedTeachers : []);
       setClassrooms(classroomsData);
