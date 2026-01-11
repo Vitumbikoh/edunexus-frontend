@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
 import { API_CONFIG } from '@/config/api';
-import { PlusCircle, Loader2, Trash2 } from 'lucide-react';
+import { PlusCircle, Loader2, Trash2, Pencil, Check, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 interface FeeStructureItem {
@@ -33,6 +33,8 @@ export default function FeeManagement() {
   const [amount, setAmount] = useState('');
   const [frequency, setFrequency] = useState('per_period');
   const [description, setDescription] = useState('');
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editValues, setEditValues] = useState<Partial<FeeStructureItem>>({});
 
   const isAdmin = user?.role === 'admin' || user?.role === 'finance';
 
@@ -124,7 +126,10 @@ export default function FeeManagement() {
               </div>
               <div className="space-y-2">
                 <Label>Amount</Label>
-                <Input type="number" value={amount} onChange={e=>setAmount(e.target.value)} placeholder="100" />
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium">MWK</span>
+                  <Input type="number" value={amount} onChange={e=>setAmount(e.target.value)} placeholder="100" />
+                </div>
               </div>
               <div className="space-y-2">
                 <Label>Frequency</Label>
@@ -171,22 +176,112 @@ export default function FeeManagement() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {items.map(item => (
-                    <TableRow key={item.id}>
-                      <TableCell className="font-medium">{item.feeType}</TableCell>
-                      <TableCell>${Number(item.amount).toFixed(2)}</TableCell>
-                      <TableCell className="capitalize">{item.frequency.replace('_',' ')}</TableCell>
-                      <TableCell>{item.isActive ? 'Active' : 'Inactive'}</TableCell>
-                      <TableCell>{item.description || '-'}</TableCell>
-                      {isAdmin && (
-                        <TableCell className="text-right">
-                          <Button variant="ghost" size="sm" onClick={()=>deleteItem(item.id)}>
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                  {items.map(item => {
+                    const isEditing = editingId === item.id;
+                    const freqLabel = (item.frequency === 'per_period') ? 'per term' : item.frequency.replace('_',' ');
+                    return (
+                      <TableRow key={item.id}>
+                        <TableCell className="font-medium">
+                          {isEditing ? (
+                            <Input value={editValues.feeType ?? item.feeType} onChange={e=>setEditValues(v=>({ ...v, feeType: e.target.value }))} />
+                          ) : (
+                            item.feeType
+                          )}
                         </TableCell>
-                      )}
-                    </TableRow>
-                  ))}
+                        <TableCell>
+                          {isEditing ? (
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-medium">MWK</span>
+                              <Input type="number" value={String(editValues.amount ?? item.amount)} onChange={e=>setEditValues(v=>({ ...v, amount: Number(e.target.value) }))} />
+                            </div>
+                          ) : (
+                            <>MWK {Number(item.amount).toFixed(2)}</>
+                          )}
+                        </TableCell>
+                        <TableCell className="capitalize">
+                          {isEditing ? (
+                            <select
+                              value={String(editValues.frequency ?? item.frequency)}
+                              onChange={e=>setEditValues(v=>({ ...v, frequency: e.target.value }))}
+                              className="border rounded-md h-9 px-2 bg-background"
+                            >
+                              <option value="per_period">Per Term</option>
+                              <option value="per_year">Per Year</option>
+                              <option value="one_time">One Time</option>
+                            </select>
+                          ) : (
+                            freqLabel
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {isEditing ? (
+                            <select
+                              value={String(editValues.isActive ?? item.isActive)}
+                              onChange={e=>setEditValues(v=>({ ...v, isActive: e.target.value === 'true' }))}
+                              className="border rounded-md h-9 px-2 bg-background"
+                            >
+                              <option value="true">Active</option>
+                              <option value="false">Inactive</option>
+                            </select>
+                          ) : (
+                            item.isActive ? 'Active' : 'Inactive'
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {isEditing ? (
+                            <Input value={editValues.description ?? item.description ?? ''} onChange={e=>setEditValues(v=>({ ...v, description: e.target.value }))} />
+                          ) : (
+                            item.description || '-'
+                          )}
+                        </TableCell>
+                        {isAdmin && (
+                          <TableCell className="text-right">
+                            {isEditing ? (
+                              <div className="flex items-center justify-end gap-2">
+                                <Button variant="ghost" size="sm" onClick={()=>setEditingId(null)}>
+                                  <X className="h-4 w-4" />
+                                </Button>
+                                <Button variant="ghost" size="sm" onClick={async ()=>{
+                                  if (!token) return;
+                                  try {
+                                    const res = await fetch(`${API_CONFIG.BASE_URL}/finance/fee-structure/${item.id}`, {
+                                      method: 'PUT',
+                                      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                                      body: JSON.stringify({
+                                        feeType: editValues.feeType ?? item.feeType,
+                                        amount: editValues.amount ?? item.amount,
+                                        frequency: editValues.frequency ?? item.frequency,
+                                        description: editValues.description ?? item.description,
+                                        isActive: editValues.isActive ?? item.isActive,
+                                      })
+                                    });
+                                    if (!res.ok) throw new Error('Failed to update fee');
+                                    toast({ title: 'Updated', description: 'Fee item updated.' });
+                                    setEditingId(null);
+                                    setEditValues({});
+                                    loadItems();
+                                  } catch (e:any) {
+                                    toast({ title: 'Error', description: e.message, variant: 'destructive' });
+                                  }
+                                }}>
+                                  <Check className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            ) : (
+                              <div className="flex items-center justify-end gap-2">
+                                <Button variant="ghost" size="sm" onClick={()=>{ setEditingId(item.id); setEditValues(item); }}>
+                                  <Pencil className="h-4 w-4" />
+                                </Button>
+                                <Button variant="ghost" size="sm" onClick={()=>deleteItem(item.id)}>
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            )}
+                          </TableCell>
+                        )}
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>

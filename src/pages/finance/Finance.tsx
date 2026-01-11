@@ -406,6 +406,33 @@ export default function Finance() {
     return transaction.studentName.toLowerCase().includes(q) || (transaction.studentId || '').toLowerCase().includes(q);
   });
 
+  // Prefill uniform tuition amount from existing fee structure for selected term
+  const prefillUniformFromExisting = async (forTermId?: string) => {
+    if (!token) return;
+    const targetTermId = forTermId || uniformTermId || termId;
+    if (!targetTermId) return;
+    try {
+      const res = await fetch(`${API_CONFIG.BASE_URL}/finance/fee-structure?termId=${encodeURIComponent(targetTermId)}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!res.ok) return;
+      const items = await res.json();
+      if (Array.isArray(items)) {
+        const tuition = items.find((i: any) => (i.feeType?.toLowerCase() === 'tuition') && (i.isActive !== false));
+        if (tuition && typeof tuition.amount !== 'undefined') {
+          setUniformAmount(String(tuition.amount));
+        }
+      }
+    } catch {}
+  };
+
+  useEffect(() => {
+    if (showSetUniformDialog) {
+      prefillUniformFromExisting();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showSetUniformDialog]);
+
   // Save uniform fee expectation (restored)
   const saveUniformFeeExpectation = async () => {
     if (!token || !uniformAmount) return;
@@ -472,14 +499,17 @@ export default function Finance() {
                   <div className="space-y-4 py-2">
                     <div className="space-y-2">
                       <Label htmlFor="uniformAmount">Amount</Label>
-                      <input
-                        id="uniformAmount"
-                        type="number"
-                        className="w-full border rounded-md h-9 px-2 bg-background"
-                        value={uniformAmount}
-                        onChange={e => setUniformAmount(e.target.value)}
-                        placeholder="Enter amount"
-                      />
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium">MWK</span>
+                        <input
+                          id="uniformAmount"
+                          type="number"
+                          className="w-full border rounded-md h-9 px-2 bg-background"
+                          value={uniformAmount}
+                          onChange={e => setUniformAmount(e.target.value)}
+                          placeholder="Enter amount"
+                        />
+                      </div>
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="uniformYear">Term</Label>
@@ -487,7 +517,7 @@ export default function Finance() {
                         id="uniformYear"
                         className="w-full border rounded-md h-9 px-2 bg-background"
                         value={uniformTermId || termId || ''}
-                        onChange={e => setUniformTermId(e.target.value || undefined)}
+                        onChange={e => { const v = e.target.value || undefined; setUniformTermId(v); prefillUniformFromExisting(v); }}
                       >
                         {terms.map(y => <option key={y.id} value={y.id}>{y.name}</option>)}
                       </select>
