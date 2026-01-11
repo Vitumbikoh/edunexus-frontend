@@ -48,6 +48,11 @@ export default function TeacherStudents() {
   const [students, setStudents] = useState<Student[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [totalPages, setTotalPages] = useState<number>(1);
+  const [totalItems, setTotalItems] = useState<number>(0);
+  const [itemsPerPage, setItemsPerPage] = useState<number>(10);
+  const [allClasses, setAllClasses] = useState<string[]>([]);
 
   // Fetch students from the API
   useEffect(() => {
@@ -60,8 +65,15 @@ export default function TeacherStudents() {
           throw new Error("Authentication required");
         }
 
+        // Fetch 10 students per page with server-side pagination
+        const params = new URLSearchParams({
+          page: String(currentPage),
+          limit: String(itemsPerPage),
+          ...(searchQuery ? { search: searchQuery } : {}),
+          ...(selectedClass ? { class: selectedClass } : {}),
+        });
         const response = await fetch(
-          `${API_CONFIG.BASE_URL}/teacher/my-students`,
+          `${API_CONFIG.BASE_URL}/teacher/my-students?${params.toString()}`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -87,6 +99,12 @@ export default function TeacherStudents() {
         const data = await response.json();
         if (data.success && data.students) {
           setStudents(data.students);
+          if (data.pagination) {
+            setCurrentPage(data.pagination.currentPage || 1);
+            setTotalPages(data.pagination.totalPages || 1);
+            setTotalItems(data.pagination.totalItems || data.students.length || 0);
+            setItemsPerPage(data.pagination.itemsPerPage || 10);
+          }
         } else {
           throw new Error(data.message || "Invalid response format");
         }
@@ -107,7 +125,46 @@ export default function TeacherStudents() {
     if (user?.role === "teacher") {
       fetchStudents();
     }
-  }, [token, user, toast]);
+  }, [token, user, toast, currentPage, searchQuery, selectedClass]);
+
+  // Fetch all classes available to the teacher (independent of pagination)
+  useEffect(() => {
+    const fetchAllClasses = async () => {
+      try {
+        if (!token || !user) return;
+        const params = new URLSearchParams({ page: "1", limit: "5000" });
+        const response = await fetch(
+          `${API_CONFIG.BASE_URL}/teacher/my-students?${params.toString()}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          }
+        );
+        if (!response.ok) return;
+        const data = await response.json();
+        if (data?.students) {
+          const classes = Array.from(
+            new Set(
+              data.students
+                .map((s: Student) => s.class?.name)
+                .filter((n: string | undefined): n is string => Boolean(n))
+            )
+          );
+          setAllClasses(classes);
+        }
+      } catch {}
+    };
+    if (user?.role === "teacher") {
+      fetchAllClasses();
+    }
+  }, [token, user]);
+
+  // Reset to first page when class filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedClass]);
 
   if (!user || user.role !== "teacher") {
     return (
@@ -121,8 +178,8 @@ export default function TeacherStudents() {
 
   // Get unique classes from the students
   const teacherClasses = Array.from(
-    new Set(students.map((student) => student.class?.name || "Unassigned"))
-  ).filter(Boolean);
+    new Set(students.map((student) => student.class?.name).filter(Boolean))
+  );
 
   // Filter students based on search and class selection
   let filteredStudents = students.filter((student) => {
@@ -134,8 +191,7 @@ export default function TeacherStudents() {
       : true;
 
     const matchesClass = selectedClass
-      ? student.class?.name === selectedClass ||
-        (selectedClass === "Unassigned" && !student.class)
+      ? student.class?.name === selectedClass
       : true;
 
     return matchesSearch && matchesClass;
@@ -178,12 +234,11 @@ export default function TeacherStudents() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="">All Classes</SelectItem>
-                  {teacherClasses.map((className) => (
+                  {(allClasses.length ? allClasses : teacherClasses).map((className) => (
                     <SelectItem key={className} value={className}>
                       {className}
                     </SelectItem>
                   ))}
-                  <SelectItem value="Unassigned">Unassigned</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -195,6 +250,7 @@ export default function TeacherStudents() {
           ) : error ? (
             <div className="text-center py-8 text-red-600">{error}</div>
           ) : filteredStudents.length > 0 ? (
+            <>
             <Table>
               <TableHeader>
                 <TableRow>
@@ -233,6 +289,28 @@ export default function TeacherStudents() {
                 ))}
               </TableBody>
             </Table>
+            <div className="flex items-center justify-end gap-2 mt-4">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={currentPage <= 1 || isLoading}
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              >
+                Previous
+              </Button>
+              <span className="text-sm text-muted-foreground">
+                Page {currentPage} of {totalPages}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={currentPage >= totalPages || isLoading}
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              >
+                Next
+              </Button>
+            </div>
+            </>
           ) : (
             <div className="text-center py-8 text-muted-foreground">
               {searchQuery
