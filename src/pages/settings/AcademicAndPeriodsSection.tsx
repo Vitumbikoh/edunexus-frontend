@@ -1412,7 +1412,7 @@ export default function AcademicAndPeriodsSection() {
                               )}
                             </TableCell>
                             <TableCell>
-                              <div className="flex gap-2 flex-wrap">
+                              <div className="flex items-center gap-2 flex-wrap">
                                 {!h.isCompleted && (
                                   <Button
                                     variant="ghost"
@@ -1423,7 +1423,7 @@ export default function AcademicAndPeriodsSection() {
                                   </Button>
                                 )}
                                 {/* Holidays are auto-activated when terms complete - no manual activate button */}
-                                {h.isCurrent && !h.isCompleted && (
+                                {h.isCurrent && !h.isCompleted && currentPeriod.isCompleted && (
                                   <AlertDialog>
                                     <AlertDialogTrigger asChild>
                                       <Button
@@ -1452,6 +1452,11 @@ export default function AcademicAndPeriodsSection() {
                                       </AlertDialogFooter>
                                     </AlertDialogContent>
                                   </AlertDialog>
+                                )}
+                                {h.isCurrent && !h.isCompleted && !currentPeriod.isCompleted && (
+                                  <span className="inline-flex items-center text-xs text-muted-foreground leading-none ml-1">
+                                    Holiday can only be closed after the term is completed.
+                                  </span>
                                 )}
                               </div>
                             </TableCell>
@@ -1528,7 +1533,7 @@ export default function AcademicAndPeriodsSection() {
                               </Badge>
                             </TableCell>
                             <TableCell>
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-2 flex-wrap">
                                 {!holiday.isCompleted && (
                                   <Button
                                     variant="outline"
@@ -1550,7 +1555,7 @@ export default function AcademicAndPeriodsSection() {
                                     Edit
                                   </Button>
                                 )}
-                                {holiday.isCurrent && !holiday.isCompleted && (
+                                {holiday.isCurrent && !holiday.isCompleted && termPeriods.find(t => t.id === holiday.termId)?.isCompleted && (
                                   <AlertDialog>
                                     <AlertDialogTrigger asChild>
                                       <Button
@@ -1579,6 +1584,11 @@ export default function AcademicAndPeriodsSection() {
                                       </AlertDialogFooter>
                                     </AlertDialogContent>
                                   </AlertDialog>
+                                )}
+                                {holiday.isCurrent && !holiday.isCompleted && !termPeriods.find(t => t.id === holiday.termId)?.isCompleted && (
+                                  <span className="inline-flex items-center text-xs text-muted-foreground leading-none ml-1">
+                                    Holiday can only be closed after its term is completed.
+                                  </span>
                                 )}
                               </div>
                             </TableCell>
