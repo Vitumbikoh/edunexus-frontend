@@ -8,13 +8,7 @@ import { useNavigate } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
 import { Upload, Download } from "lucide-react";
 import { courseService } from "@/services/courseService";
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/components/ui/pagination";
+import PaginationBar from "@/components/common/PaginationBar";
 import {
   Select,
   SelectContent,
@@ -516,59 +510,13 @@ export default function Courses() {
 
           {/* Show pagination controls if there are more items than page size or multiple pages */}
           {(paginatedData.totalPages > 1 || paginatedData.totalItems > itemsPerPage) && (
-            <div className="mt-6 flex justify-center">
-              <Pagination>
-                <PaginationContent>
-                  <PaginationItem>
-                    <PaginationPrevious
-                      onClick={() => {
-                        if (currentPage > 1) handlePageChange(currentPage - 1);
-                      }}
-                      className={currentPage <= 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                    />
-                  </PaginationItem>
-
-                  {/* Page numbers */}
-                  {Array.from({ length: Math.min(5, paginatedData.totalPages) }, (_, i) => {
-                    let pageNum;
-                    if (paginatedData.totalPages <= 5) {
-                      pageNum = i + 1;
-                    } else if (currentPage <= 3) {
-                      pageNum = i + 1;
-                    } else if (currentPage >= paginatedData.totalPages - 2) {
-                      pageNum = paginatedData.totalPages - 4 + i;
-                    } else {
-                      pageNum = currentPage - 2 + i;
-                    }
-
-                    return (
-                      <PaginationItem key={pageNum}>
-                        <button
-                          onClick={() => handlePageChange(pageNum)}
-                          className={`px-3 py-2 rounded-md text-sm font-medium ${
-                            currentPage === pageNum
-                              ? "bg-primary text-primary-foreground"
-                              : "hover:bg-muted"
-                          }`}
-                        >
-                          {pageNum}
-                        </button>
-                      </PaginationItem>
-                    );
-                  })}
-
-                  <PaginationItem>
-                    <PaginationNext
-                      onClick={() => {
-                        if (currentPage < paginatedData.totalPages)
-                          handlePageChange(currentPage + 1);
-                      }}
-                      className={currentPage >= paginatedData.totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                    />
-                  </PaginationItem>
-                </PaginationContent>
-              </Pagination>
-            </div>
+            <PaginationBar
+              className="mt-6 justify-center"
+              currentPage={currentPage}
+              totalPages={paginatedData.totalPages}
+              onPageChange={handlePageChange}
+              isLoading={isLoading}
+            />
           )}
 
           {/* Show pagination info */}

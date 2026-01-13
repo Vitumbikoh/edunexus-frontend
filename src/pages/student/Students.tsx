@@ -14,7 +14,7 @@ import { Search, Eye, Pencil, Upload } from 'lucide-react';
 import { useAuth } from "@/contexts/AuthContext";
 import { Link, useNavigate } from 'react-router-dom';
 import { useToast } from "@/components/ui/use-toast";
-import { Pagination, PaginationContent, PaginationItem, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
+import PaginationBar from "@/components/common/PaginationBar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import * as XLSX from 'xlsx';
 import { API_CONFIG } from '@/config/api';
@@ -412,50 +412,13 @@ export default function Students() {
                     </div>
                   </div>
                   
-                  <Pagination className="mt-4">
-                    <PaginationContent>
-                      <PaginationItem>
-                        <PaginationPrevious
-                          onClick={currentPage === 1 ? undefined : () => handlePageChange(currentPage - 1)}
-                          className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                        />
-                      </PaginationItem>
-                      
-                      {/* Page numbers */}
-                      {Array.from({ length: Math.min(5, paginatedData.totalPages) }, (_, i) => {
-                        let pageNum;
-                        if (paginatedData.totalPages <= 5) {
-                          pageNum = i + 1;
-                        } else if (currentPage <= 3) {
-                          pageNum = i + 1;
-                        } else if (currentPage >= paginatedData.totalPages - 2) {
-                          pageNum = paginatedData.totalPages - 4 + i;
-                        } else {
-                          pageNum = currentPage - 2 + i;
-                        }
-                        
-                        return (
-                          <PaginationItem key={pageNum}>
-                            <Button
-                              variant={currentPage === pageNum ? "default" : "outline"}
-                              size="sm"
-                              onClick={() => handlePageChange(pageNum)}
-                              className="w-10"
-                            >
-                              {pageNum}
-                            </Button>
-                          </PaginationItem>
-                        );
-                      })}
-                      
-                      <PaginationItem>
-                        <PaginationNext
-                          onClick={currentPage === paginatedData.totalPages ? undefined : () => handlePageChange(currentPage + 1)}
-                          className={currentPage === paginatedData.totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                        />
-                      </PaginationItem>
-                    </PaginationContent>
-                  </Pagination>
+                  <PaginationBar
+                    className="mt-4"
+                    currentPage={currentPage}
+                    totalPages={paginatedData.totalPages}
+                    onPageChange={handlePageChange}
+                    isLoading={isLoading}
+                  />
                 </div>
               )}
             </>

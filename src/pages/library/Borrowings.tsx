@@ -1,3 +1,4 @@
+import PaginationBar from "@/components/common/PaginationBar";
 import React, { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { libraryApi, Borrowing, Book } from '@/services/libraryService';
@@ -461,48 +462,13 @@ export default function Borrowings() {
           
           {/* Pagination */}
           {!loading && totalPages > 1 && (
-            <div className="flex items-center justify-between px-2 py-4">
-              <div className="flex items-center space-x-2">
-                <p className="text-sm text-muted-foreground">
-                  Page {currentPage} of {totalPages}
-                </p>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handlePageChange(currentPage - 1)}
-                  disabled={currentPage <= 1 || loading}
-                >
-                  Previous
-                </Button>
-                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                  const pageNum = Math.max(1, Math.min(totalPages - 4, currentPage - 2)) + i;
-                  if (pageNum <= totalPages) {
-                    return (
-                      <Button
-                        key={pageNum}
-                        variant={currentPage === pageNum ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => handlePageChange(pageNum)}
-                        disabled={loading}
-                      >
-                        {pageNum}
-                      </Button>
-                    );
-                  }
-                  return null;
-                })}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handlePageChange(currentPage + 1)}
-                  disabled={currentPage >= totalPages || loading}
-                >
-                  Next
-                </Button>
-              </div>
-            </div>
+            <PaginationBar
+              className="px-2 py-4"
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={handlePageChange}
+              isLoading={loading}
+            />
           )}
         </CardContent>
       </Card>

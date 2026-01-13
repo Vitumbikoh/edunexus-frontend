@@ -12,13 +12,7 @@ import {
 } from "@/components/ui/table";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/components/ui/pagination";
+import PaginationBar from "@/components/common/PaginationBar";
 
 interface Enrollment {
   id: string;
@@ -223,32 +217,13 @@ export default function CourseEnrollments() {
       </Card>
 
       {totalPages > 1 && (
-        <div className="mt-6">
-          <Pagination>
-            <PaginationContent>
-              <PaginationItem>
-                <PaginationPrevious
-                  onClick={() => {
-                    if (currentPage > 1) setCurrentPage(currentPage - 1);
-                  }}
-                />
-              </PaginationItem>
-              <PaginationItem>
-                <span className="px-4">
-                  Page {currentPage} of {totalPages}
-                </span>
-              </PaginationItem>
-              <PaginationItem>
-                <PaginationNext
-                  onClick={() => {
-                    if (currentPage < totalPages)
-                      setCurrentPage(currentPage + 1);
-                  }}
-                />
-              </PaginationItem>
-            </PaginationContent>
-          </Pagination>
-        </div>
+        <PaginationBar
+          className="mt-6"
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+          isLoading={isLoading}
+        />
       )}
     </div>
   );

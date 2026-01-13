@@ -11,6 +11,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+import PaginationBar from "@/components/common/PaginationBar";
 import {
   Select,
   SelectContent,
@@ -289,27 +290,13 @@ export default function TeacherStudents() {
                 ))}
               </TableBody>
             </Table>
-            <div className="flex items-center justify-end gap-2 mt-4">
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={currentPage <= 1 || isLoading}
-                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-              >
-                Previous
-              </Button>
-              <span className="text-sm text-muted-foreground">
-                Page {currentPage} of {totalPages}
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={currentPage >= totalPages || isLoading}
-                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-              >
-                Next
-              </Button>
-            </div>
+            <PaginationBar
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+              isLoading={isLoading}
+              className="mt-4"
+            />
             </>
           ) : (
             <div className="text-center py-8 text-muted-foreground">

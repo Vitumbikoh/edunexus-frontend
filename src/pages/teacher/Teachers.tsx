@@ -14,7 +14,7 @@ import { Search, Eye, Pencil, UserX } from 'lucide-react';
 import { useAuth } from "@/contexts/AuthContext";
 import { Link, useNavigate } from 'react-router-dom';
 import { Badge } from "@/components/ui/badge";
-import { Pagination, PaginationContent, PaginationItem, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
+import PaginationBar from "@/components/common/PaginationBar";
 import { useToast } from "@/components/ui/use-toast";
 import { API_CONFIG } from '@/config/api';
 import { Preloader } from "@/components/ui/preloader";
@@ -304,41 +304,13 @@ export default function Teachers() {
               </Table>
 
               {paginatedData.totalPages > 1 && (
-                <div className="mt-6">
-                  <Pagination>
-                    <PaginationContent>
-                      <PaginationItem>
-                        <PaginationPrevious
-                          onClick={() => {
-                            if (currentPage !== 1) {
-                              handlePageChange(currentPage - 1);
-                            }
-                          }}
-                          aria-disabled={currentPage === 1}
-                          tabIndex={currentPage === 1 ? -1 : 0}
-                          className={currentPage === 1 ? "pointer-events-none opacity-50" : ""}
-                        />
-                      </PaginationItem>
-                      <PaginationItem>
-                        <span className="px-4">
-                          Page {currentPage} of {paginatedData.totalPages}
-                        </span>
-                      </PaginationItem>
-                      <PaginationItem>
-                        <PaginationNext
-                          onClick={() => {
-                            if (currentPage !== paginatedData.totalPages) {
-                              handlePageChange(currentPage + 1);
-                            }
-                          }}
-                          aria-disabled={currentPage === paginatedData.totalPages}
-                          tabIndex={currentPage === paginatedData.totalPages ? -1 : 0}
-                          className={currentPage === paginatedData.totalPages ? "pointer-events-none opacity-50" : ""}
-                        />
-                      </PaginationItem>
-                    </PaginationContent>
-                  </Pagination>
-                </div>
+                <PaginationBar
+                  className="mt-6"
+                  currentPage={currentPage}
+                  totalPages={paginatedData.totalPages}
+                  onPageChange={handlePageChange}
+                  isLoading={isLoading}
+                />
               )}
             </>
           )}

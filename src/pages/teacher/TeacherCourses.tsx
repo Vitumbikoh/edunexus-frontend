@@ -14,14 +14,7 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/components/ui/pagination";
+import PaginationBar from "@/components/common/PaginationBar";
 import { useToast } from "@/components/ui/use-toast";
 import { API_CONFIG } from '@/config/api';
 import { Preloader } from "@/components/ui/preloader";
@@ -379,39 +372,13 @@ export default function TeacherCourses() {
       )}
 
       {pagination.totalPages > 1 && (
-        <Pagination className="mt-6">
-          <PaginationContent>
-            <PaginationItem>
-              <PaginationPrevious
-                href="#"
-                onClick={() => handlePageChange(page - 1)}
-                className={page === 1 ? "pointer-events-none opacity-50" : ""}
-              />
-            </PaginationItem>
-            {[...Array(pagination.totalPages)].map((_, index) => (
-              <PaginationItem key={index}>
-                <PaginationLink
-                  href="#"
-                  onClick={() => handlePageChange(index + 1)}
-                  isActive={page === index + 1}
-                >
-                  {index + 1}
-                </PaginationLink>
-              </PaginationItem>
-            ))}
-            <PaginationItem>
-              <PaginationNext
-                href="#"
-                onClick={() => handlePageChange(page + 1)}
-                className={
-                  page === pagination.totalPages
-                    ? "pointer-events-none opacity-50"
-                    : ""
-                }
-              />
-            </PaginationItem>
-          </PaginationContent>
-        </Pagination>
+        <PaginationBar
+          className="mt-6"
+          currentPage={page}
+          totalPages={pagination.totalPages}
+          onPageChange={handlePageChange}
+          isLoading={loading}
+        />
       )}
     </div>
   );
