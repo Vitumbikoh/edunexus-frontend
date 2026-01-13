@@ -7,7 +7,6 @@ import {
   Upload,
   BookOpen,
   FileText,
-  Search,
   Plus,
   Calendar,
   Clock,
@@ -19,6 +18,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { API_CONFIG } from '@/config/api';
 import { Preloader } from "@/components/ui/preloader";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { SearchBar } from "@/components/ui/search-bar";
 
 export default function TeacherCourses() {
   const { user, token } = useAuth();
@@ -26,8 +26,11 @@ export default function TeacherCourses() {
   const { toast } = useToast();
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isFetching, setIsFetching] = useState(false);
+  const [initialized, setInitialized] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const [searchInput, setSearchInput] = useState("");
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
   const [selectedClassId, setSelectedClassId] = useState<string>("all");
@@ -49,20 +52,23 @@ export default function TeacherCourses() {
     );
   }
 
-  const fetchCourses = async (pageNum: number, searchTerm: string, classId: string) => {
+  const fetchCourses = async (_pageNum: number, _searchTerm: string, classId: string, isInitial = false) => {
     try {
-      setLoading(true);
+      if (isInitial) {
+        setLoading(true);
+      } else {
+        setIsFetching(true);
+      }
       setError(null);
 
       const params = new URLSearchParams({
-        page: pageNum.toString(),
-        limit: limit.toString(),
+        // Fetch a large page once; paginate locally for instant search
+        page: '1',
+        limit: '500',
         includeExams: 'true',
       });
 
-      if (searchTerm) {
-        params.append('search', searchTerm);
-      }
+      // Do not pass search to server; we filter client-side for instant UX
 
       if (classId && classId !== 'all' && classId.trim() !== '') {
         params.append('classId', classId);
@@ -105,7 +111,13 @@ export default function TeacherCourses() {
         return String(a.name).localeCompare(String(b.name));
       });
       setCourses(sortedCourses);
-      setPagination(data.pagination);
+      // Derive pagination client-side
+      setPagination({
+        currentPage: 1,
+        totalPages: Math.max(1, Math.ceil(sortedCourses.length / limit)),
+        totalItems: sortedCourses.length,
+        itemsPerPage: limit,
+      });
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : "Failed to load courses";
@@ -116,7 +128,12 @@ export default function TeacherCourses() {
         variant: "destructive",
       });
     } finally {
-      setLoading(false);
+      if (isInitial) {
+        setLoading(false);
+        setInitialized(true);
+      } else {
+        setIsFetching(false);
+      }
     }
   };
 
@@ -145,15 +162,24 @@ export default function TeacherCourses() {
     }
   };
 
+  // Initial load: fetch classes and initial courses without unmounting controls later
   useEffect(() => {
     if (token) {
       fetchClasses();
-      fetchCourses(page, search, selectedClassId);
+      fetchCourses(page, search, selectedClassId, true);
     }
-  }, [page, search, selectedClassId, token]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token]);
 
-  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearch(e.target.value);
+  // Subsequent updates: keep controls mounted; only fetch data on class changes
+  useEffect(() => {
+    if (!token || !initialized) return;
+    fetchCourses(1, search, selectedClassId, false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedClassId]);
+
+  const handleDebouncedSearch = (value: string) => {
+    setSearch(value);
     setPage(1);
   };
 
@@ -163,7 +189,7 @@ export default function TeacherCourses() {
   };
 
   const handlePageChange = (newPage: number) => {
-    if (newPage >= 1 && newPage <= pagination.totalPages) {
+    if (newPage >= 1) {
       setPage(newPage);
     }
   };
@@ -190,6 +216,21 @@ export default function TeacherCourses() {
     );
   }
 
+  // Compute filtered and paginated items for instant client-side search
+  const q = (searchInput || '').trim().toLowerCase();
+  const filteredCourses = q
+    ? courses.filter((c: any) => {
+        const name = String(c.name || '').toLowerCase();
+        const desc = String(c.description || '').toLowerCase();
+        const cls = String(c.class?.name || '').toLowerCase();
+        return name.includes(q) || desc.includes(q) || cls.includes(q);
+      })
+    : courses;
+  const totalPagesComputed = Math.max(1, Math.ceil(filteredCourses.length / limit));
+  const safePage = Math.min(page, totalPagesComputed);
+  const start = (safePage - 1) * limit;
+  const pageItems = filteredCourses.slice(start, start + limit);
+
   return (
     <div className="space-y-6">
       <div className="flex items-start justify-between">
@@ -199,12 +240,13 @@ export default function TeacherCourses() {
         </div>
         <div className="flex items-center space-x-2">
           <div className="relative max-w-sm">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
+            <SearchBar
+              value={searchInput}
+              onChange={setSearchInput}
+              onDebouncedChange={handleDebouncedSearch}
+              delay={300}
               placeholder="Search courses..."
-              value={search}
-              onChange={handleSearch}
-              className="pl-10 w-64"
+              inputClassName="w-64"
             />
           </div>
           <div className="w-48">
@@ -225,13 +267,15 @@ export default function TeacherCourses() {
         </div>
       </div>
 
-      {courses.length === 0 ? (
+      {isFetching ? (
+        <Preloader variant="skeleton" rows={4} className="space-y-6" />
+      ) : filteredCourses.length === 0 ? (
         <div className="text-center p-8 rounded-lg bg-muted">
           <p className="text-muted-foreground">No courses found.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {courses.map((course: any) => (
+          {pageItems.map((course: any) => (
             <Card key={course.id}>
               <CardHeader>
                 <CardTitle className="flex items-center">
@@ -286,8 +330,6 @@ export default function TeacherCourses() {
                     </div>
                   </div>
 
-                  {/* Recent Exams removed; exams are visible on the View Exams page */}
-
                   <div className="pt-4 flex flex-wrap gap-2">
                     <Button
                       variant="outline"
@@ -300,7 +342,6 @@ export default function TeacherCourses() {
                       <Upload className="h-4 w-4" />
                       Upload Materials
                     </Button>
-                    {/* Grade students only when there are ungraded exams */}
                     {course.hasUngradedExams && (
                       <Button
                         variant="outline"
@@ -371,11 +412,11 @@ export default function TeacherCourses() {
         </div>
       )}
 
-      {pagination.totalPages > 1 && (
+      {totalPagesComputed > 1 && (
         <PaginationBar
           className="mt-6"
           currentPage={page}
-          totalPages={pagination.totalPages}
+          totalPages={totalPagesComputed}
           onPageChange={handlePageChange}
           isLoading={loading}
         />
