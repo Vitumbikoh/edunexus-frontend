@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
 import { API_CONFIG } from '@/config/api';
@@ -126,18 +127,23 @@ export default function FeeManagement() {
               </div>
               <div className="space-y-2">
                 <Label>Amount</Label>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium">MWK</span>
-                  <Input type="number" value={amount} onChange={e=>setAmount(e.target.value)} placeholder="100" />
+                <div className="relative">
+                  <span className="absolute inset-y-0 left-3 flex items-center text-sm text-muted-foreground">MWK</span>
+                  <Input type="number" value={amount} onChange={e=>setAmount(e.target.value)} placeholder="100" className="pl-14" />
                 </div>
               </div>
               <div className="space-y-2">
                 <Label>Frequency</Label>
-                <select value={frequency} onChange={e=>setFrequency(e.target.value)} className="border rounded-md h-9 px-2 bg-background">
-                  <option value="per_period">Per Term</option>
-                  <option value="per_year">Per Year</option>
-                  <option value="one_time">One Time</option>
-                </select>
+                <Select value={frequency} onValueChange={setFrequency}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select frequency" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="per_period">Per Term</SelectItem>
+                    <SelectItem value="per_year">Per Year</SelectItem>
+                    <SelectItem value="one_time">One Time</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
                 <Label>Description</Label>
@@ -200,15 +206,19 @@ export default function FeeManagement() {
                         </TableCell>
                         <TableCell className="capitalize">
                           {isEditing ? (
-                            <select
+                            <Select
                               value={String(editValues.frequency ?? item.frequency)}
-                              onChange={e=>setEditValues(v=>({ ...v, frequency: e.target.value }))}
-                              className="border rounded-md h-9 px-2 bg-background"
+                              onValueChange={(val)=>setEditValues(v=>({ ...v, frequency: val }))}
                             >
-                              <option value="per_period">Per Term</option>
-                              <option value="per_year">Per Year</option>
-                              <option value="one_time">One Time</option>
-                            </select>
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="per_period">Per Term</SelectItem>
+                                <SelectItem value="per_year">Per Year</SelectItem>
+                                <SelectItem value="one_time">One Time</SelectItem>
+                              </SelectContent>
+                            </Select>
                           ) : (
                             freqLabel
                           )}
