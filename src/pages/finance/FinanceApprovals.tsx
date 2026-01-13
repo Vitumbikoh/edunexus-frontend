@@ -2,11 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle, XCircle, Clock, AlertTriangle, Eye, Loader2, DollarSign, Filter, Search, BarChart3 } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, AlertTriangle, Eye, Loader2, DollarSign, Filter, BarChart3 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
 import { API_CONFIG } from '@/config/api';
 import { Input } from '@/components/ui/input';
+import { SearchBar } from '@/components/ui/search-bar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useNavigate } from 'react-router-dom';
 import { formatCurrency, getDefaultCurrency } from '@/lib/currency';
@@ -42,6 +43,7 @@ export default function FinanceApprovals() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [searchInput, setSearchInput] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [priorityFilter, setPriorityFilter] = useState('all');
 
@@ -206,15 +208,13 @@ export default function FinanceApprovals() {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-              <Input
-                placeholder="Search expenses..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-            </div>
+            <SearchBar
+              value={searchInput}
+              onChange={setSearchInput}
+              onDebouncedChange={setSearchTerm}
+              delay={200}
+              placeholder="Search expenses..."
+            />
             
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger>

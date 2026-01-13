@@ -3,10 +3,11 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { SearchBar } from '@/components/ui/search-bar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Plus, Search, Download, Eye, Play, Send, CheckCircle, XCircle, Trash2, Edit } from 'lucide-react';
+import { Plus, Download, Eye, Play, Send, CheckCircle, XCircle, Trash2, Edit } from 'lucide-react';
 import payrollService, { SalaryRun, SalaryRunStatus } from '@/services/payrollService';
 import { useAuth } from '@/contexts/AuthContext';
 import { format } from 'date-fns';
@@ -29,6 +30,7 @@ export default function Payroll() {
   const [runs, setRuns] = useState<SalaryRun[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [searchInput, setSearchInput] = useState('');
   const [statusFilter, setStatusFilter] = useState<SalaryRunStatus | 'ALL'>('ALL');
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [selectedRun, setSelectedRun] = useState<SalaryRun | null>(null);
@@ -309,14 +311,14 @@ export default function Payroll() {
         </CardHeader>
         <CardContent>
           <div className="flex gap-4">
-            <div className="flex-1">
-              <Input
-                placeholder="Search by period or ID..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="max-w-sm"
-              />
-            </div>
+            <SearchBar
+              value={searchInput}
+              onChange={setSearchInput}
+              onDebouncedChange={setSearchTerm}
+              delay={200}
+              placeholder="Search by period or ID..."
+              inputClassName="max-w-sm"
+            />
             <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as SalaryRunStatus | 'ALL')}>
               <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder="Filter by status" />

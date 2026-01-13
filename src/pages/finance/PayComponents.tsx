@@ -3,13 +3,14 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { SearchBar } from '@/components/ui/search-bar';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { Plus, Edit, Trash2, DollarSign, Calculator, Search } from 'lucide-react';
+import { Plus, Edit, Trash2, DollarSign, Calculator } from 'lucide-react';
 import payrollService, { PayComponent, PayComponentType, CreatePayComponentRequest } from '@/services/payrollService';
 import { useAuth } from '@/contexts/AuthContext';
 import { getCurrencySymbol } from '@/lib/currency';
@@ -21,6 +22,7 @@ export default function PayComponents() {
   const [components, setComponents] = useState<PayComponent[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [searchInput, setSearchInput] = useState('');
   const [typeFilter, setTypeFilter] = useState<PayComponentType | 'ALL'>('ALL');
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [editingComponent, setEditingComponent] = useState<PayComponent | null>(null);
@@ -189,14 +191,14 @@ export default function PayComponents() {
         </CardHeader>
         <CardContent>
           <div className="flex gap-4">
-            <div className="flex-1">
-              <Input
-                placeholder="Search components..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="max-w-sm"
-              />
-            </div>
+            <SearchBar
+              value={searchInput}
+              onChange={setSearchInput}
+              onDebouncedChange={setSearchTerm}
+              delay={200}
+              placeholder="Search components..."
+              inputClassName="max-w-sm"
+            />
             <Select value={typeFilter} onValueChange={(value) => setTypeFilter(value as PayComponentType | 'ALL')}>
               <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder="Filter by type" />

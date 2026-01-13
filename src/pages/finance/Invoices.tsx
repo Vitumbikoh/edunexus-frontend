@@ -2,10 +2,11 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { SearchBar } from '@/components/ui/search-bar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Search, Plus, Eye, Send, Download } from 'lucide-react';
+import { Plus, Eye, Send, Download } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { formatCurrency, getDefaultCurrency } from '@/lib/currency';
 
@@ -58,11 +59,12 @@ const mockInvoices = [
 
 export default function Invoices() {
   const [searchPeriod, setSearchPeriod] = useState('');
+  const [searchInput, setSearchInput] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
 
   const filteredInvoices = mockInvoices.filter(invoice => {
-    const matchesSearch = invoice.studentName.toLowerCase().includes(searchPeriod.toLowerCase()) ||
-                         invoice.invoiceNumber.toLowerCase().includes(searchPeriod.toLowerCase());
+    const matchesSearch = invoice.studentName.toLowerCase().includes(searchInput.toLowerCase()) ||
+                         invoice.invoiceNumber.toLowerCase().includes(searchInput.toLowerCase());
     const matchesStatus = statusFilter === 'all' || invoice.status.toLowerCase() === statusFilter;
     
     return matchesSearch && matchesStatus;
@@ -157,15 +159,14 @@ export default function Invoices() {
         </CardHeader>
         <CardContent>
           <div className="flex flex-col sm:flex-row gap-4 mb-6">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search invoices..."
-                value={searchPeriod}
-                onChange={(e) => setSearchPeriod(e.target.value)}
-                className="pl-10"
-              />
-            </div>
+            <SearchBar
+              value={searchInput}
+              onChange={setSearchInput}
+              onDebouncedChange={setSearchPeriod}
+              delay={200}
+              placeholder="Search invoices..."
+              className="flex-1"
+            />
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className="w-full sm:w-40">
                 <SelectValue placeholder="Status" />

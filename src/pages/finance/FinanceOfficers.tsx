@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { SearchBar } from "@/components/ui/search-bar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
@@ -10,7 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Search, Eye, Pencil } from "lucide-react";
+import { Eye, Pencil } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Link, useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
@@ -43,6 +43,7 @@ export default function FinanceOfficers() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [searchPeriod, setSearchPeriod] = useState("");
+  const [searchInput, setSearchInput] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
   const [paginatedData, setPaginatedData] = useState<PaginatedData>({
@@ -165,16 +166,14 @@ export default function FinanceOfficers() {
         <CardHeader>
           <div className="flex justify-between items-center">
             <CardTitle>Finance Department</CardTitle>
-            <div className="relative">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="search"
-                placeholder="Search finance officers..."
-                className="pl-8 w-[250px]"
-                value={searchPeriod}
-                onChange={handleSearchChange}
-              />
-            </div>
+            <SearchBar
+              value={searchInput}
+              onChange={setSearchInput}
+              onDebouncedChange={(v) => { setSearchPeriod(v); setCurrentPage(1); }}
+              delay={300}
+              placeholder="Search finance officers..."
+              inputClassName="w-[250px]"
+            />
           </div>
         </CardHeader>
         <CardContent>

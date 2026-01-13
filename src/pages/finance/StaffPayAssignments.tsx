@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { SearchBar } from '@/components/ui/search-bar';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -24,6 +25,7 @@ export default function StaffPayAssignments() {
   // Use MWK currency (Malawian Kwacha) as default
   const currencySymbol = getCurrencySymbol('MWK'); // Returns "MK"
   const [searchTerm, setSearchTerm] = useState('');
+  const [searchInput, setSearchInput] = useState('');
   const [staffFilter, setStaffFilter] = useState<string>('ALL');
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [editingAssignment, setEditingAssignment] = useState<StaffPayAssignment | null>(null);
@@ -186,14 +188,14 @@ export default function StaffPayAssignments() {
         </CardHeader>
         <CardContent>
           <div className="flex gap-4">
-            <div className="flex-1">
-              <Input
-                placeholder="Search by staff name or component..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="max-w-sm"
-              />
-            </div>
+            <SearchBar
+              value={searchInput}
+              onChange={setSearchInput}
+              onDebouncedChange={setSearchTerm}
+              delay={200}
+              placeholder="Search by staff name or component..."
+              inputClassName="max-w-sm"
+            />
             <Select value={staffFilter} onValueChange={setStaffFilter}>
               <SelectTrigger className="w-[200px]">
                 <SelectValue placeholder="Filter by staff role" />

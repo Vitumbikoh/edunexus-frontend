@@ -4,7 +4,7 @@
 // Utilizes fields: expectedFees, totalFeesPaid, remainingFees, overdueFees
 // Derives fallbacks if summary not available.
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,7 +12,6 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   PlusCircle,
   Download,
-  Search,
   ArrowUpRight,
   DollarSign,
   CreditCard,
@@ -22,6 +21,7 @@ import {
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
+import { SearchBar } from "@/components/ui/search-bar";
 import {
   Table,
   TableBody,
@@ -85,6 +85,7 @@ export default function Finance() {
   const isAdmin = user?.role === 'admin' || user?.role === 'finance';
 
   const [searchQuery, setSearchQuery] = useState("");
+  const [searchInput, setSearchInput] = useState("");
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [apiError, setApiError] = useState<string | null>(null);
@@ -108,6 +109,11 @@ export default function Finance() {
   const [fetchingSummary, setFetchingSummary] = useState(false);
   const [expectedFeesAmount, setExpectedFeesAmount] = useState<number>(0); // fallback / legacy
   const [statusSearch, setStatusSearch] = useState("");
+  const [statusInput, setStatusInput] = useState("");
+  const [activeTab, setActiveTab] = useState<'statuses' | 'transactions'>('statuses');
+  const [isFetchingTransactions, setIsFetchingTransactions] = useState(false);
+  const firstLoadRef = useRef(true);
+  const prevTermIdRef = useRef<string | undefined>(undefined);
 
   // Normalize any backend label like "Period 1" or arbitrary names to a uniform "Term X" display
   const normalizeTermLabel = (name?: string | null, order?: number | null) => {
@@ -285,54 +291,44 @@ export default function Finance() {
     fetchStatuses();
   }, [token, termId, summaryData]);
 
-  // Fetch payments & transactions (legacy detail lists)
+  // Fetch transactions; avoid full page loading on search input to keep cursor focus
   useEffect(() => {
-    const fetchData = async () => {
+    const controller = new AbortController();
+    const run = async () => {
       try {
-        setIsLoading(true);
+        if (!token) return;
         setApiError(null);
-        if (!token) throw new Error("Authentication token not found. Please log in again.");
 
-        const paymentsEndpoint = isParent
-          ? `${API_CONFIG.BASE_URL}/finance/parent-payments`
-          : `${API_CONFIG.BASE_URL}/finance/fee-payments`;
+        const isTermChanged = prevTermIdRef.current !== termId;
+        const isFirst = firstLoadRef.current;
+        if (isFirst || isTermChanged) {
+          setIsLoading(true);
+        } else {
+          setIsFetchingTransactions(true);
+        }
 
         const yearParam = termId ? `&termId=${termId}` : '';
-        const [paymentsResponse, transactionsResponse] = await Promise.all([
-          fetch(`${paymentsEndpoint}?page=1&limit=100&search=${encodeURIComponent(searchQuery)}${yearParam}`, {
+        const res = await fetch(
+          `${API_CONFIG.BASE_URL}/finance/transactions?page=1&limit=500${yearParam}`,
+          {
             headers: {
-              "Authorization": `Bearer ${token}`,
+              Authorization: `Bearer ${token}`,
               "Content-Type": "application/json",
             },
-          }),
-          fetch(`${API_CONFIG.BASE_URL}/finance/transactions?page=1&limit=100&search=${encodeURIComponent(searchQuery)}${yearParam}`, {
-            headers: {
-              "Authorization": `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-          }),
-        ]);
+            signal: controller.signal,
+          }
+        );
 
-        if (paymentsResponse.status === 401 || transactionsResponse.status === 401) {
+        if (res.status === 401) {
           throw new Error("Session expired. Please log in again.");
         }
-
-        if (!paymentsResponse.ok) {
-          const errorData = await paymentsResponse.json().catch(() => ({}));
-          throw new Error(errorData.message || "Failed to fetch fee payments");
-        }
-
-        if (!transactionsResponse.ok) {
-          const errorData = await transactionsResponse.json().catch(() => ({}));
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => ({}));
           throw new Error(errorData.message || "Failed to fetch transactions");
         }
+        const data = await res.json();
 
-        const paymentsData = await paymentsResponse.json();
-        const transactionsData = await transactionsResponse.json();
-
-        // Remove fee payments mapping since invoices tab is removed
-
-        const mappedTransactions: Transaction[] = (transactionsData.transactions || transactionsData.items || []).map((t: any) => ({
+        const mappedTransactions: Transaction[] = (data.transactions || data.items || []).map((t: any) => ({
           id: t.id,
           studentName: t.studentName,
           studentId: t.studentId || t.student_id || t.student_id_number,
@@ -343,28 +339,31 @@ export default function Finance() {
           receiptNumber: t.receiptNumber,
           processedByName: t.processedByName,
         }));
-
-        // Remove fee payments mapping since invoices tab is removed
         setTransactions(mappedTransactions);
       } catch (error) {
+        if ((error as any)?.name === 'AbortError') return;
         const errorMessage = error instanceof Error ? error.message : "Failed to fetch data";
         setApiError(errorMessage);
-        toast({
-          title: "Error",
-          description: errorMessage,
-          variant: "destructive",
-        });
+        toast({ title: "Error", description: errorMessage, variant: "destructive" });
         if (errorMessage.includes("Session expired")) {
           localStorage.removeItem("token");
           navigate('/login');
         }
       } finally {
-        setIsLoading(false);
+        const isTermChanged = prevTermIdRef.current !== termId;
+        if (firstLoadRef.current || isTermChanged) {
+          setIsLoading(false);
+          firstLoadRef.current = false;
+          prevTermIdRef.current = termId;
+        } else {
+          setIsFetchingTransactions(false);
+        }
       }
     };
 
-    fetchData();
-  }, [token, navigate, toast, searchQuery, isParent, termId]);
+    run();
+    return () => controller.abort();
+  }, [token, navigate, toast, termId]);
 
   // ---------------- Metrics calculation ----------------
   // Summary preferred, fallback to derived
@@ -397,7 +396,9 @@ export default function Finance() {
 
   const filteredFeeStatuses = feeStatuses.filter(s => {
     const q = statusSearch.toLowerCase();
-    return s.studentName.toLowerCase().includes(q) || (s.studentId || '').toLowerCase().includes(q);
+    const idMatch = String(s.studentId || '').toLowerCase().includes(q);
+    const humanIdMatch = String(s.humanId || '').toLowerCase().includes(q);
+    return s.studentName.toLowerCase().includes(q) || idMatch || humanIdMatch;
   });
 
   // Transaction filtering
@@ -623,7 +624,7 @@ export default function Finance() {
           </div>
 
           {/* Tabs */}
-            <Tabs defaultValue="statuses">
+            <Tabs value={activeTab} onValueChange={(v)=>setActiveTab(v as 'statuses'|'transactions')}>
               <TabsList>
                 <TabsTrigger value="statuses">Fee Statuses</TabsTrigger>
                 <TabsTrigger value="transactions">Transaction History</TabsTrigger>
@@ -635,16 +636,14 @@ export default function Finance() {
                     <div className="flex items-center justify-between">
                       <CardTitle>Transaction History</CardTitle>
                       <div className="flex items-center space-x-2">
-                        <div className="relative">
-                          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                          <Input
-                            type="search"
-                            placeholder="Search student..."
-                            className="pl-8 w-[200px] md:w-[300px]"
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                          />
-                        </div>
+                        <SearchBar
+                          value={searchInput}
+                          onChange={setSearchInput}
+                          onDebouncedChange={setSearchQuery}
+                          delay={300}
+                          placeholder="Search student..."
+                          inputClassName="w-[200px] md:w-[300px]"
+                        />
                         {isAdmin && (
                           <Button variant="outline" size="sm">
                             <Download className="mr-2 h-4 w-4" />
@@ -720,15 +719,14 @@ export default function Finance() {
                       <CardTitle>Fee Statuses</CardTitle>
                       <CardDescription>Per-student expected vs paid amounts</CardDescription>
                     </div>
-                    <div className="relative w-full md:w-64">
-                      <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        placeholder="Search student..."
-                        className="pl-8"
-                        value={statusSearch}
-                        onChange={e => setStatusSearch(e.target.value)}
-                      />
-                    </div>
+                    <SearchBar
+                      value={statusInput}
+                      onChange={setStatusInput}
+                      onDebouncedChange={setStatusSearch}
+                      delay={150}
+                      placeholder="Search student..."
+                      inputClassName="w-full md:w-64"
+                    />
                   </CardHeader>
                   <CardContent>
                     {loadingStatuses ? (

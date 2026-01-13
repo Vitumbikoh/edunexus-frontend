@@ -2,10 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { SearchBar } from '@/components/ui/search-bar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Search, Filter, Download, Plus, Loader2 } from 'lucide-react';
+import { Filter, Download, Plus, Loader2 } from 'lucide-react';
 import { API_CONFIG } from '@/config/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { formatCurrency, getDefaultCurrency } from '@/lib/currency';
@@ -60,6 +61,7 @@ export default function Transactions() {
   const [error, setError] = useState<string | null>(null);
   const [pagination, setPagination] = useState<any>(null);
   const [searchPeriod, setSearchPeriod] = useState('');
+  const [searchInput, setSearchInput] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
@@ -132,10 +134,10 @@ export default function Transactions() {
 
   // Filter transactions client-side for additional filtering
   const filteredTransactions = transactions.filter(transaction => {
-    const matchesSearch = !searchPeriod ||
-      transaction.receiptNumber?.toLowerCase().includes(searchPeriod.toLowerCase()) ||
-      transaction.studentName?.toLowerCase().includes(searchPeriod.toLowerCase()) ||
-      transaction.description?.toLowerCase().includes(searchPeriod.toLowerCase());
+    const matchesSearch = !searchInput ||
+      transaction.receiptNumber?.toLowerCase().includes(searchInput.toLowerCase()) ||
+      transaction.studentName?.toLowerCase().includes(searchInput.toLowerCase()) ||
+      transaction.description?.toLowerCase().includes(searchInput.toLowerCase());
 
     const matchesStatus = statusFilter === 'all' ||
       transaction.status?.toLowerCase() === statusFilter.toLowerCase();
@@ -243,15 +245,14 @@ export default function Transactions() {
         </CardHeader>
         <CardContent>
           <div className="flex flex-col sm:flex-row gap-4 mb-6">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search by receipt number or student name..."
-                value={searchPeriod}
-                onChange={(e) => setSearchPeriod(e.target.value)}
-                className="pl-10"
-              />
-            </div>
+            <SearchBar
+              value={searchInput}
+              onChange={setSearchInput}
+              onDebouncedChange={setSearchPeriod}
+              delay={300}
+              placeholder="Search by receipt number or student name..."
+              className="flex-1"
+            />
             <div className="flex gap-2">
               <Input
                 type="date"

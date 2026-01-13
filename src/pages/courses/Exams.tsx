@@ -12,6 +12,7 @@ import { termService } from '@/services/termService';
 
 // Import the custom hook
 import { useExamManagement } from '@/hooks/useExamManagement';
+import { SearchBar } from "@/components/ui/search-bar";
 
 interface Teacher {
   id: string;
@@ -57,6 +58,8 @@ export default function Exams() {
   // Local state for term-level actions
   const [enterExamLoading, setEnterExamLoading] = React.useState(false);
   const [enteredExam, setEnteredExam] = React.useState(false);
+  // Local immediate input state to debounce into `searchPeriod`
+  const [searchInput, setSearchInput] = React.useState('');
 
   const handleEnterExamPeriod = async () => {
     if (!selectedTerm) return;
@@ -206,13 +209,14 @@ export default function Exams() {
         <CardContent>
           <div className="grid gap-4 md:grid-cols-5">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-              <Input
+              <SearchBar
+                value={searchInput}
+                onChange={setSearchInput}
+                onDebouncedChange={setSearchPeriod}
+                delay={300}
                 placeholder="Search exams..."
-                value={searchPeriod}
-                onChange={(e) => setSearchPeriod(e.target.value)}
-                className="pl-10"
-                disabled={isLoading}
+                inputClassName="pl-8"
+                className="w-full"
               />
             </div>
             

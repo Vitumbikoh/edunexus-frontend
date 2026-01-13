@@ -2,13 +2,14 @@ import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { SearchBar } from '@/components/ui/search-bar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Search, Plus, Eye, Download, Filter, FileText, CheckCircle, XCircle, Clock, AlertTriangle, DollarSign, TrendingUp, TrendingDown, Calendar, Loader2 } from 'lucide-react';
+import { Plus, Eye, Download, Filter, FileText, CheckCircle, XCircle, Clock, AlertTriangle, DollarSign, TrendingUp, TrendingDown, Calendar, Loader2 } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/contexts/AuthContext';
@@ -123,6 +124,7 @@ export default function ExpenseManagement() {
   
   // State for filters and search
   const [searchTerm, setSearchTerm] = useState('');
+  const [searchInput, setSearchInput] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [priorityFilter, setPriorityFilter] = useState('all');
@@ -471,15 +473,15 @@ export default function ExpenseManagement() {
             </CardHeader>
             <CardContent>
               <div className="flex flex-col lg:flex-row gap-4 mb-6">
-                <div className="relative flex-1">
-                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Search expenses..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
+                <SearchBar
+                  value={searchInput}
+                  onChange={setSearchInput}
+                  onDebouncedChange={setSearchTerm}
+                  delay={300}
+                  placeholder="Search expenses..."
+                  className="flex-1"
+                  inputClassName=""
+                />
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
                   <SelectTrigger className="w-full lg:w-40">
                     <SelectValue placeholder="Status" />
