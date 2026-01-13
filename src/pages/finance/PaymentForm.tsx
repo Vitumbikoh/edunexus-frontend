@@ -52,10 +52,8 @@ export default function PaymentForm() {
   const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split('T')[0]);
   const [receiptNumber, setReceiptNumber] = useState("");
   const [notes, setNotes] = useState("");
-  const [feeTypes, setFeeTypes] = useState<FeeTypeOption[]>([
-    { value: 'Tuition', label: 'Tuition' },
-    { value: 'School Uniform', label: 'School Uniform' }
-  ]);
+  const [feeTypes, setFeeTypes] = useState<FeeTypeOption[]>([]);
+  const [currentTermId, setCurrentTermId] = useState<string | null>(null);
   const [studentSearch, setStudentSearch] = useState("");
 
   // Check permissions
@@ -82,7 +80,7 @@ export default function PaymentForm() {
           throw new Error("Authentication token not found. Please log in again.");
         }
 
-        const response = await fetch(`${API_CONFIG.BASE_URL}/student/students`, {
+        const response = await fetch(`${API_CONFIG.BASE_URL}/student/students?page=1&limit=1000`, {
           headers: {
             "Authorization": `Bearer ${token}`,
             "Content-Type": "application/json",
@@ -100,7 +98,7 @@ export default function PaymentForm() {
 
         const result = await response.json();
         console.log('Students API Response:', result); // Debug log
-  const studentList = Array.isArray(result.students)
+        const studentList = Array.isArray(result.students)
           ? result.students.map((s: any) => ({
               id: s.id || 'unknown',
               firstName: s.firstName || 'Unknown',
@@ -122,7 +120,48 @@ export default function PaymentForm() {
               updatedAt: s.updatedAt,
             }))
           : [];
-        setStudents(studentList);
+        // If more students exist, fetch additional pages
+        const totalItems = result?.pagination?.totalItems || studentList.length;
+        const pageSize = result?.pagination?.itemsPerPage || studentList.length;
+        let allStudents = studentList;
+        if (pageSize && totalItems > pageSize) {
+          const totalPages = Math.ceil(totalItems / pageSize);
+          for (let page = 2; page <= totalPages; page++) {
+            const res = await fetch(`${API_CONFIG.BASE_URL}/student/students?page=${page}&limit=${pageSize}`, {
+              headers: {
+                "Authorization": `Bearer ${token}`,
+                "Content-Type": "application/json",
+              },
+            });
+            if (res.ok) {
+              const data = await res.json();
+              const more = Array.isArray(data.students)
+                ? data.students.map((s: any) => ({
+                    id: s.id || 'unknown',
+                    firstName: s.firstName || 'Unknown',
+                    lastName: s.lastName || 'Student',
+                    class: {
+                      id: s.class?.id || 'unknown',
+                      name: s.class?.name || 'N/A',
+                      numericalName: s.class?.numericalName || 'N/A',
+                      description: s.class?.description,
+                      createdAt: s.class?.createdAt,
+                      updatedAt: s.class?.updatedAt,
+                    },
+                    address: s.address,
+                    dateOfBirth: s.dateOfBirth,
+                    gender: s.gender,
+                    phoneNumber: s.phoneNumber,
+                    studentId: s.studentId,
+                    createdAt: s.createdAt,
+                    updatedAt: s.updatedAt,
+                  }))
+                : [];
+              allStudents = allStudents.concat(more);
+            }
+          }
+        }
+        setStudents(allStudents);
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : "Failed to fetch students";
         setApiError(errorMessage);
@@ -143,59 +182,39 @@ export default function PaymentForm() {
     fetchStudents();
   }, [token, navigate, toast]);
 
-  // Fetch fee types from fee structure (defined fees)
+  // Fetch current term, then fee types scoped to school and term
   useEffect(() => {
-    const fetchFeeTypes = async () => {
+    const fetchTermAndFeeTypes = async () => {
       if (!token) return;
       try {
-        const data = await apiFetch<any>(`/finance/fee-structure`);
-        console.log('Fee structure API response:', data); // Debug log
-        
-        // Extract fee names from fee structure
-        let feeList: string[] = [];
-        if (Array.isArray(data)) {
-          // If data is directly an array of fee structures
-          feeList = data
-            .filter((item: any) => item.isActive !== false) // Only active fees
-            .map((item: any) => item.feeType?.trim() || item.feeName?.trim())
-            .filter(Boolean);
-        } else if (data?.feeStructure && Array.isArray(data.feeStructure)) {
-          // If data has feeStructure property
-          feeList = data.feeStructure
-            .filter((item: any) => item.isActive !== false) // Only active fees
-            .map((item: any) => item.feeType?.trim() || item.feeName?.trim())
-            .filter(Boolean);
-        }
+        // Get current term
+        const termsData = await apiFetch<any>(`/settings/terms`);
+        const termsList = Array.isArray(termsData) ? termsData : (termsData?.data || []);
+        const currentTerm = termsList.find((t: any) => t.isCurrent === true) || termsList[0];
+        const termId = currentTerm?.id || null;
+        setCurrentTermId(termId);
 
-        // Remove duplicates
-        const uniqueFees = Array.from(new Set(feeList));
-        
-        if (uniqueFees.length > 0) {
-          setFeeTypes(uniqueFees.map(fee => ({ value: fee, label: fee })));
-          // Set first fee as default if current selection is not in the list
-          if (!uniqueFees.includes(selectedPaymentType)) {
+        // Fetch fee types for current term and school
+        if (termId) {
+          const feeTypesRes = await apiFetch<any>(`/finance/fee-types?termId=${termId}`);
+          const types = Array.isArray(feeTypesRes?.feeTypes) ? feeTypesRes.feeTypes : [];
+          const uniqueFees = Array.from(new Set(types.filter(Boolean)));
+          setFeeTypes(uniqueFees.map((fee: string) => ({ value: fee, label: fee })));
+          if (uniqueFees.length > 0 && !uniqueFees.includes(selectedPaymentType)) {
             setSelectedPaymentType(uniqueFees[0]);
           }
-          console.log('Loaded fee types from fee management:', uniqueFees);
+          console.log('Loaded fee types (scoped to school + term):', uniqueFees);
         } else {
-          console.warn('No active fees found in fee structure');
-          // Keep default fees if no active fees found
-          setFeeTypes([
-            { value: 'Tuition', label: 'Tuition' },
-            { value: 'School Uniform', label: 'School Uniform' }
-          ]);
+          console.warn('No current term found; fee types will remain empty');
+          setFeeTypes([]);
         }
       } catch (error) {
-        console.error('Failed to fetch fee structure:', error);
-        // Keep default fees on error
-        setFeeTypes([
-          { value: 'Tuition', label: 'Tuition' },
-          { value: 'School Uniform', label: 'School Uniform' }
-        ]);
+        console.error('Failed to fetch term/fee types:', error);
+        setFeeTypes([]);
       }
     };
-    fetchFeeTypes();
-  }, [token, selectedPaymentType]);
+    fetchTermAndFeeTypes();
+  }, [token]);
 
   // Token refresh is now handled by apiClient
 
