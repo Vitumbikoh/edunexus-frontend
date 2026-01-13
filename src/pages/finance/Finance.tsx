@@ -767,7 +767,13 @@ export default function Finance() {
                                         : s.status === 'unpaid' ? 'outline'
                                         : 'outline'
                                     }
-                                    className={`capitalize ${s.status === 'unpaid' ? 'text-red-600' : ''}`}
+                                    className={`capitalize ${
+                                      s.status === 'paid'
+                                        ? 'bg-green-100 text-green-800 border-green-200'
+                                        : s.status === 'unpaid'
+                                          ? 'text-red-600'
+                                          : ''
+                                    }`}
                                   >
                                     {s.status}
                                   </Badge>

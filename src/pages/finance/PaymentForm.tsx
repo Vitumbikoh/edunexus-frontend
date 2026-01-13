@@ -407,6 +407,8 @@ export default function PaymentForm() {
                     <SelectValue placeholder="Select payment type" />
                   </SelectTrigger>
                   <SelectContent>
+                    {/* Special processing mode: Full allocation across configured fees */}
+                    <SelectItem value="full">Full (allocate across fees)</SelectItem>
                     {feeTypes.map(type => (
                       <SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>
                     ))}
