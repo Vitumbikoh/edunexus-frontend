@@ -33,31 +33,18 @@ export default function StatCard({ title, value, icon, trend, className }: StatC
         <div className="text-2xl font-bold">{value}</div>
         {trend && (
           <div className="flex items-center gap-2 text-xs">
-            {trend.hasComparativeData === false ? (
-              // Show "New" badge when there's no comparative data
-              <div className="flex items-center space-x-1">
-                <div className="px-2 py-1 bg-primary/10 text-primary text-xs font-semibold rounded-full">
-                  New
-                </div>
-                <span className="text-muted-foreground">no previous data</span>
-              </div>
+            {trend.isPositive ? (
+              <TrendingUp className="h-3 w-3 text-success" />
             ) : (
-              // Show normal trend comparison
-              <>
-                {trend.isPositive ? (
-                  <TrendingUp className="h-3 w-3 text-success" />
-                ) : (
-                  <TrendingDown className="h-3 w-3 text-destructive" />
-                )}
-                <span className={cn(
-                  "text-xs font-semibold",
-                  trend.isPositive ? "text-success" : "text-destructive"
-                )}>
-                  {trend.isPositive ? "+" : ""}{trend.value}%
-                </span>
-                <span className="text-muted-foreground">vs last month</span>
-              </>
+              <TrendingDown className="h-3 w-3 text-destructive" />
             )}
+            <span className={cn(
+              "text-xs font-semibold",
+              trend.isPositive ? "text-success" : "text-destructive"
+            )}>
+              {trend.isPositive ? "+" : ""}{trend.value}%
+            </span>
+            <span className="text-muted-foreground">vs last month</span>
           </div>
         )}
       </CardContent>
