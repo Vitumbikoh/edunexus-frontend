@@ -336,7 +336,7 @@ export default function TeacherCourses() {
                       size="sm"
                       className="gap-2"
                       onClick={() =>
-                        navigate(`/learning-materials?courseId=${course.id}`)
+                        navigate(`/learning-materials?courseId=${course.id}${course.class?.id ? `&classId=${course.class.id}` : ''}`)
                       }
                     >
                       <Upload className="h-4 w-4" />
@@ -400,7 +400,7 @@ export default function TeacherCourses() {
                     <Button
                       variant="default"
                       size="sm"
-                      onClick={() => navigate(`/course-details/${course.id}`)}
+                      onClick={() => navigate(`/courses/${course.id}`)}
                     >
                       View Details
                     </Button>

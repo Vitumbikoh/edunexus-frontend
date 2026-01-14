@@ -329,6 +329,29 @@ export default function CourseTermScheme(){
           </div>
           <Button onClick={saveScheme} disabled={!weightValid || components.length===0 || saving || !courseId}>{saving? 'Saving...' : 'Save Scheme'}</Button>
           <Button variant="outline" onClick={()=> { fetchSchemes(); }} disabled={schemesLoading}>Refresh Schemes</Button>
+          {courseId && !schemesLoading && schemes.some(s => s.courseId === courseId && !s.isDefault) && (
+            <Button
+              variant="destructive"
+              onClick={async () => {
+                if(!termId){ toast({ title:'Missing term', description:'Select a term first.', variant:'destructive' }); return; }
+                if(!confirm('Delete this course scheme and revert to default?')) return;
+                try {
+                  const res = await fetch(`${API_CONFIG.BASE_URL}/aggregation/scheme?courseId=${courseId}&termId=${termId}` , { method:'DELETE', headers: authHeaders });
+                  if(res.ok){
+                    toast({ title:'Scheme removed', description:'Reverted to default weighting scheme.' });
+                    await fetchScheme();
+                    await fetchSchemes();
+                  } else {
+                    toast({ title:'Delete failed', description:'Could not delete scheme.', variant:'destructive' });
+                  }
+                } catch {
+                  toast({ title:'Error', description:'Network or server error.', variant:'destructive' });
+                }
+              }}
+            >
+              Revert to Default
+            </Button>
+          )}
         </div>
       </div>
 
@@ -396,7 +419,7 @@ export default function CourseTermScheme(){
           <div className="rounded-md border overflow-x-auto">
             {/* Global default header for clarity in All Courses view */}
             {!courseId && schemes.length > 0 && schemes[0]?.id === 'default-global' && (
-              <div className="px-4 py-2 text-sm bg-blue-50 text-blue-800 border-b border-blue-200 flex items-center gap-2">
+              <div className="px-4 py-2 text-sm bg-primary/10 text-primary border-b border-border flex items-center gap-2">
                 <span className="font-medium">Default Weighting Scheme</span>
                 <span className="text-muted-foreground">(applies to all courses unless overridden)</span>
               </div>
@@ -446,17 +469,17 @@ export default function CourseTermScheme(){
                         setSearchParams(searchParams,{ replace:true });
                       };
                       return (
-                        <TableRow key={s.id} className={`cursor-pointer hover:bg-muted/50 ${isDefault ? 'bg-blue-50/50' : ''}`} onClick={onRowClick}>
+                        <TableRow key={s.id} className={`cursor-pointer hover:bg-muted/50 ${isDefault ? 'bg-muted/40' : ''}`} onClick={onRowClick}>
                           <TableCell className="flex items-center gap-2">
                             {courseName}
-                            {isDefault && <Badge variant="outline" className="text-xs bg-blue-100 text-blue-800 border-blue-300">Default</Badge>}
+                            {isDefault && <Badge variant="secondary" className="text-xs">Default</Badge>}
                           </TableCell>
                           <TableCell>
                             {isDefault ? `Default v${s.version}` : `v${s.version}`}
                           </TableCell>
                           <TableCell>{s.totalWeight}%</TableCell>
                           <TableCell className="space-x-1">
-                            {s.components?.map(c=> <Badge key={c.componentType} variant={isDefault ? "outline" : "secondary"} className={isDefault ? "bg-blue-50 text-blue-700 border-blue-300" : ""}>{c.componentType}:{c.weight}%</Badge>)}
+                            {s.components?.map(c=> <Badge key={c.componentType} variant={isDefault ? "outline" : "secondary"}>{c.componentType}:{c.weight}%</Badge>)}
                           </TableCell>
                           <TableCell>{s.updatedAt? new Date(s.updatedAt).toLocaleDateString(): '-'}</TableCell>
                         </TableRow>

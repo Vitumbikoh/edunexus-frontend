@@ -31,7 +31,7 @@ interface Enrollment {
     lastName: string;
     email: string;
   };
-  enrolledAt: string;
+  enrollmentDate: string; // backend returns createdAt as enrollmentDate
 }
 
 export default function CourseView() {
@@ -229,7 +229,10 @@ export default function CourseView() {
                             {enrollment.student.email}
                           </p>
                           <p className="text-xs text-muted-foreground">
-                            Enrolled: {new Date(enrollment.enrolledAt).toLocaleDateString()}
+                            Enrolled: {(() => {
+                              const d = enrollment.enrollmentDate ? new Date(enrollment.enrollmentDate) : null;
+                              return d && !isNaN(d.getTime()) ? d.toLocaleDateString() : '-';
+                            })()}
                           </p>
                         </div>
                       </CardContent>

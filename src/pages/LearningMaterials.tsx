@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Upload, FileType, BookOpen } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { API_CONFIG } from '@/config/api';
 
 interface Class {
@@ -24,6 +24,7 @@ interface Course {
 export default function LearningMaterials() {
   const { user, token } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [classes, setClasses] = useState<Class[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
   const [selectedClass, setSelectedClass] = useState<string>("");
@@ -31,6 +32,53 @@ export default function LearningMaterials() {
   const [title, setTitle] = useState<string>("");
   const [description, setDescription] = useState<string>("");
   const [file, setFile] = useState<File | null>(null);
+  const [prefillCourseId, setPrefillCourseId] = useState<string>("");
+  const [prefillCourseName, setPrefillCourseName] = useState<string>("");
+  const [prefillClassId, setPrefillClassId] = useState<string>("");
+
+  useEffect(() => {
+    // Read query params or navigation state to prefill class/course when available
+    const params = new URLSearchParams(location.search);
+    const statePrefill: any = (location.state as any)?.prefill || {};
+    const classId = statePrefill.classId || params.get('classId') || '';
+    const courseId = statePrefill.courseId || params.get('courseId') || '';
+    const courseName = statePrefill.courseName || '';
+    if (classId) {
+      setSelectedClass(classId);
+      setPrefillClassId(classId);
+    }
+    if (courseId) {
+      setPrefillCourseId(courseId);
+    }
+    if (courseName) {
+      setPrefillCourseName(courseName);
+    }
+  }, [location.search, location.state]);
+
+  // If only courseId is provided, derive classId from course details
+  useEffect(() => {
+    const deriveClassFromCourse = async () => {
+      if (!prefillCourseId || prefillClassId || !token) return;
+      try {
+        const res = await fetch(`${API_CONFIG.BASE_URL}/course/${prefillCourseId}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data?.classId) {
+            setPrefillClassId(data.classId);
+            setSelectedClass(data.classId);
+          }
+          if (data?.name && !prefillCourseName) {
+            setPrefillCourseName(data.name);
+          }
+        }
+      } catch (e) {
+        // Silent fail; user can still select manually
+      }
+    };
+    deriveClassFromCourse();
+  }, [prefillCourseId, prefillClassId, token, prefillCourseName]);
 
   useEffect(() => {
     if (user && user.role === 'teacher' && token) {
@@ -49,6 +97,10 @@ export default function LearningMaterials() {
         .then((data) => {
           if (data.success) {
             setClasses(data.classes);
+            // If prefilled class is present but not yet selected, ensure it's set
+            if (prefillClassId) {
+              setSelectedClass(prefillClassId);
+            }
           } else {
             throw new Error('Failed to fetch classes');
           }
@@ -80,8 +132,18 @@ export default function LearningMaterials() {
         })
         .then((data) => {
           if (data.success) {
-            setCourses(data.courses);
-            setSelectedCourse(""); // Reset course selection when class changes
+            let nextCourses = data.courses || [];
+            // If we have a prefilled course, ensure it's selected and present in options
+            if (prefillCourseId) {
+              const exists = nextCourses.some((c: Course) => c.id === prefillCourseId);
+              if (!exists && selectedClass === prefillClassId && prefillCourseName) {
+                nextCourses = [...nextCourses, { id: prefillCourseId, name: prefillCourseName } as Course];
+              }
+              setSelectedCourse(prefillCourseId);
+            } else {
+              setSelectedCourse(""); // Reset course selection when class changes
+            }
+            setCourses(nextCourses);
           } else {
             throw new Error('Failed to fetch courses');
           }
@@ -95,7 +157,7 @@ export default function LearningMaterials() {
           });
         });
     }
-  }, [selectedClass, user, token]);
+  }, [selectedClass, user, token, prefillCourseId]);
 
   if (!user || user.role !== 'teacher') {
     return (
@@ -210,7 +272,7 @@ export default function LearningMaterials() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="class">Class *</Label>
-                <Select value={selectedClass} onValueChange={setSelectedClass}>
+                <Select value={selectedClass} onValueChange={setSelectedClass} disabled={!!prefillClassId}>
                   <SelectTrigger id="class">
                     <SelectValue placeholder="Select a class" />
                   </SelectTrigger>
@@ -226,7 +288,7 @@ export default function LearningMaterials() {
 
               <div className="space-y-2">
                 <Label htmlFor="course">Course *</Label>
-                <Select value={selectedCourse} onValueChange={setSelectedCourse}>
+                <Select value={selectedCourse} onValueChange={setSelectedCourse} disabled={!!prefillCourseId}>
                   <SelectTrigger id="course">
                     <SelectValue placeholder="Select a course" />
                   </SelectTrigger>
