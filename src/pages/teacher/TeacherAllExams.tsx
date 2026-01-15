@@ -9,7 +9,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { API_CONFIG } from '@/config/api';
 import { TablePreloader } from '@/components/ui/preloader';
-import { Play, FileText } from 'lucide-react';
+import { Play, FileText, GraduationCap } from 'lucide-react';
 import { examService } from '@/services/examService';
 import { useToast } from '@/components/ui/use-toast';
 
@@ -176,6 +176,17 @@ export default function TeacherAllExams(){
                           >
                             <Play className="h-4 w-4" />
                             Administer
+                          </Button>
+                        )}
+                        {exam.status === 'administered' && (
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="gap-2" 
+                            onClick={() => navigate(`/submit-grades?examId=${exam.id}&courseId=${exam.course?.id}&classId=${exam.class?.id}`)}
+                          >
+                            <GraduationCap className="h-4 w-4" />
+                            Grade
                           </Button>
                         )}
                         <Button variant="ghost" size="sm" className="gap-2" onClick={() => navigate(`/exams/${exam.id}`)}>

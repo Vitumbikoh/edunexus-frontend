@@ -46,6 +46,7 @@ export default function SubmitGrades() {
   const routeState = location.state as any;
   const params = new URLSearchParams(location.search);
   const courseIdFromQuery = params.get('courseId');
+  const examIdFromQuery = params.get('examId');
   const [classes, setClasses] = useState<ClassInfo[]>([]);
   const [courses, setCourses] = useState<CourseInfo[]>([]);
   const [selectedClass, setSelectedClass] = useState<string>("");
@@ -276,6 +277,8 @@ export default function SubmitGrades() {
   // Prefill class & course if provided via navigation state or query param
   useEffect(() => {
     const prefill = routeState?.prefill;
+    const classIdFromQuery = params.get('classId');
+    
     if (prefill?.courseId) {
       // Set class first (triggers course fetch) then course
       if (prefill.classId) setSelectedClass(prefill.classId);
@@ -296,8 +299,35 @@ export default function SubmitGrades() {
     } else if (courseIdFromQuery) {
       setSelectedCourse(courseIdFromQuery);
     }
+    
+    // Handle direct navigation from exam (with class, course, and exam IDs)
+    if (classIdFromQuery && courseIdFromQuery && !prefill?.courseId) {
+      setSelectedClass(classIdFromQuery);
+      // Delay setting course until classes are loaded
+      const courseInterval = setInterval(() => {
+        const found = courses.find(c => c.id === courseIdFromQuery);
+        if (found) {
+          setSelectedCourse(courseIdFromQuery);
+          clearInterval(courseInterval);
+        }
+      }, 200);
+      setTimeout(() => clearInterval(courseInterval), 4000);
+    }
+    
+    // Prefill exam if provided
+    if (examIdFromQuery) {
+      // Poll for availableExams list to contain the exam
+      const examInterval = setInterval(() => {
+        const found = availableExams.find(e => e.id === examIdFromQuery);
+        if (found) {
+          setSelectedExam(examIdFromQuery);
+          clearInterval(examInterval);
+        }
+      }, 200);
+      setTimeout(() => clearInterval(examInterval), 4000);
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [routeState, courseIdFromQuery, courses]);
+  }, [routeState, courseIdFromQuery, examIdFromQuery, courses, availableExams]);
 
   useEffect(() => {
     if (selectedClass) {
