@@ -1493,7 +1493,200 @@ export const TeacherDashboardCards = () => {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <Card className="">
+      {/* Student Performance Chart */}
+      <Card className="h-72">
+        <CardHeader>
+          <CardTitle className="flex items-center">
+            <TrendingUp className="mr-2 h-5 w-5" />
+            Student Performance
+          </CardTitle>
+          <CardDescription>
+            Performance trends across your classes
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="h-48">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart
+                data={attendance.map((item, index) => ({
+                  class: item.className ? `${item.className} - ${item.courseName || 'Course'}` : `Class ${index + 1}`,
+                  performance: Math.round((item.presentStudents / Math.max(item.enrolledStudents, 1)) * 100),
+                  attendance: Math.round((item.presentStudents / Math.max(item.enrolledStudents, 1)) * 100)
+                }))}
+                margin={{ top: 10, right: 10, left: 0, bottom: 50 }}
+              >
+                <XAxis 
+                  dataKey="class" 
+                  tick={{ fontSize: 12, fill: '#374151' }}
+                  axisLine={false}
+                  tickLine={false}
+                  angle={-45}
+                  textAnchor="end"
+                  height={60}
+                  interval={0}
+                />
+                <YAxis 
+                  tick={{ fontSize: 11 }}
+                  domain={[0, 100]}
+                  width={30}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <Tooltip 
+                  content={({ active, payload, label }) => {
+                    if (active && payload && payload.length) {
+                      return (
+                        <div className="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
+                          <p className="text-sm font-medium text-gray-900 dark:text-white">{label}</p>
+                          <p className="text-sm text-blue-600">Performance: {payload[0]?.value}%</p>
+                        </div>
+                      );
+                    }
+                    return null;
+                  }}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="performance"
+                  stroke="#3B82F6"
+                  strokeWidth={2}
+                  fill="url(#performanceGradient)"
+                  name="Performance"
+                />
+                <defs>
+                  <linearGradient id="performanceGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.8}/>
+                    <stop offset="95%" stopColor="#3B82F6" stopOpacity={0.1}/>
+                  </linearGradient>
+                </defs>
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="h-72">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Today's Classes</CardTitle>
+              <CardDescription>
+                {getCurrentDayName()}'s schedule
+              </CardDescription>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                // Same refresh logic as above
+                setLoading(true);
+                setError(null);
+                if (user?.role === "teacher") {
+                  const fetchTeacherData = async () => {
+                    try {
+                      if (!token) {
+                        throw new Error("Authentication token not found");
+                      }
+
+                      const profileResponse = await fetch(`${API_CONFIG.BASE_URL}/profile`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                      });
+
+                      if (!profileResponse.ok) {
+                        throw new Error('Failed to load profile');
+                      }
+
+                      const profile = await profileResponse.json();
+                      const teacherId = profile.teacherId || user.id;
+
+                      const scheduleResponse = await fetch(`${API_CONFIG.BASE_URL}/schedules/teacher/${teacherId}/weekly`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                      });
+
+                      if (scheduleResponse.ok) {
+                        const scheduleData = await scheduleResponse.json();
+                        console.log('Refreshed weekly schedule data:', scheduleData);
+                        setWeeklySchedule(scheduleData.days || []);
+                      }
+
+                      const [classesData, attendanceData] = await Promise.all([
+                        fetchData("/teacher/my-upcoming-classes"),
+                        fetchData("/teacher/my-attendance-today"),
+                      ]);
+
+                      setClasses(classesData.classes || []);
+                      setAttendance(attendanceData.attendance || []);
+                    } catch (err) {
+                      const errorMessage =
+                        err instanceof Error
+                          ? err.message
+                          : "Failed to refresh teacher dashboard data";
+                      setError(errorMessage);
+                      toast({
+                        title: "Error",
+                        description: errorMessage,
+                        variant: "destructive",
+                      });
+                    } finally {
+                      setLoading(false);
+                    }
+                  };
+                  fetchTeacherData();
+                }
+              }}
+              disabled={loading}
+            >
+              <RefreshCcw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {getTodaysClasses().length > 0 ? (
+              <>
+                {getTodaysClasses().slice(0, 2).map((cls) => (
+                  <div
+                    key={cls.id}
+                    className="flex justify-between items-center p-3 rounded-lg bg-background/50"
+                  >
+                    <div>
+                      <p className="font-medium">{cls.course?.name || 'Course'}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {cls.class?.name || 'Class'} • {cls.classroom?.name || 'Room TBA'}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-sm font-medium">{cls.startTime} - {cls.endTime}</span>
+                    </div>
+                  </div>
+                ))}
+                {getTodaysClasses().length > 2 && (
+                  <div className="pt-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full"
+                      onClick={() => navigate("/my-schedule")}
+                    >
+                      View All {getTodaysClasses().length} Classes
+                      <ChevronRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="text-center py-8">
+                <div className="text-muted-foreground">
+                  <p className="text-sm">No classes scheduled for {getCurrentDayName()}</p>
+                </div>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* My Classes */}
+      <Card className="h-72">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
@@ -1588,118 +1781,78 @@ export const TeacherDashboardCards = () => {
         </CardContent>
       </Card>
 
-      <Card className="">
+      {/* Attendance Trends Chart */}
+      <Card className="h-72">
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>Today's Classes</CardTitle>
-              <CardDescription>
-                {getCurrentDayName()}'s schedule
-              </CardDescription>
-            </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                // Same refresh logic as above
-                setLoading(true);
-                setError(null);
-                if (user?.role === "teacher") {
-                  const fetchTeacherData = async () => {
-                    try {
-                      if (!token) {
-                        throw new Error("Authentication token not found");
-                      }
-
-                      const profileResponse = await fetch(`${API_CONFIG.BASE_URL}/profile`, {
-                        headers: { 'Authorization': `Bearer ${token}` }
-                      });
-
-                      if (!profileResponse.ok) {
-                        throw new Error('Failed to load profile');
-                      }
-
-                      const profile = await profileResponse.json();
-                      const teacherId = profile.teacherId || user.id;
-
-                      const scheduleResponse = await fetch(`${API_CONFIG.BASE_URL}/schedules/teacher/${teacherId}/weekly`, {
-                        headers: { 'Authorization': `Bearer ${token}` }
-                      });
-
-                      if (scheduleResponse.ok) {
-                        const scheduleData = await scheduleResponse.json();
-                        console.log('Refreshed weekly schedule data:', scheduleData);
-                        setWeeklySchedule(scheduleData.days || []);
-                      }
-
-                      const [classesData, attendanceData] = await Promise.all([
-                        fetchData("/teacher/my-upcoming-classes"),
-                        fetchData("/teacher/my-attendance-today"),
-                      ]);
-
-                      setClasses(classesData.classes || []);
-                      setAttendance(attendanceData.attendance || []);
-                    } catch (err) {
-                      const errorMessage =
-                        err instanceof Error
-                          ? err.message
-                          : "Failed to refresh teacher dashboard data";
-                      setError(errorMessage);
-                      toast({
-                        title: "Error",
-                        description: errorMessage,
-                        variant: "destructive",
-                      });
-                    } finally {
-                      setLoading(false);
-                    }
-                  };
-                  fetchTeacherData();
-                }
-              }}
-              disabled={loading}
-            >
-              <RefreshCcw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-            </Button>
-          </div>
+          <CardTitle className="flex items-center">
+            <Users2 className="mr-2 h-5 w-5" />
+            Attendance Trends
+          </CardTitle>
+          <CardDescription>
+            Weekly attendance patterns by class
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {getTodaysClasses().length > 0 ? (
-              getTodaysClasses().map((cls) => (
-                <div
-                  key={cls.id}
-                  className="flex justify-between items-center p-3 rounded-lg bg-background/50"
-                >
-                  <div>
-                    <p className="font-medium">{cls.course?.name || 'Course'}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {cls.class?.name || 'Class'} • {cls.classroom?.name || 'Room TBA'}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <span className="text-sm font-medium">{cls.startTime} - {cls.endTime}</span>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className="text-center py-8">
-                <div className="text-muted-foreground">
-                  <p className="text-sm">No classes scheduled for {getCurrentDayName()}</p>
-                </div>
-              </div>
-            )}
+          <div className="h-48">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart
+                data={attendance.map(item => ({
+                  class: item.className && item.courseName ? `${item.className} - ${item.courseName}` : (item.className || 'Class'),
+                  rate: Math.round((item.presentStudents / Math.max(item.enrolledStudents, 1)) * 100),
+                  present: item.presentStudents,
+                  total: item.enrolledStudents
+                }))}
+                margin={{ top: 10, right: 10, left: 0, bottom: 50 }}
+              >
+                <XAxis 
+                  dataKey="class" 
+                  tick={{ fontSize: 12, fill: '#374151' }}
+                  axisLine={false}
+                  tickLine={false}
+                  angle={-45}
+                  textAnchor="end"
+                  height={60}
+                  interval={0}
+                />
+                <YAxis 
+                  tick={{ fontSize: 11 }}
+                  domain={[0, 100]}
+                  width={30}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <Tooltip 
+                  content={({ active, payload, label }) => {
+                    if (active && payload && payload.length) {
+                      const data = payload[0].payload;
+                      return (
+                        <div className="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
+                          <p className="text-sm font-medium text-gray-900 dark:text-white">{label}</p>
+                          <p className="text-sm text-green-600">
+                            {data.present}/{data.total} students ({data.rate}%)
+                          </p>
+                        </div>
+                      );
+                    }
+                    return null;
+                  }}
+                />
+                <Bar
+                  dataKey="rate"
+                  fill="url(#attendanceGradient)"
+                  name="Attendance Rate"
+                  radius={[4, 4, 0, 0]}
+                />
+                <defs>
+                  <linearGradient id="attendanceGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#10B981" stopOpacity={0.8}/>
+                    <stop offset="95%" stopColor="#10B981" stopOpacity={0.4}/>
+                  </linearGradient>
+                </defs>
+              </BarChart>
+            </ResponsiveContainer>
           </div>
         </CardContent>
-        <div className="px-6 pb-6">
-          <Button
-            className="w-full"
-            onClick={() => navigate("/my-schedule")}
-          >
-            View Full Schedule
-            <ChevronRight className="ml-2 h-4 w-4" />
-          </Button>
-        </div>
       </Card>
     </div>
   );
