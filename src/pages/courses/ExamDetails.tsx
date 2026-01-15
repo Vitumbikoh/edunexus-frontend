@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -57,6 +57,7 @@ interface Exam {
 export default function ExamDetails() {
   const { examId } = useParams<{ examId: string }>();
   const { token, user } = useAuth();
+  const location = useLocation();
   const [exam, setExam] = useState<Exam | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [renderError, setRenderError] = useState<string | null>(null);
@@ -64,8 +65,29 @@ export default function ExamDetails() {
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  // Function to get the correct back navigation path based on user role
+  // Function to get the correct back navigation path based on user role and context
   const getBackNavigationPath = () => {
+    // Check if we came from a course-specific exam page
+    const referrer = document.referrer;
+    const currentOrigin = window.location.origin;
+    
+    if (referrer && referrer.startsWith(currentOrigin)) {
+      const referrerPath = referrer.replace(currentOrigin, '');
+      
+      // If we came from course-specific exams (/my-exams?courseId=...), go back there
+      if (referrerPath.includes('/my-exams?courseId=')) {
+        const courseId = new URLSearchParams(referrerPath.split('?')[1]).get('courseId');
+        if (courseId) {
+          return `/my-exams?courseId=${courseId}`;
+        }
+      }
+      
+      // If we came from the main teacher exams page (/teacher/exams), go back there
+      if (referrerPath === '/teacher/exams') {
+        return '/teacher/exams';
+      }
+    }
+    
     if (user?.role === 'admin' || user?.role === 'super_admin') {
       return '/courses/exams';
     } else if (user?.role === 'teacher') {
@@ -73,6 +95,29 @@ export default function ExamDetails() {
     }
     // Default fallback
     return '/courses/exams';
+  };
+
+  // Function to get the correct back button text based on context
+  const getBackButtonText = () => {
+    const referrer = document.referrer;
+    const currentOrigin = window.location.origin;
+    
+    if (referrer && referrer.startsWith(currentOrigin)) {
+      const referrerPath = referrer.replace(currentOrigin, '');
+      
+      // If we came from course-specific exams, return "Back to Course Exams"
+      if (referrerPath.includes('/my-exams?courseId=')) {
+        return 'Back to Course Exams';
+      }
+      
+      // If we came from the main teacher exams page, return "Back to My Exams"  
+      if (referrerPath === '/teacher/exams') {
+        return 'Back to My Exams';
+      }
+    }
+    
+    // Default text
+    return 'Back to Exams';
   };
 
   const fetchWithAuth = async (url: string) => {
@@ -141,7 +186,7 @@ export default function ExamDetails() {
           description: 'Invalid exam ID or not authenticated',
           variant: 'destructive',
         });
-  navigate('/courses/exams');
+        navigate(getBackNavigationPath());
         return;
       }
 
@@ -181,7 +226,7 @@ export default function ExamDetails() {
         if (errorMessage.includes('Unauthorized')) {
           navigate('/login');
         } else {
-          navigate('/courses/exams');
+          navigate(getBackNavigationPath());
         }
       } finally {
         setIsLoading(false);
@@ -226,7 +271,7 @@ export default function ExamDetails() {
         <div className="text-center py-8">
           <div className="text-red-600 mb-4">Error displaying exam details</div>
           <div className="text-sm text-muted-foreground mb-4">{renderError}</div>
-          <Button onClick={() => navigate(getBackNavigationPath())}>Back to Exams</Button>
+          <Button onClick={() => navigate(getBackNavigationPath())}>{getBackButtonText()}</Button>
         </div>
       </div>
     );
@@ -244,7 +289,7 @@ export default function ExamDetails() {
           className="gap-2"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back to Exams
+          {getBackButtonText()}
         </Button>
         <div>
           <h1 className="text-3xl font-bold tracking-tight">{exam.title}</h1>
@@ -352,7 +397,7 @@ export default function ExamDetails() {
         <div className="text-center py-8">
           <div className="text-red-600 mb-4">Error displaying exam details</div>
           <div className="text-sm text-muted-foreground mb-4">{error.message || 'An unexpected error occurred'}</div>
-          <Button onClick={() => navigate(getBackNavigationPath())}>Back to Exams</Button>
+          <Button onClick={() => navigate(getBackNavigationPath())}>{getBackButtonText()}</Button>
         </div>
       </div>
     );

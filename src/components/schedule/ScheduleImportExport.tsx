@@ -8,6 +8,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { 
@@ -19,7 +20,8 @@ import {
   AlertTriangle,
   Info,
   FileUp,
-  FileDown
+  FileDown,
+  Trash2
 } from "lucide-react";
 import { API_CONFIG } from '@/config/api';
 
@@ -47,6 +49,9 @@ export default function ScheduleImportExport() {
   const [classes, setClasses] = useState<Array<{ id: string; name: string }>>([]);
   const [courses, setCourses] = useState<Array<{ id: string; name: string; code: string; classId?: string; class?: { id: string; name: string } }>>([]);
   const [templateScope, setTemplateScope] = useState<string>('ALL'); // 'ALL' or classId
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [selectedClassForDelete, setSelectedClassForDelete] = useState<string>('');
+  const [deleteAllClasses, setDeleteAllClasses] = useState(false);
   const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
   const TIME_SLOTS = ['08:00','09:00','10:00','11:00','13:30','14:30'];
 
@@ -244,6 +249,73 @@ export default function ScheduleImportExport() {
     setSelectedFile(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
+    }
+  };
+
+  const bulkDeleteSchedules = async () => {
+    if (!token) return;
+
+    let confirmMessage = '';
+    let deletePayload: any = {};
+
+    if (deleteAllClasses) {
+      confirmMessage = 'Are you sure you want to delete ALL schedules for ALL classes in your school? This action cannot be undone.';
+      deletePayload = { deleteAll: true };
+    } else if (selectedClassForDelete) {
+      const className = classes.find(c => c.id === selectedClassForDelete)?.name || 'Unknown Class';
+      confirmMessage = `Are you sure you want to delete ALL schedules for ${className}? This action cannot be undone.`;
+      deletePayload = { classId: selectedClassForDelete };
+    } else {
+      toast({
+        title: "Selection required",
+        description: "Please select a class or choose to delete all schedules",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Confirm deletion
+    const confirmed = window.confirm(confirmMessage);
+    if (!confirmed) return;
+
+    setIsDeleting(true);
+
+    try {
+      // Perform bulk delete
+      const deleteResponse = await fetch(`${API_CONFIG.BASE_URL}/schedules/bulk/delete`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(deletePayload)
+      });
+
+      if (!deleteResponse.ok) throw new Error('Failed to delete schedules');
+      
+      const result = await deleteResponse.json();
+      
+      const targetName = deleteAllClasses ? 'all classes' : 
+        classes.find(c => c.id === selectedClassForDelete)?.name || 'selected class';
+      
+      toast({
+        title: "Bulk delete completed",
+        description: `Successfully deleted ${result.deleted} schedules for ${targetName}${result.errors?.length ? `. ${result.errors.length} errors occurred.` : ''}`,
+        variant: result.errors?.length ? "destructive" : "default"
+      });
+
+      // Reset selections
+      setSelectedClassForDelete('');
+      setDeleteAllClasses(false);
+
+    } catch (error) {
+      toast({
+        title: "Bulk delete failed",
+        description: error instanceof Error ? error.message : "Failed to delete schedules",
+        variant: "destructive"
+      });
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -472,6 +544,75 @@ export default function ScheduleImportExport() {
               </ul>
             </AlertDescription>
           </Alert>
+        </CardContent>
+      </Card>
+
+      {/* Bulk Delete Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-red-600">
+            <Trash2 className="h-5 w-5" />
+            Bulk Delete
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Alert className="border-yellow-200 bg-yellow-50">
+            <AlertTriangle className="h-4 w-4 text-yellow-600" />
+            <AlertDescription className="text-yellow-800">
+              <strong>Warning:</strong> This action will permanently delete schedules. Choose either a specific class or all classes. This cannot be undone.
+            </AlertDescription>
+          </Alert>
+
+          <div className="space-y-4">
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="deleteAll"
+                checked={deleteAllClasses}
+                onCheckedChange={(checked) => {
+                  setDeleteAllClasses(checked as boolean);
+                  if (checked) {
+                    setSelectedClassForDelete('');
+                  }
+                }}
+              />
+              <Label htmlFor="deleteAll" className="text-sm font-medium text-red-600">
+                Delete ALL schedules for ALL classes (Danger Zone)
+              </Label>
+            </div>
+
+            {!deleteAllClasses && (
+              <div>
+                <Label htmlFor="deleteClass">Select Class to Delete All Schedules *</Label>
+                <Select 
+                  value={selectedClassForDelete} 
+                  onValueChange={setSelectedClassForDelete}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choose a class..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {classes.map(cls => (
+                      <SelectItem key={cls.id} value={cls.id}>
+                        {cls.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            <Button 
+              onClick={bulkDeleteSchedules}
+              disabled={(!selectedClassForDelete && !deleteAllClasses) || isDeleting}
+              variant="destructive"
+              className="w-full"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              {isDeleting ? "Deleting Schedules..." : 
+               deleteAllClasses ? "Delete ALL Schedules for ALL Classes" : 
+               "Delete All Schedules for Selected Class"}
+            </Button>
+          </div>
         </CardContent>
       </Card>
     </div>

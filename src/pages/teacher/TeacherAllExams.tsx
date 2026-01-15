@@ -9,6 +9,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { API_CONFIG } from '@/config/api';
 import { TablePreloader } from '@/components/ui/preloader';
+import { Play, FileText } from 'lucide-react';
+import { examService } from '@/services/examService';
+import { useToast } from '@/components/ui/use-toast';
 
 interface TermOption { id: string; name?: string; termNumber?: number; isCurrent?: boolean; }
 interface ExamRow { id:string; title:string; examType:string; date:string; totalMarks:number; status:string; course?:{id:string; name:string}; class?:{id:string; name:string}; Term?:{id:string; name?:string; termNumber?:number}; }
@@ -16,6 +19,7 @@ interface ExamRow { id:string; title:string; examType:string; date:string; total
 export default function TeacherAllExams(){
   const { token } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [terms,setTerms]=useState<TermOption[]>([]);
   const [currentTermId,setCurrentTermId]=useState<string|undefined>();
   const [selectedTerm,setSelectedTerm]=useState<string|undefined>();
@@ -23,6 +27,24 @@ export default function TeacherAllExams(){
   const [loading,setLoading]=useState(false);
   const [search,setSearch]=useState('');
   const [termLoadError,setTermLoadError]=useState(false);
+
+  const handleAdministerExam = async (examId: string) => {
+    try {
+      await examService.administerExam(examId, token!);
+      toast({
+        title: 'Success',
+        description: 'Exam administered successfully',
+      });
+      // Refresh exams to update status
+      fetchExams(selectedTerm);
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to administer exam',
+        variant: 'destructive',
+      });
+    }
+  };
 
   const fetchCurrentTerm = async () => {
     try {
@@ -144,7 +166,23 @@ export default function TeacherAllExams(){
                     <TableCell>{exam.examType}</TableCell>
                     <TableCell><Badge variant="secondary">{exam.status}</Badge></TableCell>
                     <TableCell className="text-right">
-                      <Button variant="ghost" size="sm" onClick={()=>navigate(`/exams/${exam.id}`)}>View</Button>
+                      <div className="flex gap-2 justify-end">
+                        {exam.status === 'upcoming' && (
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="gap-2" 
+                            onClick={() => handleAdministerExam(exam.id)}
+                          >
+                            <Play className="h-4 w-4" />
+                            Administer
+                          </Button>
+                        )}
+                        <Button variant="ghost" size="sm" className="gap-2" onClick={() => navigate(`/exams/${exam.id}`)}>
+                          <FileText className="h-4 w-4" />
+                          View
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}

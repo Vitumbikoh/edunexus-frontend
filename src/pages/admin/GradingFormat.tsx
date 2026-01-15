@@ -144,6 +144,53 @@ export default function GradingFormat() {
     setIsDialogOpen(true);
   };
 
+  // Helper function to validate percentage input
+  const validatePercentageInput = (value: string): number | null => {
+    // Remove any non-digit characters
+    const cleanValue = value.replace(/[^\d]/g, '');
+    
+    // If empty, return 0
+    if (!cleanValue) return 0;
+    
+    // Check if the input has more than 3 digits
+    if (cleanValue.length > 3) {
+      return null; // Invalid: too many digits
+    }
+    
+    const numValue = parseInt(cleanValue, 10);
+    
+    // Ensure the value doesn't exceed 100
+    if (numValue > 100) {
+      return 100; // Cap at 100
+    }
+    
+    return numValue;
+  };
+
+  // Helper function to handle percentage input change
+  // Helper function to create a quick "F" grade format
+  const createQuickFGrade = () => {
+    setFormData({
+      grade: "F",
+      description: "Fail",
+      minPercentage: 0,
+      maxPercentage: 39,
+      gpa: 0,
+    });
+    setEditingGrade(null);
+    setIsDialogOpen(true);
+  };
+
+  const handlePercentageChange = (field: 'minPercentage' | 'maxPercentage', value: string) => {
+    // Only allow digits and limit to 3 characters
+    const digitOnly = value.replace(/[^\d]/g, '');
+    if (digitOnly.length <= 3) {
+      const numericValue = parseInt(digitOnly, 10) || 0;
+      const cappedValue = Math.min(numericValue, 100);
+      setFormData({ ...formData, [field]: cappedValue });
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -157,10 +204,58 @@ export default function GradingFormat() {
       return;
     }
 
-    if (formData.minPercentage < 0 || formData.maxPercentage > 100 || formData.minPercentage > formData.maxPercentage) {
+    // Enhanced percentage validation
+    if (formData.minPercentage < 0 || formData.maxPercentage > 100) {
       toast({
         title: "Error",
-        description: "Invalid percentage range",
+        description: "Percentages must be between 0 and 100",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (formData.minPercentage > formData.maxPercentage) {
+      toast({
+        title: "Error",
+        description: "Minimum percentage cannot be greater than maximum percentage",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Check for duplicate grade letters
+    const hasDuplicateGrade = gradeFormats.some(existing => {
+      // Skip if we're editing the same grade format
+      if (editingGrade && existing.id === editingGrade.id) return false;
+      
+      return existing.grade.toLowerCase() === formData.grade.toLowerCase();
+    });
+
+    if (hasDuplicateGrade) {
+      toast({
+        title: "Error",
+        description: "Grade letter already exists. Please choose a different grade.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Check for percentage range overlaps with existing grade formats
+    const hasOverlap = gradeFormats.some(existing => {
+      // Skip if we're editing the same grade format
+      if (editingGrade && existing.id === editingGrade.id) return false;
+      
+      return (
+        (formData.minPercentage >= existing.minPercentage && formData.minPercentage <= existing.maxPercentage) ||
+        (formData.maxPercentage >= existing.minPercentage && formData.maxPercentage <= existing.maxPercentage) ||
+        (formData.minPercentage <= existing.minPercentage && formData.maxPercentage >= existing.maxPercentage)
+      );
+    });
+
+    if (hasOverlap) {
+      toast({
+        title: "Error",
+        description: "Percentage range overlaps with an existing grade format",
         variant: "destructive",
       });
       return;
@@ -284,13 +379,22 @@ export default function GradingFormat() {
               Initialize Default Formats
             </Button>
           )}
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button onClick={resetForm} className="gap-2">
-                <Plus className="h-4 w-4" />
-                Add Grade Format
-              </Button>
-            </DialogTrigger>
+          <div className="flex gap-2">
+            <Button 
+              onClick={createQuickFGrade} 
+              variant="outline" 
+              className="gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              Quick Add F Grade
+            </Button>
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+              <DialogTrigger asChild>
+                <Button onClick={resetForm} className="gap-2">
+                  <Plus className="h-4 w-4" />
+                  Add Grade Format
+                </Button>
+              </DialogTrigger>
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>
@@ -351,10 +455,17 @@ export default function GradingFormat() {
                       min="0"
                       max="100"
                       value={formData.minPercentage}
-                      onChange={(e) => setFormData({ ...formData, minPercentage: parseInt(e.target.value) || 0 })}
-                      placeholder="e.g., 80"
+                      onChange={(e) => handlePercentageChange('minPercentage', e.target.value)}
+                      onKeyPress={(e) => {
+                        // Only allow digits, backspace, delete, tab, enter
+                        if (!/[\d]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'Enter', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+                          e.preventDefault();
+                        }
+                      }}
+                      placeholder="e.g., 0"
                       required
                     />
+                    <p className="text-xs text-muted-foreground">Maximum 3 digits (0-100)</p>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="maxPercentage">Max Percentage *</Label>
@@ -364,10 +475,17 @@ export default function GradingFormat() {
                       min="0"
                       max="100"
                       value={formData.maxPercentage}
-                      onChange={(e) => setFormData({ ...formData, maxPercentage: parseInt(e.target.value) || 0 })}
-                      placeholder="e.g., 100"
+                      onChange={(e) => handlePercentageChange('maxPercentage', e.target.value)}
+                      onKeyPress={(e) => {
+                        // Only allow digits, backspace, delete, tab, enter
+                        if (!/[\d]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'Enter', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+                          e.preventDefault();
+                        }
+                      }}
+                      placeholder="e.g., 39"
                       required
                     />
+                    <p className="text-xs text-muted-foreground">Maximum 3 digits (0-100)</p>
                   </div>
                 </div>
 
@@ -383,6 +501,7 @@ export default function GradingFormat() {
               </form>
             </DialogContent>
           </Dialog>
+          </div>
         </div>
       </div>
 

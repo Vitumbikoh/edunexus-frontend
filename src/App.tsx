@@ -491,11 +491,11 @@ const AppRoutes = () => {
       <Route
         path="/courses/exams"
         element={
-          <ProtectedRoute>
+          <AdminRoute>
             <Layout>
               <Exams />
             </Layout>
-          </ProtectedRoute>
+          </AdminRoute>
         }
       />
 

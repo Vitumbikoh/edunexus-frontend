@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Save, BookOpen, Upload } from "lucide-react";
+import { Save, BookOpen, Upload, Download } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useNavigate, useLocation } from 'react-router-dom';
 import * as XLSX from 'xlsx';
@@ -476,6 +476,86 @@ export default function SubmitGrades() {
     setGrades(prev => ({ ...prev, [studentId]: marks }));
   };
 
+  const downloadTemplate = () => {
+    if (!students || students.length === 0) {
+      toast({
+        variant: "destructive",
+        title: "No students available",
+        description: "Please select a class and exam first to generate template",
+      });
+      return;
+    }
+
+    const selectedExamData = availableExams.find(e => e.id === selectedExam);
+    if (!selectedExamData) {
+      toast({
+        variant: "destructive",
+        title: "No exam selected",
+        description: "Please select an exam first",
+      });
+      return;
+    }
+
+    // Prepare data for Excel template
+    const templateData = students.map((student) => ({
+      "Student ID": student.studentId,
+      "Name": student.name,
+      "Marks Obtained": "" // Empty column for teacher to fill
+    }));
+
+    // Create main grades worksheet
+    const ws = XLSX.utils.json_to_sheet(templateData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Grades");
+
+    // Set column widths for better readability
+    const colWidths = [
+      { wch: 12 }, // Student ID
+      { wch: 25 }, // Name
+      { wch: 15 }  // Marks Obtained
+    ];
+    ws['!cols'] = colWidths;
+
+    // Create instructions sheet
+    const className = classes.find(c => c.id === selectedClass)?.name || 'Unknown';
+    const courseName = courses.find(c => c.id === selectedCourse)?.name || 'Unknown';
+    
+    const instructions = [
+      { "Instructions": "HOW TO USE THIS TEMPLATE:" },
+      { "Instructions": "" },
+      { "Instructions": "1. Enter marks in the 'Marks Obtained' column only" },
+      { "Instructions": "2. Do NOT modify Student ID or Name columns" },
+      { "Instructions": "3. Marks must be between 0 and " + selectedExamData.totalMarks },
+      { "Instructions": "4. Save the file and upload it back to the system" },
+      { "Instructions": "" },
+      { "Instructions": "EXAM INFORMATION:" },
+      { "Instructions": "Exam: " + selectedExamData.title },
+      { "Instructions": "Type: " + selectedExamData.examType },
+      { "Instructions": "Total Marks: " + selectedExamData.totalMarks },
+      { "Instructions": "Class: " + className },
+      { "Instructions": "Course: " + courseName },
+      { "Instructions": "Date: " + new Date(selectedExamData.date).toLocaleDateString() },
+      { "Instructions": "" },
+      { "Instructions": "Total Students: " + students.length },
+    ];
+    
+    const instructionWs = XLSX.utils.json_to_sheet(instructions);
+    instructionWs['!cols'] = [{ wch: 50 }];
+    XLSX.utils.book_append_sheet(wb, instructionWs, "Instructions");
+
+    // Generate filename with exam and class info
+    const filename = `${selectedExamData.title}_${className}_${courseName}_Template.xlsx`
+      .replace(/[^a-zA-Z0-9-_\.]/g, '_'); // Clean filename
+
+    // Download the file
+    XLSX.writeFile(wb, filename);
+    
+    toast({
+      title: "Student file downloaded",
+      description: `Excel file downloaded: ${filename}`,
+    });
+  };
+
   const handleSubmitGrades = async () => {
     if (!selectedExam || Object.keys(grades).length === 0) {
       toast({
@@ -708,7 +788,19 @@ export default function SubmitGrades() {
 
           {selectedExam && (
             <div className="mb-6">
-              <Label>Upload Grades (Excel File)</Label>
+              <div className="flex items-center justify-between mb-2">
+                <Label>Upload Grades (Excel File)</Label>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  className="gap-2" 
+                  onClick={downloadTemplate}
+                  disabled={isLoading || students.length === 0}
+                >
+                  <Download className="h-4 w-4" />
+                  Download Student File ({students.length} students)
+                </Button>
+              </div>
               <div className="flex items-center gap-4 mt-2">
                 <Button 
                   variant="outline" 
@@ -734,6 +826,9 @@ export default function SubmitGrades() {
                   </span>
                 )}
               </div>
+              <p className="text-sm text-muted-foreground mt-2">
+                Download student file with the exact {students.length} students shown below. Just add marks in the "Marks Obtained" column and upload back.
+              </p>
             </div>
           )}
 
