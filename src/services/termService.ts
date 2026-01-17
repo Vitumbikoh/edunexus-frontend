@@ -18,6 +18,11 @@ export interface Term {
   isCompleted?: boolean;
   academicCalendarId?: string;
   periodId?: string;
+  // Results publishing status
+  resultsPublished?: boolean;
+  resultsPublishedAt?: string | null;
+  inExamPeriod?: boolean;
+  examPeriodStartedAt?: string | null;
 }
 
 export interface TermResponse {
@@ -220,6 +225,21 @@ export const termService = {
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       throw new Error(errorData.message || 'Failed to publish results');
+    }
+  },
+
+  // Unpublish results for a term
+  unpublishResults: async (termId: string, token: string): Promise<void> => {
+    const response = await fetch(`${API_BASE}/settings/terms/${termId}/unpublish-results`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || 'Failed to unpublish results');
     }
   },
 };

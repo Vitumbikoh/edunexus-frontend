@@ -1221,7 +1221,7 @@ export default function StudentGrades() {
                 <h3 className="text-lg font-semibold">No Results Available</h3>
                 <p className="text-muted-foreground">
                   {selectedTerm 
-                    ? 'No exam results found for the selected term.' 
+                    ? 'Exam results for this term are not yet available. Please check back later or contact your teacher.' 
                     : 'Please select a term to view your exam results.'
                   }
                 </p>

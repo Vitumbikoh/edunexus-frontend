@@ -355,15 +355,58 @@ const ExamResults = () => {
       setPublishLoading(true);
       await termService.publishResults(publishTermId, token);
       setPublishedTerms((prev) => ({ ...prev, [publishTermId]: true }));
+      
+      // Update the term in the terms array to reflect the published status
+      setTerms(prevTerms => 
+        prevTerms.map(term => 
+          term.id === publishTermId 
+            ? { ...term, resultsPublished: true, resultsPublishedAt: new Date().toISOString() }
+            : term
+        )
+      );
+      
       toast({
         title: "Results Published",
-        description: "Exam results have been published for the selected academic year.",
+        description: "Exam results have been published for the selected term.",
       });
     } catch (e: unknown) {
       const error = e as { message?: string };
       toast({
         title: "Error",
         description: error.message || "Failed to publish results",
+        variant: "destructive",
+      });
+    } finally {
+      setPublishLoading(false);
+    }
+  };
+
+  // Global unpublish (independent of filters)
+  const handleUnpublishResults = async () => {
+    if (!publishTermId || !token) return;
+    try {
+      setPublishLoading(true);
+      await termService.unpublishResults(publishTermId, token);
+      setPublishedTerms((prev) => ({ ...prev, [publishTermId]: false }));
+      
+      // Update the term in the terms array to reflect the unpublished status
+      setTerms(prevTerms => 
+        prevTerms.map(term => 
+          term.id === publishTermId 
+            ? { ...term, resultsPublished: false, resultsPublishedAt: null }
+            : term
+        )
+      );
+      
+      toast({
+        title: "Results Unpublished",
+        description: "Exam results have been unpublished for the selected term.",
+      });
+    } catch (e: unknown) {
+      const error = e as { message?: string };
+      toast({
+        title: "Error",
+        description: error.message || "Failed to unpublish results",
         variant: "destructive",
       });
     } finally {
@@ -1269,33 +1312,89 @@ const ExamResults = () => {
         <CardHeader>
           <CardTitle className="text-base">Global Exam Results Publishing</CardTitle>
         </CardHeader>
-        <CardContent className="flex flex-col md:flex-row gap-4 md:items-end">
-          <div className="flex-1 space-y-2">
-            <label className="text-sm font-medium">Term</label>
-            <Select value={publishTermId} onValueChange={setPublishTermId}>
-              <SelectTrigger className="w-full md:w-[240px]">
-                <SelectValue placeholder="Select term" />
-              </SelectTrigger>
-              <SelectContent>
-                {terms.map((t) => (
-                  <SelectItem key={t.id} value={t.id}>
-                    {formatTerm(t)} {(t.isActive || t.isCurrent || (t as { current?: boolean }).current) && "(Current)"}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+        <CardContent className="space-y-4">
+          <div className="flex flex-col md:flex-row gap-4 md:items-end">
+            <div className="flex-1 space-y-2">
+              <label className="text-sm font-medium">Term</label>
+              <Select value={publishTermId} onValueChange={setPublishTermId}>
+                <SelectTrigger className="w-full md:w-[240px]">
+                  <SelectValue placeholder="Select term" />
+                </SelectTrigger>
+                <SelectContent>
+                  {terms.map((t) => (
+                    <SelectItem key={t.id} value={t.id}>
+                      <div className="flex items-center justify-between w-full">
+                        <span>
+                          {formatTerm(t)} {(t.isActive || t.isCurrent || (t as { current?: boolean }).current) && "(Current)"}
+                        </span>
+                        {t.resultsPublished && (
+                          <Badge variant="secondary" className="ml-2 text-xs">
+                            Published
+                          </Badge>
+                        )}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            {/* Current status display */}
+            {publishTermId && (
+              <div className="flex flex-col gap-1">
+                <span className="text-sm font-medium">Current Status:</span>
+                {(() => {
+                  const selectedTerm = terms.find(t => t.id === publishTermId);
+                  const isPublished = selectedTerm?.resultsPublished || publishedTerms[publishTermId];
+                  return (
+                    <Badge variant={isPublished ? "default" : "secondary"} className="w-fit">
+                      {isPublished ? "Published" : "Not Published"}
+                    </Badge>
+                  );
+                })()}
+              </div>
+            )}
           </div>
-          <Button
-            variant="outline"
-            onClick={handlePublishResults}
-            disabled={!publishTermId || publishLoading || publishedTerms[publishTermId]}
-          >
-            {publishLoading
-              ? "Publishing..."
-              : publishedTerms[publishTermId]
-              ? "Results Published"
-              : "Publish Results"}
-          </Button>
+          
+          {/* Action buttons */}
+          {publishTermId && (
+            <div className="flex gap-3">
+              {(() => {
+                const selectedTerm = terms.find(t => t.id === publishTermId);
+                const isPublished = selectedTerm?.resultsPublished || publishedTerms[publishTermId];
+                
+                return isPublished ? (
+                  <Button
+                    variant="destructive"
+                    onClick={handleUnpublishResults}
+                    disabled={publishLoading}
+                  >
+                    {publishLoading ? "Unpublishing..." : "Unpublish Results"}
+                  </Button>
+                ) : (
+                  <Button
+                    variant="default"
+                    onClick={handlePublishResults}
+                    disabled={publishLoading}
+                  >
+                    {publishLoading ? "Publishing..." : "Publish Results"}
+                  </Button>
+                );
+              })()}
+              
+              {publishTermId && (() => {
+                const selectedTerm = terms.find(t => t.id === publishTermId);
+                if (selectedTerm?.resultsPublishedAt) {
+                  return (
+                    <div className="text-sm text-muted-foreground self-center">
+                      Published on: {new Date(selectedTerm.resultsPublishedAt).toLocaleDateString()}
+                    </div>
+                  );
+                }
+                return null;
+              })()}
+            </div>
+          )}
         </CardContent>
       </Card>
 
