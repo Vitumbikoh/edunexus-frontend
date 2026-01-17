@@ -82,6 +82,7 @@ import Reports from "./pages/Reports/Reports";
 import ExamDetails from "./pages/courses/ExamDetails";
 import CourseView from "./pages/courses/CourseView";
 import ExamResults from "./pages/courses/ExamResults";
+import StudentProgression from "./pages/exams/StudentProgression";
 import Activities from "./pages/activities/Activities";
 import ActivityDetail from "./pages/activities/ActivityDetail";
 import LibraryCatalog from "./pages/library/LibraryCatalog";
@@ -517,6 +518,19 @@ const AppRoutes = () => {
             <AdminRoute>
               <Layout>
                 <ExamResults />
+              </Layout>
+            </AdminRoute>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/exams/student-progression"
+        element={
+          <ProtectedRoute>
+            <AdminRoute>
+              <Layout>
+                <StudentProgression />
               </Layout>
             </AdminRoute>
           </ProtectedRoute>
