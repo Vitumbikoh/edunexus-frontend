@@ -26,6 +26,7 @@ import {
   SubjectBreakdownChart 
 } from '@/components/charts/MobileCharts';
 import { ExamResultService } from '@/services/examResultService';
+import { API_CONFIG } from '@/config/api';
 
 interface MobileStudentDashboardCardsProps {
   className?: string;
@@ -65,87 +66,108 @@ const MobileStudentDashboardCards: React.FC<MobileStudentDashboardCardsProps> = 
   const [loading, setLoading] = useState(true);
   const [performanceData, setPerformanceData] = useState<PerformanceData[]>([]);
   const [averageGrade, setAverageGrade] = useState<number | null>(null);
+  const [attendanceRate, setAttendanceRate] = useState<number | null>(null);
+  const [studentRank, setStudentRank] = useState<string>('—');
+  const [coursesCount, setCoursesCount] = useState<number>(0);
+  const [upcomingItems, setUpcomingItems] = useState<UpcomingItem[]>([]);
 
-  // Mock data for demonstration - replace with real API calls
+  // Fetch real student data from APIs
+  useEffect(() => {
+    const fetchStudentData = async () => {
+      if (!token || !user?.id) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+
+        // Fetch exam results for grades
+        const examResults = await ExamResultService.getStudentResults('me', token);
+        if (examResults && examResults.results) {
+          const grades = examResults.results.map(result => ({
+            course: result.courseName,
+            grade: result.finalPercentage,
+            percentage: result.finalPercentage,
+            status: result.finalPercentage >= 90 ? 'excellent' as const :
+                    result.finalPercentage >= 80 ? 'good' as const :
+                    result.finalPercentage >= 70 ? 'average' as const : 'needs-improvement' as const
+          }));
+          setPerformanceData(grades);
+          const avg = grades.length > 0 ? grades.reduce((sum, item) => sum + item.percentage, 0) / grades.length : 0;
+          setAverageGrade(avg);
+        }
+
+        // Fetch student courses
+        const coursesResponse = await fetch(`${API_CONFIG.BASE_URL}/student/${user.id}/courses`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (coursesResponse.ok) {
+          const coursesData = await coursesResponse.json();
+          const totalCourses = (coursesData.courses?.active?.length || 0) + 
+                              (coursesData.courses?.upcoming?.length || 0) + 
+                              (coursesData.courses?.completed?.length || 0);
+          setCoursesCount(totalCourses);
+        }
+
+        // Fetch attendance data
+        try {
+          const attendanceResponse = await fetch(`${API_CONFIG.BASE_URL}/student/attendance-rate`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (attendanceResponse.ok) {
+            const attendanceData = await attendanceResponse.json();
+            setAttendanceRate(attendanceData.attendanceRate || 0);
+          }
+        } catch (e) {
+          console.log('Attendance data not available');
+        }
+
+        // For now, we'll keep rank as placeholder since it requires class comparison
+        setStudentRank('—');
+        
+        // Set empty upcoming items for now (can be enhanced with real data)
+        setUpcomingItems([]);
+
+      } catch (error) {
+        console.error('Error fetching student data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchStudentData();
+  }, [token, user?.id]);
+
+  // Dynamic quick stats based on real data
   const quickStats: QuickStat[] = [
     {
       label: 'Overall Grade',
       value: averageGrade ? `${averageGrade.toFixed(1)}%` : '—',
       icon: BarChart3,
       color: 'text-blue-600',
-      trend: 'up',
-      trendValue: '+2.5%'
+      trend: 'stable'
     },
     {
       label: 'Courses',
-      value: performanceData.length,
+      value: coursesCount,
       icon: BookOpen,
       color: 'text-green-600'
     },
     {
       label: 'Attendance',
-      value: '92%',
+      value: attendanceRate ? `${attendanceRate.toFixed(0)}%` : '—',
       icon: CheckCircle,
       color: 'text-emerald-600',
       trend: 'stable'
     },
     {
       label: 'Rank',
-      value: '12th',
+      value: studentRank,
       icon: Award,
-      color: 'text-purple-600',
-      trend: 'up',
-      trendValue: '+3'
+      color: 'text-purple-600'
     }
   ];
-
-  const upcomingItems: UpcomingItem[] = [
-    {
-      id: '1',
-      title: 'Mathematics Exam',
-      type: 'exam',
-      date: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000),
-      course: 'Mathematics',
-      priority: 'high'
-    },
-    {
-      id: '2',
-      title: 'Physics Assignment',
-      type: 'assignment',
-      date: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000),
-      course: 'Physics',
-      priority: 'medium'
-    },
-    {
-      id: '3',
-      title: 'Chemistry Lab',
-      type: 'class',
-      date: new Date(Date.now() + 4 * 60 * 60 * 1000),
-      course: 'Chemistry',
-      priority: 'low'
-    }
-  ];
-
-  useEffect(() => {
-    // Simulate loading time and fetch real data
-    const timer = setTimeout(() => {
-      // Mock performance data
-      const mockData: PerformanceData[] = [
-        { course: 'Mathematics', grade: 85, percentage: 85, status: 'good' },
-        { course: 'Physics', grade: 78, percentage: 78, status: 'average' },
-        { course: 'Chemistry', grade: 92, percentage: 92, status: 'excellent' },
-        { course: 'Biology', grade: 88, percentage: 88, status: 'good' },
-        { course: 'English', grade: 75, percentage: 75, status: 'average' }
-      ];
-      
-      setPerformanceData(mockData);
-      const avg = mockData.reduce((sum, item) => sum + item.percentage, 0) / mockData.length;
-      setAverageGrade(avg);
-      setLoading(false);
-    }, 1000);
-
-    return () => clearTimeout(timer);
-  }, []);
 
   const getStatusColor = (status: PerformanceData['status']) => {
     switch (status) {
@@ -266,26 +288,33 @@ const MobileStudentDashboardCards: React.FC<MobileStudentDashboardCardsProps> = 
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {performanceData.slice(0, 3).map((course, index) => (
-            <div key={index} className="space-y-2">
-              <div className="flex items-center justify-between">
-                <div className="font-medium text-gray-900 dark:text-white">
-                  {course.course}
+          {performanceData.length > 0 ? (
+            performanceData.slice(0, 3).map((course, index) => (
+              <div key={index} className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="font-medium text-gray-900 dark:text-white">
+                    {course.course}
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Badge 
+                      className={cn("text-xs px-2 py-1", getStatusColor(course.status))}
+                    >
+                      {course.grade}%
+                    </Badge>
+                  </div>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <Badge 
-                    className={cn("text-xs px-2 py-1", getStatusColor(course.status))}
-                  >
-                    {course.grade}%
-                  </Badge>
-                </div>
+                <Progress 
+                  value={course.percentage} 
+                  className="h-2"
+                />
               </div>
-              <Progress 
-                value={course.percentage} 
-                className="h-2"
-              />
+            ))
+          ) : (
+            <div className="text-center py-8 text-gray-500">
+              <BarChart3 className="h-12 w-12 mx-auto mb-2 opacity-50" />
+              <p className="text-sm">No exam results available</p>
             </div>
-          ))}
+          )}
         </CardContent>
       </Card>
 
@@ -309,32 +338,39 @@ const MobileStudentDashboardCards: React.FC<MobileStudentDashboardCardsProps> = 
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          {upcomingItems.map((item) => {
-            const TypeIcon = getTypeIcon(item.type);
-            return (
-              <div key={item.id} className="flex items-center space-x-3 p-3 rounded-lg bg-gray-50 dark:bg-gray-800">
-                <div className={cn("p-2 rounded-lg", getPriorityColor(item.priority))}>
-                  <TypeIcon className="h-4 w-4" />
+          {upcomingItems.length > 0 ? (
+            upcomingItems.map((item) => {
+              const TypeIcon = getTypeIcon(item.type);
+              return (
+                <div key={item.id} className="flex items-center space-x-3 p-3 rounded-lg bg-gray-50 dark:bg-gray-800">
+                  <div className={cn("p-2 rounded-lg", getPriorityColor(item.priority))}>
+                    <TypeIcon className="h-4 w-4" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium text-gray-900 dark:text-white truncate">
+                      {item.title}
+                    </div>
+                    <div className="text-sm text-gray-500 dark:text-gray-400">
+                      {item.course}
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                      {formatTimeUntil(item.date)}
+                    </div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400">
+                      {item.date.toLocaleDateString()}
+                    </div>
+                  </div>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <div className="font-medium text-gray-900 dark:text-white truncate">
-                    {item.title}
-                  </div>
-                  <div className="text-sm text-gray-500 dark:text-gray-400">
-                    {item.course}
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    {formatTimeUntil(item.date)}
-                  </div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400">
-                    {item.date.toLocaleDateString()}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+              );
+            })
+          ) : (
+            <div className="text-center py-8 text-gray-500">
+              <Calendar className="h-12 w-12 mx-auto mb-2 opacity-50" />
+              <p className="text-sm">No upcoming items</p>
+            </div>
+          )}
         </CardContent>
       </Card>
 

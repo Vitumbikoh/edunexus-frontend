@@ -109,7 +109,7 @@ export default function MobileStudentLayout({ children }: MobileStudentLayoutPro
   if (!user) return null;
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 mobile-student-layout">
       {/* Mobile Header */}
       <header className="sticky top-0 z-50 w-full border-b bg-white dark:bg-gray-800 shadow-sm">
         <div className="flex h-16 items-center justify-between px-4">
@@ -159,7 +159,7 @@ export default function MobileStudentLayout({ children }: MobileStudentLayoutPro
 
                   {/* Navigation */}
                   <div className="flex-1 overflow-y-auto py-4">
-                    <nav className="space-y-3 px-4">
+                    <nav className="space-y-3 px-4 mobile-student-nav">
                       {studentNavItems.map((item) => {
                         const Icon = item.icon;
                         const isActive = isActivePath(item.href);
@@ -170,11 +170,12 @@ export default function MobileStudentLayout({ children }: MobileStudentLayoutPro
                             to={item.href}
                             onClick={() => setIsMenuOpen(false)}
                             className={cn(
-                              "flex items-center space-x-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors",
+                              "flex items-center space-x-3 rounded-lg px-3 py-3 text-sm font-medium",
                               isActive
                                 ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
-                                : "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
+                                : "text-gray-700 dark:text-gray-300"
                             )}
+                            style={{ transition: 'none' }}
                           >
                             <Icon className={cn(
                               "h-5 w-5 shrink-0",
@@ -280,7 +281,7 @@ export default function MobileStudentLayout({ children }: MobileStudentLayoutPro
                 key={item.href}
                 to={item.href}
                 className={cn(
-                  "flex flex-col items-center justify-center py-2 px-1 text-xs transition-colors",
+                  "flex flex-col items-center justify-center py-2 px-1 text-xs",
                   isActive
                     ? "text-blue-600 dark:text-blue-400"
                     : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"

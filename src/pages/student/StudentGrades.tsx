@@ -28,6 +28,7 @@ export default function StudentGrades() {
   const [studentProfile, setStudentProfile] = useState<any>(null);
   const [fetchingTerm, setFetchingTerm] = useState<string | null>(null); // Track which term is being fetched
   const [schoolSettings, setSchoolSettings] = useState<SchoolSettings | null>(null);
+  const [activeAcademicYear, setActiveAcademicYear] = useState<string | null>(null); // Store the active academic year from backend
 
   // Add debugging to state changes
   const setExamResultsWithDebug = (results: any[]) => {
@@ -107,7 +108,7 @@ export default function StudentGrades() {
         console.log('Starting to fetch terms and profile data...');
         
         let termsToUse: Term[] = [];
-        let activeAcademicYear = '2022-2023'; // Default fallback
+        let fetchedAcademicYear: string | null = null; // No default fallback
 
         // First, try to get the active academic calendar to determine the correct year
         try {
@@ -117,12 +118,26 @@ export default function StudentGrades() {
           if (activeCalendarResponse.ok) {
             const activeCalendar = await activeCalendarResponse.json();
             if (activeCalendar?.term) {
-              activeAcademicYear = activeCalendar.term;
-              console.log('Got active academic calendar:', activeAcademicYear);
+              fetchedAcademicYear = activeCalendar.term;
+              setActiveAcademicYear(fetchedAcademicYear); // Store in state
+              console.log('Got active academic calendar:', fetchedAcademicYear);
+            } else {
+              console.log('No active academic calendar found for your school');
+              setError('No active academic calendar found. Please contact your school administrator.');
+              setIsLoading(false);
+              return;
             }
+          } else {
+            console.log('Failed to fetch active academic calendar - response not ok');
+            setError('Unable to load academic calendar. Please try again later.');
+            setIsLoading(false);
+            return;
           }
         } catch (calendarErr) {
-          console.log('Could not fetch active academic calendar, using default:', calendarErr);
+          console.log('Could not fetch active academic calendar:', calendarErr);
+          setError('Unable to connect to server. Please check your internet connection and try again.');
+          setIsLoading(false);
+          return;
         }
 
         // Try to get real terms from backend
@@ -178,10 +193,18 @@ export default function StudentGrades() {
           }
         }
 
-        // If still no real terms, generate standard academic terms for the year
+        // If still no real terms, but we have a valid academic year, generate standard academic terms
+        if (termsToUse.length === 0 && fetchedAcademicYear) {
+          termsToUse = generateStandardTerms(fetchedAcademicYear);
+          console.log('Generated standard terms for academic year:', fetchedAcademicYear, termsToUse);
+        }
+
+        // If we still have no terms, show an error
         if (termsToUse.length === 0) {
-          termsToUse = generateStandardTerms(activeAcademicYear);
-          console.log('Generated standard terms for academic year:', activeAcademicYear, termsToUse);
+          console.log('No terms available - no active academic calendar or terms found');
+          setError('No academic terms found. Please contact your school administrator.');
+          setIsLoading(false);
+          return;
         }
 
         // Remove any potential duplicates before setting terms
@@ -545,7 +568,7 @@ export default function StudentGrades() {
         firstName: String(studentProfile?.firstName || user?.firstName || 'Student'),
         lastName: String(studentProfile?.lastName || user?.lastName || ''),
         className: String(studentProfile?.className || 'Form One'),
-        academicYear: currentTerm?.name?.includes('(') ? currentTerm.name.match(/\(([^)]+)\)/)?.[1] || '2022-2023' : '2022-2023',
+        academicYear: activeAcademicYear || currentTerm?.name?.includes('(') ? currentTerm.name.match(/\(([^)]+)\)/)?.[1] || 'Unknown' : 'Unknown',
         term: currentTerm?.name || `Term ${currentTerm?.termNumber || 1}`,
       };
 
@@ -558,11 +581,16 @@ export default function StudentGrades() {
       console.error('Failed to transform results:', e);
       return null;
     }
-  }, [examResults, selectedTerm, terms, user, studentProfile]);
+  }, [examResults, selectedTerm, terms, user, studentProfile, activeAcademicYear]);
 
   const generateStandardTerms = (academicYear?: string): Term[] => {
-    // Use the provided academic year or fall back to 2022-2023 to match system
-    const yearToUse = academicYear || '2022-2023';
+    // Use the provided academic year from the active calendar
+    if (!academicYear) {
+      console.error('No academic year provided to generateStandardTerms');
+      return [];
+    }
+    
+    const yearToUse = academicYear;
     const [startYear] = yearToUse.split('-').map(y => parseInt(y));
     
     return [
@@ -700,7 +728,7 @@ export default function StudentGrades() {
     // Get current term information
     const currentTerm = terms.find(t => t.id === selectedTerm);
     const termName = currentTerm?.name || "Unknown Term";
-    const academicYear = "2022-2023"; // You can make this dynamic if needed
+    const academicYear = activeAcademicYear || transformedResults.student.academicYear || "Unknown"; // Use dynamic academic year
 
     const reportHTML = `
       <!DOCTYPE html>
@@ -1142,7 +1170,7 @@ export default function StudentGrades() {
         <div>
           <h1 className="text-2xl font-bold text-foreground">Exam Results</h1>
           <p className="text-muted-foreground">
-            Official academic performance report • Academic Year: 2022-2023
+            Official academic performance report • Academic Year: {activeAcademicYear || 'Loading...'}
           </p>
         </div>
         
