@@ -266,6 +266,7 @@ export default function Students() {
               ))
             ) : (
               [...classes]
+                .filter(classItem => classItem.name !== 'Graduated') // Exclude Graduated class from breakdown
                 .sort((a, b) => {
                   // Extract form number from class name (e.g., "Form One" -> 1, "Form Two" -> 2)
                   const getFormNumber = (name: string) => {
