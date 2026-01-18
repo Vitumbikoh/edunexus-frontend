@@ -27,6 +27,38 @@ type FinancialReportResponse = {
   filters?: any;
 };
 
+type TermBasedReportResponse = {
+  success: boolean;
+  currentTerm: {
+    termId: string;
+    termName: string;
+    startDate: string;
+    endDate: string;
+    revenue: number;
+    expenses: number;
+    profit: number;
+    profitMargin: number;
+  } | null;
+  previousTerms: Array<{
+    termId: string;
+    termName: string;
+    startDate: string;
+    endDate: string;
+    revenue: number;
+    expenses: number;
+    profit: number;
+    profitMargin: number;
+  }>;
+  cumulative: {
+    totalRevenue: number;
+    totalExpenses: number;
+    totalProfit: number;
+    totalProfitMargin: number;
+    broughtForward: number;
+  };
+  carryForwardBalance: number;
+};
+
 export default function FinanceReports() {
   const { toast } = useToast();
   const { token } = useAuth();
@@ -44,6 +76,8 @@ export default function FinanceReports() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<FinancialReportResponse | null>(null);
+  const [termBasedData, setTermBasedData] = useState<TermBasedReportResponse | null>(null);
+  const [showCarryForward, setShowCarryForward] = useState(true);
 
   // Currency utilities (no FX conversion yet; formatting only)
   const currencySymbol = useMemo(() => {
@@ -94,6 +128,28 @@ export default function FinanceReports() {
     };
     fetchReport();
   }, [token, dateRange, computedRange.start?.toISOString(), computedRange.end?.toISOString()]);
+
+  // Fetch term-based report with carry-forward balances
+  const fetchTermBasedReport = async () => {
+    if (!token) return;
+    try {
+      const res = await fetch(`${API_CONFIG.BASE_URL}/finance/reports/term-based?includeCarryForward=${showCarryForward}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (!res.ok) throw new Error(`Failed: ${res.status}`);
+      const json = await res.json();
+      setTermBasedData(json as TermBasedReportResponse);
+    } catch (e: any) {
+      console.error('Failed to load term-based report:', e);
+      // Don't set main error state, just log it
+    }
+  };
+
+  useEffect(() => {
+    fetchTermBasedReport();
+  }, [token, showCarryForward]);
 
   const handleExportReport = () => {
     if (!data) return;
@@ -462,6 +518,173 @@ export default function FinanceReports() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Carry-Forward Balance Section */}
+      {termBasedData && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center justify-between">
+              <span className="flex items-center">
+                <TrendingUp className="h-5 w-5 mr-2" />
+                Term-Based Financial Analysis
+              </span>
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="showCarryForward"
+                  checked={showCarryForward}
+                  onChange={(e) => setShowCarryForward(e.target.checked)}
+                  className="rounded"
+                />
+                <label htmlFor="showCarryForward" className="text-sm">Include Carry-Forward</label>
+              </div>
+            </CardTitle>
+            <CardDescription>
+              Financial performance by academic terms with cumulative tracking and brought-forward balances
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-6">
+              {/* Current Term */}
+              {termBasedData.currentTerm && (
+                <div>
+                  <h4 className="text-lg font-semibold mb-3">Current Term Performance</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <Card className="border-blue-200">
+                      <CardContent className="p-4">
+                        <div className="text-sm text-muted-foreground">Term</div>
+                        <div className="font-semibold">{termBasedData.currentTerm.termName}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {new Date(termBasedData.currentTerm.startDate).toLocaleDateString()} - {new Date(termBasedData.currentTerm.endDate).toLocaleDateString()}
+                        </div>
+                      </CardContent>
+                    </Card>
+                    <Card className="border-green-200">
+                      <CardContent className="p-4">
+                        <div className="text-sm text-muted-foreground">Revenue</div>
+                        <div className="text-lg font-bold text-green-600">{currencySymbol}{termBasedData.currentTerm.revenue.toLocaleString()}</div>
+                      </CardContent>
+                    </Card>
+                    <Card className="border-red-200">
+                      <CardContent className="p-4">
+                        <div className="text-sm text-muted-foreground">Expenses</div>
+                        <div className="text-lg font-bold text-red-600">{currencySymbol}{termBasedData.currentTerm.expenses.toLocaleString()}</div>
+                      </CardContent>
+                    </Card>
+                    <Card className="border-blue-200">
+                      <CardContent className="p-4">
+                        <div className="text-sm text-muted-foreground">Profit</div>
+                        <div className={`text-lg font-bold ${termBasedData.currentTerm.profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          {currencySymbol}{termBasedData.currentTerm.profit.toLocaleString()}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {termBasedData.currentTerm.profitMargin.toFixed(1)}% margin
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </div>
+              )}
+
+              {/* Cumulative Performance */}
+              <div>
+                <h4 className="text-lg font-semibold mb-3">Cumulative Performance</h4>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <Card className="border-purple-200 bg-purple-50">
+                    <CardContent className="p-4">
+                      <div className="text-sm text-muted-foreground">Brought Forward</div>
+                      <div className={`text-lg font-bold ${termBasedData.cumulative.broughtForward >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {currencySymbol}{termBasedData.cumulative.broughtForward.toLocaleString()}
+                      </div>
+                      <div className="text-xs text-muted-foreground">From previous terms</div>
+                    </CardContent>
+                  </Card>
+                  <Card className="border-green-200">
+                    <CardContent className="p-4">
+                      <div className="text-sm text-muted-foreground">Total Revenue</div>
+                      <div className="text-lg font-bold text-green-600">{currencySymbol}{termBasedData.cumulative.totalRevenue.toLocaleString()}</div>
+                    </CardContent>
+                  </Card>
+                  <Card className="border-red-200">
+                    <CardContent className="p-4">
+                      <div className="text-sm text-muted-foreground">Total Expenses</div>
+                      <div className="text-lg font-bold text-red-600">{currencySymbol}{termBasedData.cumulative.totalExpenses.toLocaleString()}</div>
+                    </CardContent>
+                  </Card>
+                  <Card className="border-blue-200 bg-blue-50">
+                    <CardContent className="p-4">
+                      <div className="text-sm text-muted-foreground">Cumulative Profit</div>
+                      <div className={`text-lg font-bold ${termBasedData.cumulative.totalProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {currencySymbol}{termBasedData.cumulative.totalProfit.toLocaleString()}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {termBasedData.cumulative.totalProfitMargin.toFixed(1)}% margin
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
+
+              {/* Carry-Forward Balance */}
+              <div>
+                <h4 className="text-lg font-semibold mb-3">Carry-Forward Balance</h4>
+                <Card className="border-orange-200 bg-orange-50">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="text-sm text-muted-foreground">Balance to be carried forward</div>
+                        <div className={`text-2xl font-bold ${termBasedData.carryForwardBalance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          {currencySymbol}{termBasedData.carryForwardBalance.toLocaleString()}
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-1">
+                          This balance will be brought forward to the next academic term
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-sm text-muted-foreground">Status</div>
+                        <Badge variant={termBasedData.carryForwardBalance >= 0 ? "default" : "destructive"}>
+                          {termBasedData.carryForwardBalance >= 0 ? "Surplus" : "Deficit"}
+                        </Badge>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Previous Terms Summary */}
+              {termBasedData.previousTerms.length > 0 && (
+                <div>
+                  <h4 className="text-lg font-semibold mb-3">Previous Terms Summary</h4>
+                  <div className="space-y-2">
+                    {termBasedData.previousTerms.map((term) => (
+                      <Card key={term.termId} className="border-gray-200">
+                        <CardContent className="p-4">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <div className="font-medium">{term.termName}</div>
+                              <div className="text-sm text-muted-foreground">
+                                {new Date(term.startDate).toLocaleDateString()} - {new Date(term.endDate).toLocaleDateString()}
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <div className={`font-semibold ${term.profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                {currencySymbol}{term.profit.toLocaleString()}
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                {term.profitMargin.toFixed(1)}% margin
+                              </div>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

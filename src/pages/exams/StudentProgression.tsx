@@ -8,6 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { 
@@ -21,7 +22,8 @@ import {
   Eye,
   Play,
   BookOpen,
-  Calendar
+  Calendar,
+  Undo
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { API_CONFIG } from '@/config/api';
@@ -53,9 +55,12 @@ interface ProgressionApiResponse {
   success: boolean;
   message: string;
   isProgressionPeriod: boolean;
+  progressionPeriod?: string;
+  term?: string;
   currentTerm?: string;
   progressionMode?: string;
   passThreshold?: number;
+  executed?: boolean;
   statistics?: ProgressionStatistics;
   breakdown?: {
     byClass: ClassBreakdown[];
@@ -264,7 +269,7 @@ export default function StudentProgression() {
       
       toast({
         title: "Success",
-        description: `Student progression completed successfully. ${result.promoted || 0} students promoted, ${result.graduated || 0} students graduated.`,
+        description: `Student progression completed successfully for ${result.progressionPeriod} (${result.term}). ${result.promoted || 0} students promoted, ${result.graduated || 0} students graduated.`,
       });
 
       // Refresh preview after execution
@@ -275,6 +280,53 @@ export default function StudentProgression() {
         variant: "destructive",
         title: "Error",
         description: "Failed to execute progression. Please try again.",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Revert student progression
+  const revertProgression = async () => {
+    // Show confirmation dialog
+    const confirmed = window.confirm(
+      'Are you sure you want to revert student progression? This will move all students back to their previous classes and cannot be undone.'
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const response = await fetch(`${API_CONFIG.BASE_URL}/settings/student-promotion/revert`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to revert progression');
+      }
+
+      const result = await response.json();
+
+      toast({
+        title: "Success",
+        description: `Student progression reverted successfully. ${result.reverted || 0} students moved back to previous classes.`,
+      });
+
+      // Refresh preview after revert
+      await fetchProgressionPreview();
+    } catch (error) {
+      console.error('Error reverting progression:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message || "Failed to revert progression. Please try again.",
       });
     } finally {
       setLoading(false);
@@ -312,11 +364,38 @@ export default function StudentProgression() {
           </Button>
           <Button 
             onClick={executeProgression} 
-            disabled={loading || !progressionData?.isProgressionPeriod}
+            disabled={loading || !progressionData?.isProgressionPeriod || progressionData?.executed}
           >
             <Play className="mr-2 h-4 w-4" />
-            Execute Progression
+            {progressionData?.executed ? 'Progression Already Executed' : 'Execute Progression'}
           </Button>
+          {progressionData?.executed && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button 
+                  variant="destructive"
+                  disabled={loading}
+                >
+                  <Undo className="mr-2 h-4 w-4" />
+                  Revert Progression
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Are you sure you want to revert student progression?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This action will move all students back to their previous classes and undo all promotions and graduations that occurred during this progression execution. This action cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={revertProgression} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                    Revert Progression
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
         </div>
       </div>
 
@@ -338,9 +417,9 @@ export default function StudentProgression() {
                     {progressionData.currentTerm}
                   </Badge>
                 )}
-                {progressionData?.progressionMode && (
-                  <Badge variant={progressionData.progressionMode === 'automatic' ? 'secondary' : 'default'} className="ml-1">
-                    {progressionData.progressionMode === 'automatic' ? 'Automatic' : 'Exam-Based'}
+                {progressionData?.progressionPeriod && (
+                  <Badge variant="secondary" className="ml-1">
+                    {progressionData.progressionPeriod}
                   </Badge>
                 )}
               </CardTitle>
@@ -367,13 +446,42 @@ export default function StudentProgression() {
                 </div>
               ) : !progressionData || !progressionData.isProgressionPeriod ? (
                 <Alert>
-                  <Calendar className="h-4 w-4" />
-                  <AlertTitle>Progression Not Available</AlertTitle>
+                  {progressionData?.executed ? (
+                    <CheckCircle className="h-4 w-4" />
+                  ) : (
+                    <Calendar className="h-4 w-4" />
+                  )}
+                  <AlertTitle>
+                    {progressionData?.executed ? 'Progression Already Completed' : 'Progression Not Available'}
+                  </AlertTitle>
                   <AlertDescription>
-                    {progressionData?.message || "Student progression is only available during Term 3 (end of academic year)."}
-                    {progressionData?.currentTerm && (
-                      <span className="block mt-2">
-                        Current term: <strong>{progressionData.currentTerm}</strong>
+                    {progressionData?.executed ? (
+                      <span>
+                        Student progression has already been executed for this academic year.
+                        {progressionData?.progressionPeriod && (
+                          <span className="block mt-2">
+                            Executed during: <strong>{progressionData.progressionPeriod}</strong>
+                          </span>
+                        )}
+                        {progressionData?.term && (
+                          <span className="block">
+                            Term: <strong>{progressionData.term}</strong>
+                          </span>
+                        )}
+                      </span>
+                    ) : (
+                      <span>
+                        {progressionData?.message || "Student progression is only available during Term 3 or Term 3 holiday."}
+                        {progressionData?.progressionPeriod && (
+                          <span className="block mt-2">
+                            Period: <strong>{progressionData.progressionPeriod}</strong>
+                          </span>
+                        )}
+                        {progressionData?.term && (
+                          <span className="block">
+                            Term: <strong>{progressionData.term}</strong>
+                          </span>
+                        )}
                       </span>
                     )}
                   </AlertDescription>
