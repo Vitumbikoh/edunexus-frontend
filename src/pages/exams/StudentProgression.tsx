@@ -121,24 +121,44 @@ export default function StudentProgression() {
     }
   }, [token, user, navigate]);
 
-  // Fetch school settings including pass threshold
+  // Fetch school settings including pass threshold and progression mode
   const fetchSchoolSettings = async () => {
     try {
-      const response = await fetch(`${API_CONFIG.BASE_URL}/aggregation/default-schemes`, {
+      // Fetch progression settings
+      const progressionResponse = await fetch(`${API_CONFIG.BASE_URL}/settings/progression-settings`, {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        const schemes = Array.isArray(data) ? data : [];
-        if (schemes.length > 0) {
-          const scheme = schemes[0]; // There should only be one default scheme
+      if (progressionResponse.ok) {
+        const progressionData = await progressionResponse.json();
+        if (progressionData.success && progressionData.settings) {
           setSchoolSettings(prev => ({
             ...prev,
-            passThreshold: scheme.passThreshold || 50
+            progressionMode: progressionData.settings.progressionMode || 'automatic',
+            passThreshold: progressionData.settings.passThreshold || 50
+          }));
+        }
+      }
+
+      // Fetch default schemes for additional settings if needed
+      const schemesResponse = await fetch(`${API_CONFIG.BASE_URL}/aggregation/default-schemes`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (schemesResponse.ok) {
+        const schemesData = await schemesResponse.json();
+        const schemes = Array.isArray(schemesData) ? schemesData : [];
+        if (schemes.length > 0) {
+          const scheme = schemes[0];
+          setSchoolSettings(prev => ({
+            ...prev,
+            passThreshold: scheme.passThreshold || prev.passThreshold
           }));
         }
       }
@@ -148,7 +168,7 @@ export default function StudentProgression() {
   };
 
   // Save progression settings
-  const saveProgressionSettings = async () => {
+  const saveProgressionSettings = async (progressionMode: 'automatic' | 'exam_based') => {
     try {
       setLoading(true);
       const response = await fetch(`${API_CONFIG.BASE_URL}/settings/progression-settings`, {
@@ -157,14 +177,20 @@ export default function StudentProgression() {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(schoolSettings),
+        body: JSON.stringify({ progressionMode }),
       });
 
       if (response.ok) {
+        setSchoolSettings(prev => ({
+          ...prev,
+          progressionMode
+        }));
         toast({
           title: "Success",
-          description: "Progression settings saved successfully.",
+          description: `Progression mode set to ${progressionMode === 'automatic' ? 'Automatic' : 'Exam-Based'}.`,
         });
+        // Refresh preview data to reflect new settings
+        fetchProgressionPreview();
       } else {
         throw new Error('Failed to save settings');
       }
@@ -378,7 +404,7 @@ export default function StudentProgression() {
                             <p className="text-2xl font-bold">
                               {progressionData.statistics?.promote || 0}
                             </p>
-                            <p className="text-xs text-muted-foreground">
+                            <p className="text-xs text-green-600">
                               ({progressionData.statistics?.percentages.promote || 0}%)
                             </p>
                           </div>
@@ -394,7 +420,7 @@ export default function StudentProgression() {
                             <p className="text-2xl font-bold">
                               {progressionData.statistics?.graduate || 0}
                             </p>
-                            <p className="text-xs text-muted-foreground">
+                            <p className="text-xs text-green-600">
                               ({progressionData.statistics?.percentages.graduate || 0}%)
                             </p>
                           </div>
@@ -449,7 +475,7 @@ export default function StudentProgression() {
                                 <TableCell>
                                   <div className="flex items-center gap-2">
                                     <span className="font-medium">{classData.promote}</span>
-                                    <Badge variant="secondary" className="text-xs">
+                                    <Badge variant="secondary" className="text-xs bg-green-100 text-green-800 border-green-200">
                                       {classData.total > 0 ? Math.round((classData.promote / classData.total) * 100) : 0}%
                                     </Badge>
                                   </div>
@@ -458,7 +484,7 @@ export default function StudentProgression() {
                                   <div className="flex items-center gap-2">
                                     <span className="font-medium">{classData.graduate}</span>
                                     {classData.graduate > 0 && (
-                                      <Badge variant="outline" className="text-xs">
+                                      <Badge variant="outline" className="text-xs border-green-200 text-green-800">
                                         {Math.round((classData.graduate / classData.total) * 100)}%
                                       </Badge>
                                     )}
@@ -513,10 +539,8 @@ export default function StudentProgression() {
                     <Switch
                       checked={schoolSettings.progressionMode === 'automatic'}
                       onCheckedChange={(checked) => {
-                        setSchoolSettings(prev => ({
-                          ...prev,
-                          progressionMode: checked ? 'automatic' : 'exam_based'
-                        }));
+                        const newMode = checked ? 'automatic' : 'exam_based';
+                        saveProgressionSettings(newMode);
                       }}
                     />
                   </div>
@@ -531,10 +555,8 @@ export default function StudentProgression() {
                     <Switch
                       checked={schoolSettings.progressionMode === 'exam_based'}
                       onCheckedChange={(checked) => {
-                        setSchoolSettings(prev => ({
-                          ...prev,
-                          progressionMode: checked ? 'exam_based' : 'automatic'
-                        }));
+                        const newMode = checked ? 'exam_based' : 'automatic';
+                        saveProgressionSettings(newMode);
                       }}
                     />
                   </div>
@@ -614,13 +636,6 @@ export default function StudentProgression() {
                     </CardContent>
                   </Card>
                 </div>
-              </div>
-
-              {/* Save Button */}
-              <div className="flex justify-end">
-                <Button onClick={saveProgressionSettings} disabled={loading}>
-                  {loading ? 'Saving...' : 'Save Settings'}
-                </Button>
               </div>
             </CardContent>
           </Card>
