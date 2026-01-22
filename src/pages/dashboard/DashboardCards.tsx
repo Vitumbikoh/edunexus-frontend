@@ -81,7 +81,13 @@ const TeacherPerformanceCard: React.FC = () => {
       params.append('passThreshold', passThreshold.toString());
       // get more than first page for local pagination
       params.append('limit', '100');
-      const res = await fetch(`${API_CONFIG.BASE_URL}/analytics/teacher-performance?${params.toString()}`, {
+        // include academicCalendarId if available
+        let calParam = '';
+        try {
+          const cal = await academicCalendarService.getActiveAcademicCalendar(token!);
+          if (cal?.id) calParam = `?academicCalendarId=${encodeURIComponent(cal.id)}`;
+        } catch {}
+        const res = await fetch(`${API_CONFIG.BASE_URL}/analytics/teacher-performance${calParam}&${params.toString()}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (!res.ok) throw new Error('Failed to load');
@@ -703,8 +709,13 @@ export const FinanceDashboardCards = () => {
         setLoading(true);
         setError(null);
         console.log('Fetching finance data from:', `${API_CONFIG.BASE_URL}/finance/dashboard-data`);
+        let calParam = '';
+        try {
+          const cal = await academicCalendarService.getActiveAcademicCalendar(token!);
+          if (cal?.id) calParam = `?academicCalendarId=${encodeURIComponent(cal.id)}`;
+        } catch {}
         
-        const response = await fetch(`${API_CONFIG.BASE_URL}/finance/dashboard-data`, {
+        const response = await fetch(`${API_CONFIG.BASE_URL}/finance/dashboard-data${calParam}`, {
           headers: { 
             Authorization: `Bearer ${token}`,
             'Content-Type': 'application/json'
@@ -743,7 +754,7 @@ export const FinanceDashboardCards = () => {
         setAnalyticsLoading(true);
         
         // Fetch payment methods distribution
-        const paymentMethodsResponse = await fetch(`${API_CONFIG.BASE_URL}/finance/payment-methods-distribution`, {
+        const paymentMethodsResponse = await fetch(`${API_CONFIG.BASE_URL}/finance/payment-methods-distribution${calParam}`, {
           headers: { 
             Authorization: `Bearer ${token}`,
             'Content-Type': 'application/json'
@@ -764,7 +775,7 @@ export const FinanceDashboardCards = () => {
         }
 
         // Fetch outstanding fees breakdown
-        const outstandingFeesResponse = await fetch(`${API_CONFIG.BASE_URL}/finance/outstanding-fees-breakdown`, {
+        const outstandingFeesResponse = await fetch(`${API_CONFIG.BASE_URL}/finance/outstanding-fees-breakdown${calParam}`, {
           headers: { 
             Authorization: `Bearer ${token}`,
             'Content-Type': 'application/json'
@@ -778,7 +789,7 @@ export const FinanceDashboardCards = () => {
         }
 
         // Fetch revenue trends
-        const revenueTrendsResponse = await fetch(`${API_CONFIG.BASE_URL}/finance/revenue-trends`, {
+        const revenueTrendsResponse = await fetch(`${API_CONFIG.BASE_URL}/finance/revenue-trends${calParam}`, {
           headers: { 
             Authorization: `Bearer ${token}`,
             'Content-Type': 'application/json'

@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
 import { API_CONFIG } from '@/config/api';
+import { academicCalendarService } from '@/services/academicCalendarService';
 import { PlusCircle, Loader2, Trash2, Pencil, Check, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -27,6 +28,9 @@ export default function FeeManagement() {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [termId, setTermId] = useState<string | undefined>(undefined);
+  const [terms, setTerms] = useState<{ id: string; name?: string }[]>([]);
+  const [academicCalendars, setAcademicCalendars] = useState<Array<{ id?: string; term?: string; name?: string }>>([]);
+  const [selectedAcademicCalendarId, setSelectedAcademicCalendarId] = useState<string | undefined>(undefined);
   const [items, setItems] = useState<FeeStructureItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -54,11 +58,54 @@ export default function FeeManagement() {
     fetchCurrentTerm();
   }, [token]);
 
+  // load academic calendars and active calendar
+  useEffect(() => {
+    const loadCalendars = async () => {
+      if (!token) return;
+      try {
+        const cals = await academicCalendarService.getAcademicCalendars(token);
+        setAcademicCalendars(cals || []);
+        const active = await academicCalendarService.getActiveAcademicCalendar(token);
+        if (active?.id) setSelectedAcademicCalendarId(active.id);
+      } catch {}
+    };
+    loadCalendars();
+  }, [token]);
+
+  // load terms when calendar selected
+  useEffect(() => {
+    const fetchTermsForCalendar = async () => {
+      if (!token) return;
+      try {
+        const url = selectedAcademicCalendarId
+          ? `${API_CONFIG.BASE_URL}/settings/terms?academicCalendarId=${encodeURIComponent(selectedAcademicCalendarId)}`
+          : `${API_CONFIG.BASE_URL}/settings/terms`;
+        const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+        if (!res.ok) return;
+        const data = await res.json();
+        const list = Array.isArray(data) ? data : (data.terms || []);
+        const mapped = list.map((y: any) => ({ id: y.id || y.termId || y.uuid, name: y.name || y.periodName || y.term || y.displayName }));
+        setTerms(mapped);
+        if (mapped.length) {
+          const current = mapped.find((m: any) => (m as any).isCurrent || (m as any).current) || mapped[0];
+          setTermId(current?.id);
+        } else {
+          setTermId(undefined);
+        }
+      } catch {}
+    };
+    fetchTermsForCalendar();
+    // clear items so loadItems runs fresh when termId set
+    setItems([]);
+  }, [selectedAcademicCalendarId, token]);
+
   const loadItems = async () => {
     if (!token || !termId) return;
     setLoading(true);
     try {
-      const res = await fetch(`${API_CONFIG.BASE_URL}/finance/fee-structure?termId=${termId}`, { headers: { Authorization: `Bearer ${token}` }});
+      // include selected academicCalendarId if available
+      const calParam = selectedAcademicCalendarId ? `&academicCalendarId=${encodeURIComponent(selectedAcademicCalendarId)}` : '';
+      const res = await fetch(`${API_CONFIG.BASE_URL}/finance/fee-structure?termId=${termId}${calParam}`, { headers: { Authorization: `Bearer ${token}` }});
       if (!res.ok) throw new Error('Failed to load fee structure');
       const data = await res.json();
       setItems(Array.isArray(data) ? data : []);
@@ -73,7 +120,8 @@ export default function FeeManagement() {
     if (!token || !feeType || !amount) return;
     setSaving(true);
     try {
-      const body = { feeType, amount: Number(amount), description: description || undefined, frequency, termId };
+      const body: any = { feeType, amount: Number(amount), description: description || undefined, frequency, termId };
+      if (selectedAcademicCalendarId) body.academicCalendarId = selectedAcademicCalendarId;
       const res = await fetch(`${API_CONFIG.BASE_URL}/finance/fee-structure`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
@@ -111,7 +159,41 @@ export default function FeeManagement() {
           <h1 className="text-2xl font-bold">Fee Management</h1>
           <p className="text-muted-foreground">Define other fees beyond the default Tuition.</p>
         </div>
-        <Button variant="outline" onClick={() => navigate('/finance')}>Back</Button>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <Label className="text-xs">Calendar</Label>
+            <select
+              className="border rounded-md h-9 px-2 bg-background text-sm"
+              value={selectedAcademicCalendarId || ''}
+              onChange={async (e) => {
+                const v = e.target.value || undefined;
+                setSelectedAcademicCalendarId(v);
+                if (v && token) {
+                  try { await academicCalendarService.setActiveAcademicCalendar(v, token); } catch {}
+                }
+              }}
+            >
+              <option value="">All calendars</option>
+              {academicCalendars.map(c => (
+                <option key={c.id} value={c.id}>{c.term || c.name || c.id}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Label className="text-xs">Term</Label>
+            <select
+              className="border rounded-md h-9 px-2 bg-background text-sm"
+              value={termId || ''}
+              onChange={(e) => setTermId(e.target.value || undefined)}
+            >
+              <option value="">All terms</option>
+              {terms.map(t => <option key={t.id} value={t.id}>{t.name || t.id}</option>)}
+            </select>
+          </div>
+
+          <Button variant="outline" onClick={() => navigate('/finance')}>Back</Button>
+        </div>
       </div>
 
       {isAdmin && (
@@ -150,7 +232,40 @@ export default function FeeManagement() {
                 <Input value={description} onChange={e=>setDescription(e.target.value)} placeholder="Optional" />
               </div>
             </div>
-            <Button onClick={addItem} disabled={saving || !feeType || !amount}>
+            <div className="mt-2 flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <Label className="text-xs">Academic Calendar</Label>
+                <select
+                  className="border rounded-md h-9 px-2 bg-background text-sm"
+                  value={selectedAcademicCalendarId || ''}
+                  onChange={async (e) => {
+                    const v = e.target.value || undefined;
+                    setSelectedAcademicCalendarId(v);
+                    if (v && token) {
+                      try { await academicCalendarService.setActiveAcademicCalendar(v, token); } catch {}
+                    }
+                  }}
+                >
+                  <option value="">Select calendar</option>
+                  {academicCalendars.map(c => (
+                    <option key={c.id} value={c.id}>{c.term || c.name || c.id}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Label className="text-xs">Term</Label>
+                <select
+                  className="border rounded-md h-9 px-2 bg-background text-sm"
+                  value={termId || ''}
+                  onChange={(e) => setTermId(e.target.value || undefined)}
+                >
+                  <option value="">Select term</option>
+                  {terms.map(t => <option key={t.id} value={t.id}>{t.name || t.id}</option>)}
+                </select>
+              </div>
+            </div>
+            <Button onClick={addItem} disabled={saving || !feeType || !amount || !termId}>
               {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin"/>}
               <PlusCircle className="h-4 w-4 mr-2" />
               {saving ? 'Saving...' : 'Add Fee'}
@@ -254,16 +369,24 @@ export default function FeeManagement() {
                                 <Button variant="ghost" size="sm" onClick={async ()=>{
                                   if (!token) return;
                                   try {
+                                    // include academicCalendarId on update if available
+                                    let academicCalendarId: string | undefined = undefined;
+                                    try {
+                                      const cal = await academicCalendarService.getActiveAcademicCalendar(token!);
+                                      if (cal?.id) academicCalendarId = cal.id;
+                                    } catch {}
+                                    const payload: any = {
+                                      feeType: editValues.feeType ?? item.feeType,
+                                      amount: editValues.amount ?? item.amount,
+                                      frequency: editValues.frequency ?? item.frequency,
+                                      description: editValues.description ?? item.description,
+                                      isActive: editValues.isActive ?? item.isActive,
+                                    };
+                                    if (selectedAcademicCalendarId) payload.academicCalendarId = selectedAcademicCalendarId;
                                     const res = await fetch(`${API_CONFIG.BASE_URL}/finance/fee-structure/${item.id}`, {
                                       method: 'PUT',
                                       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                                      body: JSON.stringify({
-                                        feeType: editValues.feeType ?? item.feeType,
-                                        amount: editValues.amount ?? item.amount,
-                                        frequency: editValues.frequency ?? item.frequency,
-                                        description: editValues.description ?? item.description,
-                                        isActive: editValues.isActive ?? item.isActive,
-                                      })
+                                      body: JSON.stringify(payload)
                                     });
                                     if (!res.ok) throw new Error('Failed to update fee');
                                     toast({ title: 'Updated', description: 'Fee item updated.' });

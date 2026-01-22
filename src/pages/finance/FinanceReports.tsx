@@ -14,6 +14,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { API_CONFIG } from '@/config/api';
 import { formatCurrency, getDefaultCurrency } from '@/lib/currency';
+import { academicCalendarService } from '@/services/academicCalendarService';
 
 type FinancialReportResponse = {
   success: boolean;
@@ -112,6 +113,11 @@ export default function FinanceReports() {
         const params = new URLSearchParams();
         if (computedRange.start) params.set('startDate', computedRange.start.toISOString());
         if (computedRange.end) params.set('endDate', computedRange.end.toISOString());
+        // include active academicCalendarId
+        try {
+          const cal = await academicCalendarService.getActiveAcademicCalendar(token!);
+          if (cal?.id) params.set('academicCalendarId', cal.id);
+        } catch {}
         const res = await fetch(`${API_CONFIG.BASE_URL}/finance/reports/financial?${params.toString()}`, {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -133,7 +139,13 @@ export default function FinanceReports() {
   const fetchTermBasedReport = async () => {
     if (!token) return;
     try {
-      const res = await fetch(`${API_CONFIG.BASE_URL}/finance/reports/term-based?includeCarryForward=${showCarryForward}`, {
+      // include active academicCalendarId
+      let calParam = '';
+      try {
+        const cal = await academicCalendarService.getActiveAcademicCalendar(token!);
+        if (cal?.id) calParam = `&academicCalendarId=${encodeURIComponent(cal.id)}`;
+      } catch {}
+      const res = await fetch(`${API_CONFIG.BASE_URL}/finance/reports/term-based?includeCarryForward=${showCarryForward}${calParam}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },

@@ -27,6 +27,7 @@ import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { API_CONFIG } from '@/config/api';
+import { academicCalendarService } from '@/services/academicCalendarService';
 import { Preloader } from '@/components/ui/preloader';
 import { formatCurrency, getDefaultCurrency } from '@/lib/currency';
 
@@ -44,7 +45,15 @@ const useChartData = (endpoint: string, defaultData: any[] = []) => {
       try {
         setLoading(true);
         setError(null);
-        const response = await fetch(`${API_CONFIG.BASE_URL}${endpoint}`, {
+        // include active academicCalendarId when available
+        let url = `${API_CONFIG.BASE_URL}${endpoint}`;
+        try {
+          const cal = await academicCalendarService.getActiveAcademicCalendar(token!);
+          if (cal?.id) {
+            url += endpoint.includes('?') ? `&academicCalendarId=${encodeURIComponent(cal.id)}` : `?academicCalendarId=${encodeURIComponent(cal.id)}`;
+          }
+        } catch {}
+        const response = await fetch(url, {
           headers: {
             Authorization: `Bearer ${token}`,
           },

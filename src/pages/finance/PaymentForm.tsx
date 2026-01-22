@@ -11,6 +11,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { ArrowLeft, Save } from "lucide-react";
 import { API_CONFIG } from '@/config/api';
 import { apiFetch } from '@/lib/apiClient';
+import { academicCalendarService } from '@/services/academicCalendarService';
 
 interface Class {
   id: string;
@@ -53,6 +54,10 @@ export default function PaymentForm() {
   const [receiptNumber, setReceiptNumber] = useState("");
   const [notes, setNotes] = useState("");
   const [feeTypes, setFeeTypes] = useState<FeeTypeOption[]>([]);
+  const [academicCalendars, setAcademicCalendars] = useState<any[]>([]);
+  const [selectedAcademicCalendarId, setSelectedAcademicCalendarId] = useState<string | null>(null);
+  const [terms, setTerms] = useState<any[]>([]);
+  const [selectedTermId, setSelectedTermId] = useState<string | null>(null);
   const [currentTermId, setCurrentTermId] = useState<string | null>(null);
   const [studentSearch, setStudentSearch] = useState("");
 
@@ -182,39 +187,80 @@ export default function PaymentForm() {
     fetchStudents();
   }, [token, navigate, toast]);
 
-  // Fetch current term, then fee types scoped to school and term
+  // Load academic calendars and default active calendar + terms
   useEffect(() => {
-    const fetchTermAndFeeTypes = async () => {
+    const loadCalendarsAndTerms = async () => {
       if (!token) return;
       try {
-        // Get current term
-        const termsData = await apiFetch<any>(`/settings/terms`);
-        const termsList = Array.isArray(termsData) ? termsData : (termsData?.data || []);
-        const currentTerm = termsList.find((t: any) => t.isCurrent === true) || termsList[0];
-        const termId = currentTerm?.id || null;
-        setCurrentTermId(termId);
+        const cals = await academicCalendarService.getAcademicCalendars(token);
+        setAcademicCalendars(cals || []);
 
-        // Fetch fee types for current term and school
-        if (termId) {
-          const feeTypesRes = await apiFetch<any>(`/finance/fee-types?termId=${termId}`);
-          const types = Array.isArray(feeTypesRes?.feeTypes) ? feeTypesRes.feeTypes : [];
-          const uniqueFees = Array.from(new Set(types.filter(Boolean)));
-          setFeeTypes(uniqueFees.map((fee: string) => ({ value: fee, label: fee })));
-          if (uniqueFees.length > 0 && !uniqueFees.includes(selectedPaymentType)) {
-            setSelectedPaymentType(uniqueFees[0]);
-          }
-          console.log('Loaded fee types (scoped to school + term):', uniqueFees);
-        } else {
-          console.warn('No current term found; fee types will remain empty');
-          setFeeTypes([]);
+        const active = await academicCalendarService.getActiveAcademicCalendar(token);
+        const activeId = active?.id || (cals && cals[0]?.id) || null;
+        setSelectedAcademicCalendarId(activeId);
+
+        // load terms scoped to active calendar using backend query
+        const url = activeId
+          ? `/settings/terms?academicCalendarId=${encodeURIComponent(activeId)}`
+          : `/settings/terms`;
+        const termsData = await apiFetch<any>(url);
+        const list = Array.isArray(termsData) ? termsData : (termsData?.terms || []);
+        // choose current term from raw list using known flags
+        const currentRaw = list.find((t: any) => t.isCurrent === true || t.current === true || t.is_current === true) || list[0];
+        const termId = currentRaw?.id || currentRaw?.termId || currentRaw?.uuid || null;
+        const mapped = (list || []).map((y: any) => ({ id: y.id || y.termId || y.uuid, name: y.name || y.periodName || y.term || y.displayName }));
+        setTerms(mapped || []);
+        setCurrentTermId(termId);
+        setSelectedTermId(termId);
+      } catch (error) {
+        console.error('Failed to load calendars/terms:', error);
+      }
+    };
+    loadCalendarsAndTerms();
+  }, [token]);
+
+  // When selected academic calendar changes, reload terms scoped to it
+  useEffect(() => {
+    const loadTermsForCalendar = async () => {
+      if (!token) return;
+      try {
+        const url = selectedAcademicCalendarId
+          ? `/settings/terms?academicCalendarId=${encodeURIComponent(selectedAcademicCalendarId)}`
+          : `/settings/terms`;
+        const termsData = await apiFetch<any>(url);
+        const list = Array.isArray(termsData) ? termsData : (termsData?.terms || []);
+        const currentRaw = list.find((t: any) => t.isCurrent === true || t.current === true || t.is_current === true) || list[0];
+        const termId = currentRaw?.id || currentRaw?.termId || currentRaw?.uuid || null;
+        const mapped = (list || []).map((y: any) => ({ id: y.id || y.termId || y.uuid, name: y.name || y.periodName || y.term || y.displayName }));
+        setTerms(mapped || []);
+        setSelectedTermId(termId);
+      } catch (error) {
+        console.error('Failed to load terms for calendar:', error);
+      }
+    };
+    loadTermsForCalendar();
+  }, [selectedAcademicCalendarId, token]);
+
+  // Fetch fee types whenever selected term or calendar changes
+  useEffect(() => {
+    const fetchFeeTypes = async () => {
+      if (!token || !selectedTermId) return;
+      try {
+        const calParam = selectedAcademicCalendarId ? `&academicCalendarId=${encodeURIComponent(selectedAcademicCalendarId)}` : '';
+        const feeTypesRes = await apiFetch<any>(`/finance/fee-types?termId=${selectedTermId}${calParam}`);
+        const types = Array.isArray(feeTypesRes?.feeTypes) ? feeTypesRes.feeTypes : [];
+        const uniqueFees = Array.from(new Set(types.filter(Boolean)));
+        setFeeTypes(uniqueFees.map((fee: string) => ({ value: fee, label: fee })));
+        if (uniqueFees.length > 0 && !uniqueFees.includes(selectedPaymentType)) {
+          setSelectedPaymentType(uniqueFees[0]);
         }
       } catch (error) {
-        console.error('Failed to fetch term/fee types:', error);
+        console.error('Failed to fetch fee types:', error);
         setFeeTypes([]);
       }
     };
-    fetchTermAndFeeTypes();
-  }, [token]);
+    fetchFeeTypes();
+  }, [token, selectedTermId, selectedAcademicCalendarId]);
 
   // Token refresh is now handled by apiClient
 
@@ -228,7 +274,7 @@ export default function PaymentForm() {
         throw new Error("Authentication token or user ID not found. Please log in again.");
       }
 
-      const requestBody = {
+      const requestBody: any = {
         studentId: selectedStudent,
         paymentType: selectedPaymentType,
         amount: Number(amount),
@@ -238,6 +284,14 @@ export default function PaymentForm() {
         notes: notes || null,
         userId: user.id,
       };
+
+      // attach selected academic calendar and term when present
+      if (selectedAcademicCalendarId) requestBody.academicCalendarId = selectedAcademicCalendarId;
+      if (selectedTermId) requestBody.termId = selectedTermId;
+
+      if (!selectedTermId) {
+        throw new Error('Please select an academic term for this payment');
+      }
 
       if (isNaN(requestBody.amount) || requestBody.amount <= 0) {
         throw new Error("Amount must be a valid positive number");
@@ -392,6 +446,47 @@ export default function PaymentForm() {
                   </div>
                 )}
                 <input type="hidden" required value={selectedStudent} onChange={()=>{}} />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <Label htmlFor="academicCalendar">Academic Calendar</Label>
+                <Select
+                  value={selectedAcademicCalendarId || ''}
+                  onValueChange={(v) => setSelectedAcademicCalendarId(v || null)}
+                >
+                  <SelectTrigger id="academicCalendar">
+                    <SelectValue placeholder="Choose calendar" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {academicCalendars.length === 0 && (
+                      <SelectItem value="">No calendars</SelectItem>
+                    )}
+                    {academicCalendars.map((cal) => (
+                      <SelectItem key={cal.id} value={cal.id}>{cal.term || cal.name || cal.id}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="termSelect">Term</Label>
+                <Select
+                  value={selectedTermId || ''}
+                  onValueChange={(v) => setSelectedTermId(v || null)}
+                >
+                  <SelectTrigger id="termSelect">
+                    <SelectValue placeholder="Choose term" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {terms.length === 0 && (
+                      <SelectItem value="">No terms</SelectItem>
+                    )}
+                    {terms.map((t) => (
+                      <SelectItem key={t.id} value={t.id}>{t.name || t.term || t.id}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 

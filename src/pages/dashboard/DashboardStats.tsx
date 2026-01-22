@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
+import { academicCalendarService } from '@/services/academicCalendarService';
 
 export const useDashboardStats = () => {
   const { user, token } = useAuth();
@@ -24,7 +25,15 @@ export const useDashboardStats = () => {
 
   const fetchData = async (url: string) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/v1${url}`, {
+      // append academicCalendarId for finance endpoints
+      let endpoint = `http://localhost:5000/api/v1${url}`;
+      if (url.startsWith('/finance')) {
+        try {
+          const cal = await academicCalendarService.getActiveAcademicCalendar(token!);
+          if (cal?.id) endpoint += (url.includes('?') ? '&' : '?') + `academicCalendarId=${encodeURIComponent(cal.id)}`;
+        } catch {}
+      }
+      const response = await fetch(endpoint, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -267,7 +276,12 @@ export const useDashboardStats = () => {
 
                 if (currentTermId) {
                   // Get comprehensive fee status for all fee types
-                  const feeStatusUrl = `http://localhost:5000/api/v1/finance/fee-status/${user?.id}?termId=${currentTermId}`;
+                  // include active academicCalendarId when available
+                  let feeStatusUrl = `http://localhost:5000/api/v1/finance/fee-status/${user?.id}?termId=${currentTermId}`;
+                  try {
+                    const cal = await academicCalendarService.getActiveAcademicCalendar(token!);
+                    if (cal?.id) feeStatusUrl += `&academicCalendarId=${encodeURIComponent(cal.id)}`;
+                  } catch {}
                   console.log('Calling finance fee status API:', feeStatusUrl); // Debug log
                   
                   const balanceRes = await fetch(feeStatusUrl, { headers: { Authorization: `Bearer ${token}` } });
@@ -315,7 +329,13 @@ export const useDashboardStats = () => {
                       console.log('Finance fee status endpoint not accessible, showing fallback...'); // Debug log
                       // Try to get balance from payments directly
                       try {
-                        const paymentsRes = await fetch(`http://localhost:5000/api/v1/finance/payments/student/${user?.id}`, { headers: { Authorization: `Bearer ${token}` } });
+                        // include academicCalendarId when fetching payments fallback
+                        let paymentsUrl = `http://localhost:5000/api/v1/finance/payments/student/${user?.id}`;
+                        try {
+                          const cal = await academicCalendarService.getActiveAcademicCalendar(token!);
+                          if (cal?.id) paymentsUrl += `?academicCalendarId=${encodeURIComponent(cal.id)}`;
+                        } catch {}
+                        const paymentsRes = await fetch(paymentsUrl, { headers: { Authorization: `Bearer ${token}` } });
                         if (paymentsRes.ok) {
                           const paymentsData = await paymentsRes.json();
                           console.log('Payments data:', paymentsData); // Debug log

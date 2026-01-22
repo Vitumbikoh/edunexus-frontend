@@ -36,6 +36,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { API_CONFIG } from '@/config/api';
+import { academicCalendarService } from '@/services/academicCalendarService';
 import { formatCurrency, getDefaultCurrency } from '@/lib/currency';
 import { Preloader } from "@/components/ui/preloader";
 
@@ -92,6 +93,8 @@ export default function Finance() {
 
   const [terms, setTerms] = useState<{ id: string; name: string }[]>([]);
   const [termId, setTermId] = useState<string | undefined>(undefined);
+  const [academicCalendarId, setAcademicCalendarId] = useState<string | undefined>(undefined);
+  const [academicCalendars, setAcademicCalendars] = useState<Array<{ id?: string; term?: string; name?: string }>>([]);
 
   // Uniform fee expectation dialog state (restored)
   const [showSetUniformDialog, setShowSetUniformDialog] = useState(false);
@@ -150,6 +153,9 @@ export default function Finance() {
                 return [{ id, name: computedName }];
               });
             }
+            // also try to set active academic calendar if present in response
+            const calId = data?.academicCalendarId || data?.currentTerm?.academicCalendarId || data?.academicCalendar?.id;
+            if (calId) setAcademicCalendarId(calId);
         }
       } catch {
         // silent
@@ -158,12 +164,27 @@ export default function Finance() {
     fetchTerm();
   }, [token]);
 
+  // Fetch active academic calendar (fallback if current-term did not include it)
+  useEffect(() => {
+    const fetchActiveCalendar = async () => {
+      if (!token) return;
+      try {
+        const cal = await academicCalendarService.getActiveAcademicCalendar(token);
+        if (cal && cal.id) setAcademicCalendarId(cal.id);
+      } catch {}
+    };
+    fetchActiveCalendar();
+  }, [token]);
+
   // Fetch all terms
   useEffect(() => {
     const fetchAllYears = async () => {
       if (!token) return;
       try {
-  const res = await fetch(`${API_CONFIG.BASE_URL}/settings/terms`, {
+  const termsUrl = academicCalendarId
+            ? `${API_CONFIG.BASE_URL}/settings/terms?academicCalendarId=${encodeURIComponent(academicCalendarId)}`
+            : `${API_CONFIG.BASE_URL}/settings/terms`;
+  const res = await fetch(termsUrl, {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (res.ok) {
@@ -185,7 +206,7 @@ export default function Finance() {
           });
           if (mapped.length) {
             setTerms(mapped.map(({id, name}: any) => ({id, name})));
-            if (!termId) {
+            if (!termId || !mapped.find(m => m.id === termId)) {
               setTermId(mapped[0].id);
               if (!uniformTermId) setUniformTermId(mapped[0].id);
             }
@@ -196,7 +217,19 @@ export default function Finance() {
       }
     };
     fetchAllYears();
-  }, [token, termId]);
+  }, [token, termId, academicCalendarId]);
+
+  // Load academic calendars list
+  useEffect(() => {
+    const loadCalendars = async () => {
+      if (!token) return;
+      try {
+        const cals = await academicCalendarService.getAcademicCalendars(token);
+        setAcademicCalendars(cals || []);
+      } catch {}
+    };
+    loadCalendars();
+  }, [token]);
 
   // Fetch summary (new endpoint)
   useEffect(() => {
@@ -204,7 +237,8 @@ export default function Finance() {
       if (!token || !termId) return;
       setFetchingSummary(true);
       try {
-        const res = await fetch(`${API_CONFIG.BASE_URL}/finance/fee-summary?termId=${termId}`, {
+        const calParam = academicCalendarId ? `&academicCalendarId=${academicCalendarId}` : '';
+        const res = await fetch(`${API_CONFIG.BASE_URL}/finance/fee-summary?termId=${termId}${calParam}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (res.ok) {
@@ -224,7 +258,7 @@ export default function Finance() {
       }
     };
     fetchSummary();
-  }, [token, termId]);
+  }, [token, termId, academicCalendarId]);
 
   // Fetch per-student statuses
   useEffect(() => {
@@ -233,7 +267,8 @@ export default function Finance() {
       try {
         setLoadingStatuses(true);
         setStatusesError(null);
-        const res = await fetch(`${API_CONFIG.BASE_URL}/finance/fee-statuses?termId=${termId}`, {
+        const calParam = academicCalendarId ? `&academicCalendarId=${academicCalendarId}` : '';
+        const res = await fetch(`${API_CONFIG.BASE_URL}/finance/fee-statuses?termId=${termId}${calParam}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (!res.ok) throw new Error('Failed to fetch fee statuses');
@@ -258,7 +293,8 @@ export default function Finance() {
               s.outstandingAmount ??
               Math.max(expected - paid, 0)
             );
-          const isOverdue = Boolean(s.isOverdue || (s.status?.toLowerCase?.() === 'overdue'));
+          const isOverdue = Boolean(s.isOverdue || (s.status?.toLowerCase?.() === 'overdue') || Number(s.overdueAmount || 0) > 0);
+          const overdueAmt = Number(s.overdueAmount ?? s.pastDue ?? (isOverdue ? outstanding : 0) ?? 0);
           const computedStatus =
             isOverdue ? 'overdue' :
             (s.status?.toLowerCase?.()) ||
@@ -271,7 +307,7 @@ export default function Finance() {
             outstandingAmount: outstanding,
             status: computedStatus,
             isOverdue,
-            overdueAmount: isOverdue ? outstanding : 0,
+            overdueAmount: overdueAmt,
       humanId: s.humanId || s.studentCode || s.student_id || s.studentID || s.student_id_number || undefined,
           };
         });
@@ -289,7 +325,7 @@ export default function Finance() {
       }
     };
     fetchStatuses();
-  }, [token, termId, summaryData]);
+  }, [token, termId, summaryData, academicCalendarId]);
 
   // Fetch transactions; avoid full page loading on search input to keep cursor focus
   useEffect(() => {
@@ -308,8 +344,9 @@ export default function Finance() {
         }
 
         const yearParam = termId ? `&termId=${termId}` : '';
+        const calParam = academicCalendarId ? `&academicCalendarId=${academicCalendarId}` : '';
         const res = await fetch(
-          `${API_CONFIG.BASE_URL}/finance/transactions?page=1&limit=500${yearParam}`,
+          `${API_CONFIG.BASE_URL}/finance/transactions?page=1&limit=500${yearParam}${calParam}`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -363,7 +400,7 @@ export default function Finance() {
 
     run();
     return () => controller.abort();
-  }, [token, navigate, toast, termId]);
+  }, [token, navigate, toast, termId, academicCalendarId]);
 
   // ---------------- Metrics calculation ----------------
   // Summary preferred, fallback to derived
@@ -374,7 +411,7 @@ export default function Finance() {
     summaryData?.outstandingFees ??
     Math.max(summaryExpected - summaryPaid, 0)
   );
-  const summaryOverdue = Number(summaryData?.overdueFees ?? 0);
+  const summaryOverdue = Number(summaryData?.overdueTotal ?? summaryData?.overdueFees ?? 0);
 
   // Derive from statuses if available (gives precision)
   const statusDerivedPaid = feeStatuses.reduce((sum, s) => sum + s.paidAmount, 0);
@@ -413,7 +450,12 @@ export default function Finance() {
     const targetTermId = forTermId || uniformTermId || termId;
     if (!targetTermId) return;
     try {
-      const res = await fetch(`${API_CONFIG.BASE_URL}/finance/fee-structure?termId=${encodeURIComponent(targetTermId)}`, {
+      let calParam = '';
+      try {
+        const cal = await academicCalendarService.getActiveAcademicCalendar(token!);
+        if (cal?.id) calParam = `&academicCalendarId=${encodeURIComponent(cal.id)}`;
+      } catch {}
+      const res = await fetch(`${API_CONFIG.BASE_URL}/finance/fee-structure?termId=${encodeURIComponent(targetTermId)}${calParam}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (!res.ok) return;
@@ -441,6 +483,11 @@ export default function Finance() {
       setSavingUniform(true);
       const body: any = { amount: Number(uniformAmount) };
       body.termId = uniformTermId || termId;
+      // include active academicCalendarId
+      try {
+        const cal = await academicCalendarService.getActiveAcademicCalendar(token!);
+        if (cal?.id) body.academicCalendarId = cal.id;
+      } catch {}
       const res = await fetch(`${API_CONFIG.BASE_URL}/finance/fee-structure`, {
         method: 'POST',
         headers: {
@@ -477,6 +524,32 @@ export default function Finance() {
         </div>
         <div className="flex flex-col sm:flex-row gap-2 sm:items-center sm:mt-0">
           <div className="flex items-center gap-2">
+            <Label htmlFor="academicCalendar" className="text-xs">Calendar</Label>
+            <select
+              id="academicCalendar"
+              className="border rounded-md h-9 px-2 bg-background text-sm"
+              value={academicCalendarId || ''}
+              onChange={async (e) => {
+                const v = e.target.value || undefined;
+                setAcademicCalendarId(v);
+                // Persist active calendar if possible
+                if (v && token) {
+                  try {
+                    await academicCalendarService.setActiveAcademicCalendar(v, token);
+                  } catch {}
+                }
+                // Clear selected term to allow terms for this calendar to load
+                setTermId(undefined);
+                setSummaryData(null);
+                setFeeStatuses([]);
+              }}
+            >
+              <option value="">All calendars</option>
+              {academicCalendars.map(c => (
+                <option key={c.id} value={c.id}>{c.term || c.name || c.id}</option>
+              ))}
+            </select>
+
             <Label htmlFor="term" className="text-xs">Term</Label>
             <select
               id="term"

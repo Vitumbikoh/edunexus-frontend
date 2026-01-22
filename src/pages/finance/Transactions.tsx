@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Filter, Download, Plus, Loader2 } from 'lucide-react';
 import { API_CONFIG } from '@/config/api';
+import { academicCalendarService } from '@/services/academicCalendarService';
 import { useAuth } from '@/contexts/AuthContext';
 import { formatCurrency, getDefaultCurrency } from '@/lib/currency';
 
@@ -60,6 +61,10 @@ export default function Transactions() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [pagination, setPagination] = useState<any>(null);
+  const [academicCalendars, setAcademicCalendars] = useState<any[]>([]);
+  const [selectedAcademicCalendarId, setSelectedAcademicCalendarId] = useState<string | null>(null);
+  const [terms, setTerms] = useState<any[]>([]);
+  const [selectedTermId, setSelectedTermId] = useState<string | null>(null);
   const [searchPeriod, setSearchPeriod] = useState('');
   const [searchInput, setSearchInput] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -82,6 +87,14 @@ export default function Transactions() {
       if (search) params.append('search', search);
       if (start) params.append('startDate', start);
       if (end) params.append('endDate', end);
+
+      // include selected academicCalendarId and termId if available (fall back to active calendar)
+      try {
+        const activeCal = await academicCalendarService.getActiveAcademicCalendar(token!);
+        const calId = selectedAcademicCalendarId || activeCal?.id || null;
+        if (calId) params.append('academicCalendarId', calId);
+      } catch {}
+      if (selectedTermId) params.append('termId', selectedTermId);
 
       const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.TRANSACTIONS}?${params.toString()}`, {
         headers: {
@@ -109,7 +122,14 @@ export default function Transactions() {
 
   const fetchFinancialStats = async () => {
     try {
-      const response = await fetch(`${API_CONFIG.BASE_URL}/finance/total-finances`, {
+      // include selected academicCalendarId if available (fall back to active)
+      let calParam = '';
+      try {
+        const activeCal = await academicCalendarService.getActiveAcademicCalendar(token!);
+        const calId = selectedAcademicCalendarId || activeCal?.id || null;
+        if (calId) calParam = `?academicCalendarId=${encodeURIComponent(calId)}`;
+      } catch {}
+      const response = await fetch(`${API_CONFIG.BASE_URL}/finance/total-finances${calParam}`, {
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -131,6 +151,46 @@ export default function Transactions() {
       fetchFinancialStats();
     }
   }, [token, currentPage, searchPeriod, statusFilter, typeFilter, startDate, endDate]);
+
+  // Load academic calendars and default selection
+  useEffect(() => {
+    const loadCalendars = async () => {
+      if (!token) return;
+      try {
+        const cals = await academicCalendarService.getAcademicCalendars(token);
+        setAcademicCalendars(cals || []);
+        const active = await academicCalendarService.getActiveAcademicCalendar(token);
+        setSelectedAcademicCalendarId(active?.id || (cals && cals[0]?.id) || null);
+      } catch (e) {
+        console.error('Failed to load academic calendars', e);
+      }
+    };
+    loadCalendars();
+  }, [token]);
+
+  // Load terms when calendar selection changes
+  useEffect(() => {
+    const loadTerms = async () => {
+      if (!token) return;
+      try {
+        const url = selectedAcademicCalendarId
+          ? `${API_CONFIG.BASE_URL}/settings/terms?academicCalendarId=${encodeURIComponent(selectedAcademicCalendarId)}`
+          : `${API_CONFIG.BASE_URL}/settings/terms`;
+        const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+        if (!res.ok) return setTerms([]);
+        const data = await res.json();
+        const list = Array.isArray(data) ? data : (data.terms || []);
+        const mapped = list.map((y: any) => ({ id: y.id || y.termId || y.uuid, name: y.name || y.periodName || y.term || y.displayName, raw: y }));
+        setTerms(mapped || []);
+        const current = mapped.find((m: any) => m.raw?.isCurrent === true || m.raw?.current === true || m.raw?.is_current === true) || mapped[0];
+        setSelectedTermId(current?.id || null);
+      } catch (e) {
+        console.error('Failed to load terms', e);
+        setTerms([]);
+      }
+    };
+    loadTerms();
+  }, [selectedAcademicCalendarId, token]);
 
   // Filter transactions client-side for additional filtering
   const filteredTransactions = transactions.filter(transaction => {
@@ -269,6 +329,32 @@ export default function Transactions() {
                 className="w-32"
               />
             </div>
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2">
+                      <Label className="text-xs">Calendar</Label>
+                      <select
+                        className="border rounded-md h-9 px-2 bg-background text-sm"
+                        value={selectedAcademicCalendarId || ''}
+                        onChange={(e) => setSelectedAcademicCalendarId(e.target.value || null)}
+                      >
+                        <option value="">All calendars</option>
+                        {academicCalendars.map(c => (
+                          <option key={c.id} value={c.id}>{c.term || c.name || c.id}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Label className="text-xs">Term</Label>
+                      <select
+                        className="border rounded-md h-9 px-2 bg-background text-sm"
+                        value={selectedTermId || ''}
+                        onChange={(e) => setSelectedTermId(e.target.value || null)}
+                      >
+                        <option value="">All terms</option>
+                        {terms.map(t => <option key={t.id} value={t.id}>{t.name || t.id}</option>)}
+                      </select>
+                    </div>
+                  </div>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className="w-full sm:w-40">
                 <SelectValue placeholder="Status" />
