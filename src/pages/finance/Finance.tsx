@@ -39,6 +39,7 @@ import { API_CONFIG } from '@/config/api';
 import { academicCalendarService } from '@/services/academicCalendarService';
 import { formatCurrency, getDefaultCurrency } from '@/lib/currency';
 import { Preloader } from "@/components/ui/preloader";
+import { StudentFinancialDetailsModal } from "@/components/StudentFinancialDetailsModal";
 
 interface Transaction {
   id: string;
@@ -78,6 +79,25 @@ interface FeeSummaryResponse {
   termEndDate?: string;
 }
 
+interface ConsolidatedSummaryResponse {
+  success: boolean;
+  filters: { termId: string; academicCalendarId: string | null };
+  labels?: { currentTermFigures: string; outstandingFromPreviousTerms: string };
+  summary: { totalFeesPaid: number; expectedFees: number; pending: number; overdue: number };
+  statuses: Array<{
+    studentId: string;
+    humanId?: string;
+    studentName: string;
+    termId: string;
+    totalExpected: number;
+    totalPaid: number;
+    outstanding: number;
+    status: 'paid' | 'partial' | 'unpaid';
+    hasHistoricalOverdue: boolean;
+    historicalOverdueAmount: number;
+  }>;
+}
+
 export default function Finance() {
   const navigate = useNavigate();
   const { user, token } = useAuth();
@@ -108,7 +128,13 @@ export default function Finance() {
   const [loadingStatuses, setLoadingStatuses] = useState(false);
   const [statusesError, setStatusesError] = useState<string | null>(null);
 
+  // Student Financial Details Modal
+  const [showFinancialDetailsModal, setShowFinancialDetailsModal] = useState(false);
+  const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
+  const [selectedStudentName, setSelectedStudentName] = useState<string | null>(null);
+
   const [summaryData, setSummaryData] = useState<FeeSummaryResponse | null>(null);
+  const [consolidatedSummary, setConsolidatedSummary] = useState<ConsolidatedSummaryResponse | null>(null);
   const [fetchingSummary, setFetchingSummary] = useState(false);
   const [expectedFeesAmount, setExpectedFeesAmount] = useState<number>(0); // fallback / legacy
   const [statusSearch, setStatusSearch] = useState("");
@@ -231,28 +257,72 @@ export default function Finance() {
     loadCalendars();
   }, [token]);
 
-  // Fetch summary (new endpoint)
+  // Fetch summary (new endpoint) - prevent race conditions
   useEffect(() => {
     const fetchSummary = async () => {
-      if (!token || !termId) return;
+      if (!token || !termId || fetchingSummary) return;
       setFetchingSummary(true);
       try {
         const calParam = academicCalendarId ? `&academicCalendarId=${academicCalendarId}` : '';
-        const res = await fetch(`${API_CONFIG.BASE_URL}/finance/fee-summary?termId=${termId}${calParam}`, {
+        // Consolidated summary strictly scoped by calendar + term
+        // Clear previous data to prevent stale states
+        setConsolidatedSummary(null);
+        setSummaryData(null);
+        setApiError(null);
+        
+        // Use enhanced API endpoints that provide consistent calculations
+        const enhancedRes = await fetch(`${API_CONFIG.BASE_URL}/finance/v2/summary?termId=${termId}${calParam}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
-        if (res.ok) {
-          const data: FeeSummaryResponse = await res.json();
-          setSummaryData(data);
-          const totalExpected = Number(
-            data.expectedFees ??
-            data.totalExpectedFees ??
-            0
-          );
-          setExpectedFeesAmount(totalExpected);
+        
+        if (enhancedRes.ok) {
+          const enhancedData = await enhancedRes.json();
+          // Map enhanced response to expected format
+          const cs: ConsolidatedSummaryResponse = {
+            success: true,
+            filters: { termId, academicCalendarId },
+            labels: {
+              currentTermFigures: enhancedData.termInfo?.name || 'Current Term Figures',
+              outstandingFromPreviousTerms: 'Outstanding From Previous Terms'
+            },
+            summary: {
+              totalFeesPaid: enhancedData.totalPaid || 0,
+              expectedFees: enhancedData.totalExpected || 0,
+              pending: enhancedData.totalOutstanding || 0,
+              collected: enhancedData.totalPaid || 0,
+              paymentPercentage: enhancedData.paymentPercentage || 0
+            },
+            statuses: enhancedData.students || []
+          };
+          
+          setConsolidatedSummary(cs);
+          setExpectedFeesAmount(Number(enhancedData.totalExpected || 0));
+          console.log('✅ Enhanced API summary loaded:', { 
+            expectedFees: enhancedData.totalExpected, 
+            totalPaid: enhancedData.totalPaid,
+            totalStudents: enhancedData.students?.length 
+          });
+        } else {
+          console.warn('⚠️ Enhanced API failed, trying legacy:', enhancedRes.status);
+          
+          // Fallback to original consolidated endpoint only if enhanced fails
+          const consolidatedRes = await fetch(`${API_CONFIG.BASE_URL}/finance/summary?termId=${termId}${calParam}`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          if (consolidatedRes.ok) {
+            const cs: ConsolidatedSummaryResponse = await consolidatedRes.json();
+            setConsolidatedSummary(cs);
+            setExpectedFeesAmount(Number(cs?.summary?.expectedFees || 0));
+            console.log('📊 Legacy consolidated summary loaded:', { expectedFees: cs?.summary?.expectedFees, totalStudents: cs?.statuses?.length });
+          }
         }
-      } catch {
-        // fallback via statuses/payments
+      } catch (error) {
+        console.error('❌ Error fetching finance summary:', error);
+        setApiError(error instanceof Error ? error.message : 'Failed to fetch finance data');
+        // Clear potentially inconsistent state
+        setConsolidatedSummary(null);
+        setSummaryData(null);
+        setExpectedFeesAmount(0);
       } finally {
         setFetchingSummary(false);
       }
@@ -268,12 +338,16 @@ export default function Finance() {
         setLoadingStatuses(true);
         setStatusesError(null);
         const calParam = academicCalendarId ? `&academicCalendarId=${academicCalendarId}` : '';
-        const res = await fetch(`${API_CONFIG.BASE_URL}/finance/fee-statuses?termId=${termId}${calParam}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        if (!res.ok) throw new Error('Failed to fetch fee statuses');
-        const data = await res.json();
-        const list = Array.isArray(data) ? data : (data.statuses || data.items || data.students || []);
+        // Prefer consolidated statuses if present
+        let list: any[] = consolidatedSummary?.statuses || [];
+        if (!list.length) {
+          const res = await fetch(`${API_CONFIG.BASE_URL}/finance/fee-statuses?termId=${termId}${calParam}`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          if (!res.ok) throw new Error('Failed to fetch fee statuses');
+          const data = await res.json();
+          list = Array.isArray(data) ? data : (data.statuses || data.items || data.students || []);
+        }
     const mapped: FeeStatusItem[] = list.map((s: any) => {
           const expected = Number(
             s.totalExpected ??
@@ -293,8 +367,8 @@ export default function Finance() {
               s.outstandingAmount ??
               Math.max(expected - paid, 0)
             );
-          const isOverdue = Boolean(s.isOverdue || (s.status?.toLowerCase?.() === 'overdue') || Number(s.overdueAmount || 0) > 0);
-          const overdueAmt = Number(s.overdueAmount ?? s.pastDue ?? (isOverdue ? outstanding : 0) ?? 0);
+          const isOverdue = Boolean((s as any).hasHistoricalOverdue || s.isOverdue || Number((s as any).historicalOverdueAmount || 0) > 0);
+          const overdueAmt = Number((s as any).historicalOverdueAmount ?? s.overdueAmount ?? s.pastDue ?? 0);
           const computedStatus =
             isOverdue ? 'overdue' :
             (s.status?.toLowerCase?.()) ||
@@ -325,14 +399,15 @@ export default function Finance() {
       }
     };
     fetchStatuses();
-  }, [token, termId, summaryData, academicCalendarId]);
+  }, [token, termId, summaryData, consolidatedSummary, academicCalendarId]);
 
   // Fetch transactions; avoid full page loading on search input to keep cursor focus
   useEffect(() => {
     const controller = new AbortController();
     const run = async () => {
+      // Require a selected term to prevent fetching wrong-term transactions
+      if (!token || !termId) return;
       try {
-        if (!token) return;
         setApiError(null);
 
         const isTermChanged = prevTermIdRef.current !== termId;
@@ -404,14 +479,16 @@ export default function Finance() {
 
   // ---------------- Metrics calculation ----------------
   // Summary preferred, fallback to derived
-  const summaryPaid = Number(summaryData?.totalFeesPaid ?? summaryData?.totalPaidFees ?? 0);
-  const summaryExpected = Number(summaryData?.expectedFees ?? summaryData?.totalExpectedFees ?? expectedFeesAmount);
+  const consolidatedPaid = Number(consolidatedSummary?.summary?.totalFeesPaid ?? 0);
+  const consolidatedExpected = Number(consolidatedSummary?.summary?.expectedFees ?? expectedFeesAmount);
+  const consolidatedPending = Number(consolidatedSummary?.summary?.pending ?? Math.max(consolidatedExpected - consolidatedPaid, 0));
+  const consolidatedOverdue = Number(consolidatedSummary?.summary?.overdue ?? 0);
+  const summaryPaid = Number(summaryData?.totalFeesPaid ?? summaryData?.totalPaidFees ?? consolidatedPaid);
+  const summaryExpected = Number(summaryData?.expectedFees ?? summaryData?.totalExpectedFees ?? consolidatedExpected);
   const summaryRemaining = Number(
-    summaryData?.remainingFees ??
-    summaryData?.outstandingFees ??
-    Math.max(summaryExpected - summaryPaid, 0)
+    summaryData?.remainingFees ?? summaryData?.outstandingFees ?? consolidatedPending
   );
-  const summaryOverdue = Number(summaryData?.overdueTotal ?? summaryData?.overdueFees ?? 0);
+  const summaryOverdue = Number(summaryData?.overdueTotal ?? summaryData?.overdueFees ?? consolidatedOverdue);
 
   // Derive from statuses if available (gives precision)
   const statusDerivedPaid = feeStatuses.reduce((sum, s) => sum + s.paidAmount, 0);
@@ -649,8 +726,11 @@ export default function Finance() {
               <CardContent>
                 <div className="text-2xl font-bold">{formatCurrency(effectivePaid, getDefaultCurrency())}</div>
                 <p className="text-xs text-muted-foreground">
-                  {fetchingSummary ? 'Updating...' : `For students that have paid`}
+                  {consolidatedSummary?.labels?.currentTermFigures || 'Current Term Figures'}
                 </p>
+                {effectivePaid === 0 && (
+                  <p className="text-xs text-muted-foreground">MK 0.00 — No records for selected term</p>
+                )}
               </CardContent>
             </Card>
 
@@ -688,9 +768,7 @@ export default function Finance() {
               <CardContent>
                 <div className="text-2xl font-bold">{formatCurrency(overdueAmount, getDefaultCurrency())}</div>
                 <p className="text-xs text-muted-foreground">
-                  {summaryData?.overdueStudents
-                    ? `${summaryData.overdueStudents} students overdue`
-                    : 'Past due payments'}
+                  {consolidatedSummary?.labels?.outstandingFromPreviousTerms || 'Outstanding From Previous Terms'}
                 </p>
               </CardContent>
             </Card>
@@ -738,6 +816,7 @@ export default function Finance() {
                           <TableHead className="text-right">Amount</TableHead>
                           <TableHead className="text-right">Method</TableHead>
                           <TableHead className="text-right">Receipt</TableHead>
+                          <TableHead>Term</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -777,6 +856,7 @@ export default function Finance() {
                                     <Printer className="h-4 w-4" />
                                   </Button>
                             </TableCell>
+                            <TableCell>{normalizeTermLabel(terms.find(t => t.id === termId)?.name, 1)}</TableCell>
                           </TableRow>
                         ))}
                       </TableBody>
@@ -819,11 +899,20 @@ export default function Finance() {
                               <TableHead className="text-right">Paid</TableHead>
                               <TableHead className="text-right">Outstanding</TableHead>
                               <TableHead className="text-right">Status</TableHead>
+                              <TableHead>Term</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
               {filteredFeeStatuses.map(s => (
-                              <TableRow key={s.studentId}>
+                              <TableRow 
+                                key={s.studentId} 
+                                className="cursor-pointer hover:bg-muted/50 transition-colors"
+                                onClick={() => {
+                                  setSelectedStudentId(s.studentId);
+                                  setSelectedStudentName(s.studentName);
+                                  setShowFinancialDetailsModal(true);
+                                }}
+                              >
                                 <TableCell className="font-medium">{s.studentName}</TableCell>
                                 <TableCell>{s.humanId || s.studentId || '-'}</TableCell>
                                 <TableCell className="text-right">{formatCurrency(s.expectedAmount, getDefaultCurrency())}</TableCell>
@@ -849,6 +938,7 @@ export default function Finance() {
                                     {s.status}
                                   </Badge>
                                 </TableCell>
+                                <TableCell>{normalizeTermLabel(terms.find(t => t.id === termId)?.name, 1)}</TableCell>
                               </TableRow>
                             ))}
                           </TableBody>
@@ -861,6 +951,20 @@ export default function Finance() {
             </Tabs>
         </>
       )}
+
+      {/* Student Financial Details Modal */}
+      <StudentFinancialDetailsModal
+        open={showFinancialDetailsModal}
+        onClose={() => {
+          setShowFinancialDetailsModal(false);
+          setSelectedStudentId(null);
+          setSelectedStudentName(null);
+        }}
+        studentId={selectedStudentId || ''}
+        studentName={selectedStudentName || ''}
+        academicCalendarId={academicCalendarId}
+        termId={termId}
+      />
     </div>
   );
 }
