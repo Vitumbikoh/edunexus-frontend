@@ -738,20 +738,47 @@ export const FeeCollectionChart = ({ termId }: { termId?: string }) => {
     if (Array.isArray(data)) return data; // already array
     if (!data) return [];
 
+    // Helper function to normalize and deduplicate fee types
+    const normalizeFeeTypes = (items: any[]) => {
+      const feeMap = new Map<string, number>();
+      
+      items.forEach((item: any) => {
+        // Normalize fee type name: capitalize first letter, lowercase rest
+        const rawName = (item.status || item.feeType || item.type || item.name || 'Other').toString();
+        const normalizedName = rawName
+          .split(' ')
+          .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+          .join(' ')
+          .replace(/_/g, ' ');
+        
+        const amount = item.amount || 0;
+        const currentAmount = feeMap.get(normalizedName) || 0;
+        feeMap.set(normalizedName, currentAmount + amount);
+      });
+      
+      // Convert back to array and sort by amount descending
+      return Array.from(feeMap.entries())
+        .map(([status, amount]) => ({ status, amount }))
+        .filter(item => item.amount > 0)
+        .sort((a, b) => b.amount - a.amount);
+    };
+
     // New backend shape handling: prefer current-term breakdowns
     // 1) paymentTrends.currentTerm.byFeeType
     if (data.currentTerm && Array.isArray(data.currentTerm.byFeeType) && data.currentTerm.byFeeType.length > 0) {
-      return data.currentTerm.byFeeType.map((f: any) => ({
-        status: (f.feeType || f.type || f.name || 'Fee').toString().replace(/_/g, ' '),
+      const items = data.currentTerm.byFeeType.map((f: any) => ({
+        status: (f.feeType || f.type || f.name || 'Fee').toString(),
         amount: toNumber(f.totalPaid || f.amount || f.paid || 0)
       }));
+      return normalizeFeeTypes(items);
     }
     // 2) paymentTrends.currentTermByFeeType
     if (data.paymentTrends && Array.isArray(data.paymentTrends.currentTermByFeeType) && data.paymentTrends.currentTermByFeeType.length > 0) {
-      return data.paymentTrends.currentTermByFeeType.map((f: any) => ({
-        status: (f.feeType || f.type || f.name || 'Fee').toString().replace(/_/g, ' '),
+      const items = data.paymentTrends.currentTermByFeeType.map((f: any) => ({
+        status: (f.feeType || f.type || f.name || 'Fee').toString(),
         amount: toNumber(f.totalPaid || f.amount || f.paid || 0)
       }));
+      return normalizeFeeTypes(items);
     }
     // 3) General feeTypeBreakdown but filter by term when possible
     const feeTypeBreakdown = data.feeTypeBreakdown || data.feeTypes || data.fee_structure;
@@ -760,20 +787,22 @@ export const FeeCollectionChart = ({ termId }: { termId?: string }) => {
       if (termId && items.some((x: any) => x.termId)) {
         items = items.filter((x: any) => String(x.termId) === String(termId));
       }
-      return items.map((f: any) => ({
-        status: (f.feeType || f.type || f.status || f.name || 'Fee').toString().replace(/_/g, ' '),
+      const mappedItems = items.map((f: any) => ({
+        status: (f.feeType || f.type || f.status || f.name || 'Fee').toString(),
         amount: toNumber(f.amount || f.totalPaid || f.expectedAmount)
       }));
+      return normalizeFeeTypes(mappedItems);
     }
 
     // paymentTrends.byFeeType (analytics/fee-collection-status)
     if (data.paymentTrends && Array.isArray(data.paymentTrends.byFeeType) && data.paymentTrends.byFeeType.length > 0) {
-      const arr = data.paymentTrends.byFeeType.map((f: any) => ({
-        status: (f.feeType || f.type || 'Fee').toString().replace(/_/g,' '),
+      const items = data.paymentTrends.byFeeType.map((f: any) => ({
+        status: (f.feeType || f.type || 'Fee').toString(),
         amount: toNumber(f.totalPaid || f.amount || 0)
       }));
+      const normalized = normalizeFeeTypes(items);
       // If only one fee type, fallback to aggregated pie for better visualization
-      if (arr.length > 1) return arr;
+      if (normalized.length > 1) return normalized;
     }
 
     // paymentSummary aggregated values
@@ -885,22 +914,29 @@ export const FeeCollectionChart = ({ termId }: { termId?: string }) => {
 
   // Calculate total for percentage display
   const total = feeData.reduce((sum, item) => sum + item.amount, 0);
+  
+  // Professional color palette for fee types
+  const feeColors = [
+    '#3b82f6', // Blue
+    '#10b981', // Green
+    '#f59e0b', // Amber
+    '#8b5cf6', // Purple
+    '#ec4899', // Pink
+    '#06b6d4', // Cyan
+    '#f97316', // Orange
+    '#14b8a6', // Teal
+  ];
 
   return (
     <ResponsiveContainer width="100%" height="100%">
-      <PieChart margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
+      <PieChart margin={{ top: 10, right: 10, left: 10, bottom: 10 }}>
         <defs>
-          {/* Premium gradient definitions */}
-          <linearGradient id="collectedGradient" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stopColor="#059669" stopOpacity={1} />
-            <stop offset="50%" stopColor="#10b981" stopOpacity={0.95} />
-            <stop offset="100%" stopColor="#34d399" stopOpacity={0.9} />
-          </linearGradient>
-          <linearGradient id="outstandingGradient" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stopColor="#dc2626" stopOpacity={1} />
-            <stop offset="50%" stopColor="#ef4444" stopOpacity={0.95} />
-            <stop offset="100%" stopColor="#f87171" stopOpacity={0.9} />
-          </linearGradient>
+          {feeData.map((_, index) => (
+            <linearGradient key={`gradient-${index}`} id={`feeGradient${index}`} x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stopColor={feeColors[index % feeColors.length]} stopOpacity={1} />
+              <stop offset="100%" stopColor={feeColors[index % feeColors.length]} stopOpacity={0.7} />
+            </linearGradient>
+          ))}
           {/* Shadow filters for depth */}
           <filter id="dropshadow" x="-50%" y="-50%" width="200%" height="200%">
             <feGaussianBlur in="SourceAlpha" stdDeviation="3"/>
@@ -921,31 +957,20 @@ export const FeeCollectionChart = ({ termId }: { termId?: string }) => {
           nameKey="status"
           cx="50%"
           cy="50%"
-          outerRadius={90}
-          innerRadius={45}
-          paddingAngle={3}
-          startAngle={90}
-          endAngle={450}
+          outerRadius={100}
+          innerRadius={50}
+          paddingAngle={2}
           strokeWidth={2}
           stroke="#ffffff"
           style={{ filter: "url(#dropshadow)" }}
-          label={({ name, value, percent }) => {
-            const percentage = (percent * 100).toFixed(1);
-            const formattedValue = formatCurrency(value, getDefaultCurrency());
-            return `${name}\n${percentage}%\n${formattedValue}`;
-          }}
-          labelLine={false}
         >
-          {feeData.map((entry, index) => {
-            const isCollected = entry.status === 'Collected';
-            return (
-              <Cell 
-                key={`cell-${index}`} 
-                fill={isCollected ? 'url(#collectedGradient)' : 'url(#outstandingGradient)'}
-                className="transition-all duration-300 hover:opacity-80"
-              />
-            );
-          })}
+          {feeData.map((entry, index) => (
+            <Cell 
+              key={`cell-${index}`} 
+              fill={`url(#feeGradient${index})`}
+              className="transition-all duration-300 hover:opacity-80"
+            />
+          ))}
         </Pie>
         
         <Tooltip 
@@ -958,10 +983,10 @@ export const FeeCollectionChart = ({ termId }: { termId?: string }) => {
             border: 'none',
             borderRadius: '12px',
             boxShadow: '0 10px 25px rgba(0, 0, 0, 0.15)',
-            fontSize: '14px',
+            fontSize: '13px',
             fontWeight: '500',
             backdropFilter: 'blur(10px)',
-            padding: '12px 16px'
+            padding: '10px 14px'
           }}
           itemStyle={{ 
             color: '#374151',
@@ -974,9 +999,22 @@ export const FeeCollectionChart = ({ termId }: { termId?: string }) => {
           }}
         />
         
+        <Legend 
+          verticalAlign="bottom" 
+          height={36}
+          formatter={(value, entry: any) => {
+            const percentage = ((entry.payload.amount / total) * 100).toFixed(1);
+            return `${value} (${percentage}%)`;
+          }}
+          wrapperStyle={{
+            fontSize: '12px',
+            paddingTop: '10px'
+          }}
+        />
+        
         {/* Center text showing total */}
-        <text x="50%" y="50%" textAnchor="middle" dominantBaseline="middle" className="text-lg font-bold fill-gray-700">
-          <tspan x="50%" dy="-8">Total</tspan>
+        <text x="50%" y="50%" textAnchor="middle" dominantBaseline="middle" className="text-base font-bold fill-gray-700">
+          <tspan x="50%" dy="-8" className="text-xs">Total</tspan>
           <tspan x="50%" dy="20" className="text-sm font-semibold">{formatCurrency(total, getDefaultCurrency())}</tspan>
         </text>
       </PieChart>
@@ -1137,11 +1175,11 @@ export const ClassStudentsRatioChart = ({ termId }: { termId?: string }) => {
     }));
 
   return (
-    <ResponsiveContainer width="100%" height="100%">
+    <ResponsiveContainer width="100%" height={320}>
       <BarChart
         data={prepared}
-        margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
-        barCategoryGap="5%"
+        margin={{ top: 10, right: 20, left: 20, bottom: 60 }}
+        barCategoryGap="8%"
       >
         <defs>
           {/* Professional gradient for class enrollment */}
