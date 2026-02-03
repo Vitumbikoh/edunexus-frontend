@@ -481,153 +481,73 @@ export const ClassPerformanceChart = ({ termId }: { termId?: string }) => {
     try {
       setLoading(true);
       setError(null);
-      console.log('🚀 Starting to fetch performance data...');
 
-      // First try the analytics endpoint
-      const query = termId ? `?termId=${termId}` : '';
-      console.log('📊 Trying analytics endpoint:', `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.CLASS_PERFORMANCE}${query}`);
-      
-      let response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.CLASS_PERFORMANCE}${query}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      let data = null;
-      let dataSource = 'analytics';
-
-      if (response.ok) {
-        data = await response.json();
-        console.log('📊 Analytics response:', data);
-        
-        const raw = Array.isArray(data) ? data : (data.courseAverages || data.classPerformance || []);
-        console.log('📊 Processed analytics data:', raw);
-        
-        if (raw.length === 0) {
-          // If analytics endpoint returns no data, try to get data from exam results
-          console.log('📊 Analytics returned no data, trying exam results...');
-          dataSource = 'exam-results';
-          data = await fetchCourseAveragesFromExamResults();
-        } else {
-          data = raw.map((item: any) => ({
-            courseName: item.courseName || item.name,
-            studentsCount: item.gradeCount ?? item.numericGradeCount ?? item.studentsCount ?? item.students ?? item.studentCount ?? 0,
-            averageScore: item.averageScore ?? item.average ?? item.score ?? 0,
-          }));
-        }
-      } else {
-        // If analytics endpoint fails, try exam results
-        console.warn('📊 Analytics endpoint failed, trying exam results approach');
-        dataSource = 'exam-results';
-        data = await fetchCourseAveragesFromExamResults();
-      }
-
-      console.log(`📊 Final performance data loaded from ${dataSource}:`, data);
-      setPerformanceData(Array.isArray(data) ? data : []);
-    } catch (err) {
-      console.error('❌ Error fetching performance data:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load performance data');
-      setPerformanceData([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // New function to calculate course averages from exam results
-  const fetchCourseAveragesFromExamResults = async () => {
-    try {
-      console.log('📚 Fetching course averages from exam results...');
-      
-      // Get all classes first
+      // Fetch classes
       const classResponse = await fetch(`${API_CONFIG.BASE_URL}/grades/classes`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
       });
-
-      if (!classResponse.ok) {
-        throw new Error('Failed to fetch classes');
-      }
-
+      if (!classResponse.ok) throw new Error('Failed to fetch classes');
       const classes = await classResponse.json();
-      console.log('📚 Found classes:', classes.length);
-      
-      const courseAverages = new Map<string, { name: string; scores: number[]; students: Set<string> }>();
 
-      // Process each class to get exam results
+      const classAverages: Array<{ className: string; studentsCount: number; averageScore: number }> = [];
+
       for (const classItem of classes) {
-        try {
-          console.log(`📚 Processing class: ${classItem.name} (${classItem.id})`);
-          
-          const resultsResponse = await fetch(
-            `${API_CONFIG.BASE_URL}/exam-results/class/${classItem.id}${termId ? `?termId=${termId}` : ''}`,
-            {
-              headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json',
-              },
-            }
-          );
+        // Exclude graduated classes by name hint
+        const name = classItem.name || classItem.className || '';
+        if (/graduated|alumni|leavers/i.test(name)) continue;
 
-          if (resultsResponse.ok) {
-            const classResults = await resultsResponse.json();
-            console.log(`📚 Results for class ${classItem.name}:`, classResults);
-            
-            // Process student results to calculate course averages
-            if (classResults.students && Array.isArray(classResults.students)) {
-              console.log(`📚 Processing ${classResults.students.length} students in ${classItem.name}`);
-              
-              classResults.students.forEach((studentResult: any) => {
-                if (studentResult.results && Array.isArray(studentResult.results)) {
-                  studentResult.results.forEach((result: any) => {
-                    const courseKey = `${result.courseId}-${result.courseName}`;
-                    
-                    if (!courseAverages.has(courseKey)) {
-                      courseAverages.set(courseKey, {
-                        name: result.courseName || result.courseCode || 'Unknown Course',
-                        scores: [],
-                        students: new Set()
-                      });
-                    }
-                    
-                    const courseData = courseAverages.get(courseKey)!;
-                    if (typeof result.finalPercentage === 'number' && result.finalPercentage > 0) {
-                      courseData.scores.push(result.finalPercentage);
-                      courseData.students.add(studentResult.student.id);
-                      console.log(`📚 Added score ${result.finalPercentage}% for ${courseData.name}`);
-                    }
-                  });
+        const resultsResponse = await fetch(
+          `${API_CONFIG.BASE_URL}/exam-results/class/${classItem.id}${termId ? `?termId=${termId}` : ''}`,
+          {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+          }
+        );
+
+        if (!resultsResponse.ok) continue;
+        const classResults = await resultsResponse.json();
+
+        const scores: number[] = [];
+        const students = new Set<string>();
+        if (classResults.students && Array.isArray(classResults.students)) {
+          classResults.students.forEach((studentResult: any) => {
+            const sid = studentResult?.student?.id || studentResult?.studentId;
+            if (sid) students.add(String(sid));
+            if (studentResult.results && Array.isArray(studentResult.results)) {
+              studentResult.results.forEach((result: any) => {
+                const pct = result.finalPercentage;
+                if (typeof pct === 'number' && pct > 0) {
+                  scores.push(pct);
                 }
               });
             }
-          } else {
-            console.log(`📚 No results found for class ${classItem.name}`);
-          }
-        } catch (classError) {
-          console.warn(`📚 Failed to fetch results for class ${classItem.id}:`, classError);
+          });
+        }
+
+        const avg = scores.length > 0 ? (scores.reduce((s, v) => s + v, 0) / scores.length) : 0;
+        if (avg > 0) {
+          classAverages.push({
+            className: name,
+            studentsCount: students.size,
+            averageScore: Math.round(avg * 10) / 10
+          });
         }
       }
 
-      // Calculate averages and format data
-      const formattedData = Array.from(courseAverages.entries()).map(([courseKey, courseData]) => {
-        const averageScore = courseData.scores.length > 0 
-          ? courseData.scores.reduce((sum, score) => sum + score, 0) / courseData.scores.length 
-          : 0;
-        
-        return {
-          courseName: courseData.name,
-          studentsCount: courseData.students.size,
-          averageScore: Math.round(averageScore * 10) / 10, // Round to 1 decimal place
-        };
-      }).filter(course => course.averageScore > 0); // Only include courses with actual data
-
-      console.log('📚 Final formatted course averages:', formattedData);
-      return formattedData;
-    } catch (error) {
-      console.error('📚 Error fetching course averages from exam results:', error);
-      return [];
+      // Sort by average descending
+      classAverages.sort((a, b) => b.averageScore - a.averageScore);
+      setPerformanceData(classAverages);
+    } catch (err) {
+      console.error('Error fetching class performance data:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load performance data');
+      setPerformanceData([]);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -715,7 +635,7 @@ export const ClassPerformanceChart = ({ termId }: { termId?: string }) => {
         </defs>
         
         <XAxis 
-          dataKey="courseName" 
+          dataKey="className" 
           axisLine={false}
           tickLine={false}
           tick={{ fontSize: 10, fill: '#6b7280', fontWeight: 500 }}
@@ -818,11 +738,30 @@ export const FeeCollectionChart = ({ termId }: { termId?: string }) => {
     if (Array.isArray(data)) return data; // already array
     if (!data) return [];
 
-    // New backend shape handling: paymentTrends.byFeeType & paymentSummary
+    // New backend shape handling: prefer current-term breakdowns
+    // 1) paymentTrends.currentTerm.byFeeType
+    if (data.currentTerm && Array.isArray(data.currentTerm.byFeeType) && data.currentTerm.byFeeType.length > 0) {
+      return data.currentTerm.byFeeType.map((f: any) => ({
+        status: (f.feeType || f.type || f.name || 'Fee').toString().replace(/_/g, ' '),
+        amount: toNumber(f.totalPaid || f.amount || f.paid || 0)
+      }));
+    }
+    // 2) paymentTrends.currentTermByFeeType
+    if (data.paymentTrends && Array.isArray(data.paymentTrends.currentTermByFeeType) && data.paymentTrends.currentTermByFeeType.length > 0) {
+      return data.paymentTrends.currentTermByFeeType.map((f: any) => ({
+        status: (f.feeType || f.type || f.name || 'Fee').toString().replace(/_/g, ' '),
+        amount: toNumber(f.totalPaid || f.amount || f.paid || 0)
+      }));
+    }
+    // 3) General feeTypeBreakdown but filter by term when possible
     const feeTypeBreakdown = data.feeTypeBreakdown || data.feeTypes || data.fee_structure;
     if (Array.isArray(feeTypeBreakdown) && feeTypeBreakdown.length > 0) {
-      return feeTypeBreakdown.map((f: any) => ({
-        status: f.feeType || f.type || f.status || f.name,
+      let items = feeTypeBreakdown;
+      if (termId && items.some((x: any) => x.termId)) {
+        items = items.filter((x: any) => String(x.termId) === String(termId));
+      }
+      return items.map((f: any) => ({
+        status: (f.feeType || f.type || f.status || f.name || 'Fee').toString().replace(/_/g, ' '),
         amount: toNumber(f.amount || f.totalPaid || f.expectedAmount)
       }));
     }
@@ -840,13 +779,13 @@ export const FeeCollectionChart = ({ termId }: { termId?: string }) => {
     // paymentSummary aggregated values
     const paymentSummary = data.paymentSummary || {};
     let totalPaid = toNumber(
-      paymentSummary.totalPaid ?? paymentSummary.paid ?? data.totalPaidFees ?? data.paidFees ?? 0
+      paymentSummary.currentTermPaid ?? paymentSummary.totalPaid ?? paymentSummary.paid ?? data.totalPaidFees ?? data.paidFees ?? 0
     );
     let outstanding = toNumber(
-      paymentSummary.totalOutstanding ?? paymentSummary.outstanding ?? data.outstandingFees ?? 0
+      paymentSummary.currentTermOutstanding ?? paymentSummary.totalOutstanding ?? paymentSummary.outstanding ?? data.outstandingFees ?? 0
     );
     const expected = toNumber(
-      paymentSummary.totalExpected ?? paymentSummary.expected ?? data.totalExpectedFees ?? data.expectedFees ?? (totalPaid + outstanding)
+      paymentSummary.currentTermExpected ?? paymentSummary.totalExpected ?? paymentSummary.expected ?? data.totalExpectedFees ?? data.expectedFees ?? (totalPaid + outstanding)
     );
 
     // Derive if outstanding not explicitly present
@@ -867,8 +806,13 @@ export const FeeCollectionChart = ({ termId }: { termId?: string }) => {
     try {
       setLoading(true);
       setError(null);
-
-      const query = termId ? `?termId=${termId}` : '';
+      let query = termId ? `?termId=${termId}` : '';
+      try {
+        const cal = await academicCalendarService.getActiveAcademicCalendar(token!);
+        if (cal?.id) {
+          query += (query ? `&academicCalendarId=${encodeURIComponent(cal.id)}` : `?academicCalendarId=${encodeURIComponent(cal.id)}`);
+        }
+      } catch {}
       const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.FEE_COLLECTION}${query}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -1104,7 +1048,14 @@ export const ClassStudentsRatioChart = ({ termId }: { termId?: string }) => {
       setError(null);
 
       // Use the new class-counts endpoint to get real student counts per class
-      const response = await fetch(`${API_CONFIG.BASE_URL}/student/class-counts`, {
+      let url = `${API_CONFIG.BASE_URL}/student/class-counts`;
+      try {
+        const cal = await academicCalendarService.getActiveAcademicCalendar(token!);
+        if (cal?.id) {
+          url += `?academicCalendarId=${encodeURIComponent(cal.id)}&excludeGraduated=true`;
+        }
+      } catch {}
+      const response = await fetch(url, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -1122,9 +1073,10 @@ export const ClassStudentsRatioChart = ({ termId }: { termId?: string }) => {
           className: item.className || 'Unknown Class',
           studentCount: item.studentCount || 0,
         }));
-        
-        // Filter out classes with 0 students
-        const filteredData = formattedData.filter(item => item.studentCount > 0);
+        // Filter out classes with 0 students and graduated-like labels
+        const filteredData = formattedData
+          .filter(item => item.studentCount > 0)
+          .filter(item => !/graduated|alumni|leavers/i.test(item.className));
         setClassData(filteredData);
       } else {
         throw new Error('Invalid response format');
@@ -1188,8 +1140,8 @@ export const ClassStudentsRatioChart = ({ termId }: { termId?: string }) => {
     <ResponsiveContainer width="100%" height="100%">
       <BarChart
         data={prepared}
-        margin={{ top: 40, right: 30, left: 20, bottom: 60 }}
-        barCategoryGap="15%"
+        margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
+        barCategoryGap="5%"
       >
         <defs>
           {/* Professional gradient for class enrollment */}
@@ -1214,14 +1166,13 @@ export const ClassStudentsRatioChart = ({ termId }: { termId?: string }) => {
             </feMerge>
           </filter>
         </defs>
-        
+
         <CartesianGrid 
           strokeDasharray="3 3" 
           stroke="#e5e7eb" 
           strokeOpacity={0.3}
           vertical={false}
         />
-        
         <XAxis
           dataKey="className"
           axisLine={{ stroke: '#d1d5db', strokeWidth: 1 }}
@@ -1236,6 +1187,7 @@ export const ClassStudentsRatioChart = ({ termId }: { termId?: string }) => {
           axisLine={{ stroke: '#d1d5db', strokeWidth: 1 }}
           tickLine={{ stroke: '#d1d5db' }}
           tick={{ fontSize: 11, fill: '#6b7280', fontWeight: 500 }}
+          domain={[0, 'dataMax + 2']}
           label={{ 
             value: 'Student Count', 
             angle: -90, 
@@ -1279,6 +1231,7 @@ export const ClassStudentsRatioChart = ({ termId }: { termId?: string }) => {
           strokeWidth={1}
           style={{ filter: "url(#enrollmentShadow)" }}
           className="transition-all duration-300 hover:opacity-80"
+          barSize={40}
           animationDuration={1000}
           animationBegin={200}
         >

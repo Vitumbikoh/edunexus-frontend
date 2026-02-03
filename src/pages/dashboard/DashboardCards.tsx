@@ -437,7 +437,7 @@ export const AdminDashboardCards = () => {
               <div>
                 <CardTitle className="text-xl font-semibold">Fee Collection Analytics</CardTitle>
                 <CardDescription>
-                  Track fee collection trends and payment patterns{" "}
+                  Current term fee collection and payment patterns{" "}
                   {loadingAY && (
                     <span className="text-xs text-muted-foreground">
                       (loading year...)
@@ -494,7 +494,7 @@ export const AdminDashboardCards = () => {
               <div>
                 <CardTitle className="text-xl font-semibold">Academic Performance</CardTitle>
                 <CardDescription>
-                  Average scores by course{" "}
+                  Average scores by class{" "}
                   {loadingAY && (
                     <span className="text-xs text-muted-foreground">
                       (loading year...)
