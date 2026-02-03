@@ -8,10 +8,20 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
-import { ArrowLeft, Save } from "lucide-react";
+import { ArrowLeft, Save, AlertTriangle } from "lucide-react";
 import { API_CONFIG } from '@/config/api';
 import { apiFetch } from '@/lib/apiClient';
 import { academicCalendarService } from '@/services/academicCalendarService';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface Class {
   id: string;
@@ -60,6 +70,11 @@ export default function PaymentForm() {
   const [selectedTermId, setSelectedTermId] = useState<string | null>(null);
   const [currentTermId, setCurrentTermId] = useState<string | null>(null);
   const [studentSearch, setStudentSearch] = useState("");
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [feeStructures, setFeeStructures] = useState<Array<{feeType: string; amount: number}>>([]);
+  const [validationWarning, setValidationWarning] = useState<string | null>(null);
+  const [studentFinancialData, setStudentFinancialData] = useState<any>(null);
+  const [paidByFeeType, setPaidByFeeType] = useState<Map<string, number>>(new Map());
 
   // Check permissions
   const canRecordPayment = user?.role === "admin" || user?.role === "finance";
@@ -262,18 +277,139 @@ export default function PaymentForm() {
     fetchFeeTypes();
   }, [token, selectedTermId, selectedAcademicCalendarId]);
 
+  // Fetch fee structures for validation
+  useEffect(() => {
+    const fetchFeeStructures = async () => {
+      if (!token || !selectedTermId) return;
+      try {
+        const calParam = selectedAcademicCalendarId ? `&academicCalendarId=${encodeURIComponent(selectedAcademicCalendarId)}` : '';
+        const structures = await apiFetch<any>(`/finance/fee-structure?termId=${selectedTermId}${calParam}`);
+        if (Array.isArray(structures)) {
+          setFeeStructures(structures.map((s: any) => ({
+            feeType: s.feeType,
+            amount: Number(s.amount)
+          })));
+        }
+      } catch (error) {
+        console.error('Failed to fetch fee structures:', error);
+        setFeeStructures([]);
+      }
+    };
+    fetchFeeStructures();
+  }, [token, selectedTermId, selectedAcademicCalendarId]);
+
+  // Fetch student financial details to calculate already paid amounts per fee type
+  useEffect(() => {
+    const fetchStudentFinancialData = async () => {
+      if (!token || !selectedStudent || !selectedTermId) {
+        setStudentFinancialData(null);
+        setPaidByFeeType(new Map());
+        return;
+      }
+      
+      try {
+        const calParam = selectedAcademicCalendarId ? `?academicCalendarId=${encodeURIComponent(selectedAcademicCalendarId)}` : '';
+        const financialData = await apiFetch<any>(`/finance/student-financial-details/${selectedStudent}${calParam}`);
+        setStudentFinancialData(financialData);
+        
+        // Calculate how much has been paid for each fee type in the selected term
+        const paidAmounts = new Map<string, number>();
+        
+        // Initialize with 0 for all defined fee types from fee structures
+        if (feeStructures && feeStructures.length > 0) {
+          feeStructures.forEach((fs: any) => {
+            paidAmounts.set(fs.feeType.toLowerCase(), 0);
+          });
+        }
+        
+        // Sum up payments by fee type from transaction history for this term
+        // The transaction history shows ALLOCATIONS (where money was allocated),
+        // which is what we need for validation
+        if (financialData?.transactionHistory) {
+          financialData.transactionHistory.forEach((transaction: any) => {
+            const isMatch = transaction.termId === selectedTermId;
+            const isCredit = !!transaction.isCreditEntry;
+            const hasPaymentType = !!transaction.paymentType;
+            
+            // Only count non-credit transactions for the selected term
+            // Both allocation details and regular payments should be counted
+            if (isMatch && hasPaymentType && !isCredit) {
+              const feeType = transaction.paymentType.toLowerCase();
+              const currentPaid = paidAmounts.get(feeType) || 0;
+              paidAmounts.set(feeType, currentPaid + Number(transaction.amount || 0));
+            }
+          });
+        }
+        
+        setPaidByFeeType(paidAmounts);
+      } catch (error) {
+        console.error('Failed to fetch student financial data:', error);
+        setStudentFinancialData(null);
+        setPaidByFeeType(new Map());
+      }
+    };
+    
+    fetchStudentFinancialData();
+  }, [token, selectedStudent, selectedTermId, selectedAcademicCalendarId, feeStructures]);
+
   // Token refresh is now handled by apiClient
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setApiError(null);
+    setValidationWarning(null);
+
+    // Basic validations
+    if (!token || !user?.id) {
+      setApiError("Authentication token or user ID not found. Please log in again.");
+      return;
+    }
+
+    if (!selectedTermId) {
+      setApiError('Please select an academic term for this payment');
+      return;
+    }
+
+    const amountValue = Number(amount);
+    if (isNaN(amountValue) || amountValue <= 0) {
+      setApiError("Amount must be a valid positive number");
+      return;
+    }
+
+    if (paymentMethod === 'bank_transfer' && !receiptNumber) {
+      setApiError("Receipt number is required for bank transfer");
+      return;
+    }
+
+    // Validate amount against remaining balance for the fee type (except for "full" payment type)
+    if (selectedPaymentType && selectedPaymentType !== 'full') {
+      const expectedFee = feeStructures.find(
+        f => f.feeType.toLowerCase() === selectedPaymentType.toLowerCase()
+      );
+      
+      if (expectedFee) {
+        const alreadyPaid = paidByFeeType.get(selectedPaymentType.toLowerCase()) || 0;
+        const remainingBalance = expectedFee.amount - alreadyPaid;
+        
+        if (amountValue > remainingBalance) {
+          setValidationWarning(
+            `The amount entered (MK ${amountValue.toLocaleString()}) is more than the remaining balance for ${selectedPaymentType} fee. Expected: MK ${expectedFee.amount.toLocaleString()}, Already Paid: MK ${alreadyPaid.toLocaleString()}, Remaining: MK ${remainingBalance.toLocaleString()}. Please select "Full (allocate across fees)" to proceed with this amount.`
+          );
+          return;
+        }
+      }
+    }
+
+    // Show confirmation dialog
+    setShowConfirmDialog(true);
+  };
+
+  const confirmAndSubmit = async () => {
+    setShowConfirmDialog(false);
     setIsSubmitting(true);
     setApiError(null);
 
     try {
-      if (!token || !user?.id) {
-        throw new Error("Authentication token or user ID not found. Please log in again.");
-      }
-
       const requestBody: any = {
         studentId: selectedStudent,
         paymentType: selectedPaymentType,
@@ -288,18 +424,6 @@ export default function PaymentForm() {
       // attach selected academic calendar and term when present
       if (selectedAcademicCalendarId) requestBody.academicCalendarId = selectedAcademicCalendarId;
       if (selectedTermId) requestBody.termId = selectedTermId;
-
-      if (!selectedTermId) {
-        throw new Error('Please select an academic term for this payment');
-      }
-
-      if (isNaN(requestBody.amount) || requestBody.amount <= 0) {
-        throw new Error("Amount must be a valid positive number");
-      }
-
-      if (paymentMethod === 'bank_transfer' && !receiptNumber) {
-        throw new Error("Receipt number is required for bank transfer");
-      }
 
       const result = await apiFetch<any>(`/finance/payments`, {
         method: 'POST',
@@ -352,6 +476,13 @@ export default function PaymentForm() {
       {apiError && (
         <div className="p-4 mb-4 text-sm text-red-700 bg-red-100 rounded-lg">
           {apiError}
+        </div>
+      )}
+
+      {validationWarning && (
+        <div className="p-4 mb-4 text-sm text-yellow-700 bg-yellow-100 rounded-lg flex items-start gap-2">
+          <AlertTriangle className="h-5 w-5 flex-shrink-0 mt-0.5" />
+          <div>{validationWarning}</div>
         </div>
       )}
 
@@ -585,6 +716,27 @@ export default function PaymentForm() {
           </CardFooter>
         </form>
       </Card>
+
+      <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Payment</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to record this payment?
+              <div className="mt-4 space-y-2 text-sm">
+                <div><strong>Student:</strong> {students.find(s => s.id === selectedStudent)?.firstName} {students.find(s => s.id === selectedStudent)?.lastName}</div>
+                <div><strong>Amount:</strong> MK {Number(amount).toLocaleString()}</div>
+                <div><strong>Payment Type:</strong> {selectedPaymentType === 'full' ? 'Full (allocate across fees)' : selectedPaymentType}</div>
+                <div><strong>Payment Method:</strong> {paymentMethod}</div>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmAndSubmit}>Confirm & Record</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
