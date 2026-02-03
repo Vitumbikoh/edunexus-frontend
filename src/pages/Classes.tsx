@@ -24,6 +24,7 @@ export default function ClassManagement() {
   const [isLoading, setIsLoading] = useState(true);
   const [apiError, setApiError] = useState<string | null>(null);
   const [isAdmin] = useState(user?.role === 'admin');
+  const [tenantIdInput, setTenantIdInput] = useState<string>(localStorage.getItem('tenantId') || '');
 
   // Form state
   const [classForm, setClassForm] = useState({
@@ -45,8 +46,14 @@ export default function ClassManagement() {
       setIsLoading(true);
       setApiError(null);
       
-      const response = await fetch("http://localhost:5000/api/v1/classes", {
-        headers: { Authorization: `Bearer ${token}` }
+      const tenantId = localStorage.getItem('tenantId') || undefined;
+      const base = `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api/v1'}/classes`;
+      const url = tenantId ? `${base}?schoolId=${encodeURIComponent(tenantId)}` : base;
+      const response = await fetch(url, {
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          ...(tenantId ? { 'X-Tenant-ID': tenantId } : {}),
+        }
       });
 
       if (!response.ok) {
@@ -70,16 +77,19 @@ export default function ClassManagement() {
   const handleCreateClass = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const response = await fetch("http://localhost:5000/api/v1/classes", {
+      const tenantIdCreate = localStorage.getItem('tenantId') || undefined;
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api/v1'}/classes`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
+          Authorization: `Bearer ${token}`,
+          ...(tenantIdCreate ? { 'X-Tenant-ID': tenantIdCreate } : {}),
         },
         body: JSON.stringify({
           name: classForm.name,
           numericalName: Number(classForm.numericalName),
-          description: `Grade ${classForm.numericalName} class`
+          description: `Grade ${classForm.numericalName} class`,
+          ...(tenantIdCreate ? { schoolId: tenantIdCreate } : {}),
         })
       });
 
@@ -102,9 +112,13 @@ export default function ClassManagement() {
   const deleteClass = async (id: string) => {
     if (!window.confirm("Delete this class?")) return;
     try {
-      const response = await fetch(`http://localhost:5000/api/v1/classes/${id}`, {
+      const tenantIdDelete = localStorage.getItem('tenantId') || undefined;
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api/v1'}/classes/${id}`, {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          ...(tenantIdDelete ? { 'X-Tenant-ID': tenantIdDelete } : {}),
+        }
       });
 
       if (!response.ok) throw new Error("Failed to delete class");
@@ -118,11 +132,13 @@ export default function ClassManagement() {
   // Update class
   const updateClass = async (id: string) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/v1/classes/${id}`, {
+      const tenantIdUpdate = localStorage.getItem('tenantId') || undefined;
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api/v1'}/classes/${id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
+          Authorization: `Bearer ${token}`,
+          ...(tenantIdUpdate ? { 'X-Tenant-ID': tenantIdUpdate } : {}),
         },
         body: JSON.stringify({
           name: editForm.name,
@@ -149,9 +165,13 @@ export default function ClassManagement() {
   const deactivateClass = async (id: string) => {
     if (!window.confirm("Deactivate this class?")) return;
     try {
-      const response = await fetch(`http://localhost:5000/api/v1/classes/${id}/deactivate`, {
+      const tenantIdDeactivate = localStorage.getItem('tenantId') || undefined;
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api/v1'}/classes/${id}/deactivate`, {
         method: "PATCH",
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          ...(tenantIdDeactivate ? { 'X-Tenant-ID': tenantIdDeactivate } : {}),
+        }
       });
 
       if (!response.ok) throw new Error("Failed to deactivate class");
@@ -199,6 +219,21 @@ export default function ClassManagement() {
             Admin Access Required
           </Badge>
         )}
+        <div className="ml-auto flex items-center gap-2">
+          <Label className="text-sm">School Context</Label>
+          <Input
+            value={tenantIdInput}
+            onChange={(e) => setTenantIdInput(e.target.value)}
+            placeholder="tenantId (School ID)"
+            className="w-64"
+          />
+          <Button
+            variant="outline"
+            onClick={() => { localStorage.setItem('tenantId', tenantIdInput || ''); fetchClasses(); }}
+          >
+            Apply
+          </Button>
+        </div>
       </div>
 
       {apiError && (
@@ -283,10 +318,10 @@ export default function ClassManagement() {
                         value={editForm.numericalName}
                         onChange={(e) => setEditForm({...editForm, numericalName: Number(e.target.value)})}
                         placeholder="Grade level"
-                        min="1"
+                        min="0"
                       />
                     ) : (
-                      `Grade ${cls.numericalName}`
+                      cls.numericalName === 999 || cls.name.toLowerCase() === 'graduated' ? 'Graduated' : `Grade ${cls.numericalName}`
                     )}
                   </TableCell>
                   <TableCell>

@@ -81,13 +81,13 @@ const TeacherPerformanceCard: React.FC = () => {
       params.append('passThreshold', passThreshold.toString());
       // get more than first page for local pagination
       params.append('limit', '100');
-        // include academicCalendarId if available
-        let calParam = '';
-        try {
-          const cal = await academicCalendarService.getActiveAcademicCalendar(token!);
-          if (cal?.id) calParam = `?academicCalendarId=${encodeURIComponent(cal.id)}`;
-        } catch {}
-        const res = await fetch(`${API_CONFIG.BASE_URL}/analytics/teacher-performance${calParam}&${params.toString()}`, {
+      // include academicCalendarId if available (merge into same query set)
+      try {
+        const cal = await academicCalendarService.getActiveAcademicCalendar(token!);
+        if (cal?.id) params.append('academicCalendarId', cal.id);
+      } catch {}
+      const url = `${API_CONFIG.BASE_URL}/analytics/teacher-performance?${params.toString()}`;
+      const res = await fetch(url, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (!res.ok) throw new Error('Failed to load');
@@ -382,11 +382,13 @@ export const AdminDashboardCards = () => {
           }
         );
         if (res.ok) {
-          const data = await res.json();
-          // Accept flexible key names
-          const id =
-            data?.id || data?.termId || data?.currentTerm?.id;
-          if (id) setTermId(id);
+          const text = await res.text();
+          if (text) {
+            const data = JSON.parse(text);
+            // Accept flexible key names
+            const id = data?.id || data?.termId || data?.currentTerm?.id;
+            if (id) setTermId(id);
+          } // else: no content, skip
         }
       } catch (e) {
         console.warn("Failed to load current academic year", e);
