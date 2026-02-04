@@ -6,9 +6,11 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Loader2, User, CreditCard, Receipt, Calendar, TrendingUp, AlertCircle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Loader2, User, CreditCard, Receipt, Calendar, TrendingUp, AlertCircle, RefreshCw } from 'lucide-react';
 import { formatCurrency, getDefaultCurrency } from '@/lib/currency';
 import { API_CONFIG } from '@/config/api';
+import { useToast } from '@/components/ui/use-toast';
 
 interface StudentFinancialDetailsModalProps {
   open: boolean;
@@ -98,7 +100,64 @@ export function StudentFinancialDetailsModal({
   const [details, setDetails] = useState<StudentFinancialDetails | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [applyingCredit, setApplyingCredit] = useState(false);
   const { token, isAuthenticated } = useAuth();
+  const { toast } = useToast();
+
+  const handleAutoApplyCredit = async () => {
+    if (!studentId) return;
+
+    setApplyingCredit(true);
+    try {
+      const storedToken = token || localStorage.getItem('access_token');
+      if (!storedToken) {
+        throw new Error('No authentication token found');
+      }
+
+      const response = await fetch(
+        `${API_CONFIG.BASE_URL}/finance/credits/auto-apply-all-terms/${studentId}`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${storedToken}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to apply credit');
+      }
+
+      const result = await response.json();
+
+      if (result.success && result.termsProcessed > 0) {
+        toast({
+          title: 'Credit Applied Successfully',
+          description: result.message,
+          variant: 'default'
+        });
+
+        // Refresh the financial details
+        await fetchStudentFinancialDetails();
+      } else {
+        toast({
+          title: 'No Credits Applied',
+          description: result.message || 'No outstanding fees found to apply credit to',
+          variant: 'default'
+        });
+      }
+    } catch (error: any) {
+      console.error('Error applying credit:', error);
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to apply credit balance',
+        variant: 'destructive'
+      });
+    } finally {
+      setApplyingCredit(false);
+    }
+  };
 
   const fetchStudentFinancialDetails = async () => {
     if (!studentId || !open) return;
@@ -373,14 +432,38 @@ export function StudentFinancialDetailsModal({
               {details.summary.creditBalance > 0 && (
                 <Card className="border-green-200 bg-green-50">
                   <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-green-800">
-                      <CreditCard className="h-5 w-5" />
-                      Credit Balance
+                    <CardTitle className="flex items-center gap-2 justify-between text-green-800">
+                      <div className="flex items-center gap-2">
+                        <CreditCard className="h-5 w-5" />
+                        Credit Balance
+                      </div>
+                      <Button
+                        onClick={handleAutoApplyCredit}
+                        disabled={applyingCredit}
+                        size="sm"
+                        variant="outline"
+                        className="bg-white hover:bg-green-100 text-green-700 border-green-300"
+                      >
+                        {applyingCredit ? (
+                          <>
+                            <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                            Applying...
+                          </>
+                        ) : (
+                          <>
+                            <RefreshCw className="mr-2 h-3 w-3" />
+                            Apply to Outstanding
+                          </>
+                        )}
+                      </Button>
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <p className="text-xl font-semibold text-green-700">
                       {formatCurrency(details.summary.creditBalance, getDefaultCurrency())}
+                    </p>
+                    <p className="text-xs text-green-600 mt-1">
+                      Click "Apply to Outstanding" to automatically apply this credit to overdue fees
                     </p>
                   </CardContent>
                 </Card>
