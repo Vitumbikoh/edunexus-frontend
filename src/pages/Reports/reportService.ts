@@ -1,6 +1,7 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
+import { API_BASE_URL, getServerBaseUrl } from '@/config/api';
 
 // Helper function to load and convert image to base64 for PDF
 const loadImageAsBase64 = (src: string): Promise<string> => {
@@ -167,8 +168,7 @@ const addPdfHeaderFooterOptions = (doc: any, apiSchoolInfo?: SchoolInfo, logoIma
 const getLogoUrl = (schoolInfo?: SchoolInfo): string | null => {
   const school = getSchoolInfo(schoolInfo);
   if (school.logo) {
-    const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL as string) || 'http://localhost:5000/api/v1';
-    const baseUrl = apiBaseUrl.replace('/api/v1', '');
+    const baseUrl = getServerBaseUrl();
     return `${baseUrl}${school.logo}`;
   }
   return null;

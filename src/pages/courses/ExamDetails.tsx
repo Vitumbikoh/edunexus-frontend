@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Users } from 'lucide-react';
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from '@/contexts/AuthContext';
+import { API_BASE_URL } from '@/config/api';
 
 interface Exam {
   id: string;
@@ -144,7 +145,7 @@ export default function ExamDetails() {
 
   const fetchGradedStudentsCount = async (examId: string, enrollmentCount?: number) => {
     try {
-      const gradesResponse = await fetchWithAuth(`http://localhost:5000/api/v1/grades/filtered?examId=${examId}`);
+      const gradesResponse = await fetchWithAuth(`${import.meta.env.VITE_API_BASE_URL || `${import.meta.env.VITE_API_BASE_URL || 'import.meta.env.VITE_API_BASE_URL || API_BASE_URL'}`}/grades/filtered?examId=${examId}`);
       let count = 0;
       
       if (gradesResponse && typeof gradesResponse === 'object') {
@@ -192,7 +193,7 @@ export default function ExamDetails() {
 
       try {
         setIsLoading(true);
-  const examData = await fetchWithAuth(`http://localhost:5000/api/v1/exams/${examId}`);
+  const examData = await fetchWithAuth(`${import.meta.env.VITE_API_BASE_URL || `${import.meta.env.VITE_API_BASE_URL || 'import.meta.env.VITE_API_BASE_URL || API_BASE_URL'}`}/exams/${examId}`);
         console.log('Exam details API response:', examData);
         
         // Validate the exam data structure

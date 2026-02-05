@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { API_BASE_URL } from '@/config/api';
 import {
   Table,
   TableBody,
@@ -46,7 +47,7 @@ export default function EnrollStudents() {
 
       // Fetch course details
       const courseResponse = await fetch(
-        `http://localhost:5000/api/v1/course/${courseId}`,
+        `${import.meta.env.VITE_API_BASE_URL || `${import.meta.env.VITE_API_BASE_URL || 'import.meta.env.VITE_API_BASE_URL || API_BASE_URL'}`}/course/${courseId}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -63,7 +64,7 @@ export default function EnrollStudents() {
 
       // Fetch students in the same class but not enrolled
       const studentsResponse = await fetch(
-        `http://localhost:5000/api/v1/course/${courseId}/enrollable-students`,
+        `${import.meta.env.VITE_API_BASE_URL || `${import.meta.env.VITE_API_BASE_URL || 'import.meta.env.VITE_API_BASE_URL || API_BASE_URL'}`}/course/${courseId}/enrollable-students`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -94,7 +95,7 @@ export default function EnrollStudents() {
   const handleEnroll = async (studentId: string) => {
     try {
       const response = await fetch(
-        `http://localhost:5000/api/v1/enrollments/${courseId}/enroll/${studentId}`,
+        `${import.meta.env.VITE_API_BASE_URL || `${import.meta.env.VITE_API_BASE_URL || 'import.meta.env.VITE_API_BASE_URL || API_BASE_URL'}`}/enrollments/${courseId}/enroll/${studentId}`,
         {
           method: "POST",
           headers: {

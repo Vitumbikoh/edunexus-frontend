@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Loader2, Users, BookOpen, DollarSign, GraduationCap, TrendingUp, FileSpreadsheet, Download, FileDown, FileText } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import { API_BASE_URL } from "@/config/api";
 // Use local report service implementation co-located with this page to avoid alias resolution issues
 import { reportService } from "./reportService";
 import { classService } from "@/services/classService";
@@ -127,7 +128,7 @@ export default function Reports() {
   const loadFilterOptions = useCallback(async () => {
     if (!token) return;
     try {
-      const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api/v1';
+      const base = API_BASE_URL;
       const [cls, acads, trs, stds, crs] = await Promise.all([
         classService.getClasses(token).catch(() => []),
         academicCalendarService.getAcademicCalendars(token).catch(() => []),
@@ -177,7 +178,7 @@ export default function Reports() {
         paymentTermId: filters.paymentTermId || undefined,
         paymentClassId: filters.paymentClassId || undefined,
       });
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api/v1'}/admin/reports${query}`, {
+      const res = await fetch(`${API_BASE_URL}/admin/reports${query}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (!res.ok) throw new Error('Failed to fetch report data');
@@ -194,7 +195,7 @@ export default function Reports() {
   const fetchDetailedData = useCallback(async () => {
     if (!token) return;
     try {
-      const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api/v1';
+      const base = API_BASE_URL;
       const studentsQuery = buildQuery({ gender: filters.studentGender || undefined, classId: filters.studentClassId || undefined });
       const teachersQuery = buildQuery({ gender: filters.teacherGender || undefined, classId: filters.teacherClassId || undefined });
       const coursesQuery = buildQuery({ classId: filters.courseClassId || undefined, teacherId: filters.courseTeacherId || undefined });

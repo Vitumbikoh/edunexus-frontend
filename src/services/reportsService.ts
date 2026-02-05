@@ -1,4 +1,5 @@
 import { apiClient } from './apiClient';
+import { API_BASE_URL } from '@/config/api';
 
 export const reportsApi = {
   // Fetch report data from any endpoint
@@ -10,7 +11,7 @@ export const reportsApi = {
   // Export report in Excel or PDF format
   exportReport: async (endpoint: string, query?: string, token?: string) => {
     const url = `${endpoint}${query ? `?${query}` : ''}`;
-    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api/v1'}${url}`, {
+    const response = await fetch(`${API_BASE_URL}${url}`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`,

@@ -11,6 +11,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { Plus, Trash2, Edit, ArrowLeft } from 'lucide-react';
 import { format, parseISO, getDay } from 'date-fns';
 import { Preloader } from '@/components/ui/preloader';
+import { API_BASE_URL } from '@/config/api';
 
 interface Schedule {
   id: string;
@@ -128,19 +129,19 @@ export default function ScheduleManagement() {
       setApiError(null);
       
       const [schedulesRes, coursesRes, teachersRes, classroomsRes, classesRes] = await Promise.all([
-        fetch("http://localhost:5000/api/v1/schedules", {
+        fetch(`${import.meta.env.VITE_API_BASE_URL || `${import.meta.env.VITE_API_BASE_URL || 'import.meta.env.VITE_API_BASE_URL || API_BASE_URL'}`}/schedules`, {
           headers: { Authorization: `Bearer ${token}` }
         }),
-        fetch("http://localhost:5000/api/v1/course/courses", {
+        fetch(`${import.meta.env.VITE_API_BASE_URL || `${import.meta.env.VITE_API_BASE_URL || 'import.meta.env.VITE_API_BASE_URL || API_BASE_URL'}`}/course/courses`, {
           headers: { Authorization: `Bearer ${token}` }
         }),
-        fetch("http://localhost:5000/api/v1/teacher/teachers", {
+        fetch(`${import.meta.env.VITE_API_BASE_URL || `${import.meta.env.VITE_API_BASE_URL || 'import.meta.env.VITE_API_BASE_URL || API_BASE_URL'}`}/teacher/teachers`, {
           headers: { Authorization: `Bearer ${token}` }
         }),
-        fetch("http://localhost:5000/api/v1/classrooms", {
+        fetch(`${import.meta.env.VITE_API_BASE_URL || `${import.meta.env.VITE_API_BASE_URL || 'import.meta.env.VITE_API_BASE_URL || API_BASE_URL'}`}/classrooms`, {
           headers: { Authorization: `Bearer ${token}` }
         }),
-        fetch("http://localhost:5000/api/v1/classes", {
+        fetch(`${import.meta.env.VITE_API_BASE_URL || `${import.meta.env.VITE_API_BASE_URL || 'import.meta.env.VITE_API_BASE_URL || API_BASE_URL'}`}/classes`, {
           headers: { Authorization: `Bearer ${token}` }
         })
       ]);
@@ -216,7 +217,7 @@ export default function ScheduleManagement() {
         isActive: scheduleForm.isActive
       };
 
-      const response = await fetch("http://localhost:5000/api/v1/schedules", {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || `${import.meta.env.VITE_API_BASE_URL || 'import.meta.env.VITE_API_BASE_URL || API_BASE_URL'}`}/schedules`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -259,7 +260,7 @@ export default function ScheduleManagement() {
   const deleteSchedule = async (id: string) => {
     if (!window.confirm("Are you sure you want to delete this schedule?")) return;
     try {
-      const response = await fetch(`http://localhost:5000/api/v1/schedules/${id}`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || `${import.meta.env.VITE_API_BASE_URL || 'import.meta.env.VITE_API_BASE_URL || API_BASE_URL'}`}/schedules/${id}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -280,7 +281,7 @@ export default function ScheduleManagement() {
   // Toggle schedule active status
   const toggleScheduleStatus = async (id: string, currentStatus: boolean) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/v1/schedules/${id}`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || `${import.meta.env.VITE_API_BASE_URL || 'import.meta.env.VITE_API_BASE_URL || API_BASE_URL'}`}/schedules/${id}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",

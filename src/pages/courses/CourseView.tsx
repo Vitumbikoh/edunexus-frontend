@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
 import { ArrowLeft, Users, BookOpen, Calendar, User } from "lucide-react";
+import { API_BASE_URL } from '@/config/api';
 
 interface Course {
   id: string;
@@ -52,7 +53,7 @@ export default function CourseView() {
     try {
       setIsLoading(true);
 
-      const response = await fetch(`http://localhost:5000/api/v1/course/${id}`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || `${import.meta.env.VITE_API_BASE_URL || 'import.meta.env.VITE_API_BASE_URL || API_BASE_URL'}`}/course/${id}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -91,7 +92,7 @@ export default function CourseView() {
 
     try {
       const response = await fetch(
-        `http://localhost:5000/api/v1/course/${id}/enrollments`,
+        `${import.meta.env.VITE_API_BASE_URL || `${import.meta.env.VITE_API_BASE_URL || 'import.meta.env.VITE_API_BASE_URL || API_BASE_URL'}`}/course/${id}/enrollments`,
         {
           headers: {
             Authorization: `Bearer ${token}`,

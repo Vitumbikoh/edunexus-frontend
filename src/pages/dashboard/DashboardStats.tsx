@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import StatCard from "@/components/dashboard/StatCard";
+import { API_BASE_URL } from '@/config/api';
 import {
   Users,
   BookOpen,
@@ -26,7 +27,7 @@ export const useDashboardStats = () => {
   const fetchData = async (url: string) => {
     try {
       // append academicCalendarId for finance endpoints
-      let endpoint = `http://localhost:5000/api/v1${url}`;
+      let endpoint = `${import.meta.env.VITE_API_BASE_URL || `${import.meta.env.VITE_API_BASE_URL || 'import.meta.env.VITE_API_BASE_URL || API_BASE_URL'}`}${url}`;
       if (url.startsWith('/finance')) {
         try {
           const cal = await academicCalendarService.getActiveAcademicCalendar(token!);
@@ -161,7 +162,7 @@ export const useDashboardStats = () => {
           ]);
         } else if (role === "teacher") {
           // Fetch teacher profile to get teacherId
-          const profileResponse = await fetch(`http://localhost:5000/api/v1/profile`, {
+          const profileResponse = await fetch(`${import.meta.env.VITE_API_BASE_URL || `${import.meta.env.VITE_API_BASE_URL || 'import.meta.env.VITE_API_BASE_URL || API_BASE_URL'}`}/profile`, {
             headers: {
               Authorization: `Bearer ${token}`,
             },
@@ -175,7 +176,7 @@ export const useDashboardStats = () => {
           const teacherId = profile.teacherId || user.id;
 
           // Fetch weekly schedule
-          const scheduleResponse = await fetch(`http://localhost:5000/api/v1/schedules/teacher/${teacherId}/weekly`, {
+          const scheduleResponse = await fetch(`${import.meta.env.VITE_API_BASE_URL || `${import.meta.env.VITE_API_BASE_URL || 'import.meta.env.VITE_API_BASE_URL || API_BASE_URL'}`}/schedules/teacher/${teacherId}/weekly`, {
             headers: {
               Authorization: `Bearer ${token}`,
             },
@@ -236,7 +237,7 @@ export const useDashboardStats = () => {
           if (role === 'student') {
             try {
               // My Courses count
-              const coursesRes = await fetch(`http://localhost:5000/api/v1/student/${user?.id}/courses`, { headers: { Authorization: `Bearer ${token}` } });
+              const coursesRes = await fetch(`${import.meta.env.VITE_API_BASE_URL || `${import.meta.env.VITE_API_BASE_URL || 'import.meta.env.VITE_API_BASE_URL || API_BASE_URL'}`}/student/${user?.id}/courses`, { headers: { Authorization: `Bearer ${token}` } });
               let coursesCount = 0;
               let activeCoursesCount = 0;
               if (coursesRes.ok) {
@@ -257,7 +258,7 @@ export const useDashboardStats = () => {
                 console.log('Fetching balance for student:', user?.id); // Debug log
                 
                 // First get current term
-                const termsRes = await fetch(`http://localhost:5000/api/v1/settings/terms`, { headers: { Authorization: `Bearer ${token}` } });
+                const termsRes = await fetch(`${import.meta.env.VITE_API_BASE_URL || `${import.meta.env.VITE_API_BASE_URL || 'import.meta.env.VITE_API_BASE_URL || API_BASE_URL'}`}/settings/terms`, { headers: { Authorization: `Bearer ${token}` } });
                 let currentTermId = null;
                 
                 console.log('Terms API response status:', termsRes.status); // Debug log
@@ -277,7 +278,7 @@ export const useDashboardStats = () => {
                 if (currentTermId) {
                   // Get comprehensive fee status for all fee types
                   // include active academicCalendarId when available
-                  let feeStatusUrl = `http://localhost:5000/api/v1/finance/fee-status/${user?.id}?termId=${currentTermId}`;
+                  let feeStatusUrl = `${import.meta.env.VITE_API_BASE_URL || `${import.meta.env.VITE_API_BASE_URL || 'import.meta.env.VITE_API_BASE_URL || API_BASE_URL'}`}/finance/fee-status/${user?.id}?termId=${currentTermId}`;
                   try {
                     const cal = await academicCalendarService.getActiveAcademicCalendar(token!);
                     if (cal?.id) feeStatusUrl += `&academicCalendarId=${encodeURIComponent(cal.id)}`;
@@ -330,7 +331,7 @@ export const useDashboardStats = () => {
                       // Try to get balance from payments directly
                       try {
                         // include academicCalendarId when fetching payments fallback
-                        let paymentsUrl = `http://localhost:5000/api/v1/finance/payments/student/${user?.id}`;
+                        let paymentsUrl = `${import.meta.env.VITE_API_BASE_URL || `${import.meta.env.VITE_API_BASE_URL || 'import.meta.env.VITE_API_BASE_URL || API_BASE_URL'}`}/finance/payments/student/${user?.id}`;
                         try {
                           const cal = await academicCalendarService.getActiveAcademicCalendar(token!);
                           if (cal?.id) paymentsUrl += `?academicCalendarId=${encodeURIComponent(cal.id)}`;
@@ -356,7 +357,7 @@ export const useDashboardStats = () => {
               // Get upcoming exams count
               let upcomingExams = 0;
               try {
-                const examsRes = await fetch(`http://localhost:5000/api/v1/exams`, { headers: { Authorization: `Bearer ${token}` } });
+                const examsRes = await fetch(`${import.meta.env.VITE_API_BASE_URL || `${import.meta.env.VITE_API_BASE_URL || 'import.meta.env.VITE_API_BASE_URL || API_BASE_URL'}`}/exams`, { headers: { Authorization: `Bearer ${token}` } });
                 if (examsRes.ok) {
                   const exams = await examsRes.json();
                   const examsList = Array.isArray(exams) ? exams : (exams?.data || []);
@@ -371,7 +372,7 @@ export const useDashboardStats = () => {
               // Today's classes count
               let todaysClasses = 0;
               try {
-                const schedulesRes = await fetch(`http://localhost:5000/api/v1/student/my-schedules?limit=100`, { headers: { Authorization: `Bearer ${token}` } });
+                const schedulesRes = await fetch(`${import.meta.env.VITE_API_BASE_URL || `${import.meta.env.VITE_API_BASE_URL || 'import.meta.env.VITE_API_BASE_URL || API_BASE_URL'}`}/student/my-schedules?limit=100`, { headers: { Authorization: `Bearer ${token}` } });
                 if (schedulesRes.ok) {
                   const schedulesData = await schedulesRes.json();
                   const schedules = schedulesData?.schedules || [];

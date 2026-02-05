@@ -14,7 +14,9 @@ import { Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 
-const API_BASE = "http://localhost:5000/api/v1";
+import { API_BASE_URL } from '@/config/api';
+
+const API_BASE = API_BASE_URL;
 export type AccountSecurityVariant = "account" | "security";
 
 type Security = { twoFactor: boolean };

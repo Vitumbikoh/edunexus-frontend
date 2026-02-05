@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback } from "react";
+import { API_BASE_URL } from '@/config/api';
 import {
   Card,
   CardContent,
@@ -1326,7 +1327,7 @@ export const TeacherDashboardCards = () => {
 
   const fetchData = async (url: string) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/v1${url}`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || `${import.meta.env.VITE_API_BASE_URL || 'import.meta.env.VITE_API_BASE_URL || API_BASE_URL'}`}${url}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { API_BASE_URL } from '@/config/api';
 import {
   Card,
   CardContent,
@@ -75,7 +76,7 @@ export default function CourseForm() {
       try {
         setIsLoading(true);
         const response = await fetch(
-          `http://localhost:5000/api/v1/course/${id}`,
+          `${import.meta.env.VITE_API_BASE_URL || `${import.meta.env.VITE_API_BASE_URL || 'import.meta.env.VITE_API_BASE_URL || API_BASE_URL'}`}/course/${id}`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -118,7 +119,7 @@ export default function CourseForm() {
       try {
         setIsLoadingTeachers(true);
         const response = await fetch(
-          "http://localhost:5000/api/v1/teacher/teachers",
+          `${import.meta.env.VITE_API_BASE_URL || `${import.meta.env.VITE_API_BASE_URL || 'import.meta.env.VITE_API_BASE_URL || API_BASE_URL'}`}/teacher/teachers`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -151,7 +152,7 @@ export default function CourseForm() {
     const fetchClasses = async () => {
       try {
         setIsLoadingClasses(true);
-        const response = await fetch("http://localhost:5000/api/v1/classes", {
+        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || `${import.meta.env.VITE_API_BASE_URL || 'import.meta.env.VITE_API_BASE_URL || API_BASE_URL'}`}/classes`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -197,7 +198,7 @@ export default function CourseForm() {
   const handleAssignTeacher = async (courseId: string, teacherId: string) => {
     try {
       const response = await fetch(
-        `http://localhost:5000/api/v1/course/${courseId}/assign-teacher`, // Fixed endpoint
+        `${import.meta.env.VITE_API_BASE_URL || `${import.meta.env.VITE_API_BASE_URL || 'import.meta.env.VITE_API_BASE_URL || API_BASE_URL'}`}/course/${courseId}/assign-teacher`, // Fixed endpoint
         {
           method: "POST",
           headers: {
@@ -234,7 +235,7 @@ export default function CourseForm() {
       if (isEditMode && id) {
         // Update existing course
         const updateResponse = await fetch(
-          `http://localhost:5000/api/v1/course/${id}`,
+          `${import.meta.env.VITE_API_BASE_URL || `${import.meta.env.VITE_API_BASE_URL || 'import.meta.env.VITE_API_BASE_URL || API_BASE_URL'}`}/course/${id}`,
           {
             method: "PUT",
             headers: {
@@ -275,7 +276,7 @@ export default function CourseForm() {
       } else {
         // Create new course
         const createCourseResponse = await fetch(
-          "http://localhost:5000/api/v1/course",
+          `${import.meta.env.VITE_API_BASE_URL || `${import.meta.env.VITE_API_BASE_URL || 'import.meta.env.VITE_API_BASE_URL || API_BASE_URL'}`}/course`,
           {
             method: "POST",
             headers: {

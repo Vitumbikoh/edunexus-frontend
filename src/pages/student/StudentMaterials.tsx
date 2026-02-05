@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Download, BookOpen, FileText } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
-import { API_CONFIG } from '@/config/api';
+import { API_CONFIG, getServerBaseUrl } from '@/config/api';
 import { PagePreloader } from "@/components/ui/preloader";
 
 export default function StudentMaterials() {
@@ -141,7 +141,7 @@ export default function StudentMaterials() {
 
   const handleDownload = async (material: { id: string; title: string; filePath: string; type: string }) => {
     try {
-      const base = API_CONFIG.BASE_URL.replace('/api/v1', '');
+      const base = getServerBaseUrl();
       const rawPath = material.filePath || '';
       const normalized = rawPath.replace(/\\/g, '/');
 

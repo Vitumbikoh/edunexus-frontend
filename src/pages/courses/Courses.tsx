@@ -9,6 +9,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { Upload, Download } from "lucide-react";
 import { courseService } from "@/services/courseService";
 import PaginationBar from "@/components/common/PaginationBar";
+import { API_BASE_URL } from '@/config/api';
 import {
   Select,
   SelectContent,
@@ -89,7 +90,7 @@ export default function Courses() {
         return;
       }
 
-      const response = await fetch("http://localhost:5000/api/v1/classes", {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || `${import.meta.env.VITE_API_BASE_URL || 'import.meta.env.VITE_API_BASE_URL || API_BASE_URL'}`}/classes`, {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
@@ -139,7 +140,7 @@ export default function Courses() {
         throw new Error("Authentication token not found. Please log in again.");
       }
 
-      let url = `http://localhost:5000/api/v1/course/courses?page=${page}&limit=${limit}&search=${encodeURIComponent(
+      let url = `${import.meta.env.VITE_API_BASE_URL || `${import.meta.env.VITE_API_BASE_URL || 'import.meta.env.VITE_API_BASE_URL || API_BASE_URL'}`}/course/courses?page=${page}&limit=${limit}&search=${encodeURIComponent(
         search
       )}`;
 
@@ -220,7 +221,7 @@ export default function Courses() {
       if (!token) return [];
 
       const response = await fetch(
-        `http://localhost:5000/api/v1/course/${courseId}/enrollments`,
+        `${import.meta.env.VITE_API_BASE_URL || `${import.meta.env.VITE_API_BASE_URL || 'import.meta.env.VITE_API_BASE_URL || API_BASE_URL'}`}/course/${courseId}/enrollments`,
         {
           headers: {
             Authorization: `Bearer ${token}`,

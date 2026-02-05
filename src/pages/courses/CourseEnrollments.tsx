@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { API_BASE_URL } from '@/config/api';
 import {
   Table,
   TableBody,
@@ -49,7 +50,7 @@ export default function CourseEnrollments() {
 
       // Fetch course details
       const courseResponse = await fetch(
-        `http://localhost:5000/api/v1/course/${courseId}`, // Removed extra "courses"
+        `${import.meta.env.VITE_API_BASE_URL || `${import.meta.env.VITE_API_BASE_URL || 'import.meta.env.VITE_API_BASE_URL || API_BASE_URL'}`}/course/${courseId}`, // Removed extra "courses"
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -66,7 +67,7 @@ export default function CourseEnrollments() {
 
       // Fetch enrollments
       const enrollmentsResponse = await fetch(
-  `http://localhost:5000/api/v1/course/${courseId}/enrollments?page=${currentPage}`,  // Removed extra "courses"
+  `${import.meta.env.VITE_API_BASE_URL || `${import.meta.env.VITE_API_BASE_URL || 'import.meta.env.VITE_API_BASE_URL || API_BASE_URL'}`}/course/${courseId}/enrollments?page=${currentPage}`,  // Removed extra "courses"
   {
     headers: {
       Authorization: `Bearer ${token}`,
@@ -98,7 +99,7 @@ export default function CourseEnrollments() {
   const handleUnenroll = async (enrollmentId: string) => {
     try {
       const response = await fetch(
-      `http://localhost:5000/api/v1/course/${courseId}/enrollments/${enrollmentId}`,
+      `${import.meta.env.VITE_API_BASE_URL || `${import.meta.env.VITE_API_BASE_URL || 'import.meta.env.VITE_API_BASE_URL || API_BASE_URL'}`}/course/${courseId}/enrollments/${enrollmentId}`,
         {
           method: "DELETE",
           headers: {

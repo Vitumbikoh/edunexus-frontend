@@ -9,6 +9,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
 import { ArrowLeft, Save } from "lucide-react";
 import { PagePreloader } from "@/components/ui/preloader";
+import { API_BASE_URL } from '@/config/api';
 
 interface Class {
   id: string;
@@ -103,7 +104,7 @@ export default function StudentForm() {
 
   const fetchStudent = async () => {
     try {
-      const response = await fetch(`http://localhost:5000/api/v1/student/students/${id}`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || `${import.meta.env.VITE_API_BASE_URL || 'import.meta.env.VITE_API_BASE_URL || API_BASE_URL'}`}/student/students/${id}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -135,7 +136,7 @@ export default function StudentForm() {
 
   const fetchClasses = async () => {
     try {
-      const response = await fetch("http://localhost:5000/api/v1/classes", {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || `${import.meta.env.VITE_API_BASE_URL || 'import.meta.env.VITE_API_BASE_URL || API_BASE_URL'}`}/classes`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -156,7 +157,7 @@ export default function StudentForm() {
 
   const fetchParents = async () => {
     try {
-      const response = await fetch("http://localhost:5000/api/v1/parents", {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || `${import.meta.env.VITE_API_BASE_URL || 'import.meta.env.VITE_API_BASE_URL || API_BASE_URL'}`}/parents`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -237,8 +238,8 @@ export default function StudentForm() {
       };
 
       const url = id 
-        ? `http://localhost:5000/api/v1/student/students/${id}`
-        : "http://localhost:5000/api/v1/student/students";
+        ? `${import.meta.env.VITE_API_BASE_URL || `${import.meta.env.VITE_API_BASE_URL || 'import.meta.env.VITE_API_BASE_URL || API_BASE_URL'}`}/student/students/${id}`
+        : `${import.meta.env.VITE_API_BASE_URL || `${import.meta.env.VITE_API_BASE_URL || 'import.meta.env.VITE_API_BASE_URL || API_BASE_URL'}`}/student/students`;
       
       const method = id ? "PUT" : "POST";
 

@@ -4,6 +4,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
+import { API_BASE_URL } from '@/config/api';
 
 // Simple test of the class and academic year selection
 export default function ExamFilterTest() {
@@ -23,7 +24,7 @@ export default function ExamFilterTest() {
       setIsLoading(true);
       try {
         // Fetch classes
-        const classResponse = await fetch('http://localhost:5000/api/v1/classes', {
+        const classResponse = await fetch(`${import.meta.env.VITE_API_BASE_URL || `${import.meta.env.VITE_API_BASE_URL || 'import.meta.env.VITE_API_BASE_URL || API_BASE_URL'}`}/classes`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         
@@ -34,7 +35,7 @@ export default function ExamFilterTest() {
         }
 
         // Fetch academic years
-        const yearResponse = await fetch('http://localhost:5000/api/v1/setting/terms', {
+        const yearResponse = await fetch(`${import.meta.env.VITE_API_BASE_URL || `${import.meta.env.VITE_API_BASE_URL || 'import.meta.env.VITE_API_BASE_URL || API_BASE_URL'}`}/setting/terms`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         

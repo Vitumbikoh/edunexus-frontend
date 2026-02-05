@@ -16,6 +16,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import PaginationBar from "@/components/common/PaginationBar";
 import { useToast } from "@/components/ui/use-toast";
+import { API_CONFIG } from '@/config/api';
 
 interface FinanceOfficer {
   id: string;
@@ -71,7 +72,7 @@ export default function FinanceOfficers() {
       setApiError(null);
 
       const response = await fetch(
-        `http://localhost:5000/api/v1/finance/officers?page=${page}&limit=${limit}&search=${encodeURIComponent(
+        `${API_CONFIG.BASE_URL}/finance/officers?page=${page}&limit=${limit}&search=${encodeURIComponent(
           search
         )}`,
         {

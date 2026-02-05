@@ -3,6 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
 import { useNavigate } from 'react-router-dom';
 import { API_CONFIG } from '@/config/api';
+import { API_BASE_URL } from '@/config/api';
 
 // Import services
 import { classService, Class } from '@/services/classService';
@@ -82,7 +83,7 @@ export const useExamManagement = (): UseExamManagementReturn => {
   // Fetch teachers separately as it might use a different endpoint
   const fetchTeachers = async (authToken: string): Promise<Teacher[]> => {
     try {
-      const response = await fetch(`http://localhost:5000/api/v1/teacher/teachers`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || `${import.meta.env.VITE_API_BASE_URL || 'import.meta.env.VITE_API_BASE_URL || API_BASE_URL'}`}/teacher/teachers`, {
         headers: {
           'Authorization': `Bearer ${authToken}`,
           'Content-Type': 'application/json',
@@ -128,7 +129,7 @@ export const useExamManagement = (): UseExamManagementReturn => {
       setError(null);
 
       // Fetch classes directly like the Classes page does
-      const classResponse = await fetch('http://localhost:5000/api/v1/classes', {
+      const classResponse = await fetch(`${import.meta.env.VITE_API_BASE_URL || `${import.meta.env.VITE_API_BASE_URL || 'import.meta.env.VITE_API_BASE_URL || API_BASE_URL'}`}/classes`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',

@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
 import { Plus, Trash2, Edit, ArrowLeft } from 'lucide-react';
+import { API_BASE_URL } from '@/config/api';
 
 interface Class {
   id: string;
@@ -47,7 +48,7 @@ export default function ClassManagement() {
       setApiError(null);
       
       const tenantId = localStorage.getItem('tenantId') || undefined;
-      const base = `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api/v1'}/classes`;
+      const base = `${import.meta.env.VITE_API_BASE_URL || `${import.meta.env.VITE_API_BASE_URL || `${import.meta.env.VITE_API_BASE_URL || 'import.meta.env.VITE_API_BASE_URL || API_BASE_URL'}`}`}/classes`;
       const url = tenantId ? `${base}?schoolId=${encodeURIComponent(tenantId)}` : base;
       const response = await fetch(url, {
         headers: { 
@@ -78,7 +79,7 @@ export default function ClassManagement() {
     e.preventDefault();
     try {
       const tenantIdCreate = localStorage.getItem('tenantId') || undefined;
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api/v1'}/classes`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || `${import.meta.env.VITE_API_BASE_URL || `${import.meta.env.VITE_API_BASE_URL || 'import.meta.env.VITE_API_BASE_URL || API_BASE_URL'}`}`}/classes`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -113,7 +114,7 @@ export default function ClassManagement() {
     if (!window.confirm("Delete this class?")) return;
     try {
       const tenantIdDelete = localStorage.getItem('tenantId') || undefined;
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api/v1'}/classes/${id}`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || `${import.meta.env.VITE_API_BASE_URL || `${import.meta.env.VITE_API_BASE_URL || 'import.meta.env.VITE_API_BASE_URL || API_BASE_URL'}`}`}/classes/${id}`, {
         method: "DELETE",
         headers: { 
           Authorization: `Bearer ${token}`,
@@ -133,7 +134,7 @@ export default function ClassManagement() {
   const updateClass = async (id: string) => {
     try {
       const tenantIdUpdate = localStorage.getItem('tenantId') || undefined;
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api/v1'}/classes/${id}`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || `${import.meta.env.VITE_API_BASE_URL || `${import.meta.env.VITE_API_BASE_URL || 'import.meta.env.VITE_API_BASE_URL || API_BASE_URL'}`}`}/classes/${id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -166,7 +167,7 @@ export default function ClassManagement() {
     if (!window.confirm("Deactivate this class?")) return;
     try {
       const tenantIdDeactivate = localStorage.getItem('tenantId') || undefined;
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api/v1'}/classes/${id}/deactivate`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || `${import.meta.env.VITE_API_BASE_URL || `${import.meta.env.VITE_API_BASE_URL || 'import.meta.env.VITE_API_BASE_URL || API_BASE_URL'}`}`}/classes/${id}/deactivate`, {
         method: "PATCH",
         headers: { 
           Authorization: `Bearer ${token}`,

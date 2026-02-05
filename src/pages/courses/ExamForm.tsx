@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { API_BASE_URL } from '@/config/api';
 import {
   Select,
   SelectContent,
@@ -88,7 +89,7 @@ export default function ExamForm() {
             };
           }
           const response = await axios.get<CourseResponse>(
-            `http://localhost:5000/api/v1/teacher/my-courses/${courseId}`,
+            `${import.meta.env.VITE_API_BASE_URL || `${import.meta.env.VITE_API_BASE_URL || 'import.meta.env.VITE_API_BASE_URL || API_BASE_URL'}`}/teacher/my-courses/${courseId}`,
             {
               headers: { Authorization: `Bearer ${token}` },
             }
@@ -193,7 +194,7 @@ export default function ExamForm() {
 
       console.log("Submitting payload:", payload);
 
-      const response = await axios.post("http://localhost:5000/api/v1/exams", payload, {
+      const response = await axios.post(`${import.meta.env.VITE_API_BASE_URL || `${import.meta.env.VITE_API_BASE_URL || 'import.meta.env.VITE_API_BASE_URL || API_BASE_URL'}`}/exams`, payload, {
         headers: { Authorization: `Bearer ${token}` },
       });
 

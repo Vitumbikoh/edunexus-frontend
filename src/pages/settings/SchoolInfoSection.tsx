@@ -5,9 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { API_CONFIG } from "@/config/api";
+import { API_CONFIG, getServerBaseUrl } from '@/config/api';
 
-const UPLOADS_BASE_URL = API_CONFIG.BASE_URL.replace('/api/v1', '');
+const UPLOADS_BASE_URL = getServerBaseUrl();
 
 export default function SchoolInfoSection() {
   const { token } = useAuth();

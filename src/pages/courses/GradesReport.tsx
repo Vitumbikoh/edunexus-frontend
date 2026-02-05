@@ -6,6 +6,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/components/ui/use-toast';
 import { Loader2, Download } from 'lucide-react';
+import { API_BASE_URL } from '@/config/api';
 
 // Reuse GradeRecord shape from Reports (duplicated lightweight)
 interface GradeRecord {
@@ -30,7 +31,7 @@ interface TermOption { id: string; name: string; sequence?: number; periodName?:
 interface ClassOption { id: string; name: string; }
 interface StudentOption { id: string; firstName: string; lastName: string; }
 
-const API_BASE = 'http://localhost:5000/api/v1';
+const API_BASE = `${import.meta.env.VITE_API_BASE_URL || `${import.meta.env.VITE_API_BASE_URL || 'import.meta.env.VITE_API_BASE_URL || API_BASE_URL'}`}`;
 const ENDPOINTS = {
   academicCalendars: `${API_BASE}/settings/academic-calendars`,
   terms: `${API_BASE}/settings/terms`,
