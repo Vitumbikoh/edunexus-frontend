@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { SearchBar } from '@/components/ui/search-bar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Filter, Download, Plus, Loader2 } from 'lucide-react';
@@ -157,10 +158,21 @@ export default function Transactions() {
     const loadCalendars = async () => {
       if (!token) return;
       try {
-        const cals = await academicCalendarService.getAcademicCalendars(token);
+        // Use billing endpoint which returns school calendars and independent/global calendars
+        const res = await fetch(`${API_CONFIG.BASE_URL}/billing/calendars`, {
+          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
+        });
+        if (!res.ok) throw new Error('Failed to load calendars');
+        const cals = await res.json();
         setAcademicCalendars(cals || []);
-        const active = await academicCalendarService.getActiveAcademicCalendar(token);
-        setSelectedAcademicCalendarId(active?.id || (cals && cals[0]?.id) || null);
+
+        // Prefer the active calendar if available, otherwise the first calendar
+        try {
+          const active = await academicCalendarService.getActiveAcademicCalendar(token);
+          setSelectedAcademicCalendarId(active?.id || (cals && cals[0]?.id) || null);
+        } catch (_) {
+          setSelectedAcademicCalendarId((cals && cals[0]?.id) || null);
+        }
       } catch (e) {
         console.error('Failed to load academic calendars', e);
       }
@@ -224,10 +236,10 @@ export default function Transactions() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
         <div>
-          <h1 className="text-3xl font-bold">Transactions</h1>
-          <p className="text-muted-foreground">Manage and view all financial transactions</p>
+          <h1 className="text-2xl font-bold tracking-tight">Transaction History</h1>
+          <p className="text-muted-foreground">View and manage all financial transactions</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline">
@@ -239,6 +251,18 @@ export default function Transactions() {
             New Transaction
           </Button>
         </div>
+      </div>
+
+      {/* Search (moved on top) */}
+      <div className="mt-4">
+        <SearchBar
+          value={searchInput}
+          onChange={setSearchInput}
+          onDebouncedChange={setSearchPeriod}
+          delay={300}
+          placeholder="Search by receipt number or student name..."
+          className="w-full max-w-2xl"
+        />
       </div>
 
       {/* Summary Cards */}
@@ -304,60 +328,55 @@ export default function Transactions() {
           <CardDescription>View and manage all financial transactions</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-col sm:flex-row gap-4 mb-6">
-            <SearchBar
-              value={searchInput}
-              onChange={setSearchInput}
-              onDebouncedChange={setSearchPeriod}
-              delay={300}
-              placeholder="Search by receipt number or student name..."
-              className="flex-1"
-            />
-            <div className="flex gap-2">
+          <div className="flex flex-wrap gap-4 mb-6 items-center">
+            <div className="flex gap-2 items-center">
               <Input
                 type="date"
-                placeholder="Start Date"
+                placeholder="mm/dd/yyyy"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                className="w-32"
+                className="w-36"
+                aria-label="Start date"
               />
               <Input
                 type="date"
-                placeholder="End Date"
+                placeholder="mm/dd/yyyy"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
-                className="w-32"
+                className="w-36"
+                aria-label="End date"
               />
             </div>
-                  <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-2">
-                      <Label className="text-xs">Calendar</Label>
-                      <select
-                        className="border rounded-md h-9 px-2 bg-background text-sm"
-                        value={selectedAcademicCalendarId || ''}
-                        onChange={(e) => setSelectedAcademicCalendarId(e.target.value || null)}
-                      >
-                        <option value="">All calendars</option>
-                        {academicCalendars.map(c => (
-                          <option key={c.id} value={c.id}>{c.term || c.name || c.id}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Label className="text-xs">Term</Label>
-                      <select
-                        className="border rounded-md h-9 px-2 bg-background text-sm"
-                        value={selectedTermId || ''}
-                        onChange={(e) => setSelectedTermId(e.target.value || null)}
-                      >
-                        <option value="">All terms</option>
-                        {terms.map(t => <option key={t.id} value={t.id}>{t.name || t.id}</option>)}
-                      </select>
-                    </div>
-                  </div>
+
+            <div className="flex items-center gap-2">
+              <Label className="text-xs">Calendar</Label>
+              <select
+                className="border rounded-md h-9 px-2 bg-background text-sm w-36 max-w-full"
+                value={selectedAcademicCalendarId || ''}
+                onChange={(e) => setSelectedAcademicCalendarId(e.target.value || null)}
+              >
+                <option value="">All calendars</option>
+                {academicCalendars.map((c, idx) => (
+                  <option key={c.id} value={c.id}>{c.name || c.title || c.term || `Calendar ${idx + 1}`}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Label className="text-xs">Term</Label>
+              <select
+                className="border rounded-md h-9 px-2 bg-background text-sm w-40 max-w-full"
+                value={selectedTermId || ''}
+                onChange={(e) => setSelectedTermId(e.target.value || null)}
+              >
+                <option value="">All terms</option>
+                {terms.map(t => <option key={t.id} value={t.id}>{t.name || t.id}</option>)}
+              </select>
+            </div>
+
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-full sm:w-40">
-                <SelectValue placeholder="Status" />
+              <SelectTrigger className="w-40">
+                <SelectValue placeholder="All Status" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Status</SelectItem>
@@ -367,8 +386,8 @@ export default function Transactions() {
               </SelectContent>
             </Select>
             <Select value={typeFilter} onValueChange={setTypeFilter}>
-              <SelectTrigger className="w-full sm:w-40">
-                <SelectValue placeholder="Type" />
+              <SelectTrigger className="w-40">
+                <SelectValue placeholder="All Types" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Types</SelectItem>
@@ -386,46 +405,54 @@ export default function Transactions() {
           )}
 
           {/* Transactions Table */}
-          <div className="rounded-md border">
+
+          {/* Mobile stacked list */}
+          <div className="md:hidden space-y-3">
+            {filteredTransactions.map(tx => (
+              <div key={tx.id} className="p-3 border rounded bg-card">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <div className="text-sm font-medium text-foreground">{tx.receiptNumber || tx.id}</div>
+                    <div className="text-base font-semibold mt-1">{tx.studentName ? `${tx.studentName} - ${tx.description || 'Payment'}` : tx.description || 'Payment'}</div>
+                    <div className="text-xs text-muted-foreground mt-1">{tx.type} • {tx.term || 'N/A'}</div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-sm text-muted-foreground">{tx.paymentDate ? new Date(tx.paymentDate).toLocaleDateString() : 'N/A'}</div>
+                    <div className={`text-lg font-semibold mt-1 ${getAmountColor(parseFloat(tx.amount) || 0)}`}>{formatCurrency(Math.abs(parseFloat(tx.amount) || 0), getDefaultCurrency())}</div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Desktop/Table */}
+          <div className="hidden md:block rounded-md border overflow-x-auto">
             {loading ? (
               <div className="flex items-center justify-center py-8">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
                 <span className="ml-2">Loading transactions...</span>
               </div>
             ) : (
-              <Table>
+              <Table className="w-full table-fixed text-sm">
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Receipt #</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Term</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Amount</TableHead>
+                    <TableHead className="w-28 text-sm font-medium px-2 py-2">Receipt #</TableHead>
+                    <TableHead className="w-[32ch] text-sm font-medium px-2 py-2">Description</TableHead>
+                    <TableHead className="w-20 text-sm font-medium px-2 py-2">Type</TableHead>
+                    <TableHead className="hidden lg:table-cell w-24 text-sm font-medium px-2 py-2">Term</TableHead>
+                    <TableHead className="w-20 text-sm font-medium px-2 py-2">Date</TableHead>
+                    <TableHead className="w-28 text-right text-sm font-medium px-2 py-2">Amount</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredTransactions.map((transaction) => (
                     <TableRow key={transaction.id}>
-                      <TableCell className="font-medium">{transaction.receiptNumber || transaction.id}</TableCell>
-                      <TableCell>
-                        {transaction.studentName ? `${transaction.studentName} - ${transaction.description || 'Payment'}` : transaction.description || 'Payment'}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline">{(parseFloat(transaction.amount) || 0) > 0 ? 'Payment' : 'Refund'}</Badge>
-                      </TableCell>
-                      <TableCell>{transaction.term || 'N/A'}</TableCell>
-                      <TableCell>{transaction.paymentDate ? new Date(transaction.paymentDate).toLocaleDateString() : 'N/A'}</TableCell>
-                      <TableCell>
-                        <Badge className={getStatusColor(transaction.status || 'Completed')}>
-                          {transaction.status || 'Completed'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className={`text-right font-medium ${getAmountColor(parseFloat(transaction.amount) || 0)}`}>
-                        {formatCurrency(Math.abs(parseFloat(transaction.amount) || 0), getDefaultCurrency())}
-                        {(parseFloat(transaction.amount) || 0) < 0 && ' (Refund)'}
-                      </TableCell>
+                      <TableCell className="font-medium px-2 py-2">{transaction.receiptNumber || transaction.id}</TableCell>
+                      <TableCell className="whitespace-normal truncate max-w-[32ch] px-2 py-2">{transaction.studentName ? `${transaction.studentName} - ${transaction.description || 'Payment'}` : transaction.description || 'Payment'}</TableCell>
+                      <TableCell className="px-2 py-2"><Badge variant="outline">{(parseFloat(transaction.amount) || 0) > 0 ? 'Payment' : 'Refund'}</Badge></TableCell>
+                      <TableCell className="hidden lg:table-cell px-2 py-2">{transaction.term || 'N/A'}</TableCell>
+                      <TableCell className="px-2 py-2">{transaction.paymentDate ? new Date(transaction.paymentDate).toLocaleDateString() : 'N/A'}</TableCell>
+                      <TableCell className={`text-right font-medium px-2 py-2 ${getAmountColor(parseFloat(transaction.amount) || 0)}`}>{formatCurrency(Math.abs(parseFloat(transaction.amount) || 0), getDefaultCurrency())}{(parseFloat(transaction.amount) || 0) < 0 && ' (Refund)'}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

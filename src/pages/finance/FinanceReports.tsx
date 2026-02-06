@@ -548,7 +548,7 @@ export default function FinanceReports() {
                   onChange={(e) => setShowCarryForward(e.target.checked)}
                   className="rounded"
                 />
-                <label htmlFor="showCarryForward" className="text-sm">Include Carry-Forward</label>
+                <label htmlFor="showCarryForward" className="text-sm">Include Brought Forward</label>
               </div>
             </CardTitle>
             <CardDescription>
@@ -639,17 +639,17 @@ export default function FinanceReports() {
 
               {/* Carry-Forward Balance */}
               <div>
-                <h4 className="text-lg font-semibold mb-3">Carry-Forward Balance</h4>
+                <h4 className="text-lg font-semibold mb-3">Brought Forward</h4>
                 <Card className="border-orange-200 bg-orange-50">
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between">
                       <div>
-                        <div className="text-sm text-muted-foreground">Balance to be carried forward</div>
+                        <div className="text-sm text-muted-foreground">Brought Forward</div>
                         <div className={`text-2xl font-bold ${termBasedData.carryForwardBalance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                           {currencySymbol}{termBasedData.carryForwardBalance.toLocaleString()}
                         </div>
                         <div className="text-xs text-muted-foreground mt-1">
-                          This balance will be brought forward to the next academic term
+                          This balance is brought forward to the next academic term
                         </div>
                       </div>
                       <div className="text-right">

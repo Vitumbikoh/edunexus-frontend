@@ -17,6 +17,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { API_CONFIG } from '@/config/api';
 import { formatCurrency, getDefaultCurrency } from '@/lib/currency';
 import { expenseService } from '@/services/expenseService';
+import { academicCalendarService } from '@/services/academicCalendarService';
 import type { User } from '@/contexts/AuthContext';
 
 // Expense categories matching backend enum
@@ -129,6 +130,11 @@ export default function ExpenseManagement() {
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [priorityFilter, setPriorityFilter] = useState('all');
   const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null);
+  // Academic calendar / term filters
+  const [academicCalendars, setAcademicCalendars] = useState<any[]>([]);
+  const [selectedAcademicCalendarId, setSelectedAcademicCalendarId] = useState<string | null>(null);
+  const [terms, setTerms] = useState<any[]>([]);
+  const [selectedTermId, setSelectedTermId] = useState<string | null>(null);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
   
@@ -157,6 +163,8 @@ export default function ExpenseManagement() {
       if (categoryFilter !== 'all') params.append('category', categoryFilter);
       if (priorityFilter !== 'all') params.append('priority', priorityFilter);
       if (searchTerm) params.append('search', searchTerm);
+      if (selectedAcademicCalendarId) params.append('academicCalendarId', selectedAcademicCalendarId);
+      if (selectedTermId) params.append('termId', selectedTermId);
       params.append('page', currentPage.toString());
       params.append('limit', pageSize.toString());
 
@@ -184,7 +192,7 @@ export default function ExpenseManagement() {
     } finally {
       setLoading(false);
     }
-  }, [token, statusFilter, categoryFilter, priorityFilter, searchTerm, currentPage, pageSize, toast]);
+  }, [token, statusFilter, categoryFilter, priorityFilter, searchTerm, currentPage, pageSize, toast, selectedAcademicCalendarId, selectedTermId]);
 
 
 
@@ -260,6 +268,31 @@ export default function ExpenseManagement() {
     }
   };
 
+  const handleDownload = async (expense: Expense) => {
+    try {
+      const blob = await expenseService.downloadReport({ expenseId: expense.id }, 'pdf');
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${expense.expenseNumber || expense.title}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      toast({
+        title: 'Download started',
+        description: `${expense.title} report is downloading.`,
+      });
+    } catch (error) {
+      console.error('Error downloading expense report:', error);
+      toast({
+        title: 'Download failed',
+        description: 'Could not download report. Please try again.',
+        variant: 'destructive',
+      });
+    }
+  };
+
   // Load expenses on component mount and when filters change
   useEffect(() => {
     fetchExpenses().catch(error => {
@@ -306,6 +339,61 @@ export default function ExpenseManagement() {
   useEffect(() => {
     fetchAnalytics();
   }, [fetchAnalytics]);
+
+  // Load academic calendars and set default selection
+  useEffect(() => {
+    const loadCalendars = async () => {
+      if (!token) return;
+      try {
+        const cals = await academicCalendarService.getAcademicCalendars(token);
+        setAcademicCalendars(cals || []);
+        const active = await academicCalendarService.getActiveAcademicCalendar(token);
+        setSelectedAcademicCalendarId(active?.id || (cals && cals[0]?.id) || null);
+      } catch (e) {
+        console.error('Failed to load academic calendars, attempting active-calendar fallback', e);
+        // If user cannot fetch full list (non-admin), try to at least get the active calendar
+        try {
+          const activeOnly = await academicCalendarService.getActiveAcademicCalendar(token);
+          if (activeOnly) {
+            setAcademicCalendars([activeOnly]);
+            setSelectedAcademicCalendarId(activeOnly.id || null);
+          } else {
+            setAcademicCalendars([]);
+            setSelectedAcademicCalendarId(null);
+          }
+        } catch (err2) {
+          console.error('Failed to fetch active academic calendar fallback', err2);
+          setAcademicCalendars([]);
+          setSelectedAcademicCalendarId(null);
+        }
+      }
+    };
+    loadCalendars();
+  }, [token]);
+
+  // Load terms whenever a calendar is selected
+  useEffect(() => {
+    const loadTerms = async () => {
+      if (!token) return;
+      try {
+        const url = selectedAcademicCalendarId
+          ? `${API_CONFIG.BASE_URL}/settings/terms?academicCalendarId=${encodeURIComponent(selectedAcademicCalendarId)}`
+          : `${API_CONFIG.BASE_URL}/settings/terms`;
+        const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+        if (!res.ok) return setTerms([]);
+        const data = await res.json();
+        const list = Array.isArray(data) ? data : (data.terms || []);
+        const mapped = list.map((y: any) => ({ id: y.id || y.termId || y.uuid, name: y.name || y.periodName || y.term || y.displayName, raw: y }));
+        setTerms(mapped || []);
+        const current = mapped.find((m: any) => m.raw?.isCurrent === true || m.raw?.current === true || m.raw?.is_current === true) || mapped[0];
+        setSelectedTermId(current?.id || null);
+      } catch (e) {
+        console.error('Failed to load terms', e);
+        setTerms([]);
+      }
+    };
+    loadTerms();
+  }, [selectedAcademicCalendarId, token]);
 
   // Helper functions
   const getStatusColor = (status: string) => {
@@ -360,17 +448,18 @@ export default function ExpenseManagement() {
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold">Expense Management</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Expense Management</h1>
           <p className="text-muted-foreground">Manage school expenses and approval workflows</p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline">
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm">
             <Download className="h-4 w-4 mr-2" />
             Export
           </Button>
+
           <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
             <DialogTrigger asChild>
-              <Button>
+              <Button size="sm">
                 <Plus className="h-4 w-4 mr-2" />
                 Submit Expense
               </Button>
@@ -395,12 +484,14 @@ export default function ExpenseManagement() {
               </div>
             </DialogContent>
           </Dialog>
+
+
         </div>
       </div>
 
       {/* Tabs Navigation */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-1 md:grid-cols-3">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="analytics">Analytics</TabsTrigger>
           <TabsTrigger value="approvals">Approvals</TabsTrigger>
@@ -472,150 +563,185 @@ export default function ExpenseManagement() {
               <CardDescription>View and manage all expense requests</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="flex flex-col lg:flex-row gap-4 mb-6">
+              <div className="flex flex-col gap-4 mb-6">
                 <SearchBar
                   value={searchInput}
                   onChange={setSearchInput}
                   onDebouncedChange={setSearchTerm}
                   delay={300}
                   placeholder="Search expenses..."
-                  className="flex-1"
+                  className="w-full"
                   inputClassName=""
                 />
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="w-full lg:w-40">
-                    <SelectValue placeholder="Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Status</SelectItem>
-                    {APPROVAL_STATUSES.map(status => (
-                      <SelectItem key={status} value={status}>{status}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                  <SelectTrigger className="w-full lg:w-40">
-                    <SelectValue placeholder="Category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Categories</SelectItem>
-                    {EXPENSE_CATEGORIES.map(category => (
-                      <SelectItem key={category} value={category}>{category}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Select value={priorityFilter} onValueChange={setPriorityFilter}>
-                  <SelectTrigger className="w-full lg:w-40">
-                    <SelectValue placeholder="Priority" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Priorities</SelectItem>
-                    {EXPENSE_PRIORITIES.map(priority => (
-                      <SelectItem key={priority} value={priority}>{priority}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="flex flex-wrap gap-2">
+                  <div className="flex items-center gap-2">
+                    <Label className="text-xs">Calendar</Label>
+                    <select
+                      className="border rounded-md h-9 px-2 bg-background text-sm w-32"
+                      value={selectedAcademicCalendarId || ''}
+                      onChange={(e) => setSelectedAcademicCalendarId(e.target.value || null)}
+                    >
+                      <option value="">All calendars</option>
+                      {academicCalendars.map((c, idx) => (
+                        <option key={c.id} value={c.id}>{c.name || c.title || c.term || `Calendar ${idx + 1}`}</option>
+                      ))}
+                    </select>
+                    {academicCalendars.length === 0 && (
+                      <div className="text-xs text-muted-foreground ml-2">No academic calendars available for your account</div>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Label className="text-xs">Term</Label>
+                    <select
+                      className="border rounded-md h-9 px-2 bg-background text-sm w-32"
+                      value={selectedTermId || ''}
+                      onChange={(e) => setSelectedTermId(e.target.value || null)}
+                    >
+                      <option value="">All terms</option>
+                      {terms.map(t => <option key={t.id} value={t.id}>{t.name || t.id}</option>)}
+                    </select>
+                  </div>
+                  <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger className="w-36">
+                      <SelectValue placeholder="Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Status</SelectItem>
+                      {APPROVAL_STATUSES.map(status => (
+                        <SelectItem key={status} value={status}>{status}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                    <SelectTrigger className="w-36">
+                      <SelectValue placeholder="Category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Categories</SelectItem>
+                      {EXPENSE_CATEGORIES.map(category => (
+                        <SelectItem key={category} value={category}>{category}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+                    <SelectTrigger className="w-36">
+                      <SelectValue placeholder="Priority" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Priorities</SelectItem>
+                      {EXPENSE_PRIORITIES.map(priority => (
+                        <SelectItem key={priority} value={priority}>{priority}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
               {/* Expenses Table */}
-              <div className="rounded-md border">
-                <Table>
+              {/* Mobile view: stacked cards */}
+              <div className="md:hidden space-y-3">
+                {filteredExpenses.map((expense) => (
+                  <div key={expense.id} className="p-3 border rounded bg-card">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <div className="text-sm font-medium text-foreground">{expense.expenseNumber}</div>
+                        <div className="text-base font-semibold mt-0.5">{expense.title}</div>
+                        <div className="text-xs text-muted-foreground mt-0.5">{expense.category}</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-sm text-muted-foreground">{new Date(expense.requestDate).toLocaleDateString()}</div>
+                        <div className="text-lg font-semibold mt-0.5">{formatCurrency(Number(expense.amount), getDefaultCurrency())}</div>
+                      </div>
+                    </div>
+                    <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-muted-foreground">
+                      <div>Status</div>
+                      <div className="text-right"><Badge className={getStatusColor(expense.status)}>{expense.status}</Badge></div>
+                      <div>Priority</div>
+                      <div className="text-right"><span className={getPriorityColor(expense.priority)}>{expense.priority}</span></div>
+                    </div>
+                    <div className="mt-3 flex items-center justify-end space-x-2">
+                      <Button size="sm" variant="ghost" className="p-1" aria-label="View" onClick={() => setSelectedExpense(expense)} title="View details">
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button size="sm" variant="ghost" className="p-1" aria-label="Download" onClick={() => handleDownload(expense)} title="Download report">
+                        <Download className="h-4 w-4" />
+                      </Button>
+                      {isAdmin && expense.status === 'Pending' && (
+                        <Button size="sm" variant="destructive" className="p-1" aria-label="Delete" onClick={() => deleteExpense(expense.id)} disabled={actionLoading === expense.id} title="Delete expense">
+                          {actionLoading === expense.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <XCircle className="h-4 w-4" />}
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Desktop/Table view */}
+              <div className="hidden md:block rounded-md border">
+                <Table className="w-full table-fixed text-sm">
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Expense #</TableHead>
-                      <TableHead>Title</TableHead>
-                      <TableHead>Category</TableHead>
-                      <TableHead>Requested By</TableHead>
-                      <TableHead>Request Date</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Priority</TableHead>
-                      <TableHead className="text-right">Amount</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
+                      <TableHead className="w-20 text-sm font-medium px-2 py-2">Expense #</TableHead>
+                      <TableHead className="w-[20ch] text-sm font-medium truncate px-2 py-2">Title</TableHead>
+                      <TableHead className="w-24 text-sm font-medium px-2 py-2">Date</TableHead>
+                      <TableHead className="w-28 text-sm font-medium px-2 py-2">Status</TableHead>
+                      <TableHead className="w-28 text-right text-sm font-medium px-2 py-2">Amount</TableHead>
+                      <TableHead className="w-12 text-center text-sm font-medium px-1 py-2">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {loading ? (
                       <TableRow>
-                        <TableCell colSpan={9} className="text-center py-8">
+                        <TableCell colSpan={6} className="text-center py-8">
                           <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
                           <div className="text-muted-foreground">Loading expenses...</div>
                         </TableCell>
                       </TableRow>
                     ) : filteredExpenses.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                        <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                           No expenses found matching your criteria.
                         </TableCell>
                       </TableRow>
                     ) : (
                       filteredExpenses.map((expense) => (
                         <TableRow key={expense.id}>
-                          <TableCell className="font-medium">{expense.expenseNumber}</TableCell>
-                          <TableCell>
+                          <TableCell className="font-medium px-2 py-2 text-xs">{expense.expenseNumber}</TableCell>
+                          <TableCell className="truncate max-w-[20ch] px-2 py-2">
                             <div>
-                              <div className="font-medium">{expense.title}</div>
-                              <div className="text-sm text-muted-foreground">{expense.department}</div>
+                              <div className="font-medium text-sm">{expense.title}</div>
+                              <div className="text-xs text-muted-foreground mt-0.5">{expense.category}</div>
                             </div>
                           </TableCell>
-                          <TableCell>{expense.category}</TableCell>
-                          <TableCell>{expense.requestedBy}</TableCell>
-                          <TableCell>{new Date(expense.requestDate).toLocaleDateString()}</TableCell>
-                          <TableCell>
-                            <Badge className={getStatusColor(expense.status)}>
-                              <div className="flex items-center gap-1">
-                                {getStatusIcon(expense.status)}
-                                {expense.status}
-                              </div>
-                            </Badge>
+                          <TableCell className="px-2 py-2 text-sm">{expense.requestDate ? new Date(expense.requestDate).toLocaleDateString() : 'N/A'}</TableCell>
+                          <TableCell className="px-2 py-2">
+                            <div className="flex flex-col gap-1">
+                              <Badge className={getStatusColor(expense.status)}>
+                                <div className="flex items-center gap-1 text-xs">
+                                  {getStatusIcon(expense.status)}
+                                  <span className="align-middle">{expense.status}</span>
+                                </div>
+                              </Badge>
+                              <div className="text-xs text-muted-foreground">Priority: <span className={getPriorityColor(expense.priority)}>{expense.priority}</span></div>
+                            </div>
                           </TableCell>
-                          <TableCell>
-                            <span className={getPriorityColor(expense.priority)}>
-                              {expense.priority}
-                            </span>
-                          </TableCell>
-                          <TableCell className="text-right font-medium">
+                          <TableCell className="text-right font-medium px-2 py-2 text-sm">
                             {formatCurrency(Number(expense.amount), getDefaultCurrency())}
                           </TableCell>
-                          <TableCell className="text-right">
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button 
-                                  variant="ghost" 
-                                  size="sm"
-                                  disabled={actionLoading === expense.id}
-                                >
-                                  {actionLoading === expense.id ? (
-                                    <Loader2 className="h-4 w-4 animate-spin" />
-                                  ) : (
-                                    'Actions'
-                                  )}
+                          <TableCell className="text-center px-1 py-1">
+                            <div className="flex items-center justify-center gap-2">
+                              <Button size="sm" variant="ghost" className="p-1" aria-label="View" onClick={() => setSelectedExpense(expense)} title="View details">
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                              <Button size="sm" variant="ghost" className="p-1" aria-label="Download" onClick={() => handleDownload(expense)} title="Download report">
+                                <Download className="h-4 w-4" />
+                              </Button>
+                              {isAdmin && expense.status === 'Pending' && (
+                                <Button size="sm" variant="destructive" className="p-1" aria-label="Delete" onClick={() => deleteExpense(expense.id)} disabled={actionLoading === expense.id} title="Delete expense">
+                                  {actionLoading === expense.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <XCircle className="h-4 w-4" />}
                                 </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => setSelectedExpense(expense)}>
-                                  <Eye className="h-4 w-4 mr-2" />
-                                  View Details
-                                </DropdownMenuItem>
-                                {isAdmin && expense.status === 'Pending' && (
-                                  <>
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuItem 
-                                      onClick={() => deleteExpense(expense.id)}
-                                      disabled={actionLoading === expense.id}
-                                      className="text-red-600"
-                                    >
-                                      <XCircle className="h-4 w-4 mr-2" />
-                                      Delete
-                                    </DropdownMenuItem>
-                                  </>
-                                )}
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem>
-                                  <Download className="h-4 w-4 mr-2" />
-                                  Download
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
+                              )}
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))

@@ -15,7 +15,7 @@
 const getApiBaseUrl = (): string => {
   const envUrl = import.meta.env.VITE_API_BASE_URL as string | undefined;
   
-  // Return environment URL if set, otherwise use localhost default
+  // Return environment URL if set, otherwise use production backend default
   return envUrl || 'http://localhost:5000/api/v1';
 };
 
