@@ -29,6 +29,8 @@ interface StudentFinancialDetails {
     studentId: string;
     email?: string;
     className: string;
+    enrollmentTermId?: string; // Term when student enrolled
+    enrollmentDate?: string; // Date when student enrolled
   };
   summary: {
     totalExpectedAllTerms: number;
@@ -103,6 +105,63 @@ export function StudentFinancialDetailsModal({
   const [applyingCredit, setApplyingCredit] = useState(false);
   const { token, isAuthenticated } = useAuth();
   const { toast } = useToast();
+
+  // Helper function to filter terms based on enrollment and recalculate totals
+  const filterAndRecalculateFinancialDetails = (data: StudentFinancialDetails): StudentFinancialDetails => {
+    // If no enrollment term is specified, return data as-is
+    if (!data.student.enrollmentTermId) {
+      return data;
+    }
+
+    // Find the enrollment term in the breakdown
+    const enrollmentTermIndex = data.termBreakdown.findIndex(
+      term => term.termId === data.student.enrollmentTermId
+    );
+
+    // If enrollment term not found, return data as-is
+    if (enrollmentTermIndex === -1) {
+      console.warn('Enrollment term not found in term breakdown');
+      return data;
+    }
+
+    // Filter term breakdown to only include terms from enrollment onwards
+    const filteredTermBreakdown = data.termBreakdown.filter((_, index) => index >= enrollmentTermIndex);
+
+    // Filter transaction history to only include transactions for applicable terms
+    const applicableTermIds = new Set(filteredTermBreakdown.map(term => term.termId));
+    const filteredTransactionHistory = data.transactionHistory.filter(
+      transaction => applicableTermIds.has(transaction.termId)
+    );
+
+    // Filter historical data similarly
+    const filteredHistoricalData = data.historicalData.filter(
+      record => applicableTermIds.has(record.termId)
+    );
+
+    // Recalculate summary based on filtered terms
+    const recalculatedSummary = {
+      totalExpectedAllTerms: filteredTermBreakdown.reduce((sum, term) => sum + term.totalExpected, 0),
+      totalPaidAllTerms: filteredTermBreakdown.reduce((sum, term) => sum + term.totalPaid, 0),
+      totalOutstandingAllTerms: filteredTermBreakdown.reduce((sum, term) => sum + term.outstanding, 0),
+      creditBalance: data.summary.creditBalance,
+      paymentPercentage: 0
+    };
+
+    // Recalculate payment percentage
+    if (recalculatedSummary.totalExpectedAllTerms > 0) {
+      recalculatedSummary.paymentPercentage = Math.round(
+        (recalculatedSummary.totalPaidAllTerms / recalculatedSummary.totalExpectedAllTerms) * 100
+      );
+    }
+
+    return {
+      ...data,
+      summary: recalculatedSummary,
+      termBreakdown: filteredTermBreakdown,
+      transactionHistory: filteredTransactionHistory,
+      historicalData: filteredHistoricalData
+    };
+  };
 
   const handleAutoApplyCredit = async () => {
     if (!studentId) return;
@@ -268,7 +327,29 @@ export function StudentFinancialDetailsModal({
       }
 
       const data = await response.json();
-      setDetails(data);
+      
+      // Apply enrollment-based filtering and recalculation
+      const processedData = filterAndRecalculateFinancialDetails(data);
+      
+      // Log if filtering was applied
+      if (data.student.enrollmentTermId) {
+        const originalExpected = data.summary.totalExpectedAllTerms;
+        const filteredExpected = processedData.summary.totalExpectedAllTerms;
+        
+        if (originalExpected !== filteredExpected) {
+          console.log(`✅ Filtered fees based on enrollment term. Original: ${originalExpected}, Filtered: ${filteredExpected}`);
+          
+          // Show a toast to inform the user that filtering was applied
+          toast({
+            title: 'Fees Filtered by Enrollment',
+            description: `Showing fees only for terms from student enrollment onwards. ${processedData.termBreakdown.length} applicable term(s).`,
+            variant: 'default',
+            duration: 5000
+          });
+        }
+      }
+      
+      setDetails(processedData);
     } catch (err) {
       console.error('Error fetching student financial details:', err);
       setError(err instanceof Error ? err.message : 'Failed to load student financial details');
@@ -376,6 +457,23 @@ export function StudentFinancialDetailsModal({
                       </div>
                     )}
                   </div>
+                  
+                  {/* Show enrollment information if available */}
+                  {details.student.enrollmentTermId && (
+                    <div className="mt-4 pt-4 border-t">
+                      <div className="flex items-center gap-2 text-blue-700 bg-blue-50 p-3 rounded-md">
+                        <AlertCircle className="h-4 w-4" />
+                        <div>
+                          <p className="text-sm font-medium">Enrollment Information</p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Student enrolled starting from {details.termBreakdown.find(t => t.termId === details.student.enrollmentTermId)?.termNumber
+                              ? `Term ${details.termBreakdown.find(t => t.termId === details.student.enrollmentTermId)?.termNumber} - ${details.termBreakdown.find(t => t.termId === details.student.enrollmentTermId)?.academicYear}`
+                              : 'a specific term'}. Fees shown only for applicable terms.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 
@@ -486,7 +584,9 @@ export function StudentFinancialDetailsModal({
                         Term-by-Term Breakdown
                       </CardTitle>
                       <CardDescription>
-                        Financial status across all terms
+                        {details.student.enrollmentTermId 
+                          ? `Showing ${details.termBreakdown.length} term(s) from student enrollment onwards`
+                          : 'Financial status across all terms'}
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
