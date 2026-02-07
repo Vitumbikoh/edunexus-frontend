@@ -459,8 +459,9 @@ export function StudentFinancialDetailsModal({
                   </div>
                   
                   {/* Show enrollment information if available */}
-                  {details.student.enrollmentTermId && (() => {
-                    const enrollmentTerm = details.termBreakdown.find(t => t.termId === details.student.enrollmentTermId);
+                  {details.student.enrollmentTermId && details.termBreakdown.length > 0 && (() => {
+                    // The termBreakdown is already filtered to start from enrollment, so first term is the enrollment term
+                    const enrollmentTerm = details.termBreakdown[0];
                     return (
                       <div className="mt-4 pt-4 border-t">
                         <div className="flex items-center gap-2 text-blue-700 bg-blue-50 p-3 rounded-md">
@@ -468,9 +469,8 @@ export function StudentFinancialDetailsModal({
                           <div>
                             <p className="text-sm font-medium">Enrollment Information</p>
                             <p className="text-xs text-muted-foreground mt-1">
-                              Student enrolled starting from {enrollmentTerm
-                                ? `Term ${enrollmentTerm.termNumber} - ${enrollmentTerm.academicYear}`
-                                : 'a specific term'}. Fees shown only for applicable terms.
+                              Student enrolled starting from Term {enrollmentTerm.termNumber} - {enrollmentTerm.academicYear}. 
+                              Fees shown only for applicable terms.
                             </p>
                           </div>
                         </div>
