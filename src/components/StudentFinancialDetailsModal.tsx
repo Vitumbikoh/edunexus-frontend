@@ -460,8 +460,10 @@ export function StudentFinancialDetailsModal({
                   
                   {/* Show enrollment information if available */}
                   {details.student.enrollmentTermId && details.termBreakdown.length > 0 && (() => {
-                    // The termBreakdown is already filtered to start from enrollment, so first term is the enrollment term
-                    const enrollmentTerm = details.termBreakdown[0];
+                    // Find the enrollment term by ID (don't assume array order)
+                    const enrollmentTerm = details.termBreakdown.find(t => t.termId === details.student.enrollmentTermId);
+                    if (!enrollmentTerm) return null; // Safety check
+                    
                     return (
                       <div className="mt-4 pt-4 border-t">
                         <div className="flex items-center gap-2 text-blue-700 bg-blue-50 p-3 rounded-md">

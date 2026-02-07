@@ -93,8 +93,8 @@ For this frontend solution to work correctly, the backend API endpoint `/finance
     "studentId": "260038",
     "email": "stu046@schomas.test",
     "className": "Form One",
-    "enrollmentTermId": "term-2-uuid-here",  // ← REQUIRED FOR FILTERING (optional field, filtering won't apply if missing)
-    "enrollmentDate": "2026-01-05"           // ← OPTIONAL (recommended for future use)
+    "enrollmentTermId": "term-2-uuid-here",  // ← Optional field - if provided, filtering will be applied. If not provided, no filtering occurs.
+    "enrollmentDate": "2026-01-05"           // ← Optional (recommended for future use)
   },
   "summary": { /* ... */ },
   "termBreakdown": [ /* ... */ ],
