@@ -479,12 +479,7 @@ export default function PaymentForm() {
         </div>
       )}
 
-      {validationWarning && (
-        <div className="p-4 mb-4 text-sm text-yellow-700 bg-yellow-100 rounded-lg flex items-start gap-2">
-          <AlertTriangle className="h-5 w-5 flex-shrink-0 mt-0.5" />
-          <div>{validationWarning}</div>
-        </div>
-      )}
+
 
       <Card>
         <form onSubmit={handleSubmit}>
@@ -707,7 +702,17 @@ export default function PaymentForm() {
                 placeholder="Any additional information about this payment" 
               />
             </div>
+
+            {/* Validation warning placed immediately below Notes (Optional) as requested */}
+            {validationWarning && (
+              <div className="p-3 mt-2 text-sm text-yellow-700 bg-yellow-100 rounded-lg flex items-start gap-2">
+                <AlertTriangle className="h-5 w-5 flex-shrink-0 mt-0.5" />
+                <div>{validationWarning}</div>
+              </div>
+            )}
+
           </CardContent>
+
           <CardFooter className="flex justify-end">
             <Button type="submit" disabled={isSubmitting || isLoadingStudents}>
               <Save className="mr-2 h-4 w-4" />

@@ -72,6 +72,7 @@ interface StudentFinancialDetails {
     academicYear?: string;
     status: string;
     processedBy: string;
+    notes?: string;
   }>;
   historicalData: Array<{
     termId: string;
@@ -570,26 +571,52 @@ export function StudentFinancialDetailsModal({
                                 <TableHead>Receipt</TableHead>
                                 <TableHead>Term</TableHead>
                                 <TableHead>Processed By</TableHead>
+                                <TableHead>Details</TableHead>
                               </TableRow>
                             </TableHeader>
                             <TableBody>
-                              {details.transactionHistory.map((transaction) => (
-                                <TableRow key={transaction.id}>
-                                  <TableCell>{formatDate(transaction.paymentDate)}</TableCell>
-                                  <TableCell className="font-semibold">
-                                    {formatCurrency(transaction.amount, getDefaultCurrency())}
-                                  </TableCell>
-                                  <TableCell>{transaction.paymentType}</TableCell>
-                                  <TableCell>{transaction.paymentMethod}</TableCell>
-                                  <TableCell>
-                                    {transaction.receiptNumber || '-'}
-                                  </TableCell>
-                                  <TableCell>
-                                    Term {transaction.termNumber} - {transaction.academicYear}
-                                  </TableCell>
-                                  <TableCell>{transaction.processedBy}</TableCell>
-                                </TableRow>
-                              ))}
+                              {details.transactionHistory.map((transaction) => {
+                                const isHistoricalCredit = transaction.paymentType === 'credit_application' && 
+                                  transaction.notes && transaction.notes.includes('[HISTORICAL TERM');
+                                
+                                return (
+                                  <TableRow key={transaction.id} className={isHistoricalCredit ? 'bg-blue-50 dark:bg-blue-950/20' : ''}>
+                                    <TableCell>{formatDate(transaction.paymentDate)}</TableCell>
+                                    <TableCell className="font-semibold">
+                                      {formatCurrency(transaction.amount, getDefaultCurrency())}
+                                    </TableCell>
+                                    <TableCell>
+                                      <div className="flex items-center gap-2">
+                                        {transaction.paymentType}
+                                        {isHistoricalCredit && (
+                                          <Badge variant="outline" className="text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200">
+                                            Past Term
+                                          </Badge>
+                                        )}
+                                      </div>
+                                    </TableCell>
+                                    <TableCell>{transaction.paymentMethod}</TableCell>
+                                    <TableCell>
+                                      {transaction.receiptNumber || '-'}
+                                    </TableCell>
+                                    <TableCell>
+                                      Term {transaction.termNumber} - {transaction.academicYear}
+                                    </TableCell>
+                                    <TableCell>{transaction.processedBy}</TableCell>
+                                    <TableCell>
+                                      {transaction.notes ? (
+                                        <div className="max-w-xs truncate" title={transaction.notes}>
+                                          <span className="text-xs text-muted-foreground">
+                                            {transaction.notes}
+                                          </span>
+                                        </div>
+                                      ) : (
+                                        '-'
+                                      )}
+                                    </TableCell>
+                                  </TableRow>
+                                );
+                              })}
                             </TableBody>
                           </Table>
                         </div>
@@ -607,48 +634,59 @@ export function StudentFinancialDetailsModal({
                     <CardHeader>
                       <CardTitle>Historical Data</CardTitle>
                       <CardDescription>
-                        Archived financial records from closed terms
+                        Archived financial records from closed terms and credit applications to past terms
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
                       {details.historicalData.length > 0 ? (
-                        <div className="overflow-x-auto">
-                          <Table>
-                            <TableHeader>
-                              <TableRow>
-                                <TableHead>Term</TableHead>
-                                <TableHead>Academic Year</TableHead>
-                                <TableHead className="text-right">Expected</TableHead>
-                                <TableHead className="text-right">Paid</TableHead>
-                                <TableHead className="text-right">Outstanding</TableHead>
-                                <TableHead>Status</TableHead>
-                              </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                              {details.historicalData.map((record, index) => (
-                                <TableRow key={index}>
-                                  <TableCell>Term {record.termNumber}</TableCell>
-                                  <TableCell>{record.academicYear}</TableCell>
-                                  <TableCell className="text-right">
-                                    {formatCurrency(record.totalExpected, getDefaultCurrency())}
-                                  </TableCell>
-                                  <TableCell className="text-right">
-                                    {formatCurrency(record.totalPaid, getDefaultCurrency())}
-                                  </TableCell>
-                                  <TableCell className="text-right">
-                                    {formatCurrency(record.outstandingAmount, getDefaultCurrency())}
-                                  </TableCell>
-                                  <TableCell>
-                                    {getStatusBadge(record.status, record.outstandingAmount)}
-                                  </TableCell>
+                        <>
+                          <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-md">
+                            <p className="text-sm text-blue-800 dark:text-blue-200">
+                              <strong>Note:</strong> Historical records are created when terms are formally closed or when credit balances are applied to past term fees.
+                              Check the Transaction History tab for detailed payment information.
+                            </p>
+                          </div>
+                          <div className="overflow-x-auto">
+                            <Table>
+                              <TableHeader>
+                                <TableRow>
+                                  <TableHead>Term</TableHead>
+                                  <TableHead>Academic Year</TableHead>
+                                  <TableHead className="text-right">Expected</TableHead>
+                                  <TableHead className="text-right">Paid</TableHead>
+                                  <TableHead className="text-right">Outstanding</TableHead>
+                                  <TableHead>Status</TableHead>
                                 </TableRow>
-                              ))}
-                            </TableBody>
-                          </Table>
-                        </div>
+                              </TableHeader>
+                              <TableBody>
+                                {details.historicalData.map((record, index) => (
+                                  <TableRow key={index}>
+                                    <TableCell>Term {record.termNumber}</TableCell>
+                                    <TableCell>{record.academicYear}</TableCell>
+                                    <TableCell className="text-right">
+                                      {formatCurrency(record.totalExpected, getDefaultCurrency())}
+                                    </TableCell>
+                                    <TableCell className="text-right">
+                                      {formatCurrency(record.totalPaid, getDefaultCurrency())}
+                                    </TableCell>
+                                    <TableCell className="text-right">
+                                      {formatCurrency(record.outstandingAmount, getDefaultCurrency())}
+                                    </TableCell>
+                                    <TableCell>
+                                      {getStatusBadge(record.status, record.outstandingAmount)}
+                                    </TableCell>
+                                  </TableRow>
+                                ))}
+                              </TableBody>
+                            </Table>
+                          </div>
+                        </>
                       ) : (
-                        <div className="text-center py-8 text-muted-foreground">
-                          No historical data found
+                        <div className="text-center py-8">
+                          <p className="text-muted-foreground mb-2">No historical data found</p>
+                          <p className="text-sm text-muted-foreground">
+                            Historical records appear here when terms are closed or when credit balances are applied to past terms.
+                          </p>
                         </div>
                       )}
                     </CardContent>
