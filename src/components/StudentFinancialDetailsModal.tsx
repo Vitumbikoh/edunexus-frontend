@@ -459,21 +459,24 @@ export function StudentFinancialDetailsModal({
                   </div>
                   
                   {/* Show enrollment information if available */}
-                  {details.student.enrollmentTermId && (
-                    <div className="mt-4 pt-4 border-t">
-                      <div className="flex items-center gap-2 text-blue-700 bg-blue-50 p-3 rounded-md">
-                        <AlertCircle className="h-4 w-4" />
-                        <div>
-                          <p className="text-sm font-medium">Enrollment Information</p>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            Student enrolled starting from {details.termBreakdown.find(t => t.termId === details.student.enrollmentTermId)?.termNumber
-                              ? `Term ${details.termBreakdown.find(t => t.termId === details.student.enrollmentTermId)?.termNumber} - ${details.termBreakdown.find(t => t.termId === details.student.enrollmentTermId)?.academicYear}`
-                              : 'a specific term'}. Fees shown only for applicable terms.
-                          </p>
+                  {details.student.enrollmentTermId && (() => {
+                    const enrollmentTerm = details.termBreakdown.find(t => t.termId === details.student.enrollmentTermId);
+                    return (
+                      <div className="mt-4 pt-4 border-t">
+                        <div className="flex items-center gap-2 text-blue-700 bg-blue-50 p-3 rounded-md">
+                          <AlertCircle className="h-4 w-4" />
+                          <div>
+                            <p className="text-sm font-medium">Enrollment Information</p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Student enrolled starting from {enrollmentTerm
+                                ? `Term ${enrollmentTerm.termNumber} - ${enrollmentTerm.academicYear}`
+                                : 'a specific term'}. Fees shown only for applicable terms.
+                            </p>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  )}
+                    );
+                  })()}
                 </CardContent>
               </Card>
 
