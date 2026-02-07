@@ -17,7 +17,8 @@ import {
   CreditCard,
   Receipt,
   Printer,
-  Settings as SettingsIcon
+  Settings as SettingsIcon,
+  TrendingUp
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
@@ -504,6 +505,9 @@ export default function Finance() {
     .reduce((sum, s) => sum + (s.outstandingAmount || 0), 0);
   const overdueAmount = summaryOverdue || overdueFromStatuses;
 
+  // Calculate overpayments (excess payments beyond expected fees) for school auditing
+  const overpayments = Math.max(0, effectivePaid - effectiveExpected);
+
   const paidPercentage = effectiveExpected > 0
     ? Math.round((effectivePaid / effectiveExpected) * 100)
     : 0;
@@ -706,7 +710,8 @@ export default function Finance() {
 
       {isLoading ? (
         <div className="space-y-6">
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-5">
+            <Preloader variant="skeleton" rows={1} className="h-24" />
             <Preloader variant="skeleton" rows={1} className="h-24" />
             <Preloader variant="skeleton" rows={1} className="h-24" />
             <Preloader variant="skeleton" rows={1} className="h-24" />
@@ -717,7 +722,7 @@ export default function Finance() {
       ) : (
         <>
           {/* Summary Cards */}
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-5">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Total Fees Paid</CardTitle>
@@ -769,6 +774,19 @@ export default function Finance() {
                 <div className="text-2xl font-bold">{formatCurrency(overdueAmount, getDefaultCurrency())}</div>
                 <p className="text-xs text-muted-foreground">
                   {consolidatedSummary?.labels?.outstandingFromPreviousTerms || 'Outstanding From Previous Terms'}
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Overpayments</CardTitle>
+                <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{formatCurrency(overpayments, getDefaultCurrency())}</div>
+                <p className="text-xs text-muted-foreground">
+                  Excess payments for auditing
                 </p>
               </CardContent>
             </Card>

@@ -12,6 +12,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Plus, Edit, Trash2, DollarSign, Calculator } from 'lucide-react';
 import payrollService, { PayComponent, PayComponentType, CreatePayComponentRequest } from '@/services/payrollService';
+import StaffPayAssignments from '@/pages/finance/StaffPayAssignments';
 import { useAuth } from '@/contexts/AuthContext';
 import { getCurrencySymbol } from '@/lib/currency';
 import { format } from 'date-fns';
@@ -475,6 +476,13 @@ export default function PayComponents() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Staff assignments embedded for convenience */}
+      {isFinanceOfficer && (
+        <div className="mt-8">
+          <StaffPayAssignments />
+        </div>
+      )}
     </div>
   );
 }

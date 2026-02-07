@@ -74,6 +74,7 @@ import ClassManagement from "./pages/Classes";
 import Exams from "./pages/courses/Exams";
 import ExamForm from "./pages/courses/ExamForm";
 import Payroll from "./pages/finance/Payroll";
+import GraduatedOutstanding from "./pages/finance/GraduatedOutstanding";
 import PayComponents from "./pages/finance/PayComponents";
 import StaffPayAssignments from "./pages/finance/StaffPayAssignments";
 
@@ -762,6 +763,19 @@ const AppRoutes = () => {
             <FinanceRoute>
               <Layout>
                 <FinanceApprovals />
+              </Layout>
+            </FinanceRoute>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/finance/graduated-outstanding"
+        element={
+          <ProtectedRoute>
+            <FinanceRoute>
+              <Layout>
+                <GraduatedOutstanding />
               </Layout>
             </FinanceRoute>
           </ProtectedRoute>

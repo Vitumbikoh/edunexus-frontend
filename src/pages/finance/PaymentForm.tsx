@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -53,6 +53,7 @@ export default function PaymentForm() {
   const { user, token } = useAuth();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const location = useLocation();
   const [apiError, setApiError] = useState<string | null>(null);
   const [isLoadingStudents, setIsLoadingStudents] = useState(true);
   const [students, setStudents] = useState<Student[]>([]);
@@ -182,6 +183,16 @@ export default function PaymentForm() {
           }
         }
         setStudents(allStudents);
+
+        // Prefill selected student if navigated here with a prefill student id
+        const prefill = (location.state as any)?.prefillStudentId;
+        if (prefill) {
+          // Defer setting until students are loaded
+          setTimeout(() => {
+            const exists = allStudents.find((s: any) => s.id === prefill);
+            if (exists) setSelectedStudent(prefill);
+          }, 50);
+        }
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : "Failed to fetch students";
         setApiError(errorMessage);
@@ -264,7 +275,7 @@ export default function PaymentForm() {
         const calParam = selectedAcademicCalendarId ? `&academicCalendarId=${encodeURIComponent(selectedAcademicCalendarId)}` : '';
         const feeTypesRes = await apiFetch<any>(`/finance/fee-types?termId=${selectedTermId}${calParam}`);
         const types = Array.isArray(feeTypesRes?.feeTypes) ? feeTypesRes.feeTypes : [];
-        const uniqueFees = Array.from(new Set(types.filter(Boolean)));
+        const uniqueFees = Array.from(new Set(types.filter(Boolean))) as string[];
         setFeeTypes(uniqueFees.map((fee: string) => ({ value: fee, label: fee })));
         if (uniqueFees.length > 0 && !uniqueFees.includes(selectedPaymentType)) {
           setSelectedPaymentType(uniqueFees[0]);

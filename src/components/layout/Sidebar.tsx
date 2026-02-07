@@ -153,7 +153,7 @@ const adminNavItems: NavItem[] = [
       },
       {
         label: "Payroll Approvals",
-        href: "/payroll",
+        href: "/finance/approvals",
         roles: ["admin", "finance"],
       },
       {
@@ -163,7 +163,12 @@ const adminNavItems: NavItem[] = [
       },
       {
         label: "Staff Assignments",
-        href: "/payroll/assignments",
+        href: "/payroll/components",
+        roles: ["admin", "finance"],
+      },
+      {
+        label: "Graduated Outstanding",
+        href: "/finance/graduated-outstanding",
         roles: ["admin", "finance"],
       },
       {
