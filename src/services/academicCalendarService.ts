@@ -15,6 +15,35 @@ export interface AcademicCalendar {
 export const academicCalendarService = {
   // Get all academic calendars
   getAcademicCalendars: async (token: string): Promise<AcademicCalendar[]> => {
+    // Try the accessible endpoint first (works for any authenticated user)
+    try {
+      const response = await fetch(`${API_BASE}/settings/academic-calendars/accessible`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        const text = await response.text();
+        if (!text.trim()) {
+          return []; // Empty response means no calendars
+        }
+
+        try {
+          const data = JSON.parse(text);
+          return Array.isArray(data) ? data : [];
+        } catch (error) {
+          console.error('Failed to parse accessible calendars response:', text);
+          return [];
+        }
+      }
+    } catch (error) {
+      console.warn('Failed to fetch accessible academic calendars, trying admin endpoint:', error);
+    }
+
+    // Fallback to admin-only endpoint
     const response = await fetch(`${API_BASE}/settings/academic-calendars`, {
       method: 'GET',
       headers: {

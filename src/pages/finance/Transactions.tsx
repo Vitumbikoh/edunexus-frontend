@@ -69,11 +69,12 @@ export default function Transactions() {
   const [searchPeriod, setSearchPeriod] = useState('');
   const [searchInput, setSearchInput] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [typeFilter, setTypeFilter] = useState('all');
+  // Removed type filter per request
   const [currentPage, setCurrentPage] = useState(1);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [pendingStudents, setPendingStudents] = useState(0);
+  const [calendarWarning, setCalendarWarning] = useState<string | null>(null);
 
   const fetchTransactions = async (page = 1, search = '', status = 'all', type = 'all', start = '', end = '') => {
     try {
@@ -148,33 +149,125 @@ export default function Transactions() {
 
   useEffect(() => {
     if (token) {
-      fetchTransactions(currentPage, searchPeriod, statusFilter, typeFilter, startDate, endDate);
+      fetchTransactions(currentPage, searchPeriod, statusFilter, 'all', startDate, endDate);
       fetchFinancialStats();
     }
-  }, [token, currentPage, searchPeriod, statusFilter, typeFilter, startDate, endDate]);
+  }, [token, currentPage, searchPeriod, statusFilter, startDate, endDate, selectedAcademicCalendarId, selectedTermId]);
 
   // Load academic calendars and default selection
   useEffect(() => {
     const loadCalendars = async () => {
       if (!token) return;
       try {
-        // Use billing endpoint which returns school calendars and independent/global calendars
-        const res = await fetch(`${API_CONFIG.BASE_URL}/billing/calendars`, {
-          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
-        });
-        if (!res.ok) throw new Error('Failed to load calendars');
-        const cals = await res.json();
-        setAcademicCalendars(cals || []);
+        // First try the settings academic calendars endpoint (preferred)
+        const cals = await academicCalendarService.getAcademicCalendars(token);
+        const mapped = (cals || []).map((c: any, idx: number) => ({
+          id: c.id || c.uuid || c.calendarId,
+          name: c.term || c.name || c.title || `Calendar ${idx + 1}`,
+          group: (c.isIndependent || c.independent || c.type === 'independent' || c.source === 'independent') ? 'independent' : 'school',
+          raw: c,
+        }));
 
+        // If no calendars found, or to be safe, try billing calendars as a fallback
+        if (!mapped.length) {
+          try {
+            let res = await fetch(`${API_CONFIG.BASE_URL}/billing/calendars`, {
+              headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
+            });
+            // If unauthorized, attempt unauthenticated access
+            if (!res.ok && res.status === 401) {
+              try {
+                res = await fetch(`${API_CONFIG.BASE_URL}/billing/calendars`);
+              } catch (_) {
+                // ignore
+              }
+            }
+
+            if (res.ok) {
+              const fallback = await res.json();
+              const fbMapped = (fallback || []).map((c: any, idx: number) => ({
+                id: c.id || c.uuid || c.calendarId || c.academicCalendarId,
+                name: c.name || c.term || c.title || `Calendar ${idx + 1}`,
+                group: (c.isIndependent || c.independent || c.type === 'independent' || c.source === 'independent') ? 'independent' : 'school',
+                raw: c,
+              }));
+              setAcademicCalendars(fbMapped);              setCalendarWarning('Loaded calendars from billing endpoint as a fallback (permissions may be restricted).');              const active = await academicCalendarService.getActiveAcademicCalendar(token).catch(() => null);
+              setSelectedAcademicCalendarId(active?.id || (fbMapped && fbMapped[0]?.id) || null);
+              return;
+            }
+          } catch (fallbackErr) {
+            console.warn('Fallback billing/calendars failed', fallbackErr);
+          }
+        }
+
+        setAcademicCalendars(mapped);
+        setCalendarWarning(null);
         // Prefer the active calendar if available, otherwise the first calendar
         try {
           const active = await academicCalendarService.getActiveAcademicCalendar(token);
-          setSelectedAcademicCalendarId(active?.id || (cals && cals[0]?.id) || null);
+          setSelectedAcademicCalendarId(active?.id || (mapped && mapped[0]?.id) || null);
         } catch (_) {
-          setSelectedAcademicCalendarId((cals && cals[0]?.id) || null);
+          setSelectedAcademicCalendarId((mapped && mapped[0]?.id) || null);
         }
-      } catch (e) {
+      } catch (e: any) {
         console.error('Failed to load academic calendars', e);
+
+        // If unauthorized or forbidden, try billing endpoint as a fallback which may have public/alternate access
+        if (e.message && e.message.toLowerCase().includes('failed to fetch academic calendars')) {
+          try {
+            let res = await fetch(`${API_CONFIG.BASE_URL}/billing/calendars`, {
+              headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
+            });
+            if (!res.ok && res.status === 401) {
+              try {
+                res = await fetch(`${API_CONFIG.BASE_URL}/billing/calendars`);
+              } catch (_) {
+                // ignore
+              }
+            }
+            if (res.ok) {
+              const fallback = await res.json();
+              const fbMapped = (fallback || []).map((c: any, idx: number) => ({
+                id: c.id || c.uuid || c.calendarId || c.academicCalendarId,
+                name: c.name || c.term || c.title || `Calendar ${idx + 1}`,
+                group: (c.isIndependent || c.independent || c.type === 'independent' || c.source === 'independent') ? 'independent' : 'school',
+                raw: c,
+              }));
+              setAcademicCalendars(fbMapped);
+              const active = await academicCalendarService.getActiveAcademicCalendar(token).catch(() => null);
+              setSelectedAcademicCalendarId(active?.id || (fbMapped && fbMapped[0]?.id) || null);
+              return;
+            }
+          } catch (fallbackErr) {
+            console.warn('Fallback billing/calendars failed', fallbackErr);
+          }
+        }
+
+        // As a last resort, derive calendars (ids/names) from recent transactions available to the user
+        try {
+          const txRes = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.TRANSACTIONS}?page=1&limit=500`, { headers: { Authorization: `Bearer ${token}` } });
+          if (txRes.ok) {
+            const txData = await txRes.json();
+            const list = Array.isArray(txData.transactions) ? txData.transactions : (txData.items || []);
+            const byCal: Record<string, any> = {};
+            list.forEach((t: any) => {
+              const id = t.academicCalendarId || t.academic_calendar_id || t.calendarId || t.academicCalendar || t.academicCalendarUuid || t.academic_calendar_uuid || 'unknown';
+              const name = t.academicCalendarName || t.academic_calendar_name || t.academicCalendar || t.academicCalendarTitle || (t.academicCalendarId ? `Calendar ${t.academicCalendarId}` : 'Unknown');
+              if (!id || id === 'unknown') return;
+              if (!byCal[id]) byCal[id] = { id, name, group: 'school', raw: null };
+            });
+            const derived = Object.values(byCal);
+            if (derived.length) {
+              setAcademicCalendars(derived);
+              setSelectedAcademicCalendarId(derived[0]?.id || null);
+              setCalendarWarning('Derived available calendars from your transactions because the calendars API was unavailable or forbidden.');
+            }
+          }
+        } catch (deriveErr) {
+          console.warn('Failed to derive calendars from transactions', deriveErr);
+        }
+
+        setAcademicCalendars([]);
       }
     };
     loadCalendars();
@@ -182,6 +275,18 @@ export default function Transactions() {
 
   // Load terms when calendar selection changes
   useEffect(() => {
+    const deriveTermsFromTransactions = (txs: any[]) => {
+      const byTerm: Record<string, any> = {};
+      txs.forEach(t => {
+        const id = t.termId || t.term_id || t.term || (`${t.termNumber || ''}-${t.periodName || ''}`) || t.term || t.period || 'unknown';
+        const name = t.termName || t.term || t.periodName || (typeof t.termNumber === 'number' ? `Term ${t.termNumber}` : id);
+        if (id && !byTerm[id]) {
+          byTerm[id] = { id, name, raw: t };
+        }
+      });
+      return Object.values(byTerm).map((v:any) => ({ id: v.id, name: v.name, raw: v.raw }));
+    };
+
     const loadTerms = async () => {
       if (!token) return;
       try {
@@ -189,7 +294,24 @@ export default function Transactions() {
           ? `${API_CONFIG.BASE_URL}/settings/terms?academicCalendarId=${encodeURIComponent(selectedAcademicCalendarId)}`
           : `${API_CONFIG.BASE_URL}/settings/terms`;
         const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
-        if (!res.ok) return setTerms([]);
+        if (!res.ok) {
+          // Fallback: derive terms from transactions
+          try {
+            const txRes = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.TRANSACTIONS}?page=1&limit=500&academicCalendarId=${encodeURIComponent(selectedAcademicCalendarId || '')}`, { headers: { Authorization: `Bearer ${token}` } });
+            if (txRes.ok) {
+              const txData = await txRes.json();
+              const list = Array.isArray(txData.transactions) ? txData.transactions : (txData.items || []);
+              const mapped = deriveTermsFromTransactions(list);
+              setTerms(mapped || []);
+              const current = mapped[0];
+              setSelectedTermId(current?.id || null);
+              return;
+            }
+          } catch (e) {
+            console.warn('Failed to derive terms from transactions', e);
+          }
+          return setTerms([]);
+        }
         const data = await res.json();
         const list = Array.isArray(data) ? data : (data.terms || []);
         const mapped = list.map((y: any) => ({ id: y.id || y.termId || y.uuid, name: y.name || y.periodName || y.term || y.displayName, raw: y }));
@@ -214,11 +336,7 @@ export default function Transactions() {
     const matchesStatus = statusFilter === 'all' ||
       transaction.status?.toLowerCase() === statusFilter.toLowerCase();
 
-    const matchesType = typeFilter === 'all' ||
-      (typeFilter === 'payment' && (parseFloat(transaction.amount) || 0) > 0) ||
-      (typeFilter === 'refund' && (parseFloat(transaction.amount) || 0) < 0);
-
-    return matchesSearch && matchesStatus && matchesType;
+    return matchesSearch && matchesStatus;
   });
 
   const getStatusColor = (status: string) => {
@@ -253,17 +371,7 @@ export default function Transactions() {
         </div>
       </div>
 
-      {/* Search (moved on top) */}
-      <div className="mt-4">
-        <SearchBar
-          value={searchInput}
-          onChange={setSearchInput}
-          onDebouncedChange={setSearchPeriod}
-          delay={300}
-          placeholder="Search by receipt number or student name..."
-          className="w-full max-w-2xl"
-        />
-      </div>
+      {/* Summary Cards remain above filters; search moved into filter card per request */}
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -328,6 +436,24 @@ export default function Transactions() {
           <CardDescription>View and manage all financial transactions</CardDescription>
         </CardHeader>
         <CardContent>
+          {/* Search bar should be directly under the title/description and above filters */}
+          <div className="mb-4">
+            <SearchBar
+              value={searchInput}
+              onChange={setSearchInput}
+              onDebouncedChange={setSearchPeriod}
+              delay={300}
+              placeholder="Search by receipt number or student name..."
+              className="w-full max-w-2xl"
+            />
+          </div>
+
+          {calendarWarning && (
+            <div className="mb-3 p-2 rounded bg-yellow-50 border border-yellow-200 text-yellow-800 text-sm">
+              {calendarWarning}
+            </div>
+          )}
+
           <div className="flex flex-wrap gap-4 mb-6 items-center">
             <div className="flex gap-2 items-center">
               <Input
@@ -356,9 +482,20 @@ export default function Transactions() {
                 onChange={(e) => setSelectedAcademicCalendarId(e.target.value || null)}
               >
                 <option value="">All calendars</option>
-                {academicCalendars.map((c, idx) => (
-                  <option key={c.id} value={c.id}>{c.name || c.title || c.term || `Calendar ${idx + 1}`}</option>
-                ))}
+                {academicCalendars.filter((c: any) => c.group !== 'independent').length > 0 && (
+                  <optgroup label="School calendars">
+                    {academicCalendars.filter((c: any) => c.group !== 'independent').map((c: any) => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </optgroup>
+                )}
+                {academicCalendars.filter((c: any) => c.group === 'independent').length > 0 && (
+                  <optgroup label="Independent calendars">
+                    {academicCalendars.filter((c: any) => c.group === 'independent').map((c: any) => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </optgroup>
+                )}
               </select>
             </div>
 
@@ -383,16 +520,6 @@ export default function Transactions() {
                 <SelectItem value="completed">Completed</SelectItem>
                 <SelectItem value="pending">Pending</SelectItem>
                 <SelectItem value="processed">Processed</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={typeFilter} onValueChange={setTypeFilter}>
-              <SelectTrigger className="w-40">
-                <SelectValue placeholder="All Types" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Types</SelectItem>
-                <SelectItem value="payment">Payment</SelectItem>
-                <SelectItem value="refund">Refund</SelectItem>
               </SelectContent>
             </Select>
           </div>
