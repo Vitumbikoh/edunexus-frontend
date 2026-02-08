@@ -3,11 +3,15 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { SearchBar } from '@/components/ui/search-bar';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { apiFetch } from '@/lib/apiClient';
 import { useNavigate } from 'react-router-dom';
 import { formatCurrency, getDefaultCurrency } from '@/lib/currency';
-import { Eye } from 'lucide-react';
+import { useToast } from '@/components/ui/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
+import { Eye, DollarSign, Users, TrendingUp } from 'lucide-react';
 
 export default function GraduatedOutstanding() {
   const [students, setStudents] = useState<any[]>([]);
@@ -20,7 +24,16 @@ export default function GraduatedOutstanding() {
   const [selectedStudent, setSelectedStudent] = useState<any>(null);
   const [studentDetails, setStudentDetails] = useState<any>(null);
   const [loadingDetails, setLoadingDetails] = useState(false);
+  const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
+  const [paymentStudent, setPaymentStudent] = useState<any>(null);
+  const [paymentAmount, setPaymentAmount] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState('cash');
+  const [receiptNumber, setReceiptNumber] = useState('');
+  const [paymentNotes, setPaymentNotes] = useState('');
+  const [processingPayment, setProcessingPayment] = useState(false);
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const { user } = useAuth();
 
   useEffect(() => {
     loadGraduatedStudents();
@@ -90,6 +103,67 @@ export default function GraduatedOutstanding() {
     setStudentDetails(null);
   };
 
+  const openPaymentDialog = (student: any) => {
+    setPaymentStudent(student);
+    setPaymentAmount('');
+    setPaymentMethod('cash');
+    setReceiptNumber('');
+    setPaymentNotes(`Payment for graduated student ${student.firstName} ${student.lastName} - historical outstanding fees`);
+    setPaymentDialogOpen(true);
+  };
+
+  const closePaymentDialog = () => {
+    setPaymentDialogOpen(false);
+    setPaymentStudent(null);
+    setPaymentAmount('');
+    setReceiptNumber('');
+    setPaymentNotes('');
+  };
+
+  const handleRecordPayment = async () => {
+    if (!paymentStudent || !paymentAmount || Number(paymentAmount) <= 0) {
+      toast({ title: 'Invalid Input', description: 'Please enter a valid payment amount', variant: 'destructive' });
+      return;
+    }
+
+    if (!user?.id) {
+      toast({ title: 'Error', description: 'User not authenticated', variant: 'destructive' });
+      return;
+    }
+
+    try {
+      setProcessingPayment(true);
+      await apiFetch('/finance/payments', {
+        method: 'POST',
+        body: JSON.stringify({
+          studentId: paymentStudent.id,
+          amount: Number(paymentAmount),
+          paymentMethod,
+          receiptNumber: receiptNumber || null,
+          notes: paymentNotes || 'Graduated student payment - historical outstanding fees only',
+          paymentDate: new Date().toISOString(),
+          paymentType: 'full',
+          userId: user.id,
+        }),
+      });
+
+      toast({ title: 'Success', description: 'Payment recorded successfully' });
+      closePaymentDialog();
+      // Refresh outstanding for this student
+      await checkOutstanding(paymentStudent.id);
+      await loadGraduatedStudents();
+    } catch (error: any) {
+      console.error('Payment failed:', error);
+      toast({ title: 'Payment Failed', description: error.message || 'Failed to record payment', variant: 'destructive' });
+    } finally {
+      setProcessingPayment(false);
+    }
+  };
+
+  const totalGraduated = students.length;
+  const totalOutstanding = Object.values(outstandingMap).reduce((sum, val) => sum + (val || 0), 0);
+  const studentsWithOutstanding = Object.values(outstandingMap).filter(val => val && val > 0).length;
+
   const filtered = students.filter(s => {
     const q = searchTerm.trim().toLowerCase();
     const name = `${s.firstName || ''} ${s.lastName || ''}`.toLowerCase();
@@ -114,6 +188,40 @@ export default function GraduatedOutstanding() {
             {onlyOutstanding ? 'Show All' : 'Only Outstanding'}
           </Button>
         </div>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Graduated Students</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{totalGraduated}</div>
+            <p className="text-xs text-muted-foreground">With outstanding balances</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Outstanding</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-red-600">{formatCurrency(totalOutstanding, getDefaultCurrency())}</div>
+            <p className="text-xs text-muted-foreground">Across all graduated students</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Students With Outstanding</CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-amber-600">{studentsWithOutstanding}</div>
+            <p className="text-xs text-muted-foreground">Out of {totalGraduated} graduated students</p>
+          </CardContent>
+        </Card>
       </div>
 
       <Card>
@@ -168,7 +276,7 @@ export default function GraduatedOutstanding() {
                           <Eye className="h-4 w-4 mr-1" />
                           View Details
                         </Button>
-                        <Button onClick={() => { navigate('/finance/record', { state: { prefillStudentId: s.id } }); }}>
+                        <Button onClick={() => openPaymentDialog(s)}>
                           Record Payment
                         </Button>
                         <Button 
@@ -224,6 +332,7 @@ export default function GraduatedOutstanding() {
                     <div className="text-2xl font-bold">
                       {formatCurrency(studentDetails.summary?.totalExpectedAllTerms || 0, getDefaultCurrency())}
                     </div>
+                    <p className="text-xs text-muted-foreground mt-1">Since enrollment</p>
                   </CardContent>
                 </Card>
                 <Card>
@@ -234,6 +343,7 @@ export default function GraduatedOutstanding() {
                     <div className="text-2xl font-bold text-green-600">
                       {formatCurrency(studentDetails.summary?.totalPaidAllTerms || 0, getDefaultCurrency())}
                     </div>
+                    <p className="text-xs text-muted-foreground mt-1">All payments received</p>
                   </CardContent>
                 </Card>
                 <Card>
@@ -244,6 +354,7 @@ export default function GraduatedOutstanding() {
                     <div className="text-2xl font-bold text-red-600">
                       {formatCurrency(studentDetails.summary?.totalOutstandingAllTerms || 0, getDefaultCurrency())}
                     </div>
+                    <p className="text-xs text-muted-foreground mt-1">Total balance due</p>
                   </CardContent>
                 </Card>
               </div>
@@ -251,6 +362,7 @@ export default function GraduatedOutstanding() {
               {/* Term Breakdown */}
               <div>
                 <h3 className="text-lg font-semibold mb-3">Term-by-Term Breakdown</h3>
+                <p className="text-sm text-muted-foreground mb-3">Showing all terms from enrollment {studentDetails.student?.firstName}'s first enrolled term onwards.</p>
                 <div className="border rounded-lg overflow-hidden">
                   <Table>
                     <TableHeader>
@@ -306,7 +418,7 @@ export default function GraduatedOutstanding() {
                 </Button>
                 <Button onClick={() => {
                   closeDetailsDialog();
-                  navigate('/finance/record', { state: { prefillStudentId: selectedStudent.id } });
+                  openPaymentDialog(selectedStudent);
                 }}>
                   Record Payment
                 </Button>
@@ -317,6 +429,76 @@ export default function GraduatedOutstanding() {
               Failed to load student details. Please try again.
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Payment Recording Dialog */}
+      <Dialog open={paymentDialogOpen} onOpenChange={(open) => { if (!open) closePaymentDialog(); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Record Payment for {paymentStudent?.firstName} {paymentStudent?.lastName}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="amount">Amount *</Label>
+              <Input
+                id="amount"
+                type="number"
+                placeholder="Enter amount"
+                value={paymentAmount}
+                onChange={(e) => setPaymentAmount(e.target.value)}
+                disabled={processingPayment}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="method">Payment Method *</Label>
+              <select
+                id="method"
+                value={paymentMethod}
+                onChange={(e) => setPaymentMethod(e.target.value)}
+                className="w-full border rounded-md px-3 py-2"
+                disabled={processingPayment}
+              >
+                <option value="cash">Cash</option>
+                <option value="bank_transfer">Bank Transfer</option>
+                <option value="cheque">Cheque</option>
+                <option value="mobile_money">Mobile Money</option>
+              </select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="receipt">Receipt Number</Label>
+              <Input
+                id="receipt"
+                placeholder="Optional"
+                value={receiptNumber}
+                onChange={(e) => setReceiptNumber(e.target.value)}
+                disabled={processingPayment}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="notes">Notes</Label>
+              <Input
+                id="notes"
+                placeholder="Payment notes"
+                value={paymentNotes}
+                onChange={(e) => setPaymentNotes(e.target.value)}
+                disabled={processingPayment}
+              />
+            </div>
+            <div className="bg-yellow-50 border border-yellow-200 rounded-md p-3">
+              <p className="text-sm text-yellow-800">
+                <strong>Note:</strong> This payment will only be applied to historical outstanding balances. Graduated students are not charged current term fees.
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={closePaymentDialog} disabled={processingPayment}>
+              Cancel
+            </Button>
+            <Button onClick={handleRecordPayment} disabled={processingPayment}>
+              {processingPayment ? 'Processing...' : 'Record Payment'}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
