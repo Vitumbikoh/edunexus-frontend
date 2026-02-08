@@ -10,7 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Search, Eye, Pencil, Upload } from 'lucide-react';
+import { Search, Eye, Pencil, Upload, UserX, UserPlus } from 'lucide-react';
 import { useAuth } from "@/contexts/AuthContext";
 import { Link, useNavigate } from 'react-router-dom';
 import { useToast } from "@/components/ui/use-toast";
@@ -46,6 +46,7 @@ interface Student {
       email: string;
     };
   };
+  isActive?: boolean;
 }
 
 interface PaginatedData {
@@ -89,6 +90,7 @@ export default function Students() {
   // Permission checks
   const canAddStudent = user?.role === "admin" || user?.role === "teacher";
   const canEdit = user?.role === "admin" || user?.role === "teacher";
+  const canManageStudents = user?.role === "admin"; // Admin-only actions: activate/deactivate
   const canView = user?.role !== "finance"; // All except finance
   const canViewStats = user?.role === "admin";
 
@@ -472,9 +474,12 @@ export default function Students() {
                 <TableBody>
                   {paginatedData.students.length > 0 ? (
                     paginatedData.students.map((student) => (
-                      <TableRow key={student.id}>
+                      <TableRow key={student.id} className={student.isActive === false ? 'opacity-60' : ''}>
                         <TableCell className="font-medium">
                           {student.firstName} {student.lastName}
+                          {student.isActive === false && (
+                            <span className="ml-2 text-xs text-red-600 font-medium">(Inactive)</span>
+                          )}
                         </TableCell>
                         <TableCell>
                           {student.class?.name || '-'}
@@ -495,13 +500,68 @@ export default function Students() {
                               View
                             </Link>
                           </Button>
+
                           {canEdit && (
-                            <Button variant="ghost" size="sm" asChild>
-                              <Link to={`/students/${student.id}/edit`}>
-                                <Pencil className="h-4 w-4 mr-1" />
-                                Edit
-                              </Link>
-                            </Button>
+                            <>
+                              <Button variant="ghost" size="sm" asChild>
+                                <Link to={`/students/${student.id}/edit`}>
+                                  <Pencil className="h-4 w-4 mr-1" />
+                                  Edit
+                                </Link>
+                              </Button>
+
+                              {/* Activate / Deactivate - admin only */}
+                              {canManageStudents && (
+                                student.isActive === false ? (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={async () => {
+                                      if (!token) return;
+                                      if (!window.confirm(`Activate student ${student.firstName} ${student.lastName}?`)) return;
+                                      try {
+                                        const resp = await fetch(`${API_CONFIG.BASE_URL}/student/students/${student.id}/activate`, {
+                                          method: 'POST',
+                                          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+                                        });
+                                        if (!resp.ok) throw new Error('Failed to activate student');
+                                        toast({ title: 'Student activated', description: `${student.firstName} ${student.lastName} is now active.` });
+                                        fetchStudents(currentPage, itemsPerPage, searchPeriod);
+                                      } catch (e: any) {
+                                        toast({ title: 'Activation failed', description: e?.message || 'Could not activate student', variant: 'destructive' });
+                                      }
+                                    }}
+                                  >
+                                    <UserPlus className="h-4 w-4 mr-1 text-green-600" />
+                                    Activate
+                                  </Button>
+                                ) : (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={async () => {
+                                      if (!token) return;
+                                      if (!window.confirm(`Deactivate student ${student.firstName} ${student.lastName}?`)) return;
+                                      try {
+                                        const resp = await fetch(`${API_CONFIG.BASE_URL}/student/students/${student.id}/deactivate`, {
+                                          method: 'POST',
+                                          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+                                          body: JSON.stringify({ reason: 'manual' }),
+                                        });
+                                        if (!resp.ok) throw new Error('Failed to deactivate student');
+                                        toast({ title: 'Student deactivated', description: `${student.firstName} ${student.lastName} has been deactivated.` });
+                                        fetchStudents(currentPage, itemsPerPage, searchPeriod);
+                                      } catch (e: any) {
+                                        toast({ title: 'Deactivation failed', description: e?.message || 'Could not deactivate student', variant: 'destructive' });
+                                      }
+                                    }}
+                                  >
+                                    <UserX className="h-4 w-4 mr-1 text-red-600" />
+                                    Deactivate
+                                  </Button>
+                                )
+                              )}
+                            </>
                           )}
                         </TableCell>
                       </TableRow>
