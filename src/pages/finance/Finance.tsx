@@ -138,6 +138,7 @@ export default function Finance() {
   const [consolidatedSummary, setConsolidatedSummary] = useState<ConsolidatedSummaryResponse | null>(null);
   const [fetchingSummary, setFetchingSummary] = useState(false);
   const [expectedFeesAmount, setExpectedFeesAmount] = useState<number>(0); // fallback / legacy
+  const [currentTermOverpayments, setCurrentTermOverpayments] = useState<number>(0); // overpayments from backend
   const [statusSearch, setStatusSearch] = useState("");
   const [statusInput, setStatusInput] = useState("");
   const [activeTab, setActiveTab] = useState<'statuses' | 'transactions'>('statuses');
@@ -257,6 +258,26 @@ export default function Finance() {
     };
     loadCalendars();
   }, [token]);
+
+  // Fetch current term overpayments
+  useEffect(() => {
+    const fetchOverpayments = async () => {
+      if (!token) return;
+      try {
+        const res = await fetch(`${API_CONFIG.BASE_URL}/finance/total-finances`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setCurrentTermOverpayments(Number(data.currentTermOverpayments || 0));
+        }
+      } catch (error) {
+        console.error('Failed to fetch overpayments:', error);
+        setCurrentTermOverpayments(0);
+      }
+    };
+    fetchOverpayments();
+  }, [token, termId]);
 
   // Fetch summary (new endpoint) - prevent race conditions
   useEffect(() => {
@@ -784,7 +805,7 @@ export default function Finance() {
                 <TrendingUp className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{formatCurrency(overpayments, getDefaultCurrency())}</div>
+                <div className="text-2xl font-bold">{formatCurrency(currentTermOverpayments, getDefaultCurrency())}</div>
                 <p className="text-xs text-muted-foreground">
                   Excess payments for auditing
                 </p>
