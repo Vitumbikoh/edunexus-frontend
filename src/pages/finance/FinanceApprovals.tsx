@@ -2,7 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { CheckCircle, XCircle, Clock, AlertTriangle, Eye, Loader2, DollarSign, Filter, BarChart3 } from 'lucide-react';
+import payrollService, { SalaryRun } from '@/services/payrollService';
+import ApprovalDialog from '@/components/payroll/ApprovalDialog';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
 import { API_CONFIG } from '@/config/api';
@@ -46,6 +49,48 @@ export default function FinanceApprovals() {
   const [searchInput, setSearchInput] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [priorityFilter, setPriorityFilter] = useState('all');
+
+  // Payroll approvals state
+  const [payrollRuns, setPayrollRuns] = useState<SalaryRun[]>([]);
+  const [payrollLoading, setPayrollLoading] = useState(false);
+  const [selectedPayrollRun, setSelectedPayrollRun] = useState<SalaryRun | null>(null);
+  const [showPayrollApprovalDialog, setShowPayrollApprovalDialog] = useState(false);
+
+  useEffect(() => {
+    // Load submitted salary runs for approval review
+    const loadPayrollRuns = async () => {
+      try {
+        setPayrollLoading(true);
+        const res = await payrollService.listRuns(1, 100, 'SUBMITTED');
+        setPayrollRuns(res.data || []);
+      } catch (err) {
+        console.error('Failed to load payroll runs for approval:', err);
+      } finally {
+        setPayrollLoading(false);
+      }
+    };
+
+    loadPayrollRuns();
+  }, []);
+
+  const handlePayrollApprovalAction = async (action: 'approve' | 'reject', runId: string, comments?: string) => {
+    try {
+      if (action === 'approve') {
+        await payrollService.approve(runId, comments);
+        toast({ title: 'Payroll approved', description: 'Salary run approved successfully' });
+      } else {
+        await payrollService.reject(runId, comments || 'Rejected from Finance Approvals');
+        toast({ title: 'Payroll rejected', description: 'Salary run was rejected' });
+      }
+      // Refresh runs
+      const res = await payrollService.listRuns(1, 100, 'SUBMITTED');
+      setPayrollRuns(res.data || []);
+      setShowPayrollApprovalDialog(false);
+    } catch (err) {
+      console.error('Payroll approval action failed:', err);
+      toast({ title: 'Action Failed', description: 'Failed to perform payroll approval action', variant: 'destructive' });
+    }
+  };
 
   // Fetch expenses data
   useEffect(() => {
@@ -186,7 +231,7 @@ export default function FinanceApprovals() {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold">Finance Approvals</h1>
-          <p className="text-muted-foreground">Review and approve expense requests</p>
+          <p className="text-muted-foreground">Review and approve expense and payroll requests</p>
         </div>
         <Button 
           variant="outline" 
@@ -198,21 +243,28 @@ export default function FinanceApprovals() {
         </Button>
       </div>
 
-      {/* Filters and Search */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center">
-            <Filter className="h-5 w-5 mr-2" />
-            Filter Expenses
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <SearchBar
-              value={searchInput}
-              onChange={setSearchInput}
-              onDebouncedChange={setSearchTerm}
-              delay={200}
+      <Tabs defaultValue="expenses" className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="expenses">Expense Approvals</TabsTrigger>
+          <TabsTrigger value="payroll">Payroll Approvals</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="expenses" className="space-y-6">
+          {/* Filters and Search */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Filter className="h-5 w-5 mr-2" />
+                Filter Expenses
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <SearchBar
+                  value={searchInput}
+                  onChange={setSearchInput}
+                  onDebouncedChange={setSearchTerm}
+                  delay={200}
               placeholder="Search expenses..."
             />
             
@@ -426,6 +478,67 @@ export default function FinanceApprovals() {
           )}
         </CardContent>
       </Card>
+        </TabsContent>
+
+        <TabsContent value="payroll" className="space-y-6">
+          {/* Payroll Approvals */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Clock className="h-5 w-5 mr-2" />
+                Payroll Approvals
+              </CardTitle>
+              <CardDescription>Review and approve submitted salary runs</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {payrollLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin mr-2" />
+                  <span>Loading payroll runs...</span>
+                </div>
+              ) : payrollRuns.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <CheckCircle className="h-12 w-12 mx-auto mb-4 text-green-500" />
+                  <p>No submitted salary runs awaiting approval.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {payrollRuns.map((run) => (
+                    <Card key={run.id} className="border-l-4 border-l-yellow-500">
+                      <CardContent className="p-6">
+                        <div className="flex justify-between items-start mb-4">
+                          <div>
+                            <h3 className="font-semibold text-lg">{run.period || 'Period'}</h3>
+                            <p className="text-sm text-muted-foreground">Staff: {run.staffCount || 0}</p>
+                            <p className="text-sm text-muted-foreground">Status: {run.status}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-2xl font-bold">${(run.totalNet || 0).toLocaleString()}</p>
+                          </div>
+                        </div>
+
+                        <div className="flex justify-end space-x-2">
+                          <Button variant="outline" size="sm" onClick={() => { setSelectedPayrollRun(run); setShowPayrollApprovalDialog(true); }}>
+                            <Eye className="h-4 w-4 mr-2" />
+                            Review
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+      <ApprovalDialog
+        run={selectedPayrollRun || ({} as any)}
+        open={showPayrollApprovalDialog}
+        onOpenChange={setShowPayrollApprovalDialog}
+        onApprovalAction={(action, comments) => selectedPayrollRun && handlePayrollApprovalAction(action, selectedPayrollRun.id, comments)}
+      />
     </div>
   );
 }

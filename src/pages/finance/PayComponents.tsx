@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { SearchBar } from '@/components/ui/search-bar';
 import { Label } from '@/components/ui/label';
@@ -172,31 +173,41 @@ export default function PayComponents() {
     <div className="p-6 space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Pay Components</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Pay Components & Staff Assignments</h1>
           <p className="text-muted-foreground">
-            Manage salary components including basic pay, allowances, and deductions
+            Manage salary components and staff compensation assignments
           </p>
         </div>
-        {isFinanceOfficer && (
-          <Button onClick={() => setShowCreateDialog(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            New Component
-          </Button>
-        )}
       </div>
 
-      {/* Filters */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Filters</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex gap-4">
-            <SearchBar
-              value={searchInput}
-              onChange={setSearchInput}
-              onDebouncedChange={setSearchTerm}
-              delay={200}
+      <Tabs defaultValue="components" className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="components">Pay Components</TabsTrigger>
+          <TabsTrigger value="assignments">Staff Assignments</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="components" className="space-y-6">
+          <div className="flex justify-end">
+            {isFinanceOfficer && (
+              <Button onClick={() => setShowCreateDialog(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                New Component
+              </Button>
+            )}
+          </div>
+
+          {/* Filters */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Filters</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex gap-4">
+                <SearchBar
+                  value={searchInput}
+                  onChange={setSearchInput}
+                  onDebouncedChange={setSearchTerm}
+                  delay={200}
               placeholder="Search components..."
               inputClassName="max-w-sm"
             />
@@ -476,13 +487,12 @@ export default function PayComponents() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+        </TabsContent>
 
-      {/* Staff assignments embedded for convenience */}
-      {isFinanceOfficer && (
-        <div className="mt-8">
+        <TabsContent value="assignments" className="space-y-6">
           <StaffPayAssignments />
-        </div>
-      )}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
