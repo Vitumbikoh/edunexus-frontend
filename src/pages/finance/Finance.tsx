@@ -750,7 +750,7 @@ export default function Finance() {
                 <DollarSign className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{formatCurrency(effectivePaid, getDefaultCurrency())}</div>
+                <div className="text-xl font-bold">{formatCurrency(effectivePaid, getDefaultCurrency())}</div>
                 <p className="text-xs text-muted-foreground">
                   {consolidatedSummary?.labels?.currentTermFigures || 'Current Term Figures'}
                 </p>
@@ -766,7 +766,7 @@ export default function Finance() {
                 <Receipt className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{formatCurrency(effectiveExpected, getDefaultCurrency())}</div>
+                <div className="text-xl font-bold">{formatCurrency(effectiveExpected, getDefaultCurrency())}</div>
                 <div className="mt-2 space-y-1">
                   <Progress value={paidPercentage} className="h-2" />
                   <p className="text-xs text-muted-foreground">{paidPercentage}% of total fees</p>
@@ -781,7 +781,7 @@ export default function Finance() {
                 <CreditCard className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{formatCurrency(pendingRemaining, getDefaultCurrency())}</div>
+                <div className="text-xl font-bold">{formatCurrency(pendingRemaining, getDefaultCurrency())}</div>
                 <p className="text-xs text-muted-foreground">Remaining balance</p>
               </CardContent>
             </Card>
@@ -792,7 +792,7 @@ export default function Finance() {
                 <ArrowUpRight className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{formatCurrency(overdueAmount, getDefaultCurrency())}</div>
+                <div className="text-xl font-bold">{formatCurrency(overdueAmount, getDefaultCurrency())}</div>
                 <p className="text-xs text-muted-foreground">
                   {consolidatedSummary?.labels?.outstandingFromPreviousTerms || 'Outstanding From Previous Terms'}
                 </p>
@@ -805,7 +805,7 @@ export default function Finance() {
                 <TrendingUp className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{formatCurrency(currentTermOverpayments, getDefaultCurrency())}</div>
+                <div className="text-xl font-bold">{formatCurrency(currentTermOverpayments, getDefaultCurrency())}</div>
                 <p className="text-xs text-muted-foreground">
                   Excess payments for auditing
                 </p>
