@@ -13,6 +13,20 @@ export default defineConfig(({ mode }) => ({
         target: 'http://localhost:3000',
         changeOrigin: true,
         secure: false,
+        // silence proxy connection errors (backend not running) to avoid noisy logs
+        configure: (proxy: any) => {
+          proxy.on('error', (_err: any, _req: any, res: any) => {
+            try {
+              if (res && !res.headersSent) {
+                // end the response silently
+                res.writeHead && res.writeHead(502);
+              }
+              res && res.end && res.end();
+            } catch (_) {
+              // ignore
+            }
+          });
+        },
       },
     },
   },

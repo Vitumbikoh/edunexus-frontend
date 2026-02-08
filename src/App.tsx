@@ -24,6 +24,7 @@ import Schedule from "./pages/Schedule";
 import EnhancedScheduleManagement from "./pages/schedule/EnhancedScheduleManagement";
 import Finance from "./pages/finance/Finance";
 import PaymentForm from "./pages/finance/PaymentForm";
+import GraduatedOutstanding from "./pages/finance/GraduatedOutstanding";
 import Settings from "./pages/settings/Settings";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
@@ -698,6 +699,19 @@ const AppRoutes = () => {
             <Layout>
               <PaymentForm />
             </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/finance/graduated-outstanding"
+        element={
+          <ProtectedRoute>
+            <FinanceRoute>
+              <Layout>
+                <GraduatedOutstanding />
+              </Layout>
+            </FinanceRoute>
           </ProtectedRoute>
         }
       />
