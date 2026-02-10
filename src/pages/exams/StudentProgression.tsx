@@ -28,6 +28,7 @@ import {
 import { useToast } from "@/components/ui/use-toast";
 import { API_CONFIG } from '@/config/api';
 import { Skeleton } from "@/components/ui/skeleton";
+import { useQueryClient } from '@tanstack/react-query';
 
 interface ProgressionStatistics {
   total: number;
@@ -91,6 +92,7 @@ export default function StudentProgression() {
   const { user, token } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   
   const [loading, setLoading] = useState(false);
   const [progressionData, setProgressionData] = useState<ProgressionApiResponse | null>(null);
@@ -266,11 +268,30 @@ export default function StudentProgression() {
 
       const result = await response.json();
       setExecutionResult(result);
-      
+
+      // If backend reports a non-success result (e.g., already executed), show an informative notification and ensure notifications center updates
+      if (!result.success) {
+        toast({
+          variant: "destructive",
+          title: "Progression Already Completed",
+          description: `${result.message || 'Student progression was not executed'}${result.progressionPeriod ? ` — ${result.progressionPeriod}` : ''}${result.term ? ` (${result.term})` : ''}`,
+        });
+        // Refresh notifications (server will have created a notification)
+        queryClient.invalidateQueries({ queryKey: ['notifications'] });
+        queryClient.invalidateQueries({ queryKey: ['notification-stats'] });
+        // Refresh preview
+        await fetchProgressionPreview();
+        return;
+      }
+
       toast({
         title: "Success",
         description: `Student progression completed successfully for ${result.progressionPeriod} (${result.term}). ${result.promoted || 0} students promoted, ${result.graduated || 0} students graduated.`,
       });
+
+      // Refresh notifications / counts so the bell icon reflects the new notification
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      queryClient.invalidateQueries({ queryKey: ['notification-stats'] });
 
       // Refresh preview after execution
       await fetchProgressionPreview();

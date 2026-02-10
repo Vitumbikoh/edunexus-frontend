@@ -269,10 +269,23 @@ export default function FinanceReports() {
     return groupedTrends.map(g => ({ month: g.bucket, revenue: includeRevenue ? g.revenue : 0, expenses: includeExpenses ? g.expenses : 0, profit: (includeRevenue ? g.revenue : 0) - (includeExpenses ? g.expenses : 0) }));
   }, [groupedTrends, includeRevenue, includeExpenses]);
 
-  const totalRevenue = includeRevenue ? (data?.totals.totalFees || 0) : 0;
-  const totalExpenses = includeExpenses ? (data?.totals.totalApprovedExpenses || 0) : 0;
+  // Calculate totals from term-based data (current + previous terms)
+  const totalRevenue = termBasedData ? termBasedData.cumulative.totalRevenue : (includeRevenue ? (data?.totals.totalFees || 0) : 0);
+  const totalExpenses = termBasedData ? termBasedData.cumulative.totalExpenses : (includeExpenses ? (data?.totals.totalApprovedExpenses || 0) : 0);
   const totalProfit = totalRevenue - totalExpenses;
   const profitMargin = totalRevenue > 0 ? ((totalProfit / totalRevenue) * 100).toFixed(1) : '0.0';
+  
+  // Current term only metrics
+  const currentTermRevenue = termBasedData?.currentTerm?.revenue || 0;
+  const currentTermExpenses = termBasedData?.currentTerm?.expenses || 0;
+  const currentTermProfit = currentTermRevenue - currentTermExpenses;
+  const currentTermMargin = currentTermRevenue > 0 ? ((currentTermProfit / currentTermRevenue) * 100).toFixed(1) : '0.0';
+  
+  // Previous terms only metrics
+  const previousTermsRevenue = termBasedData ? termBasedData.previousTerms.reduce((sum, t) => sum + t.revenue, 0) : 0;
+  const previousTermsExpenses = termBasedData ? termBasedData.previousTerms.reduce((sum, t) => sum + t.expenses, 0) : 0;
+  const previousTermsProfit = previousTermsRevenue - previousTermsExpenses;
+  const previousTermsMargin = previousTermsRevenue > 0 ? ((previousTermsProfit / previousTermsRevenue) * 100).toFixed(1) : '0.0';
 
   const categoryData = useMemo(() => {
     const palette = ['#22c55e', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#84cc16'];
@@ -480,11 +493,8 @@ export default function FinanceReports() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">{currencySymbol}{totalRevenue.toLocaleString()}</div>
-            <div className="flex items-center text-xs text-green-600">
-              <TrendingUp className="h-3 w-3 mr-1" />
-              +12.5% from last period
-            </div>
+            <div className="text-2xl font-bold text-green-600">{currencySymbol}{currentTermRevenue.toLocaleString()}</div>
+            <div className="text-xs text-muted-foreground">Current term only</div>
           </CardContent>
         </Card>
         
@@ -496,11 +506,8 @@ export default function FinanceReports() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">{currencySymbol}{totalExpenses.toLocaleString()}</div>
-            <div className="flex items-center text-xs text-red-600">
-              <TrendingUp className="h-3 w-3 mr-1" />
-              +8.2% from last period
-            </div>
+            <div className="text-2xl font-bold text-red-600">{currencySymbol}{currentTermExpenses.toLocaleString()}</div>
+            <div className="text-xs text-muted-foreground">Current term only</div>
           </CardContent>
         </Card>
         
@@ -509,11 +516,8 @@ export default function FinanceReports() {
             <CardTitle className="text-sm font-medium">Net Profit</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-600">{currencySymbol}{totalProfit.toLocaleString()}</div>
-            <div className="flex items-center text-xs text-green-600">
-              <TrendingUp className="h-3 w-3 mr-1" />
-              +15.3% from last period
-            </div>
+            <div className="text-2xl font-bold text-blue-600">{currencySymbol}{(currentTermProfit + (termBasedData?.cumulative.broughtForward || 0)).toLocaleString()}</div>
+            <div className="text-xs text-muted-foreground">Current term + brought forward</div>
           </CardContent>
         </Card>
         
@@ -522,11 +526,8 @@ export default function FinanceReports() {
             <CardTitle className="text-sm font-medium">Profit Margin</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{profitMargin}%</div>
-            <div className="flex items-center text-xs text-green-600">
-              <TrendingUp className="h-3 w-3 mr-1" />
-              +2.1% from last period
-            </div>
+            <div className="text-2xl font-bold">{currentTermMargin}%</div>
+            <div className="text-xs text-muted-foreground">Current term only</div>
           </CardContent>
         </Card>
       </div>
@@ -598,49 +599,56 @@ export default function FinanceReports() {
                 </div>
               )}
 
-              {/* Cumulative Performance */}
-              <div>
-                <h4 className="text-lg font-semibold mb-3">Cumulative Performance</h4>
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                  <Card className="border-purple-200 bg-purple-50">
-                    <CardContent className="p-4">
-                      <div className="text-sm text-muted-foreground">Brought Forward</div>
-                      <div className={`text-lg font-bold ${termBasedData.cumulative.broughtForward >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        {currencySymbol}{termBasedData.cumulative.broughtForward.toLocaleString()}
-                      </div>
-                      <div className="text-xs text-muted-foreground">From previous terms</div>
-                    </CardContent>
-                  </Card>
-                  <Card className="border-green-200">
-                    <CardContent className="p-4">
-                      <div className="text-sm text-muted-foreground">Total Revenue</div>
-                      <div className="text-lg font-bold text-green-600">{currencySymbol}{termBasedData.cumulative.totalRevenue.toLocaleString()}</div>
-                    </CardContent>
-                  </Card>
-                  <Card className="border-red-200">
-                    <CardContent className="p-4">
-                      <div className="text-sm text-muted-foreground">Total Expenses</div>
-                      <div className="text-lg font-bold text-red-600">{currencySymbol}{termBasedData.cumulative.totalExpenses.toLocaleString()}</div>
-                    </CardContent>
-                  </Card>
-                  <Card className="border-blue-200 bg-blue-50">
-                    <CardContent className="p-4">
-                      <div className="text-sm text-muted-foreground">Cumulative Profit</div>
-                      <div className={`text-lg font-bold ${termBasedData.cumulative.totalProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        {currencySymbol}{termBasedData.cumulative.totalProfit.toLocaleString()}
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        {termBasedData.cumulative.totalProfitMargin.toFixed(1)}% margin
-                      </div>
-                    </CardContent>
-                  </Card>
+              {/* Previous Terms Summary */}
+              {termBasedData.previousTerms.length > 0 && (
+                <div>
+                  <h4 className="text-lg font-semibold mb-3">Previous Terms Summary</h4>
+                  <CardDescription className="mb-3">
+                    Cumulative financial performance from all previous terms (excluding current term)
+                  </CardDescription>
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <Card className="border-purple-200 bg-purple-50 dark:bg-card">
+                      <CardContent className="p-4">
+                        <div className="text-sm text-muted-foreground">Brought Forward (Profit)</div>
+                        <div className={`text-lg font-bold ${previousTermsProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          {currencySymbol}{previousTermsProfit.toLocaleString()}
+                        </div>
+                        <div className="text-xs text-muted-foreground">From previous terms</div>
+                      </CardContent>
+                    </Card>
+                    <Card className="border-green-200">
+                      <CardContent className="p-4">
+                        <div className="text-sm text-muted-foreground">Total Revenue</div>
+                        <div className="text-lg font-bold text-green-600">{currencySymbol}{previousTermsRevenue.toLocaleString()}</div>
+                        <div className="text-xs text-muted-foreground">Previous terms only</div>
+                      </CardContent>
+                    </Card>
+                    <Card className="border-red-200">
+                      <CardContent className="p-4">
+                        <div className="text-sm text-muted-foreground">Total Expenses</div>
+                        <div className="text-lg font-bold text-red-600">{currencySymbol}{previousTermsExpenses.toLocaleString()}</div>
+                        <div className="text-xs text-muted-foreground">Previous terms only</div>
+                      </CardContent>
+                    </Card>
+                    <Card className="border-blue-200 bg-blue-50 dark:bg-card">
+                      <CardContent className="p-4">
+                        <div className="text-sm text-muted-foreground">Cumulative Profit</div>
+                        <div className={`text-lg font-bold ${previousTermsProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          {currencySymbol}{previousTermsProfit.toLocaleString()}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {previousTermsMargin}% margin
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Carry-Forward Balance */}
               <div>
                 <h4 className="text-lg font-semibold mb-3">Brought Forward</h4>
-                <Card className="border-orange-200 bg-orange-50">
+                <Card className="border-orange-200 bg-orange-50 dark:bg-card">
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between">
                       <div>
@@ -663,10 +671,10 @@ export default function FinanceReports() {
                 </Card>
               </div>
 
-              {/* Previous Terms Summary */}
+              {/* Historical Terms Details */}
               {termBasedData.previousTerms.length > 0 && (
                 <div>
-                  <h4 className="text-lg font-semibold mb-3">Previous Terms Summary</h4>
+                  <h4 className="text-lg font-semibold mb-3">Historical Terms Details</h4>
                   <div className="space-y-2">
                     {termBasedData.previousTerms.map((term) => (
                       <Card key={term.termId} className="border-gray-200">
