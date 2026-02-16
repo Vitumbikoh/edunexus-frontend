@@ -597,22 +597,20 @@ export function StudentFinancialDetailsModal({
                                       {transaction.receiptNumber || '-'}
                                     </TableCell>
                                     <TableCell>
-                                      {transaction.forTermNumber ? `Term ${transaction.forTermNumber} - ${transaction.forAcademicYear}` : (transaction.isCreditEntry ? 'Credit' : '-')}
+                                      {transaction.forTermNumber
+                                        ? `Term ${transaction.forTermNumber} - ${transaction.forAcademicYear || ''}`
+                                        : ((transaction as any).isCreditEntry || String(transaction.paymentType || '').toLowerCase().includes('credit'))
+                                          ? 'Credit'
+                                          : ((transaction as any).forTerm || (transaction as any).for_term || '-')}
                                     </TableCell>
                                     <TableCell>
-                                      Term {transaction.termNumber} - {transaction.academicYear}
+                                      {(transaction.termNumber && transaction.academicYear)
+                                        ? `Term ${transaction.termNumber} - ${transaction.academicYear}`
+                                        : (transaction.term || transaction.termLabel || '-')}
                                     </TableCell>
-                                    <TableCell>{transaction.processedBy}</TableCell>
+                                    <TableCell>{(transaction.processedBy && String(transaction.processedBy).trim()) || (transaction as any).processedByName || (transaction as any).processedByAdmin || '-'}</TableCell>
                                     <TableCell>
-                                      {transaction.notes ? (
-                                        <div className="max-w-xs truncate" title={transaction.notes}>
-                                          <span className="text-xs text-muted-foreground">
-                                            {transaction.notes}
-                                          </span>
-                                        </div>
-                                      ) : (
-                                        '-'
-                                      )}
+                                      {transaction.notes || (transaction as any).notesText || (transaction as any).description || '-'}
                                     </TableCell>
                                   </TableRow>
                                 );

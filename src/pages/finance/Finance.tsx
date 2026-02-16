@@ -55,6 +55,12 @@ interface Transaction {
   forTermId?: string | null;
   forTermNumber?: number | null;
   forAcademicYear?: string | null;
+  // Added defensive fields
+  processedBy?: string | null;
+  notes?: string | null;
+  termNumber?: number | null;
+  academicYear?: string | null;
+  isCreditEntry?: boolean;
 }
 
 interface FeeStatusItem {
@@ -539,10 +545,15 @@ export default function Finance() {
           paymentType: t.paymentType,
           paymentMethod: t.paymentMethod,
           receiptNumber: t.receiptNumber,
-          processedByName: t.processedByName,
+          processedByName: t.processedByName || t.processedBy || t.processed_by_name || t.processedByName || null,
           forTermId: t.forTermId || t.for_term_id || null,
           forTermNumber: t.forTermNumber || t.for_term_number || null,
           forAcademicYear: t.forAcademicYear || t.for_academic_year || null,
+          processedBy: t.processedBy || t.processedByName || t.processed_by || t.processed_by_name || null,
+          notes: t.notes || t.notesText || t.description || t.details || null,
+          termNumber: t.termNumber || t.term_number || t.term?.order || null,
+          academicYear: t.academicYear || t.academic_year || t.term?.academicYear || t.term?.academic_year || null,
+          isCreditEntry: Boolean(t.isCredit || (t.paymentType && String(t.paymentType).toLowerCase().includes('credit')) || t.isCreditEntry),
         }));
         setTransactions(mappedTransactions);
       } catch (error) {
@@ -944,6 +955,8 @@ export default function Finance() {
                           <TableHead className="text-right">Receipt</TableHead>
                           <TableHead>For Term</TableHead>
                           <TableHead>Term</TableHead>
+                          <TableHead>Processed By</TableHead>
+                          <TableHead>Details</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -986,9 +999,17 @@ export default function Finance() {
                             <TableCell>
                               {transaction.forTermNumber
                                 ? `Term ${transaction.forTermNumber} - ${transaction.forAcademicYear || ''}`
-                                : (transaction.paymentType && String(transaction.paymentType).toLowerCase().includes('credit') ? 'Credit' : '-')}
+                                : (transaction.isCreditEntry ? 'Credit' : ((transaction as any).forTerm || (transaction as any).for_term || '-'))}
                             </TableCell>
-                            <TableCell>{normalizeTermLabel(terms.find(t => t.id === termId)?.name, 1)}</TableCell>
+                            <TableCell>
+                              {(transaction.termNumber && transaction.academicYear)
+                                ? `Term ${transaction.termNumber} - ${transaction.academicYear}`
+                                : (transaction as any).termLabel || (transaction as any).term || normalizeTermLabel(terms.find(t => t.id === termId)?.name, 1)}
+                            </TableCell>
+                            <TableCell>{transaction.processedBy || transaction.processedByName || '-'}</TableCell>
+                            <TableCell>
+                              {transaction.notes || '-'}
+                            </TableCell>
                           </TableRow>
                         ))}
                       </TableBody>

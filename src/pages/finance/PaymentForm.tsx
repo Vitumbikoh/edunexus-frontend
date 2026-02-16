@@ -760,6 +760,7 @@ export default function PaymentForm() {
             <CardDescription>
               Enter the details for the new payment.
             </CardDescription>
+            {/* Academic Calendar and Term are shown in the selects below; keep them visually faint there */}
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="space-y-2">
@@ -849,42 +850,16 @@ export default function PaymentForm() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <Label htmlFor="academicCalendar">Academic Calendar</Label>
-                <Select
-                  value={selectedAcademicCalendarId || ''}
-                  onValueChange={(v) => setSelectedAcademicCalendarId(v || null)}
-                >
-                  <SelectTrigger id="academicCalendar">
-                    <SelectValue placeholder="Choose calendar" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {academicCalendars.length === 0 && (
-                      <SelectItem value="">No calendars</SelectItem>
-                    )}
-                    {academicCalendars.map((cal) => (
-                      <SelectItem key={cal.id} value={cal.id}>{cal.term || cal.name || cal.id}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Label>Academic Calendar</Label>
+                <div className="h-10 border rounded-md px-3 flex items-center opacity-60">
+                  {academicCalendars.find(c => c.id === selectedAcademicCalendarId)?.term || academicCalendars.find(c => c.id === selectedAcademicCalendarId)?.name || '—'}
+                </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="termSelect">Term</Label>
-                <Select
-                  value={selectedTermId || ''}
-                  onValueChange={(v) => setSelectedTermId(v || null)}
-                >
-                  <SelectTrigger id="termSelect">
-                    <SelectValue placeholder="Choose term" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {terms.length === 0 && (
-                      <SelectItem value="">No terms</SelectItem>
-                    )}
-                    {terms.map((t) => (
-                      <SelectItem key={t.id} value={t.id}>{t.name || t.term || t.id}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Label>Term</Label>
+                <div className="h-10 border rounded-md px-3 flex items-center opacity-60">
+                  {terms.find(t => t.id === selectedTermId)?.name || terms.find(t => t.id === selectedTermId)?.term || '—'}
+                </div>
               </div>
             </div>
 
@@ -946,17 +921,7 @@ export default function PaymentForm() {
               </div>
             )}
 
-            <div className="space-y-2">
-              <Label htmlFor="notes">Notes (Optional)</Label>
-              <Input 
-                id="notes" 
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="Any additional information about this payment" 
-              />
-            </div>
-
-            {/* Validation warning placed immediately below Notes (Optional) as requested */}
+            {/* Validation warning placed below the main inputs */}
             {validationWarning && (
               <div className="p-3 mt-2 text-sm text-yellow-700 bg-yellow-100 rounded-lg flex items-start gap-2">
                 <AlertTriangle className="h-5 w-5 flex-shrink-0 mt-0.5" />
