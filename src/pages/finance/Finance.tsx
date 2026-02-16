@@ -52,6 +52,9 @@ interface Transaction {
   paymentMethod: string;
   receiptNumber: string | null;
   processedByName: string;
+  forTermId?: string | null;
+  forTermNumber?: number | null;
+  forAcademicYear?: string | null;
 }
 
 interface FeeStatusItem {
@@ -99,6 +102,32 @@ interface ConsolidatedSummaryResponse {
   }>;
 }
 
+interface EnhancedSummaryResponse {
+  termId: string;
+  termName: string;
+  academicCalendar: string;
+  totalStudents: number;
+  expectedAmount: number;
+  paidAmount: number;
+  outstandingAmount: number;
+  overdueAmount: number;
+  paymentPercentage: number;
+  totalCarryForwardAmount: number;
+  termEndDate: string;
+}
+
+interface TermTotalsResponse {
+  totalCollected: number;
+  totalPaid: number;
+  pending: number;
+  overdue: number;
+  overdueFromPreviousTerms: number;
+  credits: number;
+  actualRevenue: number;
+  allocatedToPreviousTerms: number;
+  allocatedToFutureTerms: number;
+}
+
 export default function Finance() {
   const navigate = useNavigate();
   const { user, token } = useAuth();
@@ -139,6 +168,7 @@ export default function Finance() {
   const [fetchingSummary, setFetchingSummary] = useState(false);
   const [expectedFeesAmount, setExpectedFeesAmount] = useState<number>(0); // fallback / legacy
   const [currentTermOverpayments, setCurrentTermOverpayments] = useState<number>(0); // overpayments from backend
+  const [termTotals, setTermTotals] = useState<TermTotalsResponse | null>(null);
   const [statusSearch, setStatusSearch] = useState("");
   const [statusInput, setStatusInput] = useState("");
   const [activeTab, setActiveTab] = useState<'statuses' | 'transactions'>('statuses');
@@ -279,6 +309,38 @@ export default function Finance() {
     fetchOverpayments();
   }, [token, termId]);
 
+  // Fetch term aggregated totals (collected, allocations, pending, credits, overdue)
+  useEffect(() => {
+    const fetchTermTotals = async () => {
+      if (!token || !termId) return;
+      try {
+        const res = await fetch(`${API_CONFIG.BASE_URL}/finance/v2/term-totals?termId=${termId}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setTermTotals({
+            totalCollected: Number(data.totalCollected || 0),
+            totalPaid: Number(data.totalPaid || 0),
+            pending: Number(data.pending || 0),
+            overdue: Number(data.overdue || 0),
+            overdueFromPreviousTerms: Number(data.overdueFromPreviousTerms || 0),
+            credits: Number(data.credits || 0),
+            actualRevenue: Number(data.actualRevenue || 0),
+            allocatedToPreviousTerms: Number(data.allocatedToPreviousTerms || 0),
+            allocatedToFutureTerms: Number(data.allocatedToFutureTerms || 0),
+          });
+        } else {
+          setTermTotals(null);
+        }
+      } catch (e) {
+        console.error('Failed to fetch term totals', e);
+        setTermTotals(null);
+      }
+    };
+    fetchTermTotals();
+  }, [token, termId]);
+
   // Fetch summary (new endpoint) - prevent race conditions
   useEffect(() => {
     const fetchSummary = async () => {
@@ -298,31 +360,37 @@ export default function Finance() {
         });
         
         if (enhancedRes.ok) {
-          const enhancedData = await enhancedRes.json();
-          // Map enhanced response to expected format
+          const enhancedData: EnhancedSummaryResponse = await enhancedRes.json();
           const cs: ConsolidatedSummaryResponse = {
             success: true,
             filters: { termId, academicCalendarId },
             labels: {
-              currentTermFigures: enhancedData.termInfo?.name || 'Current Term Figures',
+              currentTermFigures: enhancedData.termName || 'Current Term Figures',
               outstandingFromPreviousTerms: 'Outstanding From Previous Terms'
             },
             summary: {
-              totalFeesPaid: enhancedData.totalPaid || 0,
-              expectedFees: enhancedData.totalExpected || 0,
-              pending: enhancedData.totalOutstanding || 0,
-              collected: enhancedData.totalPaid || 0,
-              paymentPercentage: enhancedData.paymentPercentage || 0
+              totalFeesPaid: Number(enhancedData.paidAmount || 0),
+              expectedFees: Number(enhancedData.expectedAmount || 0),
+              pending: Number(enhancedData.outstandingAmount || 0),
+              overdue: Number(enhancedData.overdueAmount || 0),
             },
-            statuses: enhancedData.students || []
+            statuses: []
           };
-          
+
           setConsolidatedSummary(cs);
-          setExpectedFeesAmount(Number(enhancedData.totalExpected || 0));
-          console.log('✅ Enhanced API summary loaded:', { 
-            expectedFees: enhancedData.totalExpected, 
-            totalPaid: enhancedData.totalPaid,
-            totalStudents: enhancedData.students?.length 
+          setSummaryData({
+            expectedFees: Number(enhancedData.expectedAmount || 0),
+            totalFeesPaid: Number(enhancedData.paidAmount || 0),
+            remainingFees: Number(enhancedData.outstandingAmount || 0),
+            overdueFees: Number(enhancedData.overdueAmount || 0),
+            termId: enhancedData.termId,
+            termEndDate: enhancedData.termEndDate,
+          });
+          setExpectedFeesAmount(Number(enhancedData.expectedAmount || 0));
+          console.log('Enhanced API summary loaded:', {
+            expectedFees: enhancedData.expectedAmount,
+            totalPaid: enhancedData.paidAmount,
+            totalStudents: enhancedData.totalStudents,
           });
         } else {
           console.warn('⚠️ Enhanced API failed, trying legacy:', enhancedRes.status);
@@ -472,6 +540,9 @@ export default function Finance() {
           paymentMethod: t.paymentMethod,
           receiptNumber: t.receiptNumber,
           processedByName: t.processedByName,
+          forTermId: t.forTermId || t.for_term_id || null,
+          forTermNumber: t.forTermNumber || t.for_term_number || null,
+          forAcademicYear: t.forAcademicYear || t.for_academic_year || null,
         }));
         setTransactions(mappedTransactions);
       } catch (error) {
@@ -516,18 +587,21 @@ export default function Finance() {
   const statusDerivedPaid = feeStatuses.reduce((sum, s) => sum + s.paidAmount, 0);
   const statusDerivedExpected = feeStatuses.reduce((sum, s) => sum + s.expectedAmount, 0);
 
-  const effectivePaid = feeStatuses.length ? statusDerivedPaid : summaryPaid;
+  const effectivePaid = Number(termTotals?.actualRevenue ?? (feeStatuses.length ? statusDerivedPaid : summaryPaid));
   const effectiveExpected = feeStatuses.length ? statusDerivedExpected : summaryExpected;
-  const pendingRemaining = feeStatuses.length
-    ? Math.max(statusDerivedExpected - statusDerivedPaid, 0)
-    : summaryRemaining;
+  
+  // ALWAYS show Pending as Expected - Actual Revenue (user-requested behavior)
+  const pendingRemaining = effectiveExpected - effectivePaid;
   const overdueFromStatuses = feeStatuses
     .filter(s => s.status === 'overdue')
     .reduce((sum, s) => sum + (s.outstandingAmount || 0), 0);
-  const overdueAmount = summaryOverdue || overdueFromStatuses;
-
-  // Calculate overpayments (excess payments beyond expected fees) for school auditing
-  const overpayments = Math.max(0, effectivePaid - effectiveExpected);
+  const overdueAmount = Number((termTotals?.overdueFromPreviousTerms ?? summaryOverdue) || overdueFromStatuses);
+  const totalCollected = Number(
+    termTotals?.totalCollected ?? transactions.reduce((sum, t) => sum + Number(t.amount || 0), 0)
+  );
+  const creditBalanceForTerm = Number(termTotals?.credits ?? currentTermOverpayments);
+  const allocatedToPreviousTerms = Number(termTotals?.allocatedToPreviousTerms || 0);
+  const allocatedToFutureTerms = Number(termTotals?.allocatedToFutureTerms || 0);
 
   const paidPercentage = effectiveExpected > 0
     ? Math.round((effectivePaid / effectiveExpected) * 100)
@@ -731,7 +805,7 @@ export default function Finance() {
 
       {isLoading ? (
         <div className="space-y-6">
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-5">
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-6">
             <Preloader variant="skeleton" rows={1} className="h-24" />
             <Preloader variant="skeleton" rows={1} className="h-24" />
             <Preloader variant="skeleton" rows={1} className="h-24" />
@@ -743,18 +817,18 @@ export default function Finance() {
       ) : (
         <>
           {/* Summary Cards */}
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-5">
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-6">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Total Fees Paid</CardTitle>
                 <DollarSign className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-xl font-bold">{formatCurrency(effectivePaid, getDefaultCurrency())}</div>
+                <div className="text-xl font-bold">{formatCurrency(totalCollected, getDefaultCurrency())}</div>
                 <p className="text-xs text-muted-foreground">
-                  {consolidatedSummary?.labels?.currentTermFigures || 'Current Term Figures'}
+                  Collected in selected term
                 </p>
-                {effectivePaid === 0 && (
+                {totalCollected === 0 && (
                   <p className="text-xs text-muted-foreground">MK 0.00 — No records for selected term</p>
                 )}
               </CardContent>
@@ -793,9 +867,7 @@ export default function Finance() {
               </CardHeader>
               <CardContent>
                 <div className="text-xl font-bold">{formatCurrency(overdueAmount, getDefaultCurrency())}</div>
-                <p className="text-xs text-muted-foreground">
-                  {consolidatedSummary?.labels?.outstandingFromPreviousTerms || 'Outstanding From Previous Terms'}
-                </p>
+                <p className="text-xs text-muted-foreground">Outstanding From Previous Terms</p>
               </CardContent>
             </Card>
 
@@ -805,10 +877,25 @@ export default function Finance() {
                 <TrendingUp className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-xl font-bold">{formatCurrency(currentTermOverpayments, getDefaultCurrency())}</div>
-                <p className="text-xs text-muted-foreground">
-                  Excess payments for auditing
-                </p>
+                <div className="text-xl font-bold">{formatCurrency(creditBalanceForTerm, getDefaultCurrency())}</div>
+                <p className="text-xs text-muted-foreground">Credits / Unallocated from payments</p>
+                {(allocatedToPreviousTerms > 0 || allocatedToFutureTerms > 0) && (
+                  <p className="text-[10px] text-muted-foreground mt-1">
+                    Sorted: {formatCurrency(allocatedToPreviousTerms, getDefaultCurrency())} previous, {formatCurrency(allocatedToFutureTerms, getDefaultCurrency())} next terms
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Optional: Actual Revenue card */}
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Actual Revenue</CardTitle>
+                <DollarSign className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-xl font-bold">{formatCurrency((termTotals?.actualRevenue ?? effectivePaid), getDefaultCurrency())}</div>
+                <p className="text-xs text-muted-foreground">Allocations applied to selected term</p>
               </CardContent>
             </Card>
           </div>
@@ -855,6 +942,7 @@ export default function Finance() {
                           <TableHead className="text-right">Amount</TableHead>
                           <TableHead className="text-right">Method</TableHead>
                           <TableHead className="text-right">Receipt</TableHead>
+                          <TableHead>For Term</TableHead>
                           <TableHead>Term</TableHead>
                         </TableRow>
                       </TableHeader>
@@ -862,13 +950,13 @@ export default function Finance() {
                         {filteredTransactions.map(transaction => (
                           <TableRow key={transaction.id}>
                             <TableCell className="font-medium">{transaction.id}</TableCell>
-                            <TableCell>{transaction.paymentDate}</TableCell>
+                            <TableCell>{transaction.paymentDate ? new Date(transaction.paymentDate).toISOString().slice(0,10).replace(/-/g,'/') : '-'}</TableCell>
                             <TableCell>{transaction.studentName}</TableCell>
                             <TableCell>{transaction.studentId || '-'}</TableCell>
                             <TableCell>{transaction.paymentType}</TableCell>
                             <TableCell className="text-right">{formatCurrency(transaction.amount, getDefaultCurrency())}</TableCell>
                             <TableCell className="text-right capitalize">{transaction.paymentMethod}</TableCell>
-                            <TableCell className="text-right">
+                                <TableCell className="text-right">
                                   <Button
                                     variant="ghost"
                                     size="sm"
@@ -894,6 +982,11 @@ export default function Finance() {
                                   >
                                     <Printer className="h-4 w-4" />
                                   </Button>
+                            </TableCell>
+                            <TableCell>
+                              {transaction.forTermNumber
+                                ? `Term ${transaction.forTermNumber} - ${transaction.forAcademicYear || ''}`
+                                : (transaction.paymentType && String(transaction.paymentType).toLowerCase().includes('credit') ? 'Credit' : '-')}
                             </TableCell>
                             <TableCell>{normalizeTermLabel(terms.find(t => t.id === termId)?.name, 1)}</TableCell>
                           </TableRow>
@@ -1007,3 +1100,4 @@ export default function Finance() {
     </div>
   );
 }
+

@@ -70,6 +70,9 @@ interface StudentFinancialDetails {
     termId: string;
     termNumber?: number;
     academicYear?: string;
+    forTermId?: string;
+    forTermNumber?: number;
+    forAcademicYear?: string;
     status: string;
     processedBy: string;
     notes?: string;
@@ -249,6 +252,10 @@ export function StudentFinancialDetailsModal({
             termId: termId,
             termNumber: undefined,
             academicYear: statusData?.term || 'Current Term',
+            // fallback for-term: use allocation term if available
+            forTermId: t.allocations && t.allocations[0] ? t.allocations[0].termId : undefined,
+            forTermNumber: t.allocations && t.allocations[0] ? t.allocations[0].term?.termNumber : undefined,
+            forAcademicYear: t.allocations && t.allocations[0] ? t.allocations[0].term?.academicCalendar?.term : undefined,
             status: t.status,
             processedBy: t.processedByName || 'System'
           })),
@@ -566,9 +573,9 @@ export function StudentFinancialDetailsModal({
                               <TableRow>
                                 <TableHead>Date</TableHead>
                                 <TableHead>Amount</TableHead>
-                                <TableHead>Payment Type</TableHead>
                                 <TableHead>Method</TableHead>
                                 <TableHead>Receipt</TableHead>
+                                <TableHead>For Term</TableHead>
                                 <TableHead>Term</TableHead>
                                 <TableHead>Processed By</TableHead>
                                 <TableHead>Details</TableHead>
@@ -585,19 +592,12 @@ export function StudentFinancialDetailsModal({
                                     <TableCell className="font-semibold">
                                       {formatCurrency(transaction.amount, getDefaultCurrency())}
                                     </TableCell>
-                                    <TableCell>
-                                      <div className="flex items-center gap-2">
-                                        {transaction.paymentType}
-                                        {isHistoricalCredit && (
-                                          <Badge variant="outline" className="text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200">
-                                            Past Term
-                                          </Badge>
-                                        )}
-                                      </div>
-                                    </TableCell>
                                     <TableCell>{transaction.paymentMethod}</TableCell>
                                     <TableCell>
                                       {transaction.receiptNumber || '-'}
+                                    </TableCell>
+                                    <TableCell>
+                                      {transaction.forTermNumber ? `Term ${transaction.forTermNumber} - ${transaction.forAcademicYear}` : (transaction.isCreditEntry ? 'Credit' : '-')}
                                     </TableCell>
                                     <TableCell>
                                       Term {transaction.termNumber} - {transaction.academicYear}

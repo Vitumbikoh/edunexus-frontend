@@ -542,9 +542,10 @@ export default function Transactions() {
                     <div className="text-sm font-medium text-foreground">{tx.receiptNumber || tx.id}</div>
                     <div className="text-base font-semibold mt-1">{tx.studentName ? `${tx.studentName} - ${tx.description || 'Payment'}` : tx.description || 'Payment'}</div>
                     <div className="text-xs text-muted-foreground mt-1">{tx.type} • {tx.term || 'N/A'}</div>
+                    <div className="text-xs text-muted-foreground mt-1">For: {tx.forTermNumber ? `Term ${tx.forTermNumber} - ${tx.forAcademicYear}` : (tx.paymentType === 'Credit Balance' ? 'Credit' : '—')}</div>
                   </div>
                   <div className="text-right">
-                    <div className="text-sm text-muted-foreground">{tx.paymentDate ? new Date(tx.paymentDate).toLocaleDateString() : 'N/A'}</div>
+                    <div className="text-sm text-muted-foreground">{tx.paymentDate ? new Date(tx.paymentDate).toISOString().slice(0,10).replace(/-/g,'/') : 'N/A'}</div>
                     <div className={`text-lg font-semibold mt-1 ${getAmountColor(parseFloat(tx.amount) || 0)}`}>{formatCurrency(Math.abs(parseFloat(tx.amount) || 0), getDefaultCurrency())}</div>
                   </div>
                 </div>
@@ -566,6 +567,7 @@ export default function Transactions() {
                     <TableHead className="w-28 text-sm font-medium px-2 py-2">Receipt #</TableHead>
                     <TableHead className="w-[32ch] text-sm font-medium px-2 py-2">Description</TableHead>
                     <TableHead className="w-20 text-sm font-medium px-2 py-2">Type</TableHead>
+                    <TableHead className="hidden lg:table-cell w-28 text-sm font-medium px-2 py-2">For Term</TableHead>
                     <TableHead className="hidden lg:table-cell w-24 text-sm font-medium px-2 py-2">Term</TableHead>
                     <TableHead className="w-20 text-sm font-medium px-2 py-2">Date</TableHead>
                     <TableHead className="w-28 text-right text-sm font-medium px-2 py-2">Amount</TableHead>
@@ -577,8 +579,9 @@ export default function Transactions() {
                       <TableCell className="font-medium px-2 py-2">{transaction.receiptNumber || transaction.id}</TableCell>
                       <TableCell className="whitespace-normal truncate max-w-[32ch] px-2 py-2">{transaction.studentName ? `${transaction.studentName} - ${transaction.description || 'Payment'}` : transaction.description || 'Payment'}</TableCell>
                       <TableCell className="px-2 py-2"><Badge variant="outline">{(parseFloat(transaction.amount) || 0) > 0 ? 'Payment' : 'Refund'}</Badge></TableCell>
+                      <TableCell className="hidden lg:table-cell px-2 py-2">{transaction.forTermNumber ? `Term ${transaction.forTermNumber} - ${transaction.forAcademicYear}` : (transaction.paymentType === 'Credit Balance' ? 'Credit' : '—')}</TableCell>
                       <TableCell className="hidden lg:table-cell px-2 py-2">{transaction.term || 'N/A'}</TableCell>
-                      <TableCell className="px-2 py-2">{transaction.paymentDate ? new Date(transaction.paymentDate).toLocaleDateString() : 'N/A'}</TableCell>
+                      <TableCell className="px-2 py-2">{transaction.paymentDate ? new Date(transaction.paymentDate).toISOString().slice(0,10).replace(/-/g,'/') : 'N/A'}</TableCell>
                       <TableCell className={`text-right font-medium px-2 py-2 ${getAmountColor(parseFloat(transaction.amount) || 0)}`}>{formatCurrency(Math.abs(parseFloat(transaction.amount) || 0), getDefaultCurrency())}{(parseFloat(transaction.amount) || 0) < 0 && ' (Refund)'}</TableCell>
                     </TableRow>
                   ))}
