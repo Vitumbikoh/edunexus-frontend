@@ -156,4 +156,23 @@ export const academicCalendarService = {
 
     return response.json();
   },
+
+  // Update an existing academic calendar
+  updateAcademicCalendar: async (id: string, calendar: Partial<AcademicCalendar>, token: string): Promise<AcademicCalendar> => {
+    const response = await fetch(`${API_BASE}/settings/academic-calendars/${encodeURIComponent(id)}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify(calendar),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || 'Failed to update academic calendar');
+    }
+
+    return response.json();
+  },
 };

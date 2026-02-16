@@ -295,7 +295,11 @@ export default function AcademicAndPeriodsSection() {
   const onSaveAcademic = async () => {
     setLoading(p => ({ ...p, academic: true }));
     try {
-      await academicCalendarService.createAcademicCalendar(selectedAcademicCalendar, token!);
+      if (selectedAcademicCalendar.id) {
+        await academicCalendarService.updateAcademicCalendar(selectedAcademicCalendar.id, selectedAcademicCalendar, token!);
+      } else {
+        await academicCalendarService.createAcademicCalendar(selectedAcademicCalendar, token!);
+      }
       toast({ title: "Success", description: "Academic calendar saved" });
       await fetchAcademicData();
       setShowNewCalendarForm(false);
@@ -910,6 +914,9 @@ export default function AcademicAndPeriodsSection() {
                           </TableCell>
                           <TableCell>
                             <div className="flex gap-2">
+                              <Button variant="ghost" size="sm" onClick={() => { setSelectedAcademicCalendar(calendar); setShowNewCalendarForm(true); }}>
+                                Edit
+                              </Button>
                               {calendar.id === activeAcademicCalendar?.id && !calendar.isCompleted ? (
                                 <AlertDialog>
                                   <AlertDialogTrigger asChild>
