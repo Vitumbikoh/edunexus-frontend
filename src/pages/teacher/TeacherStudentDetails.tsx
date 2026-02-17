@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Mail, Phone, MapPin, Calendar, User, BookOpen } from 'lucide-react';
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
@@ -25,6 +26,7 @@ interface StudentDetails {
   gender?: string;
   phoneNumber?: string;
   address?: string;
+  isActive?: boolean;
   parent?: {
     firstName: string;
     lastName: string;
@@ -170,6 +172,14 @@ export default function TeacherStudentDetails() {
               <div>
                 <label className="text-sm font-medium text-muted-foreground">Full Name</label>
                 <p className="text-lg font-semibold">{student.firstName} {student.lastName}</p>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-muted-foreground">Status</label>
+                <p>
+                  <Badge variant={student.isActive ? 'default' : 'destructive'} className={student.isActive ? 'text-green-700 bg-green-100' : 'text-red-700 bg-red-100'}>
+                    {student.isActive ? 'Active' : 'Inactive'}
+                  </Badge>
+                </p>
               </div>
               <div>
                 <label className="text-sm font-medium text-muted-foreground">Email</label>

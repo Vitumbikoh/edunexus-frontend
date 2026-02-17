@@ -2,6 +2,7 @@ import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { ArrowLeft } from 'lucide-react';
 
 type Student = {
@@ -20,6 +21,7 @@ type Student = {
   gender?: string;
   phoneNumber?: string;
   address?: string;
+  isActive?: boolean;
   parent?: {
     firstName: string;
     lastName: string;
@@ -71,6 +73,14 @@ export default function StudentDetails() {
           <div className="space-y-2">
             <p className="text-sm font-medium text-muted-foreground">Student ID</p>
             <p>{student.studentId || '-'}</p>
+          </div>
+          <div className="space-y-2">
+            <p className="text-sm font-medium text-muted-foreground">Status</p>
+            <p>
+              <Badge variant={student.isActive ? 'default' : 'destructive'} className={student.isActive ? 'text-green-700 bg-green-100' : 'text-red-700 bg-red-100'}>
+                {student.isActive ? 'Active' : 'Inactive'}
+              </Badge>
+            </p>
           </div>
           <div className="space-y-2">
             <p className="text-sm font-medium text-muted-foreground">Email</p>
