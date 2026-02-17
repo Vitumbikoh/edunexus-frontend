@@ -68,6 +68,7 @@ interface FeeStatusItem {
   studentName: string;
   expectedAmount: number;
   paidAmount: number;
+  credit?: number;
   outstandingAmount: number;
   status: string; // paid | pending | overdue | partial | unpaid
   isOverdue?: boolean;
@@ -444,7 +445,7 @@ export default function Finance() {
           const data = await res.json();
           list = Array.isArray(data) ? data : (data.statuses || data.items || data.students || []);
         }
-    const mapped: FeeStatusItem[] = list.map((s: any) => {
+        const mapped: FeeStatusItem[] = list.map((s: any) => {
           const expected = Number(
             s.totalExpected ??
             s.expectedFees ??
@@ -457,6 +458,9 @@ export default function Finance() {
             s.paidAmount ??
             s.paid ??
             0
+          );
+          const creditVal = Number(
+            s.credit ?? s.credits ?? s.creditBalance ?? s.credit_balance ?? s.carryForward ?? s.totalCarryForwardAmount ?? 0
           );
             const outstanding = Number(
               s.outstanding ??
@@ -474,6 +478,7 @@ export default function Finance() {
             studentName: s.studentName || `${s.firstName || ''} ${s.lastName || ''}`.trim() || 'Unknown',
             expectedAmount: expected,
             paidAmount: paid,
+            credit: creditVal,
             outstandingAmount: outstanding,
             status: computedStatus,
             isOverdue,
@@ -1050,6 +1055,7 @@ export default function Finance() {
                               <TableHead>Student ID</TableHead>
                               <TableHead className="text-right">Expected</TableHead>
                               <TableHead className="text-right">Paid</TableHead>
+                              <TableHead className="text-right">Credit</TableHead>
                               <TableHead className="text-right">Outstanding</TableHead>
                               <TableHead className="text-right">Status</TableHead>
                               <TableHead>Term</TableHead>
@@ -1070,6 +1076,7 @@ export default function Finance() {
                                 <TableCell>{s.humanId || s.studentId || '-'}</TableCell>
                                 <TableCell className="text-right">{formatCurrency(s.expectedAmount, getDefaultCurrency())}</TableCell>
                                 <TableCell className="text-right">{formatCurrency(s.paidAmount, getDefaultCurrency())}</TableCell>
+                                <TableCell className="text-right">{formatCurrency(Number(s.credit || 0), getDefaultCurrency())}</TableCell>
                                 <TableCell className="text-right">{formatCurrency(s.outstandingAmount, getDefaultCurrency())}</TableCell>
                                 <TableCell className="text-right">
                                   <Badge
