@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Download, BookOpen, FileText } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { API_CONFIG, getServerBaseUrl } from '@/config/api';
+import { libraryApi, Borrowing } from '@/services/libraryService';
 import { PagePreloader } from "@/components/ui/preloader";
 
 export default function StudentMaterials() {
@@ -17,6 +18,8 @@ export default function StudentMaterials() {
   const location = useLocation();
   const [courses, setCourses] = useState([]);
   const [materials, setMaterials] = useState([]);
+  const [borrowedBooks, setBorrowedBooks] = useState<Borrowing[]>([]);
+  const [catalogBooksMap, setCatalogBooksMap] = useState<Record<string, string>>({});
   
   // Get courseId from URL parameters
   const urlParams = new URLSearchParams(location.search);
@@ -131,8 +134,36 @@ export default function StudentMaterials() {
       }
     };
 
+    const fetchBorrowedBooks = async () => {
+      try {
+        if (!token || !user?.id) return;
+        // Use listBorrowings filtered by studentId to ensure we get borrowings for this student
+        const resp = await libraryApi.listBorrowings({ token: token || undefined, studentId: user.id, activeOnly: true, schoolId: user.schoolId });
+        let list: any[] = [];
+        if (Array.isArray(resp)) list = resp;
+        else if (resp && Array.isArray((resp as any).borrowings)) list = (resp as any).borrowings;
+        setBorrowedBooks(list.filter((b: any) => !b.returnedAt));
+
+        // fetch catalog books to map titles (small set assumed)
+        try {
+          const booksResp = await libraryApi.listBooks({ token: token || undefined, page: 1, limit: 1000, schoolId: user.schoolId });
+          const booksArr = (booksResp && (booksResp as any).books) ? (booksResp as any).books : (booksResp as unknown as any[]);
+          const map: Record<string, string> = {};
+          for (const bk of booksArr || []) {
+            if (bk && bk.id) map[bk.id] = bk.title || '';
+          }
+          setCatalogBooksMap(map);
+        } catch (e) {
+          // ignore catalog mapping errors
+        }
+      } catch (e: any) {
+        // ignore for now
+      }
+    };
+
     fetchCourses();
     fetchMaterials();
+    fetchBorrowedBooks();
   }, [user.id, token, selectedCourse, navigate, toast]);
 
   const filteredMaterials = materials.filter((material: any) =>
@@ -324,6 +355,44 @@ export default function StudentMaterials() {
             <div className="text-center py-8 text-muted-foreground">
               No learning materials found for the selected filters.
             </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center"><BookOpen className="mr-2 h-5 w-5" />Borrowed Books</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {borrowedBooks.length > 0 ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Book</TableHead>
+                  <TableHead>Borrowed</TableHead>
+                  <TableHead>Due</TableHead>
+                  <TableHead>Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {borrowedBooks.map((br) => {
+                  const title = br.bookName || catalogBooksMap[br.bookId || ''] || br.bookId || 'Unknown';
+                  const due = new Date(br.dueAt).toLocaleString();
+                  const borrowed = new Date(br.borrowedAt).toLocaleString();
+                  const overdue = !br.returnedAt && new Date(br.dueAt) < new Date();
+                  return (
+                    <TableRow key={br.id}>
+                      <TableCell className="font-medium">{title}</TableCell>
+                      <TableCell>{borrowed}</TableCell>
+                      <TableCell>{due}</TableCell>
+                      <TableCell>{overdue ? 'Overdue' : 'Borrowed'}</TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">You have no borrowed books.</div>
           )}
         </CardContent>
       </Card>

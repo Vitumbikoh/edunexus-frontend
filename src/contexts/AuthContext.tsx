@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
+import React, { createContext, useState, useContext, ReactNode, useEffect, useRef, useCallback } from 'react';
 import { authApi } from '@/services/authService';
 
 // Define user roles based on your backend enum
@@ -133,16 +133,88 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [token, setToken] = useState<string | null>(null);
+  const IDLE_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes
+  const REFRESH_MIN_INTERVAL_MS = 5 * 60 * 1000; // avoid refreshing on every activity event
+  const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastRefreshRef = useRef<number>(0);
+
+  const persistTokens = useCallback((accessToken: string, refreshToken?: string) => {
+    localStorage.setItem('access_token', accessToken);
+    setToken(accessToken);
+    if (refreshToken) {
+      localStorage.setItem('refresh_token', refreshToken);
+    }
+  }, []);
+
+  const clearIdleTimer = useCallback(() => {
+    if (idleTimerRef.current) {
+      clearTimeout(idleTimerRef.current);
+      idleTimerRef.current = null;
+    }
+  }, []);
+
+  const performLogout = useCallback(() => {
+    clearIdleTimer();
+    const currentUser = JSON.parse(localStorage.getItem('user_data') || 'null') as User | null;
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+    localStorage.removeItem('user_data');
+    if (currentUser?.id) {
+      localStorage.removeItem(`theme-${currentUser.id}`);
+    }
+
+    setUser(null);
+    setToken(null);
+  }, [clearIdleTimer]);
+
+  const tryRefreshSession = useCallback(async () => {
+    const refreshToken = localStorage.getItem('refresh_token');
+    if (!refreshToken) return false;
+    try {
+      const refreshed = await authApi.refreshToken(refreshToken);
+      if (!refreshed?.access_token) return false;
+      persistTokens(refreshed.access_token, refreshed.refresh_token);
+      lastRefreshRef.current = Date.now();
+      return true;
+    } catch {
+      return false;
+    }
+  }, [persistTokens]);
+
+  const scheduleIdleLogout = useCallback(() => {
+    clearIdleTimer();
+    idleTimerRef.current = setTimeout(() => {
+      performLogout();
+    }, IDLE_TIMEOUT_MS);
+  }, [clearIdleTimer, performLogout]);
+
+  const handleUserActivity = useCallback(async () => {
+    if (!user) return;
+    scheduleIdleLogout();
+    const now = Date.now();
+    if (now - lastRefreshRef.current >= REFRESH_MIN_INTERVAL_MS) {
+      await tryRefreshSession();
+    }
+  }, [user, scheduleIdleLogout, tryRefreshSession]);
   
   useEffect(() => {
     const checkAuth = async () => {
-  const storedToken = localStorage.getItem('access_token');
+      const storedToken = localStorage.getItem('access_token');
       const storedUser = localStorage.getItem('user_data');
       
       if (storedToken && storedUser) {
         try {
           // Try backend verification
-          const response = await authApi.verifyToken(storedToken);
+          let response: any;
+          try {
+            response = await authApi.verifyToken(storedToken);
+          } catch {
+            const refreshed = await tryRefreshSession();
+            if (!refreshed) throw new Error('Session expired');
+            const newToken = localStorage.getItem('access_token');
+            if (!newToken) throw new Error('Session expired');
+            response = await authApi.verifyToken(newToken);
+          }
           if (response.valid && response.user) {
             const normalizedRole = normalizeRole(response.user.role);
             // The /auth/verify endpoint returns the JWT payload which typically has `sub` for user id.
@@ -158,16 +230,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               name: verifiedUser.username || verifiedUser.firstName || verifiedUser.email?.split('@')[0] || 'User',
               avatar: `https://ui-avatars.com/api/?name=${verifiedUser.username || verifiedUser.firstName || 'User'}&background=0D8ABC&color=fff`
             });
-            setToken(storedToken);
+            setToken(localStorage.getItem('access_token'));
+            lastRefreshRef.current = Date.now();
           } else {
             // Backend verification failed, remove tokens
             localStorage.removeItem('access_token');
+            localStorage.removeItem('refresh_token');
             localStorage.removeItem('user_data');
           }
         } catch (error) {
           console.error('Auth check failed:', error);
           // Clear invalid tokens
           localStorage.removeItem('access_token');
+          localStorage.removeItem('refresh_token');
           localStorage.removeItem('user_data');
         }
       }
@@ -175,7 +250,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
     
     checkAuth();
-  }, []);
+  }, [tryRefreshSession]);
+
+  useEffect(() => {
+    if (!user) {
+      clearIdleTimer();
+      return;
+    }
+
+    const onActivity = () => {
+      void handleUserActivity();
+    };
+
+    scheduleIdleLogout();
+
+    const events: Array<keyof WindowEventMap> = [
+      'mousemove',
+      'mousedown',
+      'keydown',
+      'scroll',
+      'touchstart',
+      'click',
+    ];
+
+    events.forEach((eventName) => window.addEventListener(eventName, onActivity, { passive: true }));
+
+    return () => {
+      events.forEach((eventName) => window.removeEventListener(eventName, onActivity));
+      clearIdleTimer();
+    };
+  }, [user, handleUserActivity, scheduleIdleLogout, clearIdleTimer]);
 
   const login = async (username: string, password: string): Promise<LoginResponse> => {
     try {
@@ -187,6 +291,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         localStorage.setItem('refresh_token', (response as any).refresh_token);
       }
       setToken(response.access_token);
+      lastRefreshRef.current = Date.now();
       
       const normalizedRole = normalizeRole(response.user.role);
       const userData: User = {
@@ -233,20 +338,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = () => {
-    // Clear authentication data
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('user_data');
-    
-    // Preserve theme preference for next login
-    const currentTheme = localStorage.getItem('theme');
-    
-    // Clear user-specific theme preferences but keep general theme
-    if (user?.id) {
-      localStorage.removeItem(`theme-${user.id}`);
-    }
-    
-    setUser(null);
-    setToken(null);
+    performLogout();
   };
 
   return (

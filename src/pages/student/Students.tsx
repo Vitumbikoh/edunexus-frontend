@@ -121,6 +121,35 @@ export default function Students() {
       }
 
       const result = await response.json();
+      // If backend returned no students for the search, attempt a client-side fallback
+      if (search && Array.isArray(result.students) && result.students.length === 0) {
+        try {
+          const fallbackUrl = `${API_CONFIG.BASE_URL}/student/students?page=1&limit=1000`;
+          const fallbackResp = await fetch(fallbackUrl, { headers: { Authorization: `Bearer ${token}` } });
+          if (fallbackResp.ok) {
+            const fb = await fallbackResp.json();
+            const pool: Student[] = fb.students || [];
+            const needle = search.trim().toLowerCase();
+            const filtered = pool.filter(s => {
+              const fullName = `${s.firstName} ${s.lastName}`.toLowerCase();
+              const email = (s.user?.email || '').toLowerCase();
+              const username = (s.user?.username || '').toLowerCase();
+              const sid = (s.studentId || '').toLowerCase();
+              return fullName.includes(needle) || email.includes(needle) || username.includes(needle) || sid.includes(needle);
+            });
+            setPaginatedData({
+              students: filtered.slice(0, limit),
+              totalPages: Math.max(1, Math.ceil(filtered.length / limit)),
+              totalItems: filtered.length,
+              itemsPerPage: limit,
+            });
+            return;
+          }
+        } catch (e) {
+          // ignore fallback errors and continue with original result
+        }
+      }
+
       setPaginatedData({
         students: result.students,
         totalPages: result.pagination.totalPages,
