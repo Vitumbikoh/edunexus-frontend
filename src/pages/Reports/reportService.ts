@@ -463,82 +463,106 @@ const generateComprehensiveExcel = (data: {
   try {
     const wb = XLSX.utils.book_new();
 
-    const studentsWs = XLSX.utils.json_to_sheet(
-      data.students.map(item => ({
-        'Student ID': item.studentHumanId || item.studentId || 'N/A',
-        Name: item.name || 'N/A',
-        Gender: item.gender || 'N/A',
-        Class: item.className || 'N/A',
-        Grade: item.grade || 'N/A',
-        Address: item.address || 'N/A',
-        'Date of Birth': item.dateOfBirth ? new Date(item.dateOfBirth).toLocaleDateString() : 'N/A',
-        Age: item.age ?? 'N/A',
-        'Enrollment Date': item.enrollmentDate ? new Date(item.enrollmentDate).toLocaleDateString() : 'N/A',
-        Status: item.status || 'N/A',
-        'Owes Books': item.owesBooks || 'NO',
-      }))
-    );
+    // Students sheet with title row
+    const studentsAoa = [
+      ['Students Report'],
+      [],
+      ['Student ID', 'Name', 'Gender', 'Class', 'Grade', 'Address', 'Date of Birth', 'Age', 'Enrollment Date', 'Status', 'Owes Books'],
+      ...data.students.map(item => [
+        item.studentHumanId || item.studentId || 'N/A',
+        item.name || 'N/A',
+        item.gender || 'N/A',
+        item.className || 'N/A',
+        item.grade || 'N/A',
+        item.address || 'N/A',
+        item.dateOfBirth ? new Date(item.dateOfBirth).toLocaleDateString() : 'N/A',
+        item.age ?? 'N/A',
+        item.enrollmentDate ? new Date(item.enrollmentDate).toLocaleDateString() : 'N/A',
+        item.status || 'N/A',
+        item.owesBooks || 'NO',
+      ])
+    ];
+    const studentsWs = XLSX.utils.aoa_to_sheet(studentsAoa as any);
     XLSX.utils.book_append_sheet(wb, studentsWs, 'Students');
 
-    const teachersWs = XLSX.utils.json_to_sheet(
-      data.teachers.map(item => ({
-        Name: item.name || 'N/A',
-        Gender: item.gender || 'N/A',
-        Email: item.email || 'N/A',
-        Phone: item.phoneNumber || 'N/A',
-        Qualification: item.qualification || 'N/A',
-        'Years Exp': item.yearsOfExperience ?? 'N/A',
-        Address: item.address || 'N/A',
-        'Date of Birth': item.dateOfBirth ? new Date(item.dateOfBirth).toLocaleDateString() : 'N/A',
-        'Hire Date': item.hireDate ? new Date(item.hireDate).toLocaleDateString() : (item.joinDate ? new Date(item.joinDate).toLocaleDateString() : 'N/A'),
-        Status: item.status || 'N/A',
-        Class: item.className || 'N/A',
-        Specialization: item.subjectSpecialization || 'N/A',
-      }))
-    );
+    // Teachers sheet with title row
+    const teachersAoa = [
+      ['Teachers Report'],
+      [],
+      ['Name', 'Gender', 'Email', 'Phone', 'Qualification', 'Years Exp', 'Address', 'Date of Birth', 'Hire Date', 'Status', 'Class', 'Specialization'],
+      ...data.teachers.map(item => [
+        item.name || 'N/A',
+        item.gender || 'N/A',
+        item.email || 'N/A',
+        item.phoneNumber || 'N/A',
+        item.qualification || 'N/A',
+        item.yearsOfExperience ?? 'N/A',
+        item.address || 'N/A',
+        item.dateOfBirth ? new Date(item.dateOfBirth).toLocaleDateString() : 'N/A',
+        item.hireDate ? new Date(item.hireDate).toLocaleDateString() : (item.joinDate ? new Date(item.joinDate).toLocaleDateString() : 'N/A'),
+        item.status || 'N/A',
+        item.className || 'N/A',
+        item.subjectSpecialization || 'N/A',
+      ])
+    ];
+    const teachersWs = XLSX.utils.aoa_to_sheet(teachersAoa as any);
     XLSX.utils.book_append_sheet(wb, teachersWs, 'Teachers');
 
-    const coursesWs = XLSX.utils.json_to_sheet(
-      data.courses.map(item => ({
-        Name: item.name || 'N/A',
-        Code: item.code || 'N/A',
-        Class: item.className || 'N/A',
-        Teacher: item.teacherName || 'N/A',
-        Department: item.department || 'N/A',
-        Credits: item.credits || 0,
-        'Enrollment Count': item.enrollmentCount || 0,
-        Status: item.status || 'N/A',
-        Active: item.active === true ? 'YES' : 'NO',
-      }))
-    );
+    // Courses sheet with title row
+    const coursesAoa = [
+      ['Courses Report'],
+      [],
+      ['Name', 'Code', 'Class', 'Teacher', 'Department', 'Credits', 'Enrollment Count', 'Status', 'Active'],
+      ...data.courses.map(item => [
+        item.name || 'N/A',
+        item.code || 'N/A',
+        item.className || 'N/A',
+        item.teacherName || 'N/A',
+        item.department || 'N/A',
+        item.credits || 0,
+        item.enrollmentCount || 0,
+        item.status || 'N/A',
+        item.active === true ? 'YES' : 'NO',
+      ])
+    ];
+    const coursesWs = XLSX.utils.aoa_to_sheet(coursesAoa as any);
     XLSX.utils.book_append_sheet(wb, coursesWs, 'Courses');
 
-    const enrollmentsWs = XLSX.utils.json_to_sheet(
-      data.enrollments.map(item => ({
-        'Student ID': item.studentHumanId || item.studentId || 'N/A',
-        Student: item.studentName || 'N/A',
-        Course: item.courseName || 'N/A',
-        Class: item.className || 'N/A',
-        'Enrollment Date': item.enrollmentDate ? new Date(item.enrollmentDate).toLocaleDateString() : 'N/A',
-        Status: item.status || 'N/A',
-        Term: item.termName || 'N/A',
-        AcademicYear: item.academicYearName || 'N/A',
-      }))
-    );
+    const enrollmentsAoa = [
+      ['Enrollments Report'],
+      [],
+      ['Student ID', 'Student', 'Course', 'Class', 'Enrollment Date', 'Status', 'Term', 'Academic Year'],
+      ...data.enrollments.map(item => [
+        item.studentHumanId || item.studentId || 'N/A',
+        item.studentName || 'N/A',
+        item.courseName || 'N/A',
+        item.className || 'N/A',
+        item.enrollmentDate ? new Date(item.enrollmentDate).toLocaleDateString() : 'N/A',
+        item.status || 'N/A',
+        item.termName || 'N/A',
+        item.academicYearName || 'N/A',
+      ]),
+    ];
+    const enrollmentsWs = XLSX.utils.aoa_to_sheet(enrollmentsAoa as any);
     XLSX.utils.book_append_sheet(wb, enrollmentsWs, 'Enrollments');
 
-    const feePaymentsWs = XLSX.utils.json_to_sheet(
-      data.feePayments.map(item => ({
-        'Student ID': item.studentHumanId || item.studentId || 'N/A',
-        Student: item.studentName || 'N/A',
-        Class: item.className || 'N/A',
-        Amount: item.amount ? `$${item.amount.toLocaleString()}` : 'N/A',
-        'Payment Date': item.paymentDate ? new Date(item.paymentDate).toLocaleDateString() : 'N/A',
-        'Payment Method': item.paymentMethod || 'N/A',
-        Status: item.status || 'N/A',
-        Term: item.termName || 'N/A',
-      }))
-    );
+    // Fee payments sheet with title row
+    const feePaymentsAoa = [
+      ['Financial / Fee Payments Report'],
+      [],
+      ['Student ID', 'Student', 'Class', 'Amount', 'Payment Date', 'Payment Method', 'Status', 'Term'],
+      ...data.feePayments.map(item => [
+        item.studentHumanId || item.studentId || 'N/A',
+        item.studentName || 'N/A',
+        item.className || 'N/A',
+        item.amount ? `$${item.amount.toLocaleString()}` : 'N/A',
+        item.paymentDate ? new Date(item.paymentDate).toLocaleDateString() : 'N/A',
+        item.paymentMethod || 'N/A',
+        item.status || 'N/A',
+        item.termName || 'N/A',
+      ])
+    ];
+    const feePaymentsWs = XLSX.utils.aoa_to_sheet(feePaymentsAoa as any);
     XLSX.utils.book_append_sheet(wb, feePaymentsWs, 'Fee Payments');
 
     XLSX.writeFile(wb, 'comprehensive-report.xlsx');
@@ -927,7 +951,7 @@ const generateComprehensivePDF = async (data: {
     doc.addPage();
     const financialStartY = drawReportHeading(
       doc,
-      'Financial Summary',
+      'Fee Payments Report',
       `Rows shown: ${feePaymentsSlice.length} of ${data.feePayments.length}`,
       headerFooterOpts,
     );

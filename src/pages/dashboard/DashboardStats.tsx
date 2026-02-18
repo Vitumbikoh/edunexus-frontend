@@ -67,7 +67,7 @@ export const useDashboardStats = () => {
 
         if (role === "admin") {
           const [studentsData, coursesData, financesData, teachersData] = await Promise.all([
-            fetchData("/student/total-students"),
+            fetchData("/student/total-students?activeOnly=true"),
             fetchData("/course/stats/total-courses"),
             fetchData("/finance/total-finances"),
             fetchData("/teacher/total-teachers"),

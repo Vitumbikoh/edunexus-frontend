@@ -381,7 +381,7 @@ export default function Reports() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-foreground">{reportData.totalStudents}</div>
-            <p className="text-xs text-muted-foreground mt-1">Active enrollments</p>
+            <p className="text-xs text-muted-foreground mt-1">Active students</p>
           </CardContent>
         </Card>
 
