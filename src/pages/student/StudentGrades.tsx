@@ -754,7 +754,7 @@ export default function StudentGrades() {
             /* Header Section */
             .header {
               text-align: center;
-              padding: 30px;
+              padding: 40px; /* increased padding to push divider lower */
               border-bottom: 2px solid #2c3e50;
             }
             .school-header {
@@ -786,12 +786,13 @@ export default function StudentGrades() {
               font-size: 28px;
               font-weight: bold;
               color: #2c3e50;
-              margin-bottom: 5px;
+              margin-bottom: 8px; /* more space under name */
             }
             .school-motto {
               font-size: 16px;
               font-style: italic;
               color: #666;
+              margin-bottom: 6px;
             }
             .report-title {
               font-size: 24px;
@@ -952,7 +953,8 @@ export default function StudentGrades() {
             
             /* Footer */
             .footer {
-              padding: 25px 30px;
+              padding: 32px 30px; /* increased padding so divider appears lower */
+              margin-top: 18px;   /* push footer (and its blue divider) further down */
               text-align: center;
               background: #f8f9fa;
               border-top: 2px solid #2c3e50;
@@ -969,12 +971,13 @@ export default function StudentGrades() {
               color: #2c3e50;
             }
             .school-contact {
-              display: flex;
-              justify-content: center;
-              gap: 20px;
+              text-align: left;
               font-size: 11px;
               color: #666;
+              margin-top: 8px;
+              line-height: 1.6; /* increase line spacing for contact lines */
             }
+            .school-contact div { margin-bottom: 6px; }
             
             @media print {
               body { padding: 0; }
@@ -1098,9 +1101,9 @@ export default function StudentGrades() {
               </div>
               ${(schoolSettings?.schoolAddress || schoolSettings?.schoolPhone || schoolSettings?.schoolEmail) ? `
               <div class="school-contact">
-                ${schoolSettings.schoolAddress ? `<span>📍 ${schoolSettings.schoolAddress}</span>` : ''}
-                ${schoolSettings.schoolPhone ? `<span>📞 ${schoolSettings.schoolPhone}</span>` : ''}
-                ${schoolSettings.schoolEmail ? `<span>📧 ${schoolSettings.schoolEmail}</span>` : ''}
+                ${schoolSettings.schoolAddress ? `<div>📍 ${schoolSettings.schoolAddress}</div>` : ''}
+                ${schoolSettings.schoolPhone ? `<div>📞 ${schoolSettings.schoolPhone}</div>` : ''}
+                ${schoolSettings.schoolEmail ? `<div>📧 ${schoolSettings.schoolEmail}</div>` : ''}
               </div>` : ''}
             </div>
           </div>

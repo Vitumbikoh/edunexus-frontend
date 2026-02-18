@@ -76,20 +76,21 @@ const getSchoolInfo = (apiSchoolInfo?: SchoolInfo) => {
 // Returns options to pass into autoTable to draw a professional header and footer on each page.
 const addPdfHeaderFooterOptions = (doc: any, apiSchoolInfo?: SchoolInfo, logoImage?: string) => {
   const school = getSchoolInfo(apiSchoolInfo);
+  const headerHeight = 80; // increased header height to fit stacked contact lines
   return {
     didDrawPage: (data: any) => {
       const pageWidth = doc.internal.pageSize.getWidth();
       const pageHeight = doc.internal.pageSize.getHeight();
       
       // Professional Header Design
-      // Header background rectangle
+      // Header background rectangle — increased height so contact lines fit comfortably
       doc.setFillColor(245, 248, 251); // Light blue-gray background
-      doc.rect(0, 0, pageWidth, 45, 'F');
+      doc.rect(0, 0, pageWidth, headerHeight, 'F');
       
-      // Header border line
+      // Header border line (moved down to sit under contact lines)
       doc.setDrawColor(66, 139, 202); // Professional blue
       doc.setLineWidth(0.5);
-      doc.line(0, 45, pageWidth, 45);
+      doc.line(0, headerHeight, pageWidth, headerHeight);
       
       // School Logo - if available
       let textStartX = 20;
@@ -105,32 +106,22 @@ const addPdfHeaderFooterOptions = (doc: any, apiSchoolInfo?: SchoolInfo, logoIma
         }
       }
       
-      // School Name - Large and prominent
+      // School Name - left aligned; contact stacked below (address, phone, email)
       doc.setTextColor(44, 62, 80); // Dark blue-gray
       doc.setFontSize(18);
       doc.setFont(undefined, 'bold');
-      doc.text(school.name, textStartX, 22);
-      
-      // Contact Information - Properly spaced and aligned
+      const nameY = 28; // slightly lower for better spacing
+      doc.text(school.name, textStartX, nameY);
+
+      // Contact lines (left-aligned, with increased line spacing)
       doc.setFontSize(9);
       doc.setFont(undefined, 'normal');
       doc.setTextColor(85, 85, 85); // Medium gray
-      
-      // Address line
-      if (school.address) {
-        doc.text(`Address: ${school.address}`, textStartX, 30);
-      }
-      
-      // Contact line - right side
-      const contactInfo = [];
-      if (school.phone) contactInfo.push(`Phone: ${school.phone}`);
-      if (school.email) contactInfo.push(`Email: ${school.email}`);
-      
-      const contactText = contactInfo.join('   •   ');
-      if (contactText) {
-        doc.text(contactText, textStartX, 37);
-      }
-      
+      let currentContactY = nameY + 12; // start below the school name
+      if (school.address) { doc.text(`${school.address}`, textStartX, currentContactY); currentContactY += 14; }
+      if (school.phone)   { doc.text(`Phone: ${school.phone}`, textStartX, currentContactY); currentContactY += 14; }
+      if (school.email)   { doc.text(`Email: ${school.email}`, textStartX, currentContactY); currentContactY += 14; }
+
       // Professional Footer Design
       const footerY = pageHeight - 15;
       
@@ -160,7 +151,7 @@ const addPdfHeaderFooterOptions = (doc: any, apiSchoolInfo?: SchoolInfo, logoIma
       const pageTextWidth = doc.getTextWidth(pageText);
       doc.text(pageText, pageWidth - 20 - pageTextWidth, footerY);
     },
-    margin: { top: 55, bottom: 25, left: 20, right: 20 }, // Added left and right margins
+    margin: { top: headerHeight + 12, bottom: 25, left: 20, right: 20 }, // top margin increased to match header height
   };
 };
 
@@ -179,8 +170,9 @@ const generateStudentsExcel = (data: any[], schoolInfo?: SchoolInfo) => {
     const school = getSchoolInfo(schoolInfo);
     const headerRows = [
       [school.name + (school.logo ? ' (Logo Available)' : '')],
-      [school.address],
-      [`Phone: ${school.phone}  |  Email: ${school.email}`],
+      [school.address || ''],
+      [school.phone ? `Phone: ${school.phone}` : ''],
+      [school.email ? `Email: ${school.email}` : ''],
       [],
     ];
 
@@ -217,7 +209,13 @@ const generateStudentsExcel = (data: any[], schoolInfo?: SchoolInfo) => {
 const generateTeachersExcel = (data: any[], schoolInfo?: SchoolInfo) => {
   try {
     const school = getSchoolInfo(schoolInfo);
-    const headerRows = [[school.name + (school.logo ? ' (Logo Available)' : '')], [school.address], [`Phone: ${school.phone}  Email: ${school.email}  Website: ${school.website}`], []];
+    const headerRows = [
+      [school.name + (school.logo ? ' (Logo Available)' : '')],
+      [school.address || ''],
+      [school.phone ? `Phone: ${school.phone}` : ''],
+      [school.email ? `Email: ${school.email}` : ''],
+      [],
+    ];
     const dataRows = data.map(item => [
       item.name || 'N/A',
       item.gender || 'N/A',
@@ -252,7 +250,13 @@ const generateTeachersExcel = (data: any[], schoolInfo?: SchoolInfo) => {
 const generateCoursesExcel = (data: any[], schoolInfo?: SchoolInfo) => {
   try {
     const school = getSchoolInfo(schoolInfo);
-    const headerRows = [[school.name + (school.logo ? ' (Logo Available)' : '')], [school.address], [`Phone: ${school.phone}  Email: ${school.email}`], []];
+    const headerRows = [
+      [school.name + (school.logo ? ' (Logo Available)' : '')],
+      [school.address || ''],
+      [school.phone ? `Phone: ${school.phone}` : ''],
+      [school.email ? `Email: ${school.email}` : ''],
+      [],
+    ];
     const dataRows = data.map(item => [
       item.name || 'N/A',
       item.code || 'N/A',
@@ -282,7 +286,13 @@ const generateCoursesExcel = (data: any[], schoolInfo?: SchoolInfo) => {
 const generateEnrollmentsExcel = (data: any[], schoolInfo?: SchoolInfo) => {
   try {
     const school = getSchoolInfo(schoolInfo);
-    const headerRows = [[school.name + (school.logo ? ' (Logo Available)' : '')], [school.address], [`Phone: ${school.phone}  Email: ${school.email}`], []];
+    const headerRows = [
+      [school.name + (school.logo ? ' (Logo Available)' : '')],
+      [school.address || ''],
+      [school.phone ? `Phone: ${school.phone}` : ''],
+      [school.email ? `Email: ${school.email}` : ''],
+      [],
+    ];
     const dataRows = data.map(item => [
       item.studentHumanId || item.studentId || 'N/A',
       item.studentName || 'N/A',
@@ -311,7 +321,13 @@ const generateEnrollmentsExcel = (data: any[], schoolInfo?: SchoolInfo) => {
 const generateFeePaymentsExcel = (data: any[], schoolInfo?: SchoolInfo) => {
   try {
     const school = getSchoolInfo(schoolInfo);
-    const headerRows = [[school.name + (school.logo ? ' (Logo Available)' : '')], [school.address], [`Phone: ${school.phone}  Email: ${school.email}`], []];
+    const headerRows = [
+      [school.name + (school.logo ? ' (Logo Available)' : '')],
+      [school.address || ''],
+      [school.phone ? `Phone: ${school.phone}` : ''],
+      [school.email ? `Email: ${school.email}` : ''],
+      [],
+    ];
     const dataRows = data.map(item => [
       item.studentHumanId || item.studentId || 'N/A',
       item.studentName || 'N/A',
@@ -437,7 +453,11 @@ const generateComprehensiveExcel = (data: {
 // Initialize jsPDF with autoTable and generate PDF reports
 const generateStudentsPDF = async (data: any[], schoolInfo?: SchoolInfo) => {
   try {
-    const doc: any = new jsPDF();
+    const doc: any = new jsPDF({
+      orientation: 'landscape',
+      unit: 'pt',
+      format: 'a4',
+    });
     
     // Load logo if available
     const logoUrl = getLogoUrl(schoolInfo);
@@ -452,17 +472,30 @@ const generateStudentsPDF = async (data: any[], schoolInfo?: SchoolInfo) => {
     
     const headerFooterOpts = addPdfHeaderFooterOptions(doc, schoolInfo, logoImage);
     
-    // Add report title
+    // Position report title below the header
+    const marginTop = headerFooterOpts.margin?.top ?? 92;
+    const titleY = marginTop - 28;
     doc.setFontSize(16);
     doc.setFont(undefined, 'bold');
     doc.setTextColor(44, 62, 80);
-    doc.text('Students Report', 20, 70);
+    doc.text('Students Report', 20, titleY);
     
     // Add summary info
     doc.setFontSize(10);
     doc.setFont(undefined, 'normal');
     doc.setTextColor(85, 85, 85);
-    doc.text(`Total Students: ${data.length}`, 20, 82);
+    doc.text(`Total Students: ${data.length}`, 20, titleY + 14);
+
+    const formatDateOfBirth = (value: any) => {
+      if (!value) return 'N/A';
+      const parsedDate = new Date(value);
+      if (Number.isNaN(parsedDate.getTime())) return 'N/A';
+      return parsedDate.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: '2-digit',
+      });
+    };
     
     autoTable(doc, {
       head: [['Student ID', 'Name', 'Gender', 'Class', 'Address', 'DOB', 'Age', 'Status', 'Owes Books']],
@@ -472,7 +505,7 @@ const generateStudentsPDF = async (data: any[], schoolInfo?: SchoolInfo) => {
         item.gender || 'N/A',
         item.className || 'N/A',
         item.address || 'N/A',
-        item.dateOfBirth ? new Date(item.dateOfBirth).toLocaleDateString() : 'N/A',
+        formatDateOfBirth(item.dateOfBirth),
         item.age ?? 'N/A',
         item.status || 'N/A',
         item.owesBooks || 'NO',
@@ -481,41 +514,46 @@ const generateStudentsPDF = async (data: any[], schoolInfo?: SchoolInfo) => {
       ...headerFooterOpts,
       // Professional table styling
       styles: { 
-        fontSize: 9,
-        cellPadding: 4,
-        lineColor: [220, 220, 220],
-        lineWidth: 0.1,
-        textColor: [44, 62, 80],
+        fontSize: 8.5,
+        cellPadding: { top: 5, right: 4, bottom: 5, left: 4 },
+        lineColor: [226, 232, 240],
+        lineWidth: 0.5,
+        textColor: [31, 41, 55],
         overflow: 'linebreak',
+        valign: 'middle',
       },
       headStyles: { 
-        fillColor: [52, 152, 219], // Professional blue
+        fillColor: [33, 95, 160], // Professional blue
         textColor: [255, 255, 255],
-        fontSize: 10,
+        fontSize: 9.5,
         fontStyle: 'bold',
         halign: 'center',
-        cellPadding: 6,
+        valign: 'middle',
+        cellPadding: { top: 6, right: 4, bottom: 6, left: 4 },
+      },
+      bodyStyles: {
+        minCellHeight: 20,
       },
       alternateRowStyles: {
-        fillColor: [248, 249, 250], // Light gray for alternate rows
+        fillColor: [248, 250, 252], // Light gray for alternate rows
       },
       columnStyles: {
-        0: { halign: 'center', cellWidth: 22 }, // Student ID
-        1: { cellWidth: 32 }, // Name
-        2: { halign: 'center', cellWidth: 16 }, // Gender
-        3: { halign: 'center', cellWidth: 18 }, // Class
-        4: { cellWidth: 35 }, // Address
-        5: { halign: 'center', cellWidth: 20 }, // DOB
-        6: { halign: 'center', cellWidth: 12 }, // Age
-        7: { halign: 'center', cellWidth: 18 }, // Status
-        8: { halign: 'center', cellWidth: 18 }, // Owes Books
+        0: { halign: 'center', cellWidth: 72 }, // Student ID
+        1: { cellWidth: 118 }, // Name
+        2: { halign: 'center', cellWidth: 58 }, // Gender
+        3: { halign: 'center', cellWidth: 74 }, // Class
+        4: { cellWidth: 178 }, // Address
+        5: { halign: 'center', cellWidth: 78 }, // DOB
+        6: { halign: 'center', cellWidth: 44 }, // Age
+        7: { halign: 'center', cellWidth: 64 }, // Status
+        8: { halign: 'center', cellWidth: 74 }, // Owes Books
       },
       // Add subtle borders
-      tableLineColor: [200, 200, 200],
-      tableLineWidth: 0.1,
+      tableLineColor: [203, 213, 225],
+      tableLineWidth: 0.6,
       // Ensure table fits within page margins
       tableWidth: 'auto',
-      margin: { left: 20, right: 20 },
+      rowPageBreak: 'avoid',
     });
     doc.save('students-report.pdf');
   } catch (error) {
@@ -541,17 +579,19 @@ const generateTeachersPDF = async (data: any[], schoolInfo?: SchoolInfo) => {
     
     const headerFooterOpts = addPdfHeaderFooterOptions(doc, schoolInfo, logoImage);
     
-    // Add report title
+    // Position report title below the header
+    const marginTopTeachers = headerFooterOpts.margin?.top ?? 92;
+    const titleYTeachers = marginTopTeachers - 28;
     doc.setFontSize(16);
     doc.setFont(undefined, 'bold');
     doc.setTextColor(44, 62, 80);
-    doc.text('Teachers Report', 20, 70);
+    doc.text('Teachers Report', 20, titleYTeachers);
     
     // Add summary info
     doc.setFontSize(10);
     doc.setFont(undefined, 'normal');
     doc.setTextColor(85, 85, 85);
-    doc.text(`Total Teachers: ${data.length}`, 20, 82);
+    doc.text(`Total Teachers: ${data.length}`, 20, titleYTeachers + 14);
     
     autoTable(doc, {
       head: [['Name', 'Gender', 'Phone', 'Qualification', 'Experience', 'Address', 'DOB', 'Hire Date', 'Status']],
@@ -566,7 +606,7 @@ const generateTeachersPDF = async (data: any[], schoolInfo?: SchoolInfo) => {
         item.hireDate ? new Date(item.hireDate).toLocaleDateString() : (item.joinDate ? new Date(item.joinDate).toLocaleDateString() : 'N/A'),
         item.status || 'N/A',
       ]),
-      startY: 90,
+      startY: headerFooterOpts.margin.top + 8,
       ...headerFooterOpts,
       // Professional table styling
       styles: { 
@@ -628,17 +668,19 @@ const generateCoursesPDF = async (data: any[], schoolInfo?: SchoolInfo) => {
     
     const headerFooterOpts = addPdfHeaderFooterOptions(doc, schoolInfo, logoImage);
     
-    // Add report title
+    // Position report title below the header
+    const marginTopCourses = headerFooterOpts.margin?.top ?? 92;
+    const titleYCourses = marginTopCourses - 28;
     doc.setFontSize(16);
     doc.setFont(undefined, 'bold');
     doc.setTextColor(44, 62, 80);
-    doc.text('Courses Report', 20, 70);
+    doc.text('Courses Report', 20, titleYCourses);
     
     // Add summary info
     doc.setFontSize(10);
     doc.setFont(undefined, 'normal');
     doc.setTextColor(85, 85, 85);
-    doc.text(`Total Courses: ${data.length}`, 20, 82);
+    doc.text(`Total Courses: ${data.length}`, 20, titleYCourses + 14);
     
     autoTable(doc, {
       head: [['Name', 'Code', 'Class', 'Teacher', 'Department', 'Credits', 'Enrollments', 'Status', 'Active']],
@@ -653,7 +695,7 @@ const generateCoursesPDF = async (data: any[], schoolInfo?: SchoolInfo) => {
         item.status || 'N/A',
         item.active === true ? 'YES' : 'NO',
       ]),
-      startY: 90,
+      startY: headerFooterOpts.margin.top + 8,
       ...headerFooterOpts,
       // Professional table styling
       styles: { 
@@ -715,17 +757,19 @@ const generateEnrollmentsPDF = async (data: any[], schoolInfo?: SchoolInfo) => {
     
     const headerFooterOpts = addPdfHeaderFooterOptions(doc, schoolInfo, logoImage);
     
-    // Add report title
+    // Position report title below the header
+    const marginTopEnroll = headerFooterOpts.margin?.top ?? 92;
+    const titleYEnroll = marginTopEnroll - 28;
     doc.setFontSize(16);
     doc.setFont(undefined, 'bold');
     doc.setTextColor(44, 62, 80);
-    doc.text('Enrollments Report', 20, 70);
+    doc.text('Enrollments Report', 20, titleYEnroll);
     
     // Add summary info
     doc.setFontSize(10);
     doc.setFont(undefined, 'normal');
     doc.setTextColor(85, 85, 85);
-    doc.text(`Total Enrollments: ${data.length}`, 20, 82);
+    doc.text(`Total Enrollments: ${data.length}`, 20, titleYEnroll + 14);
     
     autoTable(doc, {
       head: [['Student ID', 'Student', 'Course', 'Class', 'Enrollment Date', 'Status', 'Term', 'Academic Year']],
@@ -739,7 +783,7 @@ const generateEnrollmentsPDF = async (data: any[], schoolInfo?: SchoolInfo) => {
         item.termName || 'N/A',
         item.academicYearName || 'N/A',
       ]),
-      startY: 90,
+      startY: headerFooterOpts.margin.top + 8,
       ...headerFooterOpts,
       // Professional table styling
       styles: { 
@@ -800,18 +844,20 @@ const generateFeePaymentsPDF = async (data: any[], schoolInfo?: SchoolInfo) => {
     
     const headerFooterOpts = addPdfHeaderFooterOptions(doc, schoolInfo, logoImage);
     
-    // Add report title
+    // Position report title below the header
+    const marginTopFees = headerFooterOpts.margin?.top ?? 92;
+    const titleYFees = marginTopFees - 28;
     doc.setFontSize(16);
     doc.setFont(undefined, 'bold');
     doc.setTextColor(44, 62, 80);
-    doc.text('Fee Payments Report', 20, 70);
+    doc.text('Fee Payments Report', 20, titleYFees);
     
     // Add summary info
     const totalAmount = data.reduce((sum, item) => sum + (item.amount || 0), 0);
     doc.setFontSize(10);
     doc.setFont(undefined, 'normal');
     doc.setTextColor(85, 85, 85);
-    doc.text(`Total Payments: ${data.length} | Total Amount: $${totalAmount.toLocaleString()}`, 20, 82);
+    doc.text(`Total Payments: ${data.length} | Total Amount: $${totalAmount.toLocaleString()}`, 20, titleYFees + 14);
     
     autoTable(doc, {
       head: [['Student ID', 'Student', 'Class', 'Amount', 'Payment Date', 'Method', 'Status', 'Term']],
