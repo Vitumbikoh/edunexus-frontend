@@ -147,7 +147,7 @@ const addPdfHeaderFooterOptions = (doc: any, apiSchoolInfo?: SchoolInfo, logoIma
       doc.text(`Generated on ${generateDate}`, 20, footerY);
       
       // Right side - Page number and school name
-      const pageText = `Page ${data.pageNumber} • ${school.name}`;
+      const pageText = `Page ${data.pageNumber} | ${school.name}`;
       const pageTextWidth = doc.getTextWidth(pageText);
       doc.text(pageText, pageWidth - 20 - pageTextWidth, footerY);
     },
@@ -163,6 +163,105 @@ const getLogoUrl = (schoolInfo?: SchoolInfo): string | null => {
     return `${baseUrl}${school.logo}`;
   }
   return null;
+};
+
+const createPdfDoc = () =>
+  new jsPDF({
+    orientation: 'portrait',
+    unit: 'pt',
+    format: 'a4',
+  });
+
+const formatDisplayDate = (value: any) => {
+  if (!value) return 'N/A';
+  const parsedDate = new Date(value);
+  if (Number.isNaN(parsedDate.getTime())) return 'N/A';
+  return parsedDate.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: '2-digit',
+  });
+};
+
+const formatCurrency = (value: any) => {
+  const amount = Number(value);
+  if (!Number.isFinite(amount)) return 'N/A';
+  return `$${amount.toLocaleString()}`;
+};
+
+const getTitleY = (headerFooterOpts: any) => (headerFooterOpts.margin?.top ?? 92) - 28;
+
+const drawReportHeading = (
+  doc: any,
+  title: string,
+  summary: string,
+  headerFooterOpts: any,
+) => {
+  const titleY = getTitleY(headerFooterOpts);
+  doc.setFontSize(16);
+  doc.setFont(undefined, 'bold');
+  doc.setTextColor(44, 62, 80);
+  doc.text(title, 20, titleY);
+
+  doc.setFontSize(10);
+  doc.setFont(undefined, 'normal');
+  doc.setTextColor(85, 85, 85);
+  doc.text(summary, 20, titleY + 14);
+
+  return (headerFooterOpts.margin?.top ?? 92) + 8;
+};
+
+const getProfessionalTableTheme = (
+  headerFooterOpts: any,
+  fillColor: [number, number, number],
+  headTextColor: [number, number, number] = [255, 255, 255],
+) => ({
+  ...headerFooterOpts,
+  styles: {
+    fontSize: 7.5,
+    cellPadding: { top: 4, right: 3, bottom: 4, left: 3 },
+    lineColor: [226, 232, 240],
+    lineWidth: 0.5,
+    textColor: [31, 41, 55],
+    overflow: 'ellipsize',
+    valign: 'middle',
+  },
+  headStyles: {
+    fillColor,
+    textColor: headTextColor,
+    fontSize: 8.5,
+    fontStyle: 'bold',
+    halign: 'center',
+    valign: 'middle',
+    cellPadding: { top: 5, right: 3, bottom: 5, left: 3 },
+  },
+  bodyStyles: {
+    minCellHeight: 17,
+  },
+  alternateRowStyles: {
+    fillColor: [248, 250, 252],
+  },
+  tableLineColor: [203, 213, 225],
+  tableLineWidth: 0.6,
+  tableWidth: 'auto',
+  rowPageBreak: 'avoid',
+});
+
+const createPdfContext = async (schoolInfo?: SchoolInfo) => {
+  const doc: any = createPdfDoc();
+  const logoUrl = getLogoUrl(schoolInfo);
+  let logoImage: string | undefined;
+
+  if (logoUrl) {
+    try {
+      logoImage = await loadImageAsBase64(logoUrl);
+    } catch (error) {
+      console.warn('Failed to load logo for PDF:', error);
+    }
+  }
+
+  const headerFooterOpts = addPdfHeaderFooterOptions(doc, schoolInfo, logoImage);
+  return { doc, headerFooterOpts };
 };
 
 const generateStudentsExcel = (data: any[], schoolInfo?: SchoolInfo) => {
@@ -453,50 +552,9 @@ const generateComprehensiveExcel = (data: {
 // Initialize jsPDF with autoTable and generate PDF reports
 const generateStudentsPDF = async (data: any[], schoolInfo?: SchoolInfo) => {
   try {
-    const doc: any = new jsPDF({
-      orientation: 'landscape',
-      unit: 'pt',
-      format: 'a4',
-    });
-    
-    // Load logo if available
-    const logoUrl = getLogoUrl(schoolInfo);
-    let logoImage: string | undefined;
-    if (logoUrl) {
-      try {
-        logoImage = await loadImageAsBase64(logoUrl);
-      } catch (error) {
-        console.warn('Failed to load logo for PDF:', error);
-      }
-    }
-    
-    const headerFooterOpts = addPdfHeaderFooterOptions(doc, schoolInfo, logoImage);
-    
-    // Position report title below the header
-    const marginTop = headerFooterOpts.margin?.top ?? 92;
-    const titleY = marginTop - 28;
-    doc.setFontSize(16);
-    doc.setFont(undefined, 'bold');
-    doc.setTextColor(44, 62, 80);
-    doc.text('Students Report', 20, titleY);
-    
-    // Add summary info
-    doc.setFontSize(10);
-    doc.setFont(undefined, 'normal');
-    doc.setTextColor(85, 85, 85);
-    doc.text(`Total Students: ${data.length}`, 20, titleY + 14);
+    const { doc, headerFooterOpts } = await createPdfContext(schoolInfo);
+    const tableStartY = drawReportHeading(doc, 'Students Report', `Total Students: ${data.length}`, headerFooterOpts);
 
-    const formatDateOfBirth = (value: any) => {
-      if (!value) return 'N/A';
-      const parsedDate = new Date(value);
-      if (Number.isNaN(parsedDate.getTime())) return 'N/A';
-      return parsedDate.toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: '2-digit',
-      });
-    };
-    
     autoTable(doc, {
       head: [['Student ID', 'Name', 'Gender', 'Class', 'Address', 'DOB', 'Age', 'Status', 'Owes Books']],
       body: data.map(item => [
@@ -505,55 +563,24 @@ const generateStudentsPDF = async (data: any[], schoolInfo?: SchoolInfo) => {
         item.gender || 'N/A',
         item.className || 'N/A',
         item.address || 'N/A',
-        formatDateOfBirth(item.dateOfBirth),
+        formatDisplayDate(item.dateOfBirth),
         item.age ?? 'N/A',
         item.status || 'N/A',
         item.owesBooks || 'NO',
       ]),
-      startY: 90,
-      ...headerFooterOpts,
-      // Professional table styling
-      styles: { 
-        fontSize: 8.5,
-        cellPadding: { top: 5, right: 4, bottom: 5, left: 4 },
-        lineColor: [226, 232, 240],
-        lineWidth: 0.5,
-        textColor: [31, 41, 55],
-        overflow: 'linebreak',
-        valign: 'middle',
-      },
-      headStyles: { 
-        fillColor: [33, 95, 160], // Professional blue
-        textColor: [255, 255, 255],
-        fontSize: 9.5,
-        fontStyle: 'bold',
-        halign: 'center',
-        valign: 'middle',
-        cellPadding: { top: 6, right: 4, bottom: 6, left: 4 },
-      },
-      bodyStyles: {
-        minCellHeight: 20,
-      },
-      alternateRowStyles: {
-        fillColor: [248, 250, 252], // Light gray for alternate rows
-      },
+      startY: tableStartY,
+      ...getProfessionalTableTheme(headerFooterOpts, [33, 95, 160]),
       columnStyles: {
-        0: { halign: 'center', cellWidth: 72 }, // Student ID
-        1: { cellWidth: 118 }, // Name
-        2: { halign: 'center', cellWidth: 58 }, // Gender
-        3: { halign: 'center', cellWidth: 74 }, // Class
-        4: { cellWidth: 178 }, // Address
-        5: { halign: 'center', cellWidth: 78 }, // DOB
-        6: { halign: 'center', cellWidth: 44 }, // Age
-        7: { halign: 'center', cellWidth: 64 }, // Status
-        8: { halign: 'center', cellWidth: 74 }, // Owes Books
+        0: { halign: 'center', cellWidth: 52 },
+        1: { cellWidth: 86 },
+        2: { halign: 'center', cellWidth: 44 },
+        3: { halign: 'center', cellWidth: 52 },
+        4: { cellWidth: 118, overflow: 'linebreak' },
+        5: { halign: 'center', cellWidth: 56 },
+        6: { halign: 'center', cellWidth: 30 },
+        7: { halign: 'center', cellWidth: 50 },
+        8: { halign: 'center', cellWidth: 55 },
       },
-      // Add subtle borders
-      tableLineColor: [203, 213, 225],
-      tableLineWidth: 0.6,
-      // Ensure table fits within page margins
-      tableWidth: 'auto',
-      rowPageBreak: 'avoid',
     });
     doc.save('students-report.pdf');
   } catch (error) {
@@ -564,35 +591,9 @@ const generateStudentsPDF = async (data: any[], schoolInfo?: SchoolInfo) => {
 
 const generateTeachersPDF = async (data: any[], schoolInfo?: SchoolInfo) => {
   try {
-    const doc: any = new jsPDF();
-    
-    // Load logo if available
-    const logoUrl = getLogoUrl(schoolInfo);
-    let logoImage: string | undefined;
-    if (logoUrl) {
-      try {
-        logoImage = await loadImageAsBase64(logoUrl);
-      } catch (error) {
-        console.warn('Failed to load logo for PDF:', error);
-      }
-    }
-    
-    const headerFooterOpts = addPdfHeaderFooterOptions(doc, schoolInfo, logoImage);
-    
-    // Position report title below the header
-    const marginTopTeachers = headerFooterOpts.margin?.top ?? 92;
-    const titleYTeachers = marginTopTeachers - 28;
-    doc.setFontSize(16);
-    doc.setFont(undefined, 'bold');
-    doc.setTextColor(44, 62, 80);
-    doc.text('Teachers Report', 20, titleYTeachers);
-    
-    // Add summary info
-    doc.setFontSize(10);
-    doc.setFont(undefined, 'normal');
-    doc.setTextColor(85, 85, 85);
-    doc.text(`Total Teachers: ${data.length}`, 20, titleYTeachers + 14);
-    
+    const { doc, headerFooterOpts } = await createPdfContext(schoolInfo);
+    const tableStartY = drawReportHeading(doc, 'Teachers Report', `Total Teachers: ${data.length}`, headerFooterOpts);
+
     autoTable(doc, {
       head: [['Name', 'Gender', 'Phone', 'Qualification', 'Experience', 'Address', 'DOB', 'Hire Date', 'Status']],
       body: data.map(item => [
@@ -600,49 +601,25 @@ const generateTeachersPDF = async (data: any[], schoolInfo?: SchoolInfo) => {
         item.gender || 'N/A',
         item.phoneNumber || 'N/A',
         item.qualification || 'N/A',
-        item.yearsOfExperience ? `${item.yearsOfExperience} years` : 'N/A',
+        item.yearsOfExperience ? `${item.yearsOfExperience} yrs` : 'N/A',
         item.address || 'N/A',
-        item.dateOfBirth ? new Date(item.dateOfBirth).toLocaleDateString() : 'N/A',
-        item.hireDate ? new Date(item.hireDate).toLocaleDateString() : (item.joinDate ? new Date(item.joinDate).toLocaleDateString() : 'N/A'),
+        formatDisplayDate(item.dateOfBirth),
+        formatDisplayDate(item.hireDate || item.joinDate),
         item.status || 'N/A',
       ]),
-      startY: headerFooterOpts.margin.top + 8,
-      ...headerFooterOpts,
-      // Professional table styling
-      styles: { 
-        fontSize: 9,
-        cellPadding: 4,
-        lineColor: [220, 220, 220],
-        lineWidth: 0.1,
-        textColor: [44, 62, 80],
-        overflow: 'linebreak',
-      },
-      headStyles: { 
-        fillColor: [46, 204, 113], // Professional green for teachers
-        textColor: [255, 255, 255],
-        fontSize: 10,
-        fontStyle: 'bold',
-        halign: 'center',
-        cellPadding: 6,
-      },
-      alternateRowStyles: {
-        fillColor: [248, 249, 250],
-      },
+      startY: tableStartY,
+      ...getProfessionalTableTheme(headerFooterOpts, [22, 163, 74]),
       columnStyles: {
-        0: { cellWidth: 32 }, // Name
-        1: { halign: 'center', cellWidth: 16 }, // Gender
-        2: { cellWidth: 22 }, // Phone
-        3: { cellWidth: 28 }, // Qualification
-        4: { halign: 'center', cellWidth: 18 }, // Experience
-        5: { cellWidth: 32 }, // Address
-        6: { halign: 'center', cellWidth: 20 }, // DOB
-        7: { halign: 'center', cellWidth: 20 }, // Hire Date
-        8: { halign: 'center', cellWidth: 16 }, // Status
+        0: { cellWidth: 74 },
+        1: { halign: 'center', cellWidth: 38 },
+        2: { cellWidth: 60 },
+        3: { cellWidth: 76 },
+        4: { halign: 'center', cellWidth: 52 },
+        5: { cellWidth: 102, overflow: 'linebreak' },
+        6: { halign: 'center', cellWidth: 52 },
+        7: { halign: 'center', cellWidth: 52 },
+        8: { halign: 'center', cellWidth: 40 },
       },
-      tableLineColor: [200, 200, 200],
-      tableLineWidth: 0.1,
-      tableWidth: 'auto',
-      margin: { left: 20, right: 20 },
     });
     doc.save('teachers-report.pdf');
   } catch (error) {
@@ -653,35 +630,9 @@ const generateTeachersPDF = async (data: any[], schoolInfo?: SchoolInfo) => {
 
 const generateCoursesPDF = async (data: any[], schoolInfo?: SchoolInfo) => {
   try {
-    const doc: any = new jsPDF();
-    
-    // Load logo if available
-    const logoUrl = getLogoUrl(schoolInfo);
-    let logoImage: string | undefined;
-    if (logoUrl) {
-      try {
-        logoImage = await loadImageAsBase64(logoUrl);
-      } catch (error) {
-        console.warn('Failed to load logo for PDF:', error);
-      }
-    }
-    
-    const headerFooterOpts = addPdfHeaderFooterOptions(doc, schoolInfo, logoImage);
-    
-    // Position report title below the header
-    const marginTopCourses = headerFooterOpts.margin?.top ?? 92;
-    const titleYCourses = marginTopCourses - 28;
-    doc.setFontSize(16);
-    doc.setFont(undefined, 'bold');
-    doc.setTextColor(44, 62, 80);
-    doc.text('Courses Report', 20, titleYCourses);
-    
-    // Add summary info
-    doc.setFontSize(10);
-    doc.setFont(undefined, 'normal');
-    doc.setTextColor(85, 85, 85);
-    doc.text(`Total Courses: ${data.length}`, 20, titleYCourses + 14);
-    
+    const { doc, headerFooterOpts } = await createPdfContext(schoolInfo);
+    const tableStartY = drawReportHeading(doc, 'Courses Report', `Total Courses: ${data.length}`, headerFooterOpts);
+
     autoTable(doc, {
       head: [['Name', 'Code', 'Class', 'Teacher', 'Department', 'Credits', 'Enrollments', 'Status', 'Active']],
       body: data.map(item => [
@@ -690,48 +641,24 @@ const generateCoursesPDF = async (data: any[], schoolInfo?: SchoolInfo) => {
         item.className || 'N/A',
         item.teacherName || 'N/A',
         item.department || 'N/A',
-        item.credits || 0,
-        item.enrollmentCount || 0,
+        item.credits ?? 0,
+        item.enrollmentCount ?? 0,
         item.status || 'N/A',
         item.active === true ? 'YES' : 'NO',
       ]),
-      startY: headerFooterOpts.margin.top + 8,
-      ...headerFooterOpts,
-      // Professional table styling
-      styles: { 
-        fontSize: 9,
-        cellPadding: 4,
-        lineColor: [220, 220, 220],
-        lineWidth: 0.1,
-        textColor: [44, 62, 80],
-        overflow: 'linebreak',
-      },
-      headStyles: { 
-        fillColor: [155, 89, 182], // Professional purple for courses
-        textColor: [255, 255, 255],
-        fontSize: 10,
-        fontStyle: 'bold',
-        halign: 'center',
-        cellPadding: 6,
-      },
-      alternateRowStyles: {
-        fillColor: [248, 249, 250],
-      },
+      startY: tableStartY,
+      ...getProfessionalTableTheme(headerFooterOpts, [14, 116, 144]),
       columnStyles: {
-        0: { cellWidth: 28 }, // Name
-        1: { halign: 'center', cellWidth: 18 }, // Code
-        2: { halign: 'center', cellWidth: 18 }, // Class
-        3: { cellWidth: 28 }, // Teacher
-        4: { cellWidth: 22 }, // Department
-        5: { halign: 'center', cellWidth: 16 }, // Credits
-        6: { halign: 'center', cellWidth: 20 }, // Enrollments
-        7: { halign: 'center', cellWidth: 18 }, // Status
-        8: { halign: 'center', cellWidth: 12 }, // Active
+        0: { cellWidth: 88 },
+        1: { halign: 'center', cellWidth: 44 },
+        2: { halign: 'center', cellWidth: 48 },
+        3: { cellWidth: 84 },
+        4: { cellWidth: 82 },
+        5: { halign: 'center', cellWidth: 46 },
+        6: { halign: 'center', cellWidth: 50 },
+        7: { halign: 'center', cellWidth: 58 },
+        8: { halign: 'center', cellWidth: 42 },
       },
-      tableLineColor: [200, 200, 200],
-      tableLineWidth: 0.1,
-      tableWidth: 'auto',
-      margin: { left: 20, right: 20 },
     });
     doc.save('courses-report.pdf');
   } catch (error) {
@@ -742,35 +669,9 @@ const generateCoursesPDF = async (data: any[], schoolInfo?: SchoolInfo) => {
 
 const generateEnrollmentsPDF = async (data: any[], schoolInfo?: SchoolInfo) => {
   try {
-    const doc: any = new jsPDF();
-    
-    // Load logo if available
-    const logoUrl = getLogoUrl(schoolInfo);
-    let logoImage: string | undefined;
-    if (logoUrl) {
-      try {
-        logoImage = await loadImageAsBase64(logoUrl);
-      } catch (error) {
-        console.warn('Failed to load logo for PDF:', error);
-      }
-    }
-    
-    const headerFooterOpts = addPdfHeaderFooterOptions(doc, schoolInfo, logoImage);
-    
-    // Position report title below the header
-    const marginTopEnroll = headerFooterOpts.margin?.top ?? 92;
-    const titleYEnroll = marginTopEnroll - 28;
-    doc.setFontSize(16);
-    doc.setFont(undefined, 'bold');
-    doc.setTextColor(44, 62, 80);
-    doc.text('Enrollments Report', 20, titleYEnroll);
-    
-    // Add summary info
-    doc.setFontSize(10);
-    doc.setFont(undefined, 'normal');
-    doc.setTextColor(85, 85, 85);
-    doc.text(`Total Enrollments: ${data.length}`, 20, titleYEnroll + 14);
-    
+    const { doc, headerFooterOpts } = await createPdfContext(schoolInfo);
+    const tableStartY = drawReportHeading(doc, 'Enrollments Report', `Total Enrollments: ${data.length}`, headerFooterOpts);
+
     autoTable(doc, {
       head: [['Student ID', 'Student', 'Course', 'Class', 'Enrollment Date', 'Status', 'Term', 'Academic Year']],
       body: data.map(item => [
@@ -778,47 +679,23 @@ const generateEnrollmentsPDF = async (data: any[], schoolInfo?: SchoolInfo) => {
         item.studentName || 'N/A',
         item.courseName || 'N/A',
         item.className || 'N/A',
-        item.enrollmentDate ? new Date(item.enrollmentDate).toLocaleDateString() : 'N/A',
+        formatDisplayDate(item.enrollmentDate),
         item.status || 'N/A',
         item.termName || 'N/A',
         item.academicYearName || 'N/A',
       ]),
-      startY: headerFooterOpts.margin.top + 8,
-      ...headerFooterOpts,
-      // Professional table styling
-      styles: { 
-        fontSize: 9,
-        cellPadding: 4,
-        lineColor: [220, 220, 220],
-        lineWidth: 0.1,
-        textColor: [44, 62, 80],
-        overflow: 'linebreak',
-      },
-      headStyles: { 
-        fillColor: [241, 196, 15], // Professional orange for enrollments
-        textColor: [44, 62, 80], // Dark text for better contrast on yellow
-        fontSize: 10,
-        fontStyle: 'bold',
-        halign: 'center',
-        cellPadding: 6,
-      },
-      alternateRowStyles: {
-        fillColor: [248, 249, 250],
-      },
+      startY: tableStartY,
+      ...getProfessionalTableTheme(headerFooterOpts, [194, 120, 3], [31, 41, 55]),
       columnStyles: {
-        0: { halign: 'center', cellWidth: 22 }, // Student ID
-        1: { cellWidth: 28 }, // Student
-        2: { cellWidth: 28 }, // Course
-        3: { halign: 'center', cellWidth: 18 }, // Class
-        4: { halign: 'center', cellWidth: 23 }, // Enrollment Date
-        5: { halign: 'center', cellWidth: 18 }, // Status
-        6: { cellWidth: 22 }, // Term
-        7: { cellWidth: 26 }, // Academic Year
+        0: { halign: 'center', cellWidth: 56 },
+        1: { cellWidth: 82 },
+        2: { cellWidth: 82 },
+        3: { halign: 'center', cellWidth: 46 },
+        4: { halign: 'center', cellWidth: 70 },
+        5: { halign: 'center', cellWidth: 50 },
+        6: { cellWidth: 64 },
+        7: { cellWidth: 74 },
       },
-      tableLineColor: [200, 200, 200],
-      tableLineWidth: 0.1,
-      tableWidth: 'auto',
-      margin: { left: 20, right: 20 },
     });
     doc.save('enrollments-report.pdf');
   } catch (error) {
@@ -829,84 +706,39 @@ const generateEnrollmentsPDF = async (data: any[], schoolInfo?: SchoolInfo) => {
 
 const generateFeePaymentsPDF = async (data: any[], schoolInfo?: SchoolInfo) => {
   try {
-    const doc: any = new jsPDF();
-    
-    // Load logo if available
-    const logoUrl = getLogoUrl(schoolInfo);
-    let logoImage: string | undefined;
-    if (logoUrl) {
-      try {
-        logoImage = await loadImageAsBase64(logoUrl);
-      } catch (error) {
-        console.warn('Failed to load logo for PDF:', error);
-      }
-    }
-    
-    const headerFooterOpts = addPdfHeaderFooterOptions(doc, schoolInfo, logoImage);
-    
-    // Position report title below the header
-    const marginTopFees = headerFooterOpts.margin?.top ?? 92;
-    const titleYFees = marginTopFees - 28;
-    doc.setFontSize(16);
-    doc.setFont(undefined, 'bold');
-    doc.setTextColor(44, 62, 80);
-    doc.text('Fee Payments Report', 20, titleYFees);
-    
-    // Add summary info
+    const { doc, headerFooterOpts } = await createPdfContext(schoolInfo);
     const totalAmount = data.reduce((sum, item) => sum + (item.amount || 0), 0);
-    doc.setFontSize(10);
-    doc.setFont(undefined, 'normal');
-    doc.setTextColor(85, 85, 85);
-    doc.text(`Total Payments: ${data.length} | Total Amount: $${totalAmount.toLocaleString()}`, 20, titleYFees + 14);
-    
+    const tableStartY = drawReportHeading(
+      doc,
+      'Fee Payments Report',
+      `Total Payments: ${data.length} | Total Amount: ${formatCurrency(totalAmount)}`,
+      headerFooterOpts,
+    );
+
     autoTable(doc, {
       head: [['Student ID', 'Student', 'Class', 'Amount', 'Payment Date', 'Method', 'Status', 'Term']],
       body: data.map(item => [
         item.studentHumanId || item.studentId || 'N/A',
         item.studentName || 'N/A',
         item.className || 'N/A',
-        item.amount ? `$${item.amount.toLocaleString()}` : 'N/A',
-        item.paymentDate ? new Date(item.paymentDate).toLocaleDateString() : 'N/A',
+        formatCurrency(item.amount),
+        formatDisplayDate(item.paymentDate),
         item.paymentMethod || 'N/A',
         item.status || 'N/A',
         item.termName || 'N/A',
       ]),
-      startY: 90,
-      ...headerFooterOpts,
-      // Professional table styling
-      styles: { 
-        fontSize: 9,
-        cellPadding: 4,
-        lineColor: [220, 220, 220],
-        lineWidth: 0.1,
-        textColor: [44, 62, 80],
-        overflow: 'linebreak',
-      },
-      headStyles: { 
-        fillColor: [231, 76, 60], // Professional red for finances
-        textColor: [255, 255, 255],
-        fontSize: 10,
-        fontStyle: 'bold',
-        halign: 'center',
-        cellPadding: 6,
-      },
-      alternateRowStyles: {
-        fillColor: [248, 249, 250],
-      },
+      startY: tableStartY,
+      ...getProfessionalTableTheme(headerFooterOpts, [185, 28, 28]),
       columnStyles: {
-        0: { halign: 'center', cellWidth: 22 }, // Student ID
-        1: { cellWidth: 28 }, // Student
-        2: { halign: 'center', cellWidth: 18 }, // Class
-        3: { halign: 'right', cellWidth: 22 }, // Amount
-        4: { halign: 'center', cellWidth: 23 }, // Payment Date
-        5: { cellWidth: 22 }, // Method
-        6: { halign: 'center', cellWidth: 18 }, // Status
-        7: { cellWidth: 26 }, // Term
+        0: { halign: 'center', cellWidth: 54 },
+        1: { cellWidth: 88 },
+        2: { halign: 'center', cellWidth: 50 },
+        3: { halign: 'right', cellWidth: 68 },
+        4: { halign: 'center', cellWidth: 70 },
+        5: { cellWidth: 68 },
+        6: { halign: 'center', cellWidth: 50 },
+        7: { cellWidth: 66 },
       },
-      tableLineColor: [200, 200, 200],
-      tableLineWidth: 0.1,
-      tableWidth: 'auto',
-      margin: { left: 20, right: 20 },
     });
     doc.save('fee-payments-report.pdf');
   } catch (error) {
@@ -924,79 +756,62 @@ const generateComprehensivePDF = async (data: {
   schoolInfo?: SchoolInfo;
 }) => {
   try {
-    const doc: any = new jsPDF();
-    
-    // Load logo if available
-    const logoUrl = getLogoUrl(data.schoolInfo);
-    let logoImage: string | undefined;
-    if (logoUrl) {
-      try {
-        logoImage = await loadImageAsBase64(logoUrl);
-      } catch (error) {
-        console.warn('Failed to load logo for PDF:', error);
-      }
-    }
-    
-    const headerFooterOpts = addPdfHeaderFooterOptions(doc, data.schoolInfo, logoImage);
+    const { doc, headerFooterOpts } = await createPdfContext(data.schoolInfo);
     const school = getSchoolInfo(data.schoolInfo);
-
-    // Title Page Section with School Information
-    doc.setFontSize(24);
-    doc.setFont(undefined, 'bold');
-    doc.setTextColor(44, 62, 80);
-    doc.text('Comprehensive School Report', 20, 80);
-    
-    // School Information Section
-    doc.setFontSize(16);
-    doc.setFont(undefined, 'bold');
-    doc.setTextColor(52, 152, 219);
-    doc.text('School Information', 20, 105);
-    
-    doc.setFontSize(12);
-    doc.setFont(undefined, 'normal');
-    doc.setTextColor(85, 85, 85);
-    doc.text(`School Name: ${school.name}`, 20, 120);
-    if (school.address) {
-      doc.text(`Address: ${school.address}`, 20, 130);
-    }
-    if (school.phone) {
-      doc.text(`Phone: ${school.phone}`, 20, 140);
-    }
-    if (school.email) {
-      doc.text(`Email: ${school.email}`, 20, 150);
-    }
-    
-    // Summary Statistics
-    doc.setFontSize(16);
-    doc.setFont(undefined, 'bold');
-    doc.setTextColor(52, 152, 219);
-    doc.text('School Overview', 20, 170);
-    
-    doc.setFontSize(11);
-    doc.setFont(undefined, 'normal');
-    doc.setTextColor(85, 85, 85);
-    doc.text(`Total Students: ${data.students.length}`, 20, 185);
-    doc.text(`Total Teachers: ${data.teachers.length}`, 20, 195);
-    doc.text(`Total Courses: ${data.courses.length}`, 20, 205);
-    doc.text(`Total Enrollments: ${data.enrollments.length}`, 20, 215);
-    doc.text(`Total Fee Payments: ${data.feePayments.length}`, 20, 225);
-    
     const totalRevenue = data.feePayments.reduce((sum, payment) => sum + (payment.amount || 0), 0);
-    doc.text(`Total Revenue: $${totalRevenue.toLocaleString()}`, 20, 235);
-
-    // Students Section - Start on new page for better organization
-    doc.addPage();
-    let currentY = 70; // Start below header
-
-    doc.setFontSize(16);
-    doc.setFont(undefined, 'bold');
-    doc.setTextColor(44, 62, 80);
-    doc.text('Students Report', 20, currentY);
-    currentY += 15;
+    const overviewStartY = drawReportHeading(
+      doc,
+      'Comprehensive School Report',
+      'Sections: Students, Teachers, Courses, Enrollments, Financial',
+      headerFooterOpts,
+    );
 
     autoTable(doc, {
+      head: [['School Profile', 'Details']],
+      body: [
+        ['School Name', school.name || 'N/A'],
+        ['Address', school.address || 'N/A'],
+        ['Phone', school.phone || 'N/A'],
+        ['Email', school.email || 'N/A'],
+      ],
+      startY: overviewStartY,
+      ...getProfessionalTableTheme(headerFooterOpts, [33, 95, 160]),
+      columnStyles: {
+        0: { cellWidth: 130, fontStyle: 'bold' },
+        1: { cellWidth: 410, overflow: 'linebreak' },
+      },
+    });
+
+    const metricsStartY = (doc.lastAutoTable?.finalY || overviewStartY) + 10;
+    autoTable(doc, {
+      head: [['Overview Metric', 'Value']],
+      body: [
+        ['Total Students', data.students.length],
+        ['Total Teachers', data.teachers.length],
+        ['Total Courses', data.courses.length],
+        ['Total Enrollments', data.enrollments.length],
+        ['Total Fee Payments', data.feePayments.length],
+        ['Total Revenue', formatCurrency(totalRevenue)],
+      ],
+      startY: metricsStartY,
+      ...getProfessionalTableTheme(headerFooterOpts, [14, 116, 144]),
+      columnStyles: {
+        0: { cellWidth: 260, fontStyle: 'bold' },
+        1: { cellWidth: 180, halign: 'right' },
+      },
+    });
+
+    const studentsSlice = data.students.slice(0, 50);
+    doc.addPage();
+    const studentsStartY = drawReportHeading(
+      doc,
+      'Students Report',
+      `Rows shown: ${studentsSlice.length} of ${data.students.length}`,
+      headerFooterOpts,
+    );
+    autoTable(doc, {
       head: [['Student ID', 'Name', 'Gender', 'Class', 'Address', 'Status', 'Owes Books']],
-      body: data.students.slice(0, 50).map(item => [ // Limit to first 50 for readability
+      body: studentsSlice.map(item => [
         item.studentHumanId || item.studentId || 'N/A',
         item.name || 'N/A',
         item.gender || 'N/A',
@@ -1005,125 +820,90 @@ const generateComprehensivePDF = async (data: {
         item.status || 'N/A',
         item.owesBooks || 'NO',
       ]),
-      startY: currentY,
-      ...headerFooterOpts,
-      styles: { 
-        fontSize: 9,
-        cellPadding: 3,
-        lineColor: [220, 220, 220],
-        textColor: [44, 62, 80],
+      startY: studentsStartY,
+      ...getProfessionalTableTheme(headerFooterOpts, [33, 95, 160]),
+      columnStyles: {
+        0: { halign: 'center', cellWidth: 56 },
+        1: { cellWidth: 94 },
+        2: { halign: 'center', cellWidth: 48 },
+        3: { halign: 'center', cellWidth: 56 },
+        4: { cellWidth: 170, overflow: 'linebreak' },
+        5: { halign: 'center', cellWidth: 54 },
+        6: { halign: 'center', cellWidth: 65 },
       },
-      headStyles: { 
-        fillColor: [52, 152, 219],
-        textColor: [255, 255, 255],
-        fontSize: 10,
-        fontStyle: 'bold',
-        halign: 'center',
-      },
-      alternateRowStyles: { fillColor: [248, 249, 250] },
-      tableLineColor: [200, 200, 200],
-      tableLineWidth: 0.1,
-      tableWidth: 'auto',
-      margin: { left: 20, right: 20 },
     });
 
-    // Teachers Section
+    const teachersSlice = data.teachers.slice(0, 50);
     doc.addPage();
-    currentY = 70;
-    
-    doc.setFontSize(16);
-    doc.setFont(undefined, 'bold');
-    doc.setTextColor(44, 62, 80);
-    doc.text('Teachers Report', 20, currentY);
-    currentY += 15;
-
+    const teachersStartY = drawReportHeading(
+      doc,
+      'Teachers Report',
+      `Rows shown: ${teachersSlice.length} of ${data.teachers.length}`,
+      headerFooterOpts,
+    );
     autoTable(doc, {
       head: [['Name', 'Gender', 'Phone', 'Qualification', 'Experience', 'Status']],
-      body: data.teachers.slice(0, 50).map(item => [
+      body: teachersSlice.map(item => [
         item.name || 'N/A',
         item.gender || 'N/A',
         item.phoneNumber || 'N/A',
         item.qualification || 'N/A',
-        item.yearsOfExperience ? `${item.yearsOfExperience} years` : 'N/A',
+        item.yearsOfExperience ? `${item.yearsOfExperience} yrs` : 'N/A',
         item.status || 'N/A',
       ]),
-      startY: currentY,
-      ...headerFooterOpts,
-      styles: { 
-        fontSize: 9,
-        cellPadding: 3,
-        lineColor: [220, 220, 220],
-        textColor: [44, 62, 80],
+      startY: teachersStartY,
+      ...getProfessionalTableTheme(headerFooterOpts, [22, 163, 74]),
+      columnStyles: {
+        0: { cellWidth: 110 },
+        1: { halign: 'center', cellWidth: 52 },
+        2: { cellWidth: 78 },
+        3: { cellWidth: 100 },
+        4: { halign: 'center', cellWidth: 78 },
+        5: { halign: 'center', cellWidth: 74 },
       },
-      headStyles: { 
-        fillColor: [46, 204, 113],
-        textColor: [255, 255, 255],
-        fontSize: 10,
-        fontStyle: 'bold',
-        halign: 'center',
-      },
-      alternateRowStyles: { fillColor: [248, 249, 250] },
-      tableLineColor: [200, 200, 200],
-      tableLineWidth: 0.1,
-      tableWidth: 'auto',
-      margin: { left: 20, right: 20 },
     });
 
-    // Courses Section
+    const coursesSlice = data.courses.slice(0, 50);
     doc.addPage();
-    currentY = 70;
-    
-    doc.setFontSize(16);
-    doc.setFont(undefined, 'bold');
-    doc.setTextColor(44, 62, 80);
-    doc.text('Courses Report', 20, currentY);
-    currentY += 15;
-
+    const coursesStartY = drawReportHeading(
+      doc,
+      'Courses Report',
+      `Rows shown: ${coursesSlice.length} of ${data.courses.length}`,
+      headerFooterOpts,
+    );
     autoTable(doc, {
       head: [['Name', 'Code', 'Class', 'Teacher', 'Enrollments', 'Status']],
-      body: data.courses.slice(0, 50).map(item => [
+      body: coursesSlice.map(item => [
         item.name || 'N/A',
         item.code || 'N/A',
         item.className || 'N/A',
         item.teacherName || 'N/A',
-        item.enrollmentCount || 0,
+        item.enrollmentCount ?? 0,
         item.status || 'N/A',
       ]),
-      startY: currentY,
-      ...headerFooterOpts,
-      styles: { 
-        fontSize: 9,
-        cellPadding: 3,
-        lineColor: [220, 220, 220],
-        textColor: [44, 62, 80],
+      startY: coursesStartY,
+      ...getProfessionalTableTheme(headerFooterOpts, [14, 116, 144]),
+      columnStyles: {
+        0: { cellWidth: 120 },
+        1: { halign: 'center', cellWidth: 56 },
+        2: { halign: 'center', cellWidth: 58 },
+        3: { cellWidth: 120 },
+        4: { halign: 'center', cellWidth: 80 },
+        5: { halign: 'center', cellWidth: 70 },
       },
-      headStyles: { 
-        fillColor: [155, 89, 182],
-        textColor: [255, 255, 255],
-        fontSize: 10,
-        fontStyle: 'bold',
-        halign: 'center',
-      },
-      alternateRowStyles: { fillColor: [248, 249, 250] },
-      tableLineColor: [200, 200, 200],
-      tableLineWidth: 0.1,
-      tableWidth: 'auto',
-      margin: { left: 20, right: 20 },
     });
 
-    // Enrollments Section
+    const enrollmentsSlice = data.enrollments.slice(0, 50);
     doc.addPage();
-    currentY = 70;
-    
-    doc.setFontSize(16);
-    doc.setFont(undefined, 'bold');
-    doc.setTextColor(44, 62, 80);
-    doc.text('Enrollments Report', 20, currentY);
-    currentY += 15;
-
+    const enrollmentsStartY = drawReportHeading(
+      doc,
+      'Enrollments Report',
+      `Rows shown: ${enrollmentsSlice.length} of ${data.enrollments.length}`,
+      headerFooterOpts,
+    );
     autoTable(doc, {
       head: [['Student ID', 'Student', 'Course', 'Class', 'Status', 'Term']],
-      body: data.enrollments.slice(0, 50).map(item => [
+      body: enrollmentsSlice.map(item => [
         item.studentHumanId || item.studentId || 'N/A',
         item.studentName || 'N/A',
         item.courseName || 'N/A',
@@ -1131,71 +911,46 @@ const generateComprehensivePDF = async (data: {
         item.status || 'N/A',
         item.termName || 'N/A',
       ]),
-      startY: currentY,
-      ...headerFooterOpts,
-      styles: { 
-        fontSize: 9,
-        cellPadding: 3,
-        lineColor: [220, 220, 220],
-        textColor: [44, 62, 80],
+      startY: enrollmentsStartY,
+      ...getProfessionalTableTheme(headerFooterOpts, [194, 120, 3], [31, 41, 55]),
+      columnStyles: {
+        0: { halign: 'center', cellWidth: 60 },
+        1: { cellWidth: 100 },
+        2: { cellWidth: 118 },
+        3: { halign: 'center', cellWidth: 64 },
+        4: { halign: 'center', cellWidth: 74 },
+        5: { cellWidth: 95 },
       },
-      headStyles: { 
-        fillColor: [241, 196, 15],
-        textColor: [44, 62, 80],
-        fontSize: 10,
-        fontStyle: 'bold',
-        halign: 'center',
-      },
-      alternateRowStyles: { fillColor: [248, 249, 250] },
-      tableLineColor: [200, 200, 200],
-      tableLineWidth: 0.1,
-      tableWidth: 'auto',
-      margin: { left: 20, right: 20 },
     });
 
-    // Financial Summary Section
+    const feePaymentsSlice = data.feePayments.slice(0, 50);
     doc.addPage();
-    currentY = 70;
-    
-    doc.setFontSize(16);
-    doc.setFont(undefined, 'bold');
-    doc.setTextColor(44, 62, 80);
-    doc.text('Financial Summary', 20, currentY);
-    currentY += 15;
-
+    const financialStartY = drawReportHeading(
+      doc,
+      'Financial Summary',
+      `Rows shown: ${feePaymentsSlice.length} of ${data.feePayments.length}`,
+      headerFooterOpts,
+    );
     autoTable(doc, {
       head: [['Student', 'Class', 'Amount', 'Date', 'Method', 'Status']],
-      body: data.feePayments.slice(0, 50).map(item => [
+      body: feePaymentsSlice.map(item => [
         item.studentName || 'N/A',
         item.className || 'N/A',
-        item.amount ? `$${item.amount.toLocaleString()}` : 'N/A',
-        item.paymentDate ? new Date(item.paymentDate).toLocaleDateString() : 'N/A',
+        formatCurrency(item.amount),
+        formatDisplayDate(item.paymentDate),
         item.paymentMethod || 'N/A',
         item.status || 'N/A',
       ]),
-      startY: currentY,
-      ...headerFooterOpts,
-      styles: { 
-        fontSize: 9,
-        cellPadding: 3,
-        lineColor: [220, 220, 220],
-        textColor: [44, 62, 80],
-      },
-      headStyles: { 
-        fillColor: [231, 76, 60],
-        textColor: [255, 255, 255],
-        fontSize: 10,
-        fontStyle: 'bold',
-        halign: 'center',
-      },
-      alternateRowStyles: { fillColor: [248, 249, 250] },
+      startY: financialStartY,
+      ...getProfessionalTableTheme(headerFooterOpts, [185, 28, 28]),
       columnStyles: {
-        2: { halign: 'right' }, // Amount column
+        0: { cellWidth: 120 },
+        1: { halign: 'center', cellWidth: 70 },
+        2: { halign: 'right', cellWidth: 90 },
+        3: { halign: 'center', cellWidth: 72 },
+        4: { cellWidth: 86 },
+        5: { halign: 'center', cellWidth: 76 },
       },
-      tableLineColor: [200, 200, 200],
-      tableLineWidth: 0.1,
-      tableWidth: 'auto',
-      margin: { left: 20, right: 20 },
     });
 
     doc.save('comprehensive-report.pdf');
