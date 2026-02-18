@@ -115,6 +115,26 @@ export default function StudentProgression() {
     }
   });
   const [executionResult, setExecutionResult] = useState<any>(null);
+  const [executionHistory, setExecutionHistory] = useState<any[]>([]);
+
+  const fetchProgressionHistory = async () => {
+    try {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/settings/student-promotion/history`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+      if (!response.ok) {
+        throw new Error('Failed to fetch progression history');
+      }
+      const result = await response.json();
+      setExecutionHistory(Array.isArray(result?.history) ? result.history : []);
+    } catch (error) {
+      console.error('Error fetching progression history:', error);
+      setExecutionHistory([]);
+    }
+  };
 
   // Check authentication
   useEffect(() => {
@@ -230,7 +250,7 @@ export default function StudentProgression() {
 
       const result = await response.json();
       setProgressionData(result);
-      
+
       if (!result.success || !result.isProgressionPeriod) {
         toast({
           variant: "destructive",
@@ -281,6 +301,7 @@ export default function StudentProgression() {
         queryClient.invalidateQueries({ queryKey: ['notification-stats'] });
         // Refresh preview
         await fetchProgressionPreview();
+        await fetchProgressionHistory();
         return;
       }
 
@@ -295,6 +316,7 @@ export default function StudentProgression() {
 
       // Refresh preview after execution
       await fetchProgressionPreview();
+      await fetchProgressionHistory();
     } catch (error) {
       console.error('Error executing progression:', error);
       toast({
@@ -342,6 +364,7 @@ export default function StudentProgression() {
 
       // Refresh preview after revert
       await fetchProgressionPreview();
+      await fetchProgressionHistory();
     } catch (error) {
       console.error('Error reverting progression:', error);
       toast({
@@ -358,6 +381,7 @@ export default function StudentProgression() {
   useEffect(() => {
     fetchProgressionPreview();
     fetchSchoolSettings();
+    fetchProgressionHistory();
   }, []);
 
   if (!user || user.role !== 'admin') {
@@ -782,16 +806,42 @@ export default function StudentProgression() {
               </p>
             </CardHeader>
             <CardContent>
-              {executionResult ? (
-                <Alert>
-                  <CheckCircle className="h-4 w-4" />
-                  <AlertTitle>Last Execution Result</AlertTitle>
-                  <AlertDescription>
-                    Promoted: {executionResult.promoted || 0} students, 
-                    Graduated: {executionResult.graduated || 0} students,
-                    Errors: {executionResult.errors || 0}
-                  </AlertDescription>
-                </Alert>
+              {executionHistory && executionHistory.length > 0 ? (
+                <>
+                  {/* Most recent execution summary */}
+                  <Alert>
+                    <CheckCircle className="h-4 w-4" />
+                    <AlertTitle>Last Execution Result</AlertTitle>
+                    <AlertDescription>
+                      Promoted: {executionHistory[0].promoted || 0} students, 
+                      Graduated: {executionHistory[0].graduated || 0} students,
+                      Errors: {executionHistory[0].errors || 0}
+                    </AlertDescription>
+                  </Alert>
+
+                  {/* Execution history list */}
+                  <div className="mt-4 space-y-3">
+                    {executionHistory.map((h: any) => (
+                      <div key={h.id} className="flex justify-between items-center p-3 border rounded-md">
+                        <div>
+                          <div className="font-medium">{new Date(h.date).toLocaleString()}</div>
+                          <div className="text-sm text-muted-foreground">{h.progressionPeriod}{h.term ? ` — ${h.term}` : ''}</div>
+                          {h.note && <div className="text-xs text-muted-foreground mt-1">{h.note}</div>}
+                        </div>
+                        <div className="text-right">
+                          <div className="text-sm">Promoted: <strong>{h.promoted || 0}</strong></div>
+                          <div className="text-sm">Graduated: <strong>{h.graduated || 0}</strong></div>
+                          <div className="text-sm">Errors: <strong>{h.errors || 0}</strong></div>
+                          <div className="mt-2">
+                            <Badge variant={h.status === 'Completed' ? 'secondary' : 'destructive'}>
+                              {h.status}
+                            </Badge>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
               ) : (
                 <Alert>
                   <AlertCircle className="h-4 w-4" />
