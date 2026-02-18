@@ -1,5 +1,7 @@
 import PaginationBar from "@/components/common/PaginationBar";
 import React, { useEffect, useMemo, useState } from 'react';
+import { API_CONFIG } from '@/config/api';
+import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { libraryApi, Borrowing, Book } from '@/services/libraryService';
 import { Button } from '@/components/ui/button';
@@ -18,6 +20,7 @@ export default function Borrowings() {
   const [allClasses, setAllClasses] = useState<Array<{ id: string; name: string; numericalName: number }>>([]);
   const [classes, setClasses] = useState<Array<{ id: string; name: string; numericalName: number }>>([]);
   const [loading, setLoading] = useState(false);
+  const [returningIds, setReturningIds] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   
   // Pagination and filters
@@ -33,10 +36,20 @@ export default function Borrowings() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState<{ bookId?: string; bookName?: string; studentId: string; dueAt: string }>({ studentId: '', dueAt: new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 16) });
   const [studentQuery, setStudentQuery] = useState('');
+  const [bookQuery, setBookQuery] = useState('');
   const [studentOptions, setStudentOptions] = useState<Array<{ id: string; studentId: string; firstName: string; lastName: string; class?: { id: string; name: string; numericalName: number } }>>([]);
   const [selectedStudent, setSelectedStudent] = useState<{ id: string; studentId: string; firstName: string; lastName: string; class?: { id: string; name: string; numericalName: number } } | null>(null);
   const isStaff = useMemo(() => ['admin', 'super_admin', 'teacher', 'finance'].includes(user?.role || ''), [user]);
+  const { toast } = useToast();
   const superAdminSchoolId = user?.role === 'super_admin' ? user.schoolId : undefined;
+
+  const selectedStudentClass = useMemo(() => {
+    if (!selectedStudent) return null;
+    if (selectedStudent.class?.id) return selectedStudent.class;
+    const fallbackClassId = (selectedStudent as any)?.classId;
+    if (!fallbackClassId || !Array.isArray(allClasses)) return null;
+    return allClasses.find((c) => c.id === fallbackClassId) || null;
+  }, [selectedStudent, allClasses]);
 
   // Filter books based on selected student's class level
   const availableBooks = useMemo(() => {
@@ -48,12 +61,26 @@ export default function Borrowings() {
       if (!book.classId || !book.class) return true;
       
       // If student has no class, they can only borrow N/A books
-      if (!selectedStudent.class) return false;
+      if (!selectedStudentClass) return false;
       
       // Student can borrow books for their class level and below
-      return book.class.numericalName <= selectedStudent.class.numericalName;
+      return book.class.numericalName <= selectedStudentClass.numericalName;
     });
-  }, [books, selectedStudent]);
+  }, [books, selectedStudent, selectedStudentClass]);
+
+  const filteredBookOptions = useMemo(() => {
+    const q = bookQuery.trim().toLowerCase();
+    if (!q) return [];
+    return availableBooks
+      .filter((b) => {
+        const title = (b.title || '').toLowerCase();
+        const author = (b.author || '').toLowerCase();
+        const isbn = (b.isbn || '').toLowerCase();
+        const cls = (b.class?.name || '').toLowerCase();
+        return title.includes(q) || author.includes(q) || isbn.includes(q) || cls.includes(q);
+      })
+      .slice(0, 25);
+  }, [availableBooks, bookQuery]);
 
   // Client-side filtering and pagination
   const { paginatedBorrowings, totalFilteredCount, totalFilteredPages } = useMemo(() => {
@@ -239,6 +266,14 @@ export default function Borrowings() {
 
   const onBorrow = async () => {
     if (!(form.bookId || form.bookName) || !form.studentId || !form.dueAt) return;
+    // Ensure selected student is active
+    if (selectedStudent) {
+      const inactive = selectedStudent?.isActive === false || (selectedStudent?.status && String(selectedStudent.status).toLowerCase() !== 'active');
+      if (inactive) {
+        toast({ title: 'Student Inactive', description: 'Cannot borrow: selected student is inactive.', variant: 'destructive' });
+        return;
+      }
+    }
     try {
       setLoading(true);
       await libraryApi.borrow({ ...form, schoolId: superAdminSchoolId, dueAt: new Date(form.dueAt).toISOString() }, token || undefined);
@@ -246,6 +281,7 @@ export default function Borrowings() {
       setForm({ studentId: '', dueAt: new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 16) });
       setSelectedStudent(null);
       setStudentQuery('');
+      setBookQuery('');
       await load(currentPage);
     } catch (e: any) {
       setError(e.message || 'Failed to borrow');
@@ -257,11 +293,15 @@ export default function Borrowings() {
   const onReturn = async (id: string) => {
     const confirm = window.confirm('Are you sure you want to mark this as returned?');
     if (!confirm) return;
+    if (returningIds.includes(id)) return; // already in progress
     try {
+      setReturningIds(prev => [...prev, id]);
       await libraryApi.returnBook({ borrowingId: id }, token || undefined);
       await load(currentPage);
     } catch (e: any) {
       setError(e.message || 'Failed to return');
+    } finally {
+      setReturningIds(prev => prev.filter(x => x !== id));
     }
   };
 
@@ -289,54 +329,138 @@ export default function Borrowings() {
                   <div className="space-y-2">
                     <Input
                       value={selectedStudent ? `${selectedStudent.studentId} - ${selectedStudent.firstName} ${selectedStudent.lastName}${selectedStudent.class ? ` (${selectedStudent.class.name})` : ''}` : studentQuery}
-                      onChange={(e) => { setSelectedStudent(null); setStudentQuery(e.target.value); setForm({ ...form, studentId: '', bookId: undefined }); }}
+                      onChange={(e) => {
+                        setSelectedStudent(null);
+                        setStudentQuery(e.target.value);
+                        setBookQuery('');
+                        setForm({ ...form, studentId: '', bookId: undefined, bookName: undefined });
+                      }}
                       placeholder="Type student number or name"
                     />
                     {Array.isArray(studentOptions) && studentOptions.length > 0 && !selectedStudent && (
                       <div className="border rounded max-h-48 overflow-auto bg-white dark:bg-slate-900">
-                        {studentOptions.map(opt => (
-                          <div
-                            key={opt.id}
-                            className="px-3 py-2 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer text-sm"
-                            onClick={() => {
-                              setSelectedStudent(opt);
-                              setStudentQuery('');
-                              setForm({ ...form, studentId: opt.id, bookId: undefined }); // Clear book selection when student changes
-                            }}
-                          >
-                            <span className="font-medium">{opt.studentId}</span>
-                            <span className="ml-2 text-slate-500">{opt.firstName} {opt.lastName}</span>
-                            {opt.class && <span className="ml-2 text-xs text-blue-500">({opt.class.name})</span>}
-                          </div>
-                        ))}
+                        {studentOptions.map(opt => {
+                          const clsName = (opt.class?.name || '').toLowerCase();
+                          const isGraduated = clsName.includes('gradu');
+                          if (isGraduated) {
+                            return (
+                              <div key={opt.id} className="px-3 py-2 text-sm text-gray-500">
+                                <span className="font-medium">{opt.studentId}</span>
+                                <span className="ml-2">{opt.firstName} {opt.lastName}</span>
+                                <span className="ml-2 text-xs text-red-600">(Graduated)</span>
+                              </div>
+                            );
+                          }
+
+                          return (
+                            <div
+                              key={opt.id}
+                              className="px-3 py-2 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer text-sm"
+                              onClick={async () => {
+                                // Fetch full student details to check active/graduated status before selecting
+                                try {
+                                  if (!token) {
+                                    setError('Authentication required');
+                                    return;
+                                  }
+                                  const res = await fetch(`${API_CONFIG.BASE_URL}/student/students/${opt.id}`, {
+                                    headers: { Authorization: `Bearer ${token}` }
+                                  });
+                                  if (!res.ok) {
+                                    setError('Failed to fetch student details');
+                                    return;
+                                  }
+                                  const studentDetail = await res.json();
+                                  // backend may use isActive, status, graduated flags or class name
+                                  const inactive = studentDetail?.isActive === false || (studentDetail?.status && String(studentDetail.status).toLowerCase() !== 'active');
+                                  const classNameDetail = (studentDetail?.class?.name || '').toLowerCase();
+                                  const graduated = studentDetail?.graduated === true || studentDetail?.isGraduated === true || String(studentDetail?.status).toLowerCase() === 'graduated' || classNameDetail.includes('gradu');
+                                  if (inactive) {
+                                    toast({ title: 'Student Inactive', description: 'Selected student is inactive and cannot borrow books.', variant: 'destructive' });
+                                    return;
+                                  }
+                                  if (graduated) {
+                                    toast({ title: 'Graduated Student', description: 'Graduated students cannot borrow books.', variant: 'destructive' });
+                                    return;
+                                  }
+                                  const mergedClass = studentDetail?.class
+                                    || opt.class
+                                    || (studentDetail?.classId ? allClasses.find((c) => c.id === studentDetail.classId) : undefined);
+                                  setSelectedStudent({
+                                    ...studentDetail,
+                                    class: mergedClass,
+                                  });
+                                  setStudentQuery('');
+                                  setBookQuery('');
+                                  setForm({ ...form, studentId: studentDetail.id, bookId: undefined, bookName: undefined }); // Clear book selection when student changes
+                                } catch (err: any) {
+                                  setError(err?.message || 'Failed to fetch student');
+                                }
+                              }}
+                            >
+                              <span className="font-medium">{opt.studentId}</span>
+                              <span className="ml-2 text-slate-500">{opt.firstName} {opt.lastName}</span>
+                              {opt.class && <span className="ml-2 text-xs text-blue-500">({opt.class.name})</span>}
+                            </div>
+                          );
+                        })}
                       </div>
                     )}
                   </div>
                   
                   <Label>Select Catalog Book (optional)</Label>
-                  {selectedStudent && (
+                  {selectedStudent && bookQuery.trim().length > 0 && (
                     <p className="text-xs text-slate-600 mb-2">
-                      {selectedStudent.class 
-                        ? `Showing books for ${selectedStudent.class.name} and below, plus general books`
+                      {selectedStudentClass
+                        ? `Showing books for ${selectedStudentClass.name} and below, plus general books`
                         : 'Student has no class assigned - showing only general books'
                       }
                     </p>
                   )}
-                  <Select disabled={!!form.bookName || !selectedStudent} onValueChange={(v) => setForm({ ...form, bookId: v, bookName: undefined })}>
-                    <SelectTrigger>
-                      <SelectValue placeholder={!selectedStudent ? "Select student first" : "Choose a book"} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Array.isArray(availableBooks) && availableBooks.map((b) => (
-                        <SelectItem key={b.id} value={b.id}>
-                          {b.title} ({b.availableCopies}/{b.totalCopies}) 
-                          {b.class ? ` - ${b.class.name}` : ' - N/A'}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <div className="space-y-2">
+                    <Input
+                      disabled={!!form.bookName || !selectedStudent}
+                      value={bookQuery}
+                      onChange={(e) => {
+                        setBookQuery(e.target.value);
+                        setForm({ ...form, bookId: undefined, bookName: undefined });
+                      }}
+                      placeholder={!selectedStudent ? "Select student first" : "Type book title, author, or ISBN"}
+                    />
+                    {selectedStudent && !form.bookName && (
+                      <div className="border rounded max-h-48 overflow-auto bg-white dark:bg-slate-900">
+                        {filteredBookOptions.length === 0 ? (
+                          <div className="px-3 py-2 text-sm text-slate-500">No matching books</div>
+                        ) : (
+                          filteredBookOptions.map((b) => (
+                            <div
+                              key={b.id}
+                              className={`px-3 py-2 text-sm cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 ${form.bookId === b.id ? 'bg-slate-100 dark:bg-slate-800' : ''}`}
+                              onClick={() => {
+                                setBookQuery(b.title);
+                                setForm({ ...form, bookId: b.id, bookName: undefined });
+                              }}
+                            >
+                              <span className="font-medium">{b.title}</span>
+                              <span className="ml-2 text-slate-500">({b.availableCopies}/{b.totalCopies})</span>
+                              <span className="ml-2 text-xs text-blue-500">{b.class ? b.class.name : 'N/A'}</span>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    )}
+                  </div>
                   <Label>Or enter custom book name</Label>
-                  <Input disabled={!!form.bookId || !selectedStudent} value={form.bookName || ''} onChange={(e) => setForm({ ...form, bookName: e.target.value, bookId: undefined })} placeholder={!selectedStudent ? "Select student first" : "Book name"} />
+                  <Input
+                    disabled={!!form.bookId || !selectedStudent}
+                    value={form.bookName || ''}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      if (value) setBookQuery('');
+                      setForm({ ...form, bookName: value, bookId: undefined });
+                    }}
+                    placeholder={!selectedStudent ? "Select student first" : "Book name"}
+                  />
                   
                   <Label>Due Date</Label>
                   <Input type="datetime-local" value={form.dueAt} onChange={(e) => setForm({ ...form, dueAt: e.target.value })} />
@@ -450,7 +574,11 @@ export default function Borrowings() {
                     <TableCell>{returned ? 'Returned' : 'Borrowed'}</TableCell>
                     {isStaff && (
                       <TableCell>
-                        {!returned && <Button size="sm" onClick={() => onReturn(br.id)}>Mark Returned</Button>}
+                        {!returned && (
+                          <Button size="sm" onClick={() => onReturn(br.id)} disabled={returningIds.includes(br.id)}>
+                            {returningIds.includes(br.id) ? 'Returning...' : 'Mark Returned'}
+                          </Button>
+                        )}
                       </TableCell>
                     )}
                   </TableRow>

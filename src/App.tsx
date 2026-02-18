@@ -88,6 +88,7 @@ import Activities from "./pages/activities/Activities";
 import ActivityDetail from "./pages/activities/ActivityDetail";
 import LibraryCatalog from "./pages/library/LibraryCatalog";
 import Borrowings from "./pages/library/Borrowings";
+import Returnings from "./pages/library/Returnings";
 
 // Admin specific pages
 import StaffManagement from "./pages/admin/StaffManagement";
@@ -419,6 +420,16 @@ const AppRoutes = () => {
             <ProtectedRoute>
               <Layout>
                 <Borrowings />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/library/returnings"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <Returnings />
               </Layout>
             </ProtectedRoute>
           }
