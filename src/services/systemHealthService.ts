@@ -16,6 +16,7 @@ export interface SystemOverview {
   uptime30DayPercent: number;
   activeSessions: number;
   alerts: number;
+  lastBackupAt?: string | null;
   generatedAt: string;
 }
 
@@ -23,7 +24,7 @@ export interface ResourceUsage {
   cpu: { percent: number };
   memory: { percent: number; used: number; total: number };
   disk: { percent: number };
-  database: { percent: number };
+  database: { percent: number; latencyMs?: number };
   generatedAt: string;
 }
 
@@ -48,12 +49,13 @@ class SystemHealthService {
     }
   }
 
-  private formatLastBackup(): string {
-    // For now, we'll return a placeholder since backup info isn't available
-    // In a real implementation, this would come from the backup service
+  private formatRelativeTime(dateValue?: string | null): string {
+    if (!dateValue) return 'Unknown';
+    const backupTime = new Date(dateValue);
+    if (Number.isNaN(backupTime.getTime())) return 'Unknown';
     const now = new Date();
-    const backupTime = new Date(now.getTime() - (2 * 60 * 60 * 1000)); // 2 hours ago
     const diffMs = now.getTime() - backupTime.getTime();
+    if (diffMs < 0) return 'Just now';
     const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
     const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
     
@@ -65,85 +67,56 @@ class SystemHealthService {
   }
 
   async getSystemHealth(token: string): Promise<SystemHealthData> {
-    try {
-      // Try to fetch real system data
-      const [overviewResponse, resourcesResponse, servicesResponse] = await Promise.allSettled([
-        fetch(`${API_CONFIG.BASE_URL}/system/overview`, {
-          headers: { Authorization: `Bearer ${token}` }
-        }),
-        fetch(`${API_CONFIG.BASE_URL}/system/resources`, {
-          headers: { Authorization: `Bearer ${token}` }
-        }),
-        fetch(`${API_CONFIG.BASE_URL}/system/services`, {
-          headers: { Authorization: `Bearer ${token}` }
-        })
-      ]);
+    // Fetch real system data only; if unavailable, return unknown values (no dummy/random data)
+    const [overviewResponse, resourcesResponse, servicesResponse] = await Promise.allSettled([
+      fetch(`${API_CONFIG.BASE_URL}/system/overview`, {
+        headers: { Authorization: `Bearer ${token}` }
+      }),
+      fetch(`${API_CONFIG.BASE_URL}/system/resources`, {
+        headers: { Authorization: `Bearer ${token}` }
+      }),
+      fetch(`${API_CONFIG.BASE_URL}/system/services`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+    ]);
 
-      let systemData: SystemHealthData = {
-        uptime: "99.9%",
-        activeUsers: 0,
-        serverStatus: "operational",
-        lastBackup: this.formatLastBackup(),
-        databasePerformance: 97,
-        storageUsage: 73
-      };
+    const systemData: SystemHealthData = {
+      uptime: "Unknown",
+      activeUsers: 0,
+      serverStatus: "unknown",
+      lastBackup: "Unknown",
+      databasePerformance: 0,
+      storageUsage: 0
+    };
 
-      // Process overview data
-      if (overviewResponse.status === 'fulfilled' && overviewResponse.value.ok) {
-        const overview: SystemOverview = await overviewResponse.value.json();
-        systemData.uptime = `${overview.uptime30DayPercent}%`;
-        systemData.activeUsers = overview.activeSessions;
-        systemData.serverStatus = overview.status.toLowerCase();
-      }
-
-      // Process resources data
-      if (resourcesResponse.status === 'fulfilled' && resourcesResponse.value.ok) {
-        const resources: ResourceUsage = await resourcesResponse.value.json();
-        systemData.databasePerformance = Math.round(100 - resources.database.percent); // Invert for performance metric
-        systemData.storageUsage = Math.round(resources.disk.percent);
-      }
-
-      // Process services data
-      if (servicesResponse.status === 'fulfilled' && servicesResponse.value.ok) {
-        const services: ServiceStatus[] = await servicesResponse.value.json();
-        const runningServices = services.filter(service => service.status === 'RUNNING').length;
-        const totalServices = services.length;
-        
-        if (totalServices > 0) {
-          const healthPercentage = (runningServices / totalServices) * 100;
-          if (healthPercentage < 100) {
-            systemData.serverStatus = "warning";
-          }
-        }
-      }
-
-      return systemData;
-    } catch (error) {
-      console.warn('Failed to fetch real system health data, using fallback:', error);
-      
-      // Fallback to realistic dummy data based on typical usage patterns
-      // Estimate 2-5 active users for a typical school system during normal hours
-      const currentHour = new Date().getHours();
-      let baseActiveUsers = 2; // Default minimum
-      
-      // Adjust based on time of day (school hours = more active users)
-      if (currentHour >= 8 && currentHour <= 16) {
-        baseActiveUsers = Math.floor(2 + Math.random() * 4); // 2-5 users during school hours
-      } else if (currentHour >= 17 && currentHour <= 21) {
-        baseActiveUsers = Math.floor(1 + Math.random() * 3); // 1-3 users during evening
-      } else {
-        baseActiveUsers = Math.floor(Math.random() * 2); // 0-1 users during off hours
-      }
-      
-      return {
-        uptime: "99.9%",
-        activeUsers: baseActiveUsers,
-        serverStatus: "operational",
-        lastBackup: this.formatLastBackup(),
-        databasePerformance: Math.floor(95 + Math.random() * 4), // 95-99%
-        storageUsage: Math.floor(70 + Math.random() * 8) // 70-78%
-      };
+    if (overviewResponse.status === 'fulfilled' && overviewResponse.value.ok) {
+      const overview: SystemOverview = await overviewResponse.value.json();
+      systemData.uptime = this.formatUptime(overview.uptimeSeconds);
+      systemData.activeUsers = Number(overview.activeSessions || 0);
+      systemData.serverStatus = (overview.status || 'UNKNOWN').toLowerCase();
+      systemData.lastBackup = this.formatRelativeTime(overview.lastBackupAt);
     }
+
+    if (resourcesResponse.status === 'fulfilled' && resourcesResponse.value.ok) {
+      const resources: ResourceUsage = await resourcesResponse.value.json();
+      const dbLatency = Number(resources.database?.latencyMs || 0);
+      // Convert query latency to a quality score (lower latency => higher performance)
+      // 0-20ms => ~100, 200ms+ => ~0
+      const dbPerf = Math.max(0, Math.min(100, Math.round(100 - (dbLatency / 2))));
+      systemData.databasePerformance = dbPerf;
+      systemData.storageUsage = Math.round(Number(resources.disk?.percent || 0));
+    }
+
+    if (servicesResponse.status === 'fulfilled' && servicesResponse.value.ok) {
+      const services: ServiceStatus[] = await servicesResponse.value.json();
+      const runningServices = services.filter(service => service.status === 'RUNNING').length;
+      const totalServices = services.length;
+      if (totalServices > 0 && runningServices < totalServices && systemData.serverStatus === 'healthy') {
+        systemData.serverStatus = "warning";
+      }
+    }
+
+    return systemData;
   }
 
   async getDetailedSystemInfo(token: string) {

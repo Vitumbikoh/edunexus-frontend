@@ -275,12 +275,12 @@ export const AdminDashboardCards = () => {
   );
   const [loadingAY, setLoadingAY] = useState<boolean>(false);
   const [systemHealth, setSystemHealth] = useState<SystemHealthData>({
-    uptime: "99.9%",
-    activeUsers: 234,
-    serverStatus: "operational",
-    lastBackup: "2 hours ago",
-    databasePerformance: 97,
-    storageUsage: 73
+    uptime: "Unknown",
+    activeUsers: 0,
+    serverStatus: "unknown",
+    lastBackup: "Unknown",
+    databasePerformance: 0,
+    storageUsage: 0
   });
   const [systemHealthLoading, setSystemHealthLoading] = useState<boolean>(false);
 
