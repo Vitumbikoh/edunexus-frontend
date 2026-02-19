@@ -827,7 +827,7 @@ export default function Finance() {
 
       {isLoading ? (
         <div className="space-y-6">
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-6">
+          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-6">
             <Preloader variant="skeleton" rows={1} className="h-24" />
             <Preloader variant="skeleton" rows={1} className="h-24" />
             <Preloader variant="skeleton" rows={1} className="h-24" />
@@ -839,13 +839,13 @@ export default function Finance() {
       ) : (
         <>
           {/* Summary Cards */}
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-6">
+          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-6">
             <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 px-4 py-3 pb-1">
                 <CardTitle className="text-sm font-medium">Total Fees Paid</CardTitle>
                 <DollarSign className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
-              <CardContent>
+              <CardContent className="px-4 pb-3 pt-1">
                 <div className="text-xl font-bold">{formatCurrency(termFeesApplied, getDefaultCurrency())}</div>
                 <p className="text-xs text-muted-foreground">
                   Applied to selected term fees
@@ -857,11 +857,11 @@ export default function Finance() {
             </Card>
 
             <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 px-4 py-3 pb-1">
                 <CardTitle className="text-sm font-medium">Expected Fees Amount</CardTitle>
                 <Receipt className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
-              <CardContent>
+              <CardContent className="px-4 pb-3 pt-1">
                 <div className="text-xl font-bold">{formatCurrency(effectiveExpected, getDefaultCurrency())}</div>
                 <div className="mt-2 space-y-1">
                   <Progress value={paidPercentage} className="h-2" />
@@ -872,33 +872,33 @@ export default function Finance() {
             </Card>
 
             <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 px-4 py-3 pb-1">
                 <CardTitle className="text-sm font-medium">Pending</CardTitle>
                 <CreditCard className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
-              <CardContent>
+              <CardContent className="px-4 pb-3 pt-1">
                 <div className="text-xl font-bold">{formatCurrency(pendingRemaining, getDefaultCurrency())}</div>
                 <p className="text-xs text-muted-foreground">Remaining balance</p>
               </CardContent>
             </Card>
 
             <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 px-4 py-3 pb-1">
                 <CardTitle className="text-sm font-medium">Overdue</CardTitle>
                 <ArrowUpRight className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
-              <CardContent>
+              <CardContent className="px-4 pb-3 pt-1">
                 <div className="text-xl font-bold">{formatCurrency(overdueAmount, getDefaultCurrency())}</div>
                 <p className="text-xs text-muted-foreground">Outstanding From Previous Terms</p>
               </CardContent>
             </Card>
 
             <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 px-4 py-3 pb-1">
                 <CardTitle className="text-sm font-medium">Overpayments</CardTitle>
                 <TrendingUp className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
-              <CardContent>
+              <CardContent className="px-4 pb-3 pt-1">
                 <div className="text-xl font-bold">{formatCurrency(creditBalanceForTerm, getDefaultCurrency())}</div>
                 <p className="text-xs text-muted-foreground">Credits / Unallocated from payments</p>
                 {(allocatedToPreviousTerms > 0 || allocatedToFutureTerms > 0) && (
@@ -911,11 +911,11 @@ export default function Finance() {
 
             {/* Actual Revenue = raw cash collected in the selected term */}
             <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 px-4 py-3 pb-1">
                 <CardTitle className="text-sm font-medium">Actual Revenue</CardTitle>
                 <DollarSign className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
-              <CardContent>
+              <CardContent className="px-4 pb-3 pt-1">
                 <div className="text-xl font-bold">{formatCurrency(termActualRevenue, getDefaultCurrency())}</div>
                 <p className="text-xs text-muted-foreground">Cash collected in selected term</p>
                 {termActualRevenue === 0 && (

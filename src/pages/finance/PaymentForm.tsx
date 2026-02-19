@@ -64,6 +64,13 @@ interface AllocationEntry {
   amount: string;
 }
 
+interface OutstandingTermData {
+  termName?: string;
+  expectedAmount: number;
+  paidAmount: number;
+  outstandingAmount: number;
+}
+
 export default function PaymentForm() {
   const navigate = useNavigate();
   const { user, token } = useAuth();
@@ -94,7 +101,7 @@ export default function PaymentForm() {
   // Allocation section
   const [allocateNow, setAllocateNow] = useState(true);
   const [allocationEntries, setAllocationEntries] = useState<AllocationEntry[]>([]);
-  const [outstandingTermsData, setOutstandingTermsData] = useState<Map<string, { expectedAmount: number; paidAmount: number; outstandingAmount: number }>>(new Map());
+  const [outstandingTermsData, setOutstandingTermsData] = useState<Map<string, OutstandingTermData>>(new Map());
 
   // Check permissions
   const canRecordPayment = user?.role === "admin" || user?.role === "finance";
@@ -398,6 +405,34 @@ export default function PaymentForm() {
     amount: '',
   });
 
+  const getTermLabel = (termId: string) => {
+    if (!termId) return '';
+    const fromLoadedTerms = terms.find((t) => t.id === termId)?.name;
+    if (fromLoadedTerms) return fromLoadedTerms;
+    const fromOutstanding = outstandingTermsData.get(termId)?.termName;
+    if (fromOutstanding) return fromOutstanding;
+    return termId;
+  };
+
+  const allocationTermOptions: TermOption[] = React.useMemo(() => {
+    const merged = new Map<string, TermOption>();
+
+    terms.forEach((t) => {
+      merged.set(t.id, t);
+    });
+
+    outstandingTermsData.forEach((termData, termId) => {
+      if (!merged.has(termId)) {
+        merged.set(termId, {
+          id: termId,
+          name: termData.termName || termId,
+        });
+      }
+    });
+
+    return Array.from(merged.values());
+  }, [terms, outstandingTermsData]);
+
   const getTermSortValue = (term?: TermOption) => {
     if (!term) return Number.MAX_SAFE_INTEGER;
     if (term.startDate) {
@@ -485,6 +520,7 @@ export default function PaymentForm() {
           const dataMap = new Map();
           outstandingTerms.forEach((term: any) => {
             dataMap.set(term.termId, {
+              termName: term.termName || term.name || term.displayName,
               expectedAmount: term.expectedAmount,
               paidAmount: term.paidAmount,
               outstandingAmount: term.outstandingAmount,
@@ -958,10 +994,12 @@ export default function PaymentForm() {
                               onValueChange={(value) => updateAllocationEntry(entry.id, { termId: value })}
                             >
                               <SelectTrigger>
-                                <SelectValue placeholder="Select term to allocate to" />
+                                <SelectValue placeholder="Select term to allocate to">
+                                  {getTermLabel(entry.termId)}
+                                </SelectValue>
                               </SelectTrigger>
                               <SelectContent>
-                                {terms.map((t) => (
+                                {allocationTermOptions.map((t) => (
                                   <SelectItem key={t.id} value={t.id}>
                                     {t.name || t.id}
                                   </SelectItem>
@@ -1065,7 +1103,7 @@ export default function PaymentForm() {
                       .filter((entry) => Number(entry.amount || 0) > 0)
                       .map((entry) => (
                         <div key={entry.id} className="pl-3">
-                          - {terms.find(t => t.id === entry.termId)?.name || 'Unknown term'}: MK {Number(entry.amount || 0).toLocaleString()} ({getReasonLabel(inferAllocationReason(entry.termId))})
+                          - {getTermLabel(entry.termId)}: MK {Number(entry.amount || 0).toLocaleString()} ({getReasonLabel(inferAllocationReason(entry.termId))})
                         </div>
                       ))}
                     <div className="pl-3">
