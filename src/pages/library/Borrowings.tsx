@@ -299,7 +299,12 @@ export default function Borrowings() {
       await libraryApi.returnBook({ borrowingId: id }, token || undefined);
       await load(currentPage);
     } catch (e: any) {
-      setError(e.message || 'Failed to return');
+      const msg = String(e?.message || '');
+      if (msg.toLowerCase().includes('already returned')) {
+        await load(currentPage);
+      } else {
+        setError(e.message || 'Failed to return');
+      }
     } finally {
       setReturningIds(prev => prev.filter(x => x !== id));
     }

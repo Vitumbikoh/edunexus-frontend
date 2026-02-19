@@ -889,7 +889,7 @@ export default function Finance() {
               </CardHeader>
               <CardContent className="px-4 pb-3 pt-1">
                 <div className="text-xl font-bold">{formatCurrency(overdueAmount, getDefaultCurrency())}</div>
-                <p className="text-xs text-muted-foreground">Outstanding From Previous Terms</p>
+                <p className="text-xs text-muted-foreground">Outstanding Across All Terms</p>
               </CardContent>
             </Card>
 

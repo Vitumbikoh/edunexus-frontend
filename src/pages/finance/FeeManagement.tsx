@@ -17,6 +17,7 @@ interface FeeStructureItem {
   feeType: string;
   amount: number;
   description?: string;
+  dueDate?: string;
   isActive: boolean;
   isOptional: boolean;
   frequency: string;
@@ -38,6 +39,7 @@ export default function FeeManagement() {
   const [amount, setAmount] = useState('');
   const [frequency, setFrequency] = useState('per_period');
   const [description, setDescription] = useState('');
+  const [dueDate, setDueDate] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValues, setEditValues] = useState<Partial<FeeStructureItem>>({});
 
@@ -120,7 +122,14 @@ export default function FeeManagement() {
     if (!token || !feeType || !amount) return;
     setSaving(true);
     try {
-      const body: any = { feeType, amount: Number(amount), description: description || undefined, frequency, termId };
+      const body: any = {
+        feeType,
+        amount: Number(amount),
+        description: description || undefined,
+        frequency,
+        termId,
+        dueDate: dueDate || undefined,
+      };
       if (selectedAcademicCalendarId) body.academicCalendarId = selectedAcademicCalendarId;
       const res = await fetch(`${API_CONFIG.BASE_URL}/finance/fee-structure`, {
         method: 'POST',
@@ -132,7 +141,7 @@ export default function FeeManagement() {
         throw new Error(err.message || 'Failed to create fee');
       }
       toast({ title: 'Created', description: 'Fee item created.' });
-      setFeeType(''); setAmount(''); setDescription('');
+      setFeeType(''); setAmount(''); setDescription(''); setDueDate('');
       loadItems();
     } catch (e:any) {
       toast({ title: 'Error', description: e.message, variant: 'destructive' });
@@ -202,7 +211,7 @@ export default function FeeManagement() {
             <CardTitle>Add Fee Type</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
               <div className="space-y-2">
                 <Label>Fee Name</Label>
                 <Input value={feeType} onChange={e=>setFeeType(e.target.value)} placeholder="e.g. Examination" />
@@ -230,6 +239,10 @@ export default function FeeManagement() {
               <div className="space-y-2">
                 <Label>Description</Label>
                 <Input value={description} onChange={e=>setDescription(e.target.value)} placeholder="Optional" />
+              </div>
+              <div className="space-y-2">
+                <Label>Due Date</Label>
+                <Input type="date" value={dueDate} onChange={e=>setDueDate(e.target.value)} />
               </div>
             </div>
             <div className="mt-2 flex items-center gap-4">
@@ -291,6 +304,7 @@ export default function FeeManagement() {
                     <TableHead>Fee</TableHead>
                     <TableHead>Amount</TableHead>
                     <TableHead>Frequency</TableHead>
+                    <TableHead>Due Date</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Description</TableHead>
                     {isAdmin && <TableHead className="text-right">Actions</TableHead>}
@@ -340,6 +354,17 @@ export default function FeeManagement() {
                         </TableCell>
                         <TableCell>
                           {isEditing ? (
+                            <Input
+                              type="date"
+                              value={String(editValues.dueDate ?? item.dueDate ?? '').slice(0, 10)}
+                              onChange={e=>setEditValues(v=>({ ...v, dueDate: e.target.value }))}
+                            />
+                          ) : (
+                            item.dueDate ? new Date(item.dueDate).toISOString().slice(0, 10) : '-'
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {isEditing ? (
                             <select
                               value={String(editValues.isActive ?? item.isActive)}
                               onChange={e=>setEditValues(v=>({ ...v, isActive: e.target.value === 'true' }))}
@@ -369,20 +394,14 @@ export default function FeeManagement() {
                                 <Button variant="ghost" size="sm" onClick={async ()=>{
                                   if (!token) return;
                                   try {
-                                    // include academicCalendarId on update if available
-                                    let academicCalendarId: string | undefined = undefined;
-                                    try {
-                                      const cal = await academicCalendarService.getActiveAcademicCalendar(token!);
-                                      if (cal?.id) academicCalendarId = cal.id;
-                                    } catch {}
                                     const payload: any = {
                                       feeType: editValues.feeType ?? item.feeType,
                                       amount: editValues.amount ?? item.amount,
                                       frequency: editValues.frequency ?? item.frequency,
+                                      dueDate: editValues.dueDate ?? item.dueDate ?? undefined,
                                       description: editValues.description ?? item.description,
                                       isActive: editValues.isActive ?? item.isActive,
                                     };
-                                    if (selectedAcademicCalendarId) payload.academicCalendarId = selectedAcademicCalendarId;
                                     const res = await fetch(`${API_CONFIG.BASE_URL}/finance/fee-structure/${item.id}`, {
                                       method: 'PUT',
                                       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },

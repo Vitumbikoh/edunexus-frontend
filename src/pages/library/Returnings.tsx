@@ -174,6 +174,13 @@ export default function Returnings() {
   }, [filteredBorrowings, itemsPerPage]);
 
   const markReturned = async (borrowingId: string) => {
+    const target = activeBorrowings.find((b) => b.id === borrowingId);
+    if (target?.returnedAt) {
+      toast({ title: 'Already returned', description: 'This borrowing was already marked as returned.' });
+      await load();
+      return;
+    }
+
     const ok = window.confirm('Mark this borrowing as returned?');
     if (!ok) return;
 
@@ -182,6 +189,12 @@ export default function Returnings() {
       toast({ title: 'Returned', description: 'Book marked as returned successfully.' });
       await load();
     } catch (e: any) {
+      const msg = String(e?.message || '');
+      if (msg.toLowerCase().includes('already returned')) {
+        toast({ title: 'Already returned', description: 'Borrowing was already returned. Refreshed list.' });
+        await load();
+        return;
+      }
       toast({ title: 'Return failed', description: e?.message || 'Could not mark as returned.', variant: 'destructive' });
     }
   };
@@ -321,9 +334,11 @@ export default function Returnings() {
                       <TableCell>{classNameForBorrowing(br)}</TableCell>
                       <TableCell>{new Date(br.borrowedAt).toLocaleString()}</TableCell>
                       <TableCell className={due.overdue ? 'text-red-600 font-medium' : ''}>{due.label}</TableCell>
-                      <TableCell>{due.overdue ? 'Overdue' : 'In circulation'}</TableCell>
+                      <TableCell>{br.returnedAt ? 'Returned' : (due.overdue ? 'Overdue' : 'In circulation')}</TableCell>
                       <TableCell>
-                        <Button size="sm" onClick={() => markReturned(br.id)}>Mark Returned</Button>
+                        {!br.returnedAt && (
+                          <Button size="sm" onClick={() => markReturned(br.id)}>Mark Returned</Button>
+                        )}
                       </TableCell>
                     </TableRow>
                   );
