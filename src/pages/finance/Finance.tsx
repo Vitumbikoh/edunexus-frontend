@@ -130,7 +130,10 @@ interface TermTotalsResponse {
   overdue: number;
   overdueFromPreviousTerms: number;
   credits: number;
+  /** Raw cash physically collected in the selected term (from payments table) */
   actualRevenue: number;
+  /** Portion of collected cash applied to THIS term's expected fees (allocation-based) */
+  termFeesApplied: number;
   allocatedToPreviousTerms: number;
   allocatedToFutureTerms: number;
 }
@@ -334,6 +337,7 @@ export default function Finance() {
             overdueFromPreviousTerms: Number(data.overdueFromPreviousTerms || 0),
             credits: Number(data.credits || 0),
             actualRevenue: Number(data.actualRevenue || 0),
+            termFeesApplied: Number(data.termFeesApplied ?? data.actualRevenue ?? 0),
             allocatedToPreviousTerms: Number(data.allocatedToPreviousTerms || 0),
             allocatedToFutureTerms: Number(data.allocatedToFutureTerms || 0),
           });
@@ -603,18 +607,20 @@ export default function Finance() {
   const statusDerivedPaid = feeStatuses.reduce((sum, s) => sum + s.paidAmount, 0);
   const statusDerivedExpected = feeStatuses.reduce((sum, s) => sum + s.expectedAmount, 0);
 
-  const effectivePaid = Number(termTotals?.actualRevenue ?? (feeStatuses.length ? statusDerivedPaid : summaryPaid));
+  // termFeesApplied = allocations to current term's expected fees (what was paid toward this term)
+  const termFeesApplied = Number(termTotals?.termFeesApplied ?? termTotals?.actualRevenue ?? (feeStatuses.length ? statusDerivedPaid : summaryPaid));
+  const effectivePaid = termFeesApplied; // governs Pending calculation
   const effectiveExpected = feeStatuses.length ? statusDerivedExpected : summaryExpected;
   
-  // ALWAYS show Pending as Expected - Actual Revenue (user-requested behavior)
+  // Pending = Expected fees - what has been applied to current term fees
   const pendingRemaining = effectiveExpected - effectivePaid;
   const overdueFromStatuses = feeStatuses
     .filter(s => s.status === 'overdue')
     .reduce((sum, s) => sum + (s.outstandingAmount || 0), 0);
   const overdueAmount = Number((termTotals?.overdueFromPreviousTerms ?? summaryOverdue) || overdueFromStatuses);
-  const totalCollected = Number(
-    termTotals?.totalCollected ?? transactions.reduce((sum, t) => sum + Number(t.amount || 0), 0)
-  );
+  // actualRevenue = raw cash physically collected in the selected term (from payments table)
+  const termActualRevenue = Number(termTotals?.actualRevenue ?? termTotals?.totalCollected ?? transactions.reduce((sum, t) => sum + Number(t.amount || 0), 0));
+  const totalCollected = termActualRevenue;
   const creditBalanceForTerm = Number(termTotals?.credits ?? currentTermOverpayments);
   const allocatedToPreviousTerms = Number(termTotals?.allocatedToPreviousTerms || 0);
   const allocatedToFutureTerms = Number(termTotals?.allocatedToFutureTerms || 0);
@@ -840,12 +846,12 @@ export default function Finance() {
                 <DollarSign className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-xl font-bold">{formatCurrency(totalCollected, getDefaultCurrency())}</div>
+                <div className="text-xl font-bold">{formatCurrency(termFeesApplied, getDefaultCurrency())}</div>
                 <p className="text-xs text-muted-foreground">
-                  Collected in selected term
+                  Applied to selected term fees
                 </p>
-                {totalCollected === 0 && (
-                  <p className="text-xs text-muted-foreground">MK 0.00 — No records for selected term</p>
+                {termFeesApplied === 0 && (
+                  <p className="text-xs text-muted-foreground">MK 0.00 — No payments applied this term</p>
                 )}
               </CardContent>
             </Card>
@@ -903,15 +909,18 @@ export default function Finance() {
               </CardContent>
             </Card>
 
-            {/* Optional: Actual Revenue card */}
+            {/* Actual Revenue = raw cash collected in the selected term */}
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Actual Revenue</CardTitle>
                 <DollarSign className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-xl font-bold">{formatCurrency((termTotals?.actualRevenue ?? effectivePaid), getDefaultCurrency())}</div>
-                <p className="text-xs text-muted-foreground">Allocations applied to selected term</p>
+                <div className="text-xl font-bold">{formatCurrency(termActualRevenue, getDefaultCurrency())}</div>
+                <p className="text-xs text-muted-foreground">Cash collected in selected term</p>
+                {termActualRevenue === 0 && (
+                  <p className="text-xs text-muted-foreground">MK 0.00 — No payments recorded this term</p>
+                )}
               </CardContent>
             </Card>
           </div>
