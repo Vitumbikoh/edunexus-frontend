@@ -86,11 +86,20 @@ export default function FeeManagement() {
         if (!res.ok) return;
         const data = await res.json();
         const list = Array.isArray(data) ? data : (data.terms || []);
-        const mapped = list.map((y: any) => ({ id: y.id || y.termId || y.uuid, name: y.name || y.periodName || y.term || y.displayName }));
+        // Preserve isCurrent/current flags when mapping so we can detect the current term reliably
+        const mapped = list.map((y: any) => ({
+          id: y.id || y.termId || y.uuid,
+          name: y.name || y.periodName || y.term || y.displayName,
+          isCurrent: y.isCurrent === true || y.current === true || y.is_current === true,
+        }));
         setTerms(mapped);
         if (mapped.length) {
-          const current = mapped.find((m: any) => (m as any).isCurrent || (m as any).current) || mapped[0];
-          setTermId(current?.id);
+          // prefer an explicitly-marked current term; fall back to already-selected termId if still valid
+          const rawCurrent = list.find((t: any) => t.isCurrent === true || t.current === true || t.is_current === true) || list[0];
+          const currentId = rawCurrent?.id || rawCurrent?.termId || rawCurrent?.uuid || mapped[0].id;
+          if (!termId || !mapped.some(m => m.id === termId)) {
+            setTermId(currentId);
+          }
         } else {
           setTermId(undefined);
         }

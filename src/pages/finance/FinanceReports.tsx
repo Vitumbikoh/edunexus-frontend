@@ -30,13 +30,41 @@ type FinancialReportResponse = {
 
 type TermBasedReportResponse = {
   success: boolean;
+  academicCalendar?: {
+    id: string;
+    name: string;
+    startDate?: string;
+    endDate?: string;
+  } | null;
+  calendarAnalysis?: {
+    totalRevenue: number;
+    totalExpenses: number;
+    netProfit: number;
+    profitMargin: number;
+    previousAcademicCalendarCarryForward: number;
+  };
   currentTerm: {
     termId: string;
     termName: string;
     startDate: string;
     endDate: string;
     revenue: number;
+    actualRevenue?: number;
     expenses: number;
+    baseProfit?: number;
+    profit: number;
+    profitMargin: number;
+    previousTermBroughtForward?: number;
+  } | null;
+  previousTerm?: {
+    termId: string;
+    termName: string;
+    startDate: string;
+    endDate: string;
+    revenue: number;
+    actualRevenue?: number;
+    expenses: number;
+    baseProfit?: number;
     profit: number;
     profitMargin: number;
   } | null;
@@ -46,10 +74,19 @@ type TermBasedReportResponse = {
     startDate: string;
     endDate: string;
     revenue: number;
+    actualRevenue?: number;
     expenses: number;
+    baseProfit?: number;
     profit: number;
     profitMargin: number;
   }>;
+  previousTermsSummary?: {
+    broughtForwardProfit: number;
+    totalRevenue: number;
+    totalExpenses: number;
+    cumulativeProfit: number;
+    profitMargin: number;
+  };
   cumulative: {
     totalRevenue: number;
     totalExpenses: number;
@@ -79,11 +116,12 @@ export default function FinanceReports() {
   const [data, setData] = useState<FinancialReportResponse | null>(null);
   const [termBasedData, setTermBasedData] = useState<TermBasedReportResponse | null>(null);
   const [showCarryForward, setShowCarryForward] = useState(true);
+  const [activeAcademicCalendarId, setActiveAcademicCalendarId] = useState<string | undefined>(undefined);
 
   // Currency utilities (no FX conversion yet; formatting only)
   const currencySymbol = useMemo(() => {
     if (currency === 'MWK') return 'MK';
-    const m: Record<string, string> = { USD: '$', EUR: '€', GBP: '£', KES: 'KSh ' };
+    const m: Record<string, string> = { USD: '$', EUR: 'â‚¬', GBP: 'Â£', KES: 'KSh ' };
     return m[currency] ?? '';
   }, [currency]);
 
@@ -103,6 +141,21 @@ export default function FinanceReports() {
   }, [dateRange, fromDate, toDate]);
 
   useEffect(() => {
+    const loadActiveCalendar = async () => {
+      if (!token) return;
+      try {
+        const cal = await academicCalendarService.getActiveAcademicCalendar(token);
+        if (cal?.id) {
+          setActiveAcademicCalendarId(cal.id);
+        }
+      } catch {
+        // keep undefined and allow backend defaults
+      }
+    };
+    loadActiveCalendar();
+  }, [token]);
+
+  useEffect(() => {
     const fetchReport = async () => {
       if (!token) return;
       // For custom range, wait until both dates are selected
@@ -113,11 +166,7 @@ export default function FinanceReports() {
         const params = new URLSearchParams();
         if (computedRange.start) params.set('startDate', computedRange.start.toISOString());
         if (computedRange.end) params.set('endDate', computedRange.end.toISOString());
-        // include active academicCalendarId
-        try {
-          const cal = await academicCalendarService.getActiveAcademicCalendar(token!);
-          if (cal?.id) params.set('academicCalendarId', cal.id);
-        } catch {}
+        if (activeAcademicCalendarId) params.set('academicCalendarId', activeAcademicCalendarId);
         const res = await fetch(`${API_CONFIG.BASE_URL}/finance/reports/financial?${params.toString()}`, {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -133,18 +182,15 @@ export default function FinanceReports() {
       }
     };
     fetchReport();
-  }, [token, dateRange, computedRange.start?.toISOString(), computedRange.end?.toISOString()]);
+  }, [token, dateRange, computedRange.start?.toISOString(), computedRange.end?.toISOString(), activeAcademicCalendarId]);
 
   // Fetch term-based report with carry-forward balances
   const fetchTermBasedReport = async () => {
     if (!token) return;
     try {
-      // include active academicCalendarId
-      let calParam = '';
-      try {
-        const cal = await academicCalendarService.getActiveAcademicCalendar(token!);
-        if (cal?.id) calParam = `&academicCalendarId=${encodeURIComponent(cal.id)}`;
-      } catch {}
+      const calParam = activeAcademicCalendarId
+        ? `&academicCalendarId=${encodeURIComponent(activeAcademicCalendarId)}`
+        : '';
       const res = await fetch(`${API_CONFIG.BASE_URL}/finance/reports/term-based?includeCarryForward=${showCarryForward}${calParam}`, {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -161,7 +207,7 @@ export default function FinanceReports() {
 
   useEffect(() => {
     fetchTermBasedReport();
-  }, [token, showCarryForward]);
+  }, [token, showCarryForward, activeAcademicCalendarId]);
 
   const handleExportReport = () => {
     if (!data) return;
@@ -268,24 +314,43 @@ export default function FinanceReports() {
     // Adapt groupedTrends to chart consumption
     return groupedTrends.map(g => ({ month: g.bucket, revenue: includeRevenue ? g.revenue : 0, expenses: includeExpenses ? g.expenses : 0, profit: (includeRevenue ? g.revenue : 0) - (includeExpenses ? g.expenses : 0) }));
   }, [groupedTrends, includeRevenue, includeExpenses]);
+  const reportRevenue = includeRevenue ? Number(data?.totals?.totalFees ?? 0) : 0;
+  const reportExpenses = includeExpenses ? Number(data?.totals?.totalApprovedExpenses ?? 0) : 0;
 
-  // Calculate totals from term-based data (current + previous terms)
-  const totalRevenue = termBasedData ? termBasedData.cumulative.totalRevenue : (includeRevenue ? (data?.totals.totalFees || 0) : 0);
-  const totalExpenses = termBasedData ? termBasedData.cumulative.totalExpenses : (includeExpenses ? (data?.totals.totalApprovedExpenses || 0) : 0);
-  const totalProfit = totalRevenue - totalExpenses;
-  const profitMargin = totalRevenue > 0 ? ((totalProfit / totalRevenue) * 100).toFixed(1) : '0.0';
-  
-  // Current term only metrics
-  const currentTermRevenue = termBasedData?.currentTerm?.revenue || 0;
-  const currentTermExpenses = termBasedData?.currentTerm?.expenses || 0;
-  const currentTermProfit = currentTermRevenue - currentTermExpenses;
+  // Academic-calendar level metrics
+  const calendarRevenueBase = Number(termBasedData?.calendarAnalysis?.totalRevenue ?? termBasedData?.cumulative?.totalRevenue ?? 0);
+  const calendarExpensesBase = Number(termBasedData?.calendarAnalysis?.totalExpenses ?? termBasedData?.cumulative?.totalExpenses ?? 0);
+  const previousAcademicCalendarCarryForward = Number(
+    termBasedData?.calendarAnalysis?.previousAcademicCalendarCarryForward ?? termBasedData?.carryForwardBalance ?? 0
+  );
+  const calendarRevenue = includeRevenue ? calendarRevenueBase : 0;
+  const calendarExpenses = includeExpenses ? calendarExpensesBase : 0;
+  const calendarNetProfit =
+    calendarRevenue - calendarExpenses + (showCarryForward ? previousAcademicCalendarCarryForward : 0);
+  const calendarProfitMargin = calendarRevenue > 0 ? ((calendarNetProfit / calendarRevenue) * 100).toFixed(1) : '0.0';
+
+  // Current term metrics
+  const currentTermRevenueBase = Number(termBasedData?.currentTerm?.actualRevenue ?? termBasedData?.currentTerm?.revenue ?? 0);
+  const currentTermExpensesBase = Number(termBasedData?.currentTerm?.expenses ?? 0);
+  const currentTermPreviousTermCarry = Number(termBasedData?.currentTerm?.previousTermBroughtForward ?? 0);
+  const currentTermRevenue = includeRevenue ? currentTermRevenueBase : 0;
+  const currentTermExpenses = includeExpenses ? currentTermExpensesBase : 0;
+  const currentTermProfit = currentTermRevenue - currentTermExpenses + currentTermPreviousTermCarry;
   const currentTermMargin = currentTermRevenue > 0 ? ((currentTermProfit / currentTermRevenue) * 100).toFixed(1) : '0.0';
-  
-  // Previous terms only metrics
-  const previousTermsRevenue = termBasedData ? termBasedData.previousTerms.reduce((sum, t) => sum + t.revenue, 0) : 0;
-  const previousTermsExpenses = termBasedData ? termBasedData.previousTerms.reduce((sum, t) => sum + t.expenses, 0) : 0;
-  const previousTermsProfit = previousTermsRevenue - previousTermsExpenses;
-  const previousTermsMargin = previousTermsRevenue > 0 ? ((previousTermsProfit / previousTermsRevenue) * 100).toFixed(1) : '0.0';
+
+  // Previous term performance metrics
+  const previousTermRevenueBase = Number(termBasedData?.previousTerm?.actualRevenue ?? termBasedData?.previousTerm?.revenue ?? 0);
+  const previousTermExpensesBase = Number(termBasedData?.previousTerm?.expenses ?? 0);
+  const previousTermRevenue = includeRevenue ? previousTermRevenueBase : 0;
+  const previousTermExpenses = includeExpenses ? previousTermExpensesBase : 0;
+  const previousTermProfit = previousTermRevenue - previousTermExpenses;
+  const previousTermMargin = previousTermRevenue > 0 ? ((previousTermProfit / previousTermRevenue) * 100).toFixed(1) : '0.0';
+
+  // Older terms excluding the immediate previous term to avoid duplicate display.
+  const historicalTerms = useMemo(
+    () => (termBasedData?.previousTerms || []).filter((t) => t.termId !== termBasedData?.previousTerm?.termId),
+    [termBasedData],
+  );
 
   const categoryData = useMemo(() => {
     const palette = ['#22c55e', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#84cc16'];
@@ -298,7 +363,7 @@ export default function FinanceReports() {
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center">
           <Loader2 className="h-10 w-10 animate-spin mx-auto mb-3 text-blue-600" />
-          <p className="text-gray-600 dark:text-gray-400">Loading financial report…</p>
+          <p className="text-gray-600 dark:text-gray-400">Loading financial report...</p>
         </div>
       </div>
     );
@@ -483,54 +548,66 @@ export default function FinanceReports() {
         </CardContent>
       </Card>
 
-      {/* Key Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center">
-              <DollarSign className="h-4 w-4 mr-2 text-green-600" />
-              Total Revenue
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">{currencySymbol}{currentTermRevenue.toLocaleString()}</div>
-            <div className="text-xs text-muted-foreground">Current term only</div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center">
-              <TrendingDown className="h-4 w-4 mr-2 text-red-600" />
-              Total Expenses
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-600">{currencySymbol}{currentTermExpenses.toLocaleString()}</div>
-            <div className="text-xs text-muted-foreground">Current term only</div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Net Profit</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-blue-600">{currencySymbol}{(currentTermProfit + (termBasedData?.cumulative.broughtForward || 0)).toLocaleString()}</div>
-            <div className="text-xs text-muted-foreground">Current term + brought forward</div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Profit Margin</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{currentTermMargin}%</div>
-            <div className="text-xs text-muted-foreground">Current term only</div>
-          </CardContent>
-        </Card>
-      </div>
+      {/* Academic Calendar Financial Analysis */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Academic Calendar Financial Analysis</CardTitle>
+          <CardDescription>
+            Consolidated revenue, expenses, profit and margin across terms in the selected academic calendar
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium flex items-center">
+                  <DollarSign className="h-4 w-4 mr-2 text-green-600" />
+                  Total Revenue
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-green-600">{currencySymbol}{calendarRevenue.toLocaleString()}</div>
+                <div className="text-xs text-muted-foreground">Actual revenue across current academic calendar terms</div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium flex items-center">
+                  <TrendingDown className="h-4 w-4 mr-2 text-red-600" />
+                  Total Expenses
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-red-600">{currencySymbol}{calendarExpenses.toLocaleString()}</div>
+                <div className="text-xs text-muted-foreground">Expenses across current academic calendar terms</div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">Net Profit</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className={`text-2xl font-bold ${calendarNetProfit >= 0 ? 'text-blue-600' : 'text-red-600'}`}>
+                  {currencySymbol}{calendarNetProfit.toLocaleString()}
+                </div>
+                <div className="text-xs text-muted-foreground">Current academic calendar + previous academic calendar carry-forward</div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">Profit Margin</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{calendarProfitMargin}%</div>
+                <div className="text-xs text-muted-foreground">Academic calendar margin</div>
+              </CardContent>
+            </Card>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Carry-Forward Balance Section */}
       {termBasedData && (
@@ -574,76 +651,75 @@ export default function FinanceReports() {
                     </Card>
                     <Card className="border-green-200">
                       <CardContent className="p-4">
-                        <div className="text-sm text-muted-foreground">Revenue</div>
-                        <div className="text-lg font-bold text-green-600">{currencySymbol}{termBasedData.currentTerm.revenue.toLocaleString()}</div>
+                        <div className="text-sm text-muted-foreground">Actual Revenue</div>
+                        <div className="text-lg font-bold text-green-600">{currencySymbol}{currentTermRevenue.toLocaleString()}</div>
+                        <div className="text-xs text-muted-foreground">Cash collected in selected term</div>
                       </CardContent>
                     </Card>
                     <Card className="border-red-200">
                       <CardContent className="p-4">
                         <div className="text-sm text-muted-foreground">Expenses</div>
-                        <div className="text-lg font-bold text-red-600">{currencySymbol}{termBasedData.currentTerm.expenses.toLocaleString()}</div>
+                        <div className="text-lg font-bold text-red-600">{currencySymbol}{currentTermExpenses.toLocaleString()}</div>
+                        <div className="text-xs text-muted-foreground">Current term expenses</div>
                       </CardContent>
                     </Card>
                     <Card className="border-blue-200">
                       <CardContent className="p-4">
                         <div className="text-sm text-muted-foreground">Profit</div>
-                        <div className={`text-lg font-bold ${termBasedData.currentTerm.profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                          {currencySymbol}{termBasedData.currentTerm.profit.toLocaleString()}
+                        <div className={`text-lg font-bold ${currentTermProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          {currencySymbol}{currentTermProfit.toLocaleString()}
                         </div>
                         <div className="text-xs text-muted-foreground">
-                          {termBasedData.currentTerm.profitMargin.toFixed(1)}% margin
-                        </div>
+                          {currentTermMargin}% margin {showCarryForward ? '(incl. previous term brought forward)' : '(current term only)'}</div>
                       </CardContent>
                     </Card>
                   </div>
                 </div>
               )}
 
-              {/* Previous Terms Summary */}
-              {termBasedData.previousTerms.length > 0 && (
-                <div>
-                  <h4 className="text-lg font-semibold mb-3">Previous Terms Summary</h4>
-                  <CardDescription className="mb-3">
-                    Cumulative financial performance from all previous terms (excluding current term)
-                  </CardDescription>
+              {/* Previous Term Performance */}
+              <div>
+                  <h4 className="text-lg font-semibold mb-3">Previous Term Performance</h4>
+                  {!termBasedData.previousTerm && (
+                    <p className="text-sm text-muted-foreground mb-3">No previous term data available for this academic calendar.</p>
+                  )}
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <Card className="border-purple-200 bg-purple-50 dark:bg-card">
+                    <Card className="border-blue-200">
                       <CardContent className="p-4">
-                        <div className="text-sm text-muted-foreground">Brought Forward (Profit)</div>
-                        <div className={`text-lg font-bold ${previousTermsProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                          {currencySymbol}{previousTermsProfit.toLocaleString()}
+                        <div className="text-sm text-muted-foreground">Term</div>
+                        <div className="font-semibold">{termBasedData.previousTerm?.termName ?? '-'}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {termBasedData.previousTerm ? `${new Date(termBasedData.previousTerm.startDate).toLocaleDateString()} - ${new Date(termBasedData.previousTerm.endDate).toLocaleDateString()}` : '-'}
                         </div>
-                        <div className="text-xs text-muted-foreground">From previous terms</div>
                       </CardContent>
                     </Card>
                     <Card className="border-green-200">
                       <CardContent className="p-4">
-                        <div className="text-sm text-muted-foreground">Total Revenue</div>
-                        <div className="text-lg font-bold text-green-600">{currencySymbol}{previousTermsRevenue.toLocaleString()}</div>
-                        <div className="text-xs text-muted-foreground">Previous terms only</div>
+                        <div className="text-sm text-muted-foreground">Actual Revenue</div>
+                        <div className="text-lg font-bold text-green-600">{currencySymbol}{previousTermRevenue.toLocaleString()}</div>
+                        <div className="text-xs text-muted-foreground">Cash collected in previous term</div>
                       </CardContent>
                     </Card>
                     <Card className="border-red-200">
                       <CardContent className="p-4">
-                        <div className="text-sm text-muted-foreground">Total Expenses</div>
-                        <div className="text-lg font-bold text-red-600">{currencySymbol}{previousTermsExpenses.toLocaleString()}</div>
-                        <div className="text-xs text-muted-foreground">Previous terms only</div>
+                        <div className="text-sm text-muted-foreground">Expenses</div>
+                        <div className="text-lg font-bold text-red-600">{currencySymbol}{previousTermExpenses.toLocaleString()}</div>
+                        <div className="text-xs text-muted-foreground">Previous term expenses</div>
                       </CardContent>
                     </Card>
-                    <Card className="border-blue-200 bg-blue-50 dark:bg-card">
+                    <Card className="border-blue-200">
                       <CardContent className="p-4">
-                        <div className="text-sm text-muted-foreground">Cumulative Profit</div>
-                        <div className={`text-lg font-bold ${previousTermsProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                          {currencySymbol}{previousTermsProfit.toLocaleString()}
+                        <div className="text-sm text-muted-foreground">Profit</div>
+                        <div className={`text-lg font-bold ${previousTermProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          {currencySymbol}{previousTermProfit.toLocaleString()}
                         </div>
                         <div className="text-xs text-muted-foreground">
-                          {previousTermsMargin}% margin
+                          {previousTermMargin}% margin (previous term only)
                         </div>
                       </CardContent>
                     </Card>
                   </div>
-                </div>
-              )}
+              </div>
 
               {/* Carry-Forward Balance */}
               <div>
@@ -652,12 +728,12 @@ export default function FinanceReports() {
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between">
                       <div>
-                        <div className="text-sm text-muted-foreground">Brought Forward</div>
+                        <div className="text-sm text-muted-foreground">Previous Academic Calendar Profit Carry Forward</div>
                         <div className={`text-2xl font-bold ${termBasedData.carryForwardBalance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                           {currencySymbol}{termBasedData.carryForwardBalance.toLocaleString()}
                         </div>
                         <div className="text-xs text-muted-foreground mt-1">
-                          This balance is brought forward to the next academic term
+                          Profit carried from the previous academic calendar into the current academic calendar
                         </div>
                       </div>
                       <div className="text-right">
@@ -672,11 +748,11 @@ export default function FinanceReports() {
               </div>
 
               {/* Historical Terms Details */}
-              {termBasedData.previousTerms.length > 0 && (
+              {historicalTerms.length > 0 && (
                 <div>
                   <h4 className="text-lg font-semibold mb-3">Historical Terms Details</h4>
                   <div className="space-y-2">
-                    {termBasedData.previousTerms.map((term) => (
+                    {historicalTerms.map((term) => (
                       <Card key={term.termId} className="border-gray-200">
                         <CardContent className="p-4">
                           <div className="flex items-center justify-between">
@@ -749,8 +825,8 @@ export default function FinanceReports() {
                         <Pie
                           dataKey="value"
                           data={[
-                            ...(includeRevenue ? [{ name: 'Revenue', value: totalRevenue }] : []),
-                            ...(includeExpenses ? [{ name: 'Expenses', value: totalExpenses }] : []),
+                            ...(includeRevenue ? [{ name: 'Revenue', value: reportRevenue }] : []),
+                            ...(includeExpenses ? [{ name: 'Expenses', value: reportExpenses }] : []),
                           ]}
                           cx="50%"
                           cy="50%"
@@ -839,3 +915,4 @@ export default function FinanceReports() {
     </div>
   );
 }
+
