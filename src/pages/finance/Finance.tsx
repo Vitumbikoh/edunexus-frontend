@@ -40,6 +40,7 @@ import { API_CONFIG } from '@/config/api';
 import { academicCalendarService } from '@/services/academicCalendarService';
 import { formatCurrency, getDefaultCurrency } from '@/lib/currency';
 import { Preloader } from "@/components/ui/preloader";
+import { Skeleton } from "@/components/ui/skeleton";
 import { StudentFinancialDetailsModal } from "@/components/StudentFinancialDetailsModal";
 
 interface Transaction {
@@ -182,9 +183,8 @@ export default function Finance() {
   const [statusSearch, setStatusSearch] = useState("");
   const [statusInput, setStatusInput] = useState("");
   const [activeTab, setActiveTab] = useState<'statuses' | 'transactions'>('statuses');
-  const [isFetchingTransactions, setIsFetchingTransactions] = useState(false);
-  const firstLoadRef = useRef(true);
-  const prevTermIdRef = useRef<string | undefined>(undefined);
+  const [refreshKey, setRefreshKey] = useState(0); // increment to force re-fetch
+  const termVersionRef = useRef(0); // guards against stale async responses
 
   // Normalize any backend label like "Period 1" or arbitrary names to a uniform "Term X" display
   const normalizeTermLabel = (name?: string | null, order?: number | null) => {
@@ -200,48 +200,52 @@ export default function Finance() {
     return raw || 'Term';
   };
 
-  // Fetch current term (single)
+  // Init: fetch current term AND active calendar in parallel so both states are set
+  // together in one React 18 batch → the data-fetch effect fires exactly once, not twice.
   useEffect(() => {
-    const fetchTerm = async () => {
+    const init = async () => {
       if (!token) return;
-      try {
-        const res = await fetch(`${API_CONFIG.BASE_URL}/analytics/current-term`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        if (res.ok) {
-          const data = await res.json();
-            const id = data?.id || data?.termId || data?.currentTerm?.id;
-            const rawName = data?.name || data?.currentTerm?.name;
-            const computedName = normalizeTermLabel(rawName, data?.order || data?.termNumber || data?.currentTerm?.order);
-            if (id) {
-              setTermId(id);
-              if (!uniformTermId) setUniformTermId(id);
-              setTerms(prev => {
-                if (prev.find(p => p.id === id)) return prev;
-                return [{ id, name: computedName }];
-              });
-            }
-            // also try to set active academic calendar if present in response
-            const calId = data?.academicCalendarId || data?.currentTerm?.academicCalendarId || data?.academicCalendar?.id;
-            if (calId) setAcademicCalendarId(calId);
-        }
-      } catch {
-        // silent
-      }
-    };
-    fetchTerm();
-  }, [token]);
+      const [termResult, calResult] = await Promise.allSettled([
+        fetch(`${API_CONFIG.BASE_URL}/analytics/current-term`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        academicCalendarService.getActiveAcademicCalendar(token),
+      ]);
 
-  // Fetch active academic calendar (fallback if current-term did not include it)
-  useEffect(() => {
-    const fetchActiveCalendar = async () => {
-      if (!token) return;
-      try {
-        const cal = await academicCalendarService.getActiveAcademicCalendar(token);
-        if (cal && cal.id) setAcademicCalendarId(cal.id);
-      } catch {}
+      let id: string | undefined;
+      let calId: string | undefined;
+
+      if (termResult.status === 'fulfilled' && termResult.value.ok) {
+        const data = await termResult.value.json().catch(() => null);
+        if (data) {
+          id = data?.id || data?.termId || data?.currentTerm?.id;
+          calId =
+            data?.academicCalendarId ||
+            data?.currentTerm?.academicCalendarId ||
+            data?.academicCalendar?.id;
+          if (id) {
+            const rawName = data?.name || data?.currentTerm?.name;
+            const computedName = normalizeTermLabel(
+              rawName,
+              data?.order || data?.termNumber || data?.currentTerm?.order,
+            );
+            setTerms(prev =>
+              prev.find(p => p.id === id) ? prev : [{ id: id!, name: computedName }],
+            );
+            setUniformTermId(prev => prev || id);
+          }
+        }
+      }
+
+      if (!calId && calResult.status === 'fulfilled' && (calResult.value as any)?.id) {
+        calId = (calResult.value as any).id;
+      }
+
+      // Both set calls happen in the same microtask → React 18 batches them → one render
+      if (id) setTermId(id);
+      if (calId) setAcademicCalendarId(calId);
     };
-    fetchActiveCalendar();
+    init();
   }, [token]);
 
   // Fetch all terms
@@ -299,296 +303,258 @@ export default function Finance() {
     loadCalendars();
   }, [token]);
 
-  // Fetch current term overpayments
+  // ── Unified data loader ──────────────────────────────────────────────────────
+  // All finance data (term totals, summary, statuses, transactions, overpayments)
+  // is fetched in ONE effect with Promise.allSettled. State is committed atomically
+  // after all requests settle so the UI never shows a half-loaded mix of old/new data.
   useEffect(() => {
-    const fetchOverpayments = async () => {
-      if (!token) return;
-      try {
-        const res = await fetch(`${API_CONFIG.BASE_URL}/finance/total-finances`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        if (res.ok) {
-          const data = await res.json();
-          setCurrentTermOverpayments(Number(data.currentTermOverpayments || 0));
-        }
-      } catch (error) {
-        console.error('Failed to fetch overpayments:', error);
-        setCurrentTermOverpayments(0);
-      }
-    };
-    fetchOverpayments();
-  }, [token, termId]);
+    if (!token || !termId) return;
 
-  // Fetch term aggregated totals (collected, allocations, pending, credits, overdue)
-  useEffect(() => {
-    const fetchTermTotals = async () => {
-      if (!token || !termId) return;
-      try {
-        const res = await fetch(`${API_CONFIG.BASE_URL}/finance/v2/term-totals?termId=${termId}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        if (res.ok) {
-          const data = await res.json();
-          setTermTotals({
-            totalCollected: Number(data.totalCollected || 0),
-            totalPaid: Number(data.totalPaid || 0),
-            pending: Number(data.pending || 0),
-            overdue: Number(data.overdue || 0),
-            overdueFromPreviousTerms: Number(data.overdueFromPreviousTerms || 0),
-            credits: Number(data.credits || 0),
-            actualRevenue: Number(data.actualRevenue || 0),
-            termFeesApplied: Number(data.termFeesApplied ?? data.actualRevenue ?? 0),
-            allocatedToPreviousTerms: Number(data.allocatedToPreviousTerms || 0),
-            allocatedToFutureTerms: Number(data.allocatedToFutureTerms || 0),
-          });
-        } else {
-          setTermTotals(null);
-        }
-      } catch (e) {
-        console.error('Failed to fetch term totals', e);
-        setTermTotals(null);
-      }
-    };
-    fetchTermTotals();
-  }, [token, termId]);
+    // Bump version: any in-flight request from a previous term/calendar will see a
+    // mismatched version and silently discard its result.
+    termVersionRef.current += 1;
+    const version = termVersionRef.current;
 
-  // Fetch summary (new endpoint) - prevent race conditions
-  useEffect(() => {
-    const fetchSummary = async () => {
-      if (!token || !termId || fetchingSummary) return;
-      setFetchingSummary(true);
-      try {
-        const calParam = academicCalendarId ? `&academicCalendarId=${academicCalendarId}` : '';
-        // Consolidated summary strictly scoped by calendar + term
-        // Clear previous data to prevent stale states
-        setConsolidatedSummary(null);
-        setSummaryData(null);
-        setApiError(null);
-        
-        // Use enhanced API endpoints that provide consistent calculations
-        const enhancedRes = await fetch(`${API_CONFIG.BASE_URL}/finance/v2/summary?termId=${termId}${calParam}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        
-        if (enhancedRes.ok) {
-          const enhancedData: EnhancedSummaryResponse = await enhancedRes.json();
-          const cs: ConsolidatedSummaryResponse = {
-            success: true,
-            filters: { termId, academicCalendarId },
-            labels: {
-              currentTermFigures: enhancedData.termName || 'Current Term Figures',
-              outstandingFromPreviousTerms: 'Outstanding From Previous Terms'
-            },
-            summary: {
-              totalFeesPaid: Number(enhancedData.paidAmount || 0),
-              expectedFees: Number(enhancedData.expectedAmount || 0),
-              pending: Number(enhancedData.outstandingAmount || 0),
-              overdue: Number(enhancedData.overdueAmount || 0),
-            },
-            statuses: []
-          };
+    // Immediately clear stale data and show the loading skeleton
+    setIsLoading(true);
+    setFetchingSummary(true);
+    setLoadingStatuses(true);
+    setTermTotals(null);
+    setSummaryData(null);
+    setConsolidatedSummary(null);
+    setFeeStatuses([]);
+    setTransactions([]);
+    setExpectedFeesAmount(0);
+    setCurrentTermOverpayments(0);
+    setApiError(null);
+    setStatusesError(null);
 
-          setConsolidatedSummary(cs);
-          setSummaryData({
-            expectedFees: Number(enhancedData.expectedAmount || 0),
-            totalFeesPaid: Number(enhancedData.paidAmount || 0),
-            remainingFees: Number(enhancedData.outstandingAmount || 0),
-            overdueFees: Number(enhancedData.overdueAmount || 0),
-            termId: enhancedData.termId,
-            termEndDate: enhancedData.termEndDate,
-          });
-          setExpectedFeesAmount(Number(enhancedData.expectedAmount || 0));
-          console.log('Enhanced API summary loaded:', {
-            expectedFees: enhancedData.expectedAmount,
-            totalPaid: enhancedData.paidAmount,
-            totalStudents: enhancedData.totalStudents,
-          });
-        } else {
-          console.warn('⚠️ Enhanced API failed, trying legacy:', enhancedRes.status);
-          
-          // Fallback to original consolidated endpoint only if enhanced fails
-          const consolidatedRes = await fetch(`${API_CONFIG.BASE_URL}/finance/summary?termId=${termId}${calParam}`, {
-            headers: { Authorization: `Bearer ${token}` }
-          });
-          if (consolidatedRes.ok) {
-            const cs: ConsolidatedSummaryResponse = await consolidatedRes.json();
-            setConsolidatedSummary(cs);
-            setExpectedFeesAmount(Number(cs?.summary?.expectedFees || 0));
-            console.log('📊 Legacy consolidated summary loaded:', { expectedFees: cs?.summary?.expectedFees, totalStudents: cs?.statuses?.length });
-          }
-        }
-      } catch (error) {
-        console.error('❌ Error fetching finance summary:', error);
-        setApiError(error instanceof Error ? error.message : 'Failed to fetch finance data');
-        // Clear potentially inconsistent state
-        setConsolidatedSummary(null);
-        setSummaryData(null);
-        setExpectedFeesAmount(0);
-      } finally {
-        setFetchingSummary(false);
-      }
-    };
-    fetchSummary();
-  }, [token, termId, academicCalendarId]);
-
-  // Fetch per-student statuses
-  useEffect(() => {
-    const fetchStatuses = async () => {
-      if (!token || !termId) return;
-      try {
-        setLoadingStatuses(true);
-        setStatusesError(null);
-        const calParam = academicCalendarId ? `&academicCalendarId=${academicCalendarId}` : '';
-        // Prefer consolidated statuses if present
-        let list: any[] = consolidatedSummary?.statuses || [];
-        if (!list.length) {
-          const res = await fetch(`${API_CONFIG.BASE_URL}/finance/fee-statuses?termId=${termId}${calParam}`, {
-            headers: { Authorization: `Bearer ${token}` }
-          });
-          if (!res.ok) throw new Error('Failed to fetch fee statuses');
-          const data = await res.json();
-          list = Array.isArray(data) ? data : (data.statuses || data.items || data.students || []);
-        }
-        const mapped: FeeStatusItem[] = list.map((s: any) => {
-          const expected = Number(
-            s.totalExpected ??
-            s.expectedFees ??
-            s.expectedAmount ??
-            s.expected ??
-            0
-          );
-          const paid = Number(
-            s.totalPaid ??
-            s.paidAmount ??
-            s.paid ??
-            0
-          );
-          const creditVal = Number(
-            s.credit ?? s.credits ?? s.creditBalance ?? s.credit_balance ?? s.carryForward ?? s.totalCarryForwardAmount ?? 0
-          );
-            const outstanding = Number(
-              s.outstanding ??
-              s.outstandingAmount ??
-              Math.max(expected - paid, 0)
-            );
-          const isOverdue = Boolean((s as any).hasHistoricalOverdue || s.isOverdue || Number((s as any).historicalOverdueAmount || 0) > 0);
-          const overdueAmt = Number((s as any).historicalOverdueAmount ?? s.overdueAmount ?? s.pastDue ?? 0);
-          const computedStatus =
-            isOverdue ? 'overdue' :
-            (s.status?.toLowerCase?.()) ||
-            (outstanding === 0 ? 'paid' : (paid === 0 ? 'unpaid' : 'partial'));
-          return {
-            studentId: s.studentId || s.id,
-            studentName: s.studentName || `${s.firstName || ''} ${s.lastName || ''}`.trim() || 'Unknown',
-            expectedAmount: expected,
-            paidAmount: paid,
-            credit: creditVal,
-            outstandingAmount: outstanding,
-            status: computedStatus,
-            isOverdue,
-            overdueAmount: overdueAmt,
-      humanId: s.humanId || s.studentCode || s.student_id || s.studentID || s.student_id_number || undefined,
-          };
-        });
-        setFeeStatuses(mapped);
-        // Fallback expected total if summary not present
-        if (!summaryData && mapped.length) {
-          const derived = mapped.reduce((sum, i) => sum + i.expectedAmount, 0);
-          setExpectedFeesAmount(derived);
-        }
-      } catch (e) {
-        setStatusesError(e instanceof Error ? e.message : 'Failed to load statuses');
-        setFeeStatuses([]);
-      } finally {
-        setLoadingStatuses(false);
-      }
-    };
-    fetchStatuses();
-  }, [token, termId, summaryData, consolidatedSummary, academicCalendarId]);
-
-  // Fetch transactions; avoid full page loading on search input to keep cursor focus
-  useEffect(() => {
     const controller = new AbortController();
-    const run = async () => {
-      // Require a selected term to prevent fetching wrong-term transactions
-      if (!token || !termId) return;
+    const { signal } = controller;
+    const calParam = academicCalendarId
+      ? `&academicCalendarId=${encodeURIComponent(academicCalendarId)}`
+      : '';
+
+    const loadAll = async () => {
       try {
-        setApiError(null);
+        // Fire all requests in parallel
+        const [totalsRes, summaryRes, statusesRes, txRes, overpayRes] = await Promise.allSettled([
+          fetch(`${API_CONFIG.BASE_URL}/finance/v2/term-totals?termId=${termId}`, {
+            headers: { Authorization: `Bearer ${token}` }, signal,
+          }),
+          fetch(`${API_CONFIG.BASE_URL}/finance/v2/summary?termId=${termId}${calParam}`, {
+            headers: { Authorization: `Bearer ${token}` }, signal,
+          }),
+          fetch(`${API_CONFIG.BASE_URL}/finance/fee-statuses?termId=${termId}${calParam}`, {
+            headers: { Authorization: `Bearer ${token}` }, signal,
+          }),
+          fetch(
+            `${API_CONFIG.BASE_URL}/finance/transactions?page=1&limit=500&termId=${termId}${calParam}`,
+            { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, signal },
+          ),
+          fetch(`${API_CONFIG.BASE_URL}/finance/total-finances`, {
+            headers: { Authorization: `Bearer ${token}` }, signal,
+          }),
+        ]);
 
-        const isTermChanged = prevTermIdRef.current !== termId;
-        const isFirst = firstLoadRef.current;
-        if (isFirst || isTermChanged) {
-          setIsLoading(true);
-        } else {
-          setIsFetchingTransactions(true);
-        }
+        // If the term/calendar changed while we were fetching, discard everything
+        if (version !== termVersionRef.current || signal.aborted) return;
 
-        const yearParam = termId ? `&termId=${termId}` : '';
-        const calParam = academicCalendarId ? `&academicCalendarId=${academicCalendarId}` : '';
-        const res = await fetch(
-          `${API_CONFIG.BASE_URL}/finance/transactions?page=1&limit=500${yearParam}${calParam}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-            signal: controller.signal,
+        // ── Term totals ────────────────────────────────────────────────────────
+        let newTermTotals: TermTotalsResponse | null = null;
+        if (totalsRes.status === 'fulfilled' && totalsRes.value.ok) {
+          const data = await totalsRes.value.json().catch(() => null);
+          if (data) {
+            newTermTotals = {
+              totalCollected: Number(data.totalCollected || 0),
+              totalPaid: Number(data.totalPaid || 0),
+              pending: Number(data.pending || 0),
+              overdue: Number(data.overdue || 0),
+              overdueFromPreviousTerms: Number(data.overdueFromPreviousTerms || 0),
+              credits: Number(data.credits || 0),
+              actualRevenue: Number(data.actualRevenue || 0),
+              termFeesApplied: Number(data.termFeesApplied ?? data.actualRevenue ?? 0),
+              allocatedToPreviousTerms: Number(data.allocatedToPreviousTerms || 0),
+              allocatedToFutureTerms: Number(data.allocatedToFutureTerms || 0),
+            };
           }
-        );
-
-        if (res.status === 401) {
-          throw new Error("Session expired. Please log in again.");
         }
-        if (!res.ok) {
-          const errorData = await res.json().catch(() => ({}));
-          throw new Error(errorData.message || "Failed to fetch transactions");
-        }
-        const data = await res.json();
 
-        const mappedTransactions: Transaction[] = (data.transactions || data.items || []).map((t: any) => ({
-          id: t.id,
-          studentName: t.studentName,
-          studentId: t.studentId || t.student_id || t.student_id_number,
-          amount: Number(t.amount),
-          paymentDate: t.paymentDate,
-          paymentType: t.paymentType,
-          paymentMethod: t.paymentMethod,
-          receiptNumber: t.receiptNumber,
-          processedByName: t.processedByName || t.processedBy || t.processed_by_name || t.processedByName || null,
-          forTermId: t.forTermId || t.for_term_id || null,
-          forTermNumber: t.forTermNumber || t.for_term_number || null,
-          forAcademicYear: t.forAcademicYear || t.for_academic_year || null,
-          processedBy: t.processedBy || t.processedByName || t.processed_by || t.processed_by_name || null,
-          notes: t.notes || t.notesText || t.description || t.details || null,
-          termNumber: t.termNumber || t.term_number || t.term?.order || null,
-          academicYear: t.academicYear || t.academic_year || t.term?.academicYear || t.term?.academic_year || null,
-          isCreditEntry: Boolean(t.isCredit || (t.paymentType && String(t.paymentType).toLowerCase().includes('credit')) || t.isCreditEntry),
-        }));
-        setTransactions(mappedTransactions);
+        // ── Summary (v2 → fallback legacy) ────────────────────────────────────
+        let newSummaryData: FeeSummaryResponse | null = null;
+        let newConsolidatedSummary: ConsolidatedSummaryResponse | null = null;
+        let newExpectedFees = 0;
+        if (summaryRes.status === 'fulfilled' && summaryRes.value.ok) {
+          const enhancedData: EnhancedSummaryResponse = await summaryRes.value.json().catch(() => null);
+          if (enhancedData) {
+            newConsolidatedSummary = {
+              success: true,
+              filters: { termId, academicCalendarId: academicCalendarId ?? null },
+              labels: {
+                currentTermFigures: enhancedData.termName || 'Current Term Figures',
+                outstandingFromPreviousTerms: 'Outstanding From Previous Terms',
+              },
+              summary: {
+                totalFeesPaid: Number(enhancedData.paidAmount || 0),
+                expectedFees: Number(enhancedData.expectedAmount || 0),
+                pending: Number(enhancedData.outstandingAmount || 0),
+                overdue: Number(enhancedData.overdueAmount || 0),
+              },
+              statuses: [],
+            };
+            newSummaryData = {
+              expectedFees: Number(enhancedData.expectedAmount || 0),
+              totalFeesPaid: Number(enhancedData.paidAmount || 0),
+              remainingFees: Number(enhancedData.outstandingAmount || 0),
+              overdueFees: Number(enhancedData.overdueAmount || 0),
+              termId: enhancedData.termId,
+              termEndDate: enhancedData.termEndDate,
+            };
+            newExpectedFees = Number(enhancedData.expectedAmount || 0);
+          }
+        } else {
+          // Fallback to legacy summary endpoint
+          try {
+            if (!signal.aborted) {
+              const legacyRes = await fetch(
+                `${API_CONFIG.BASE_URL}/finance/summary?termId=${termId}${calParam}`,
+                { headers: { Authorization: `Bearer ${token}` }, signal },
+              );
+              if (legacyRes.ok) {
+                const cs: ConsolidatedSummaryResponse = await legacyRes.json().catch(() => null);
+                if (cs) {
+                  newConsolidatedSummary = cs;
+                  newExpectedFees = Number(cs?.summary?.expectedFees || 0);
+                }
+              }
+            }
+          } catch { /* swallow abort / network error */ }
+        }
+
+        // ── Fee statuses ──────────────────────────────────────────────────────
+        let newFeeStatuses: FeeStatusItem[] = [];
+        if (statusesRes.status === 'fulfilled' && statusesRes.value.ok) {
+          const rawData = await statusesRes.value.json().catch(() => null);
+          const list: any[] = Array.isArray(rawData)
+            ? rawData
+            : (rawData?.statuses || rawData?.items || rawData?.students || []);
+          newFeeStatuses = list.map((s: any) => {
+            const expected = Number(s.totalExpected ?? s.expectedFees ?? s.expectedAmount ?? s.expected ?? 0);
+            const paid = Number(s.totalPaid ?? s.paidAmount ?? s.paid ?? 0);
+            const creditVal = Number(
+              s.credit ?? s.credits ?? s.creditBalance ?? s.credit_balance ??
+              s.carryForward ?? s.totalCarryForwardAmount ?? 0,
+            );
+            const outstanding = Number(s.outstanding ?? s.outstandingAmount ?? Math.max(expected - paid, 0));
+            const isOverdue = Boolean(
+              s.hasHistoricalOverdue || s.isOverdue || Number(s.historicalOverdueAmount || 0) > 0,
+            );
+            const overdueAmt = Number(s.historicalOverdueAmount ?? s.overdueAmount ?? s.pastDue ?? 0);
+            const computedStatus =
+              isOverdue ? 'overdue' :
+              (s.status?.toLowerCase?.()) ||
+              (outstanding === 0 ? 'paid' : (paid === 0 ? 'unpaid' : 'partial'));
+            return {
+              studentId: s.studentId || s.id,
+              studentName:
+                s.studentName || `${s.firstName || ''} ${s.lastName || ''}`.trim() || 'Unknown',
+              expectedAmount: expected,
+              paidAmount: paid,
+              credit: creditVal,
+              outstandingAmount: outstanding,
+              status: computedStatus,
+              isOverdue,
+              overdueAmount: overdueAmt,
+              humanId:
+                s.humanId || s.studentCode || s.student_id || s.studentID ||
+                s.student_id_number || undefined,
+            };
+          });
+          // Derive expectedFees from statuses if summary didn't provide it
+          if (!newExpectedFees && newFeeStatuses.length) {
+            newExpectedFees = newFeeStatuses.reduce((sum, i) => sum + i.expectedAmount, 0);
+          }
+        }
+
+        // ── Transactions ──────────────────────────────────────────────────────
+        let newTransactions: Transaction[] = [];
+        if (txRes.status === 'fulfilled' && txRes.value.ok) {
+          const txData = await txRes.value.json().catch(() => null);
+          if (txData) {
+            newTransactions = (txData.transactions || txData.items || []).map((t: any) => ({
+              id: t.id,
+              studentName: t.studentName,
+              studentId: t.studentId || t.student_id || t.student_id_number,
+              amount: Number(t.amount),
+              paymentDate: t.paymentDate,
+              paymentType: t.paymentType,
+              paymentMethod: t.paymentMethod,
+              receiptNumber: t.receiptNumber,
+              processedByName: t.processedByName || t.processedBy || t.processed_by_name || null,
+              forTermId: t.forTermId || t.for_term_id || null,
+              forTermNumber: t.forTermNumber || t.for_term_number || null,
+              forAcademicYear: t.forAcademicYear || t.for_academic_year || null,
+              processedBy: t.processedBy || t.processedByName || t.processed_by || t.processed_by_name || null,
+              notes: t.notes || t.notesText || t.description || t.details || null,
+              termNumber: t.termNumber || t.term_number || t.term?.order || null,
+              academicYear:
+                t.academicYear || t.academic_year || t.term?.academicYear || t.term?.academic_year || null,
+              isCreditEntry: Boolean(
+                t.isCredit ||
+                (t.paymentType && String(t.paymentType).toLowerCase().includes('credit')) ||
+                t.isCreditEntry,
+              ),
+            }));
+          }
+        } else if (txRes.status === 'rejected') {
+          const reason = txRes.reason instanceof Error ? txRes.reason : new Error(String(txRes.reason));
+          if (!reason.message.includes('abort') && !reason.message.includes('AbortError')) {
+            if (reason.message.includes('Session expired')) {
+              localStorage.removeItem('token');
+              navigate('/login');
+            }
+          }
+        }
+
+        // ── Overpayments ──────────────────────────────────────────────────────
+        let newOverpayments = 0;
+        if (overpayRes.status === 'fulfilled' && overpayRes.value.ok) {
+          const opData = await overpayRes.value.json().catch(() => null);
+          newOverpayments = Number(opData?.currentTermOverpayments || 0);
+        }
+
+        // Final version guard before committing any state
+        if (version !== termVersionRef.current) return;
+
+        // ── Commit ALL state in one synchronous batch ──────────────────────────
+        setTermTotals(newTermTotals);
+        setSummaryData(newSummaryData);
+        setConsolidatedSummary(newConsolidatedSummary);
+        setExpectedFeesAmount(newExpectedFees);
+        setFeeStatuses(newFeeStatuses);
+        setTransactions(newTransactions);
+        setCurrentTermOverpayments(newOverpayments);
       } catch (error) {
         if ((error as any)?.name === 'AbortError') return;
-        const errorMessage = error instanceof Error ? error.message : "Failed to fetch data";
-        setApiError(errorMessage);
-        toast({ title: "Error", description: errorMessage, variant: "destructive" });
-        if (errorMessage.includes("Session expired")) {
-          localStorage.removeItem("token");
+        if (version !== termVersionRef.current) return;
+        const msg = error instanceof Error ? error.message : 'Failed to fetch finance data';
+        setApiError(msg);
+        if (msg.includes('Session expired')) {
+          localStorage.removeItem('token');
           navigate('/login');
         }
       } finally {
-        const isTermChanged = prevTermIdRef.current !== termId;
-        if (firstLoadRef.current || isTermChanged) {
+        if (version === termVersionRef.current) {
           setIsLoading(false);
-          firstLoadRef.current = false;
-          prevTermIdRef.current = termId;
-        } else {
-          setIsFetchingTransactions(false);
+          setFetchingSummary(false);
+          setLoadingStatuses(false);
         }
       }
     };
 
-    run();
+    loadAll();
     return () => controller.abort();
-  }, [token, navigate, toast, termId, academicCalendarId]);
+  }, [token, termId, academicCalendarId, navigate, refreshKey]);
 
   // ---------------- Metrics calculation ----------------
   // Summary preferred, fallback to derived
@@ -699,8 +665,8 @@ export default function Finance() {
         throw new Error(err.message || 'Failed to set tuition fee expectation');
       }
       await res.json().catch(() => ({}));
-      // Trigger re-fetch summary
-      setSummaryData(null);
+      // Trigger full re-fetch after fee structure change
+      setRefreshKey(k => k + 1);
       toast({ title: 'Success', description: 'Uniform fee expectation saved.' });
       setShowSetUniformDialog(false);
     } catch (e) {
@@ -826,15 +792,77 @@ export default function Finance() {
       )}
 
       {isLoading ? (
-        <div className="space-y-6">
+        <div className="space-y-6 animate-in fade-in duration-300">
+          {/* Metric cards skeleton — mirrors the 6-column grid */}
           <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-6">
-            <Preloader variant="skeleton" rows={1} className="h-24" />
-            <Preloader variant="skeleton" rows={1} className="h-24" />
-            <Preloader variant="skeleton" rows={1} className="h-24" />
-            <Preloader variant="skeleton" rows={1} className="h-24" />
-            <Preloader variant="skeleton" rows={1} className="h-24" />
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="rounded-xl border bg-card shadow-sm p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <Skeleton className="h-3.5 w-28" />
+                  <Skeleton className="h-4 w-4 rounded" />
+                </div>
+                <Skeleton className="h-6 w-36" />
+                {i === 1 ? (
+                  /* Expected Fees card has a progress bar */
+                  <div className="space-y-1.5">
+                    <Skeleton className="h-2 w-full rounded-full" />
+                    <Skeleton className="h-3 w-20" />
+                  </div>
+                ) : (
+                  <Skeleton className="h-3 w-44" />
+                )}
+              </div>
+            ))}
           </div>
-          <Preloader variant="skeleton" rows={4} className="space-y-6" />
+
+          {/* Tabs skeleton */}
+          <div className="space-y-4">
+            {/* Tab strip */}
+            <div className="flex gap-2 border-b pb-2">
+              <Skeleton className="h-8 w-28 rounded-md" />
+              <Skeleton className="h-8 w-36 rounded-md" />
+            </div>
+
+            {/* Search / action bar */}
+            <div className="flex items-center justify-between">
+              <Skeleton className="h-5 w-40" />
+              <div className="flex gap-2">
+                <Skeleton className="h-9 w-48 rounded-md" />
+                <Skeleton className="h-9 w-24 rounded-md" />
+              </div>
+            </div>
+
+            {/* Table skeleton */}
+            <div className="rounded-xl border bg-card overflow-hidden">
+              {/* Table header */}
+              <div className="grid grid-cols-6 gap-4 px-4 py-3 border-b bg-muted/40">
+                {[...Array(6)].map((_, i) => (
+                  <Skeleton key={i} className="h-3.5" />
+                ))}
+              </div>
+              {/* Table rows — fixed widths, no re-render flicker */}
+              {([
+                ['w-4/5','w-2/3','w-3/4','w-1/2','w-4/5','w-2/3'],
+                ['w-3/4','w-4/5','w-1/2','w-2/3','w-3/4','w-4/5'],
+                ['w-1/2','w-2/3','w-4/5','w-3/4','w-1/2','w-4/5'],
+                ['w-4/5','w-3/4','w-2/3','w-1/2','w-3/4','w-2/3'],
+                ['w-2/3','w-4/5','w-1/2','w-4/5','w-2/3','w-3/4'],
+                ['w-3/4','w-1/2','w-4/5','w-2/3','w-4/5','w-1/2'],
+                ['w-1/2','w-3/4','w-2/3','w-4/5','w-1/2','w-3/4'],
+                ['w-4/5','w-2/3','w-3/4','w-1/2','w-4/5','w-2/3'],
+              ] as const).map((widths, row) => (
+                <div
+                  key={row}
+                  className="grid grid-cols-6 gap-4 px-4 py-3 border-b last:border-0"
+                  style={{ opacity: 1 - row * 0.09 }}
+                >
+                  {widths.map((w, col) => (
+                    <Skeleton key={col} className={`h-3.5 ${w}`} />
+                  ))}
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       ) : (
         <>
