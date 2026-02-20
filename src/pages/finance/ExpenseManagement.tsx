@@ -104,6 +104,10 @@ interface Expense {
   approvedBy?: string;
   rejectionReason?: string;
   notes?: string;
+  /** True when this expense was auto-created from a Schomas billing invoice */
+  isBillingInvoice?: boolean;
+  /** The BillingInvoice id this expense was created from */
+  billingInvoiceId?: string | null;
 }
 
 interface ExpenseFilters {
@@ -709,7 +713,12 @@ export default function ExpenseManagement() {
                           <TableCell className="font-medium px-2 py-2 text-xs">{expense.expenseNumber}</TableCell>
                           <TableCell className="truncate max-w-[20ch] px-2 py-2">
                             <div>
-                              <div className="font-medium text-sm">{expense.title}</div>
+                              <div className="font-medium text-sm flex items-center gap-1 flex-wrap">
+                                {expense.title}
+                                {expense.isBillingInvoice && (
+                                  <span className="text-xs bg-amber-100 text-amber-800 border border-amber-300 rounded px-1 py-0.5 font-semibold whitespace-nowrap">Invoice</span>
+                                )}
+                              </div>
                               <div className="text-xs text-muted-foreground mt-0.5">{expense.category}</div>
                             </div>
                           </TableCell>
@@ -1581,11 +1590,18 @@ function ExpenseApprovals({
             </div>
           ) : (
             pendingExpenses.map((expense) => (
-              <Card key={expense.id} className="border-l-4 border-l-blue-500">
+              <Card key={expense.id} className={`border-l-4 ${expense.isBillingInvoice ? 'border-l-amber-500' : 'border-l-blue-500'}`}>
                 <CardContent className="p-6">
                   <div className="flex justify-between items-start mb-4">
                     <div>
-                      <h3 className="font-semibold text-lg">{expense.title || 'Untitled Expense'}</h3>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className="font-semibold text-lg">{expense.title || 'Untitled Expense'}</h3>
+                        {expense.isBillingInvoice && (
+                          <Badge className="bg-amber-100 text-amber-800 border border-amber-300 text-xs font-semibold">
+                            📄 Schomas Invoice
+                          </Badge>
+                        )}
+                      </div>
                       <p className="text-sm text-muted-foreground">{expense.expenseNumber || 'N/A'} • {expense.category || 'N/A'}</p>
                       <p className="text-sm text-muted-foreground">Requested by: {expense.requestedBy || 'Unknown'}</p>
                     </div>

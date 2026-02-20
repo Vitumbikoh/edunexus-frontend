@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Menu, Bell, Clock, AlertCircle, School } from 'lucide-react';
+import { Menu, Bell, Clock, AlertCircle, School, FileText } from 'lucide-react';
 import { useSidebar } from '@/contexts/SidebarContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from "@/components/ui/button";
@@ -44,9 +44,16 @@ export default function Header() {
         });
       }
     }
+    // Navigate to expenses page for billing invoice notifications
+    if (notification.metadata?.isBillingInvoice) {
+      navigate('/finance/expenses');
+    }
   };
 
-  const getNotificationIcon = (type: string) => {
+  const getNotificationIcon = (type: string, metadata?: Record<string, any>) => {
+    if (metadata?.isBillingInvoice) {
+      return <FileText className="h-4 w-4 text-amber-500" />;
+    }
     switch (type) {
       case 'credentials':
         return <School className="h-4 w-4" />;
@@ -138,14 +145,17 @@ export default function Header() {
                     onClick={() => handleNotificationClick(notification)}
                   >
                     <div className="flex items-start gap-3 w-full">
-                      <div className={`flex-shrink-0 mt-0.5 ${getPriorityColor(notification.priority)}`}>
-                        {getNotificationIcon(notification.type)}
+                      <div className={`flex-shrink-0 mt-0.5 ${notification.metadata?.isBillingInvoice ? 'text-amber-500' : getPriorityColor(notification.priority)}`}>
+                        {getNotificationIcon(notification.type, notification.metadata)}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 w-full mb-1">
+                        <div className="flex items-center gap-2 w-full mb-1 flex-wrap">
                           <span className="font-medium text-sm truncate">
                             {notification.title}
                           </span>
+                          {notification.metadata?.isBillingInvoice && (
+                            <span className="text-[10px] bg-amber-100 text-amber-800 border border-amber-300 rounded px-1 py-0.5 font-semibold whitespace-nowrap">Invoice</span>
+                          )}
                           {!notification.read && (
                             <span className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0" />
                           )}
