@@ -95,8 +95,11 @@ export default function ClassManagement() {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to create class");
+        const errorData = await response.json().catch(() => ({}));
+        const msg = Array.isArray(errorData.message)
+          ? errorData.message.join(', ')
+          : (errorData.message || errorData.error || 'Failed to create class');
+        throw new Error(msg);
       }
 
       const result = await response.json();
@@ -105,7 +108,9 @@ export default function ClassManagement() {
       toast({ title: "Class created successfully!" });
       fetchClasses();
     } catch (error) {
-      setApiError(error instanceof Error ? error.message : "Failed to create class");
+      const message = error instanceof Error ? error.message : "Failed to create class";
+      setApiError(message);
+      toast({ title: 'Error', description: message });
     }
   };
 
@@ -149,8 +154,11 @@ export default function ClassManagement() {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to update class");
+        const errorData = await response.json().catch(() => ({}));
+        const msg = Array.isArray(errorData.message)
+          ? errorData.message.join(', ')
+          : (errorData.message || errorData.error || 'Failed to update class');
+        throw new Error(msg);
       }
 
       const result = await response.json();
@@ -158,7 +166,9 @@ export default function ClassManagement() {
       setEditingId(null);
       toast({ title: "Class updated successfully!" });
     } catch (error) {
-      setApiError(error instanceof Error ? error.message : "Failed to update class");
+      const message = error instanceof Error ? error.message : "Failed to update class";
+      setApiError(message);
+      toast({ title: 'Error', description: message });
     }
   };
 
@@ -179,7 +189,9 @@ export default function ClassManagement() {
       setClasses(classes.map(c => c.id === id ? { ...c, isActive: false } : c));
       toast({ title: "Class deactivated successfully!" });
     } catch (error) {
-      setApiError(error instanceof Error ? error.message : "Failed to deactivate class");
+      const message = error instanceof Error ? error.message : "Failed to deactivate class";
+      setApiError(message);
+      toast({ title: 'Error', description: message });
     }
   };
 
