@@ -528,6 +528,192 @@ export const ReportCards: React.FC<ReportCardsProps> = ({
       <Card className="flex flex-col h-full">
         <CardHeader>
           <div className="flex items-center gap-3">
+            <DollarSign className="h-5 w-5 text-primary" />
+            <div>
+              <CardTitle>Expenses Report</CardTitle>
+              <p className="text-muted-foreground text-sm">Expense approvals and spending analytics</p>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="p-4 flex flex-col h-full space-y-4">
+          <p className="text-muted-foreground text-sm">
+            Detailed expense records including categories, status, approved amounts, and spending trends.
+          </p>
+
+          <div className="space-y-3 bg-muted/50 p-4 rounded-lg">
+            <h4 className="font-medium text-foreground flex items-center gap-2">
+              <FileText className="h-4 w-4" />
+              Filter Options
+            </h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-foreground">Term</Label>
+                <Select value={filters.expenseTermId} onValueChange={(v) => setFilters((prev:any) => ({ ...prev, expenseTermId: v }))}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="All terms" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">All terms</SelectItem>
+                    {terms.map(t => (
+                      <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-foreground">Academic Calendar</Label>
+                <Select value={filters.expenseAcademicCalendarId} onValueChange={(v) => setFilters((prev:any) => ({ ...prev, expenseAcademicCalendarId: v }))}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="All calendars" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">All calendars</SelectItem>
+                    {academicCalendars.map(a => (
+                      <SelectItem key={a.id} value={a.id}>{a.name || a.term || a.id}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1 sm:col-span-2">
+                <Label className="text-foreground">Status</Label>
+                <Select value={filters.expenseStatus} onValueChange={(v) => setFilters((prev:any) => ({ ...prev, expenseStatus: v }))}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="All statuses" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">All statuses</SelectItem>
+                    <SelectItem value="Pending">Pending</SelectItem>
+                    <SelectItem value="Approved">Approved</SelectItem>
+                    <SelectItem value="Paid">Paid</SelectItem>
+                    <SelectItem value="Rejected">Rejected</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex-1" />
+
+          <div className="flex gap-2 pt-4 mt-auto">
+            <Button
+              onClick={() => onGenerateReport("excel", "expenses")}
+              disabled={!!generatingCategory}
+              size="sm"
+              className="flex-1"
+            >
+              <FileSpreadsheet className="h-4 w-4 mr-1" />
+              {generatingCategory?.category === 'expenses' && generatingCategory.format === 'excel' ? <Loader2 className="h-4 w-4 animate-spin" /> : "Excel"}
+            </Button>
+            <Button
+              onClick={() => onGenerateReport("pdf", "expenses")}
+              disabled={!!generatingCategory}
+              variant="outline"
+              size="sm"
+              className="flex-1"
+            >
+              <FileDown className="h-4 w-4 mr-1" />
+              {generatingCategory?.category === 'expenses' && generatingCategory.format === 'pdf' ? <Loader2 className="h-4 w-4 animate-spin" /> : 'PDF'}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="flex flex-col h-full">
+        <CardHeader>
+          <div className="flex items-center gap-3">
+            <GraduationCap className="h-5 w-5 text-primary" />
+            <div>
+              <CardTitle>Exam Results Report</CardTitle>
+              <p className="text-muted-foreground text-sm">Student exam outcomes and grading analytics</p>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="p-4 flex flex-col h-full space-y-4">
+          <p className="text-muted-foreground text-sm">
+            Exam performance report with per-student subject scores, grades, and pass/fail outcomes.
+          </p>
+
+          <div className="space-y-3 bg-muted/50 p-4 rounded-lg">
+            <h4 className="font-medium text-foreground flex items-center gap-2">
+              <FileText className="h-4 w-4" />
+              Filter Options
+            </h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-foreground">Class</Label>
+                <Select value={filters.examClassId} onValueChange={(v) => setFilters((prev:any) => ({ ...prev, examClassId: v }))}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="All classes" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">All classes</SelectItem>
+                    {classes.map(c => (
+                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-foreground">Term</Label>
+                <Select value={filters.examTermId} onValueChange={(v) => setFilters((prev:any) => ({ ...prev, examTermId: v }))}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="All terms" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">All terms</SelectItem>
+                    {terms.map(t => (
+                      <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1 sm:col-span-2">
+                <Label className="text-foreground">Academic Calendar</Label>
+                <Select value={filters.examAcademicCalendarId} onValueChange={(v) => setFilters((prev:any) => ({ ...prev, examAcademicCalendarId: v }))}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="All calendars" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">All calendars</SelectItem>
+                    {academicCalendars.map(a => (
+                      <SelectItem key={a.id} value={a.id}>{a.name || a.term || a.id}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex-1" />
+
+          <div className="flex gap-2 pt-4 mt-auto">
+            <Button
+              onClick={() => onGenerateReport("excel", "exam-results")}
+              disabled={!!generatingCategory}
+              size="sm"
+              className="flex-1"
+            >
+              <FileSpreadsheet className="h-4 w-4 mr-1" />
+              {generatingCategory?.category === 'exam-results' && generatingCategory.format === 'excel' ? <Loader2 className="h-4 w-4 animate-spin" /> : "Excel"}
+            </Button>
+            <Button
+              onClick={() => onGenerateReport("pdf", "exam-results")}
+              disabled={!!generatingCategory}
+              variant="outline"
+              size="sm"
+              className="flex-1"
+            >
+              <FileDown className="h-4 w-4 mr-1" />
+              {generatingCategory?.category === 'exam-results' && generatingCategory.format === 'pdf' ? <Loader2 className="h-4 w-4 animate-spin" /> : 'PDF'}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Attendance Report Card */}
+      <Card className="flex flex-col h-full">
+        <CardHeader>
+          <div className="flex items-center gap-3">
             <TrendingUp className="h-5 w-5 text-primary" />
             <div>
               <CardTitle>Attendance Report</CardTitle>

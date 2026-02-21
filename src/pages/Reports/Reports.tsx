@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -67,7 +67,21 @@ interface DetailedReportData {
   courses?: any[];
   enrollments?: any[];
   feePayments?: any[];
+  expenses?: any[];
+  examResults?: any[];
+  outstandingBalances?: any[];
 }
+
+type ReportCategory =
+  | 'students'
+  | 'teachers'
+  | 'courses'
+  | 'enrollments'
+  | 'financial'
+  | 'attendance'
+  | 'comprehensive'
+  | 'expenses'
+  | 'exam-results';
 
 export default function Reports() {
   const { user, token } = useAuth();
@@ -79,6 +93,7 @@ export default function Reports() {
   const [error, setError] = useState<string | null>(null);
   // Track which category & format is currently generating (so only one button shows spinner)
   const [generatingCategory, setGeneratingCategory] = useState<null | { category: string; format: 'excel' | 'pdf' }>(null);
+  const initializedDefaultFiltersRef = useRef(false);
 
   const [filters, setFilters] = useState({
     classId: "",
@@ -107,6 +122,14 @@ export default function Reports() {
     paymentStudentId: "",
     paymentTermId: "",
     paymentClassId: "",
+    comprehensiveTermId: "",
+    comprehensiveAcademicCalendarId: "",
+    expenseTermId: "",
+    expenseAcademicCalendarId: "",
+    expenseStatus: "",
+    examClassId: "",
+    examTermId: "",
+    examAcademicCalendarId: "",
   });
 
   const [classes, setClasses] = useState<Array<{ id: string; name: string }>>([]);
@@ -114,7 +137,7 @@ export default function Reports() {
   const [courses, setCourses] = useState<Array<{ id: string; name: string }>>([]);
   const [students, setStudents] = useState<Array<{ id: string; name: string }>>([]);
   const [academicCalendars, setAcademicCalendars] = useState<AcademicCalendar[]>([]);
-  const [terms, setTerms] = useState<Array<{ id: string; name: string }>>([]);
+  const [terms, setTerms] = useState<Array<{ id: string; name: string; academicCalendarId?: string; isCurrent?: boolean }>>([]);
 
   const buildQuery = (params: Record<string, string | undefined | null>) => {
     const search = new URLSearchParams();
@@ -151,7 +174,61 @@ export default function Reports() {
       setCourses((crs || []).map((c: any) => ({ id: c.id, name: safeName(c) })));
 
       const ts = await termService.getTerms(token).catch(() => []);
-      setTerms((ts || []).map((t: any) => ({ id: t.id, name: t.name || t.periodName || `Term ${t.termNumber ?? ''}`.trim() })));
+      const mappedTerms = (ts || []).map((t: any) => ({
+        id: t.id,
+        name: t.name || t.periodName || `Term ${t.termNumber ?? ''}`.trim(),
+        academicCalendarId: t.academicCalendarId,
+        isCurrent: t.isCurrent === true || t.current === true,
+      }));
+      setTerms(mappedTerms);
+
+      if (!initializedDefaultFiltersRef.current) {
+        const activeCalendar = (acads as AcademicCalendar[]).find(c => c.isActive) || (acads as AcademicCalendar[])[0];
+        let currentTerm = mappedTerms.find(t => t.isCurrent);
+        if (!currentTerm) {
+          try {
+            const currentTermRes = await fetch(`${API_BASE_URL}/analytics/current-term`, {
+              headers: { Authorization: `Bearer ${token}` },
+            });
+            if (currentTermRes.ok) {
+              const currentTermData = await currentTermRes.json();
+              const currentTermId = currentTermData?.id || currentTermData?.termId || currentTermData?.currentTerm?.id;
+              if (currentTermId) {
+                currentTerm = mappedTerms.find(t => t.id === currentTermId) || {
+                  id: currentTermId,
+                  name: currentTermData?.name || currentTermData?.term || 'Current Term',
+                  academicCalendarId: currentTermData?.academicCalendarId,
+                  isCurrent: true,
+                };
+                if (!mappedTerms.some(t => t.id === currentTermId)) {
+                  setTerms(prev => [...prev, currentTerm!]);
+                }
+              }
+            }
+          } catch {
+            // keep fallback defaults
+          }
+        }
+
+        const defaultAcademicCalendarId = activeCalendar?.id || currentTerm?.academicCalendarId || '';
+        const defaultTermId = currentTerm?.id || '';
+
+        setFilters(prev => ({
+          ...prev,
+          termId: prev.termId || defaultTermId,
+          attendanceTermId: prev.attendanceTermId || defaultTermId,
+          paymentTermId: prev.paymentTermId || defaultTermId,
+          examTermId: prev.examTermId || defaultTermId,
+          expenseTermId: prev.expenseTermId || defaultTermId,
+          comprehensiveTermId: prev.comprehensiveTermId || defaultTermId,
+          enrollmentAcademicCalendarId: prev.enrollmentAcademicCalendarId || defaultAcademicCalendarId,
+          paymentAcademicCalendarId: prev.paymentAcademicCalendarId || defaultAcademicCalendarId,
+          examAcademicCalendarId: prev.examAcademicCalendarId || defaultAcademicCalendarId,
+          expenseAcademicCalendarId: prev.expenseAcademicCalendarId || defaultAcademicCalendarId,
+          comprehensiveAcademicCalendarId: prev.comprehensiveAcademicCalendarId || defaultAcademicCalendarId,
+        }));
+        initializedDefaultFiltersRef.current = true;
+      }
     } catch (e) {
       console.warn('Failed to load filter options', e);
     }
@@ -192,50 +269,162 @@ export default function Reports() {
     }
   }, [token, filters]);
 
-  const fetchDetailedData = useCallback(async () => {
+  const fetchDetailedData = useCallback(async (category?: ReportCategory) => {
     if (!token) return;
     try {
       const base = API_BASE_URL;
       const studentsQuery = buildQuery({ gender: filters.studentGender || undefined, classId: filters.studentClassId || undefined });
       const teachersQuery = buildQuery({ gender: filters.teacherGender || undefined, classId: filters.teacherClassId || undefined });
       const coursesQuery = buildQuery({ classId: filters.courseClassId || undefined, teacherId: filters.courseTeacherId || undefined });
-      const enrollmentsQuery = buildQuery({ classId: filters.enrollmentClassId || undefined, courseId: filters.enrollmentCourseId || undefined, teacherId: filters.enrollmentTeacherId || undefined, academicCalendarId: filters.enrollmentAcademicCalendarId || undefined });
-      const paymentsQuery = buildQuery({ academicCalendarId: filters.paymentAcademicCalendarId || undefined, studentId: filters.paymentStudentId || undefined, termId: filters.paymentTermId || undefined, classId: filters.paymentClassId || undefined });
-      
-      const [studentsRes, teachersRes, coursesRes, enrollmentsRes, feePaymentsRes] = await Promise.all([
-        fetch(`${base}/admin/reports/students${studentsQuery}`, { headers: { Authorization: `Bearer ${token}` } }),
-        fetch(`${base}/admin/reports/teachers${teachersQuery}`, { headers: { Authorization: `Bearer ${token}` } }),
-        fetch(`${base}/admin/reports/courses${coursesQuery}`, { headers: { Authorization: `Bearer ${token}` } }),
-        fetch(`${base}/admin/reports/enrollments${enrollmentsQuery}`, { headers: { Authorization: `Bearer ${token}` } }),
-        fetch(`${base}/admin/reports/fee-payments${paymentsQuery}`, { headers: { Authorization: `Bearer ${token}` } }),
-      ]);
-      
-      if (![studentsRes, teachersRes, coursesRes, enrollmentsRes, feePaymentsRes].every(r => r.ok)) {
+      const effectiveEnrollmentAcademicCalendarId = filters.enrollmentAcademicCalendarId || filters.comprehensiveAcademicCalendarId;
+      const effectivePaymentAcademicCalendarId = filters.paymentAcademicCalendarId || filters.comprehensiveAcademicCalendarId;
+      const effectivePaymentTermId = filters.paymentTermId || filters.comprehensiveTermId;
+      const effectiveExpenseAcademicCalendarId = filters.expenseAcademicCalendarId || filters.comprehensiveAcademicCalendarId;
+      const effectiveExpenseTermId = filters.expenseTermId || filters.comprehensiveTermId;
+      const effectiveExamAcademicCalendarId = filters.examAcademicCalendarId || filters.comprehensiveAcademicCalendarId;
+      const effectiveExamTermId = filters.examTermId || filters.comprehensiveTermId;
+
+      const enrollmentsQuery = buildQuery({
+        classId: filters.enrollmentClassId || undefined,
+        courseId: filters.enrollmentCourseId || undefined,
+        teacherId: filters.enrollmentTeacherId || undefined,
+        academicCalendarId: effectiveEnrollmentAcademicCalendarId || undefined,
+      });
+      const paymentsQuery = buildQuery({
+        academicCalendarId: effectivePaymentAcademicCalendarId || undefined,
+        studentId: filters.paymentStudentId || undefined,
+        termId: effectivePaymentTermId || undefined,
+        classId: filters.paymentClassId || undefined,
+      });
+
+      const needsStudents = !category || category === 'students' || category === 'comprehensive';
+      const needsTeachers = !category || category === 'teachers' || category === 'comprehensive';
+      const needsCourses = !category || category === 'courses' || category === 'comprehensive';
+      const needsEnrollments = !category || category === 'enrollments' || category === 'comprehensive';
+      const needsFeePayments = !category || category === 'financial' || category === 'comprehensive';
+      const needsExpenses = !category || category === 'expenses' || category === 'comprehensive';
+      const needsExamResults = !category || category === 'exam-results' || category === 'comprehensive';
+      const needsOutstandingBalances = !category || category === 'financial' || category === 'comprehensive';
+
+      const requests: Array<Promise<any>> = [
+        needsStudents
+          ? fetch(`${base}/admin/reports/students${studentsQuery}`, { headers: { Authorization: `Bearer ${token}` } })
+          : Promise.resolve(null),
+        needsTeachers
+          ? fetch(`${base}/admin/reports/teachers${teachersQuery}`, { headers: { Authorization: `Bearer ${token}` } })
+          : Promise.resolve(null),
+        needsCourses
+          ? fetch(`${base}/admin/reports/courses${coursesQuery}`, { headers: { Authorization: `Bearer ${token}` } })
+          : Promise.resolve(null),
+        needsEnrollments
+          ? fetch(`${base}/admin/reports/enrollments${enrollmentsQuery}`, { headers: { Authorization: `Bearer ${token}` } })
+          : Promise.resolve(null),
+        needsFeePayments
+          ? fetch(`${base}/admin/reports/fee-payments${paymentsQuery}`, { headers: { Authorization: `Bearer ${token}` } })
+          : Promise.resolve(null),
+        needsExpenses
+          ? fetch(`${base}/expenses?limit=5000&page=0${filters.expenseStatus ? `&status=${encodeURIComponent(filters.expenseStatus)}` : ''}`, {
+              headers: { Authorization: `Bearer ${token}` },
+            })
+          : Promise.resolve(null),
+        needsOutstandingBalances
+          ? fetch(`${base}/admin/reports/outstanding-balances${paymentsQuery}`, { headers: { Authorization: `Bearer ${token}` } })
+          : Promise.resolve(null),
+      ];
+
+      const [studentsRes, teachersRes, coursesRes, enrollmentsRes, feePaymentsRes, expensesRes, outstandingBalancesRes] = await Promise.all(requests);
+
+      // For outstanding balances, treat failures as warnings (return empty array) instead of blocking the entire report
+      // This ensures fee payment reports can still be generated even if balance calculation fails
+      let outstandingBalancesResOk = outstandingBalancesRes;
+      if (outstandingBalancesRes && !outstandingBalancesRes.ok) {
+        console.warn('Outstanding balances endpoint failed, continuing with empty balances array:', outstandingBalancesRes.status);
+        toast({ 
+          title: 'Warning', 
+          description: 'Outstanding balances data unavailable, report will show payments only', 
+          variant: 'default' 
+        });
+        outstandingBalancesResOk = null; // Treat as if not requested
+      }
+
+      const requiredResponses = [studentsRes, teachersRes, coursesRes, enrollmentsRes, feePaymentsRes, expensesRes].filter(Boolean) as Response[];
+      if (!requiredResponses.every(r => r.ok)) {
         throw new Error('Failed to fetch detailed report data');
       }
-      
-      const [students, teachers, courses, enrollments, feePayments] = await Promise.all([
-        studentsRes.json(),
-        teachersRes.json(),
-        coursesRes.json(),
-        enrollmentsRes.json(),
-        feePaymentsRes.json(),
+
+      const [students, teachers, courses, enrollments, feePayments, expensesPaged, outstandingBalances] = await Promise.all([
+        studentsRes ? studentsRes.json() : Promise.resolve([]),
+        teachersRes ? teachersRes.json() : Promise.resolve([]),
+        coursesRes ? coursesRes.json() : Promise.resolve([]),
+        enrollmentsRes ? enrollmentsRes.json() : Promise.resolve([]),
+        feePaymentsRes ? feePaymentsRes.json() : Promise.resolve([]),
+        expensesRes ? expensesRes.json() : Promise.resolve({ expenses: [] }),
+        outstandingBalancesResOk ? outstandingBalancesResOk.json() : Promise.resolve([]),
       ]);
-      
-      const payload = { students, teachers, courses, enrollments, feePayments };
+
+      const termCalendarMap = new Map(terms.map(t => [t.id, t.academicCalendarId]));
+      const allExpenses = Array.isArray(expensesPaged?.expenses) ? expensesPaged.expenses : [];
+      const expenses = allExpenses.filter((expense: any) => {
+        const termMatch = effectiveExpenseTermId ? expense.termId === effectiveExpenseTermId : true;
+        const expenseCalId = expense.term?.academicCalendarId || termCalendarMap.get(expense.termId);
+        const calendarMatch = effectiveExpenseAcademicCalendarId ? expenseCalId === effectiveExpenseAcademicCalendarId : true;
+        return termMatch && calendarMatch;
+      });
+
+      let examResults: any[] = [];
+      if (needsExamResults) {
+        const classIds = filters.examClassId ? [filters.examClassId] : classes.map(c => c.id);
+        const examQuery = buildQuery({
+          termId: effectiveExamTermId || undefined,
+          academicCalendarId: effectiveExamAcademicCalendarId || undefined,
+        });
+
+        const classResultResponses = await Promise.all(
+          classIds.map(classId =>
+            fetch(`${base}/exam-results/class/${encodeURIComponent(classId)}${examQuery}`, {
+              headers: { Authorization: `Bearer ${token}` },
+            }).then(async r => (r.ok ? r.json() : null)).catch(() => null),
+          ),
+        );
+
+        examResults = classResultResponses
+          .filter(Boolean)
+          .flatMap((classResult: any) => {
+            return (classResult.students || []).flatMap((studentResult: any) =>
+              (studentResult.results || []).map((result: any) => ({
+                classId: classResult.classInfo?.id,
+                className: classResult.classInfo?.name,
+                studentId: studentResult.student?.id,
+                studentHumanId: studentResult.student?.studentId,
+                studentName: `${studentResult.student?.firstName || ''} ${studentResult.student?.lastName || ''}`.trim(),
+                courseId: result.courseId,
+                courseName: result.courseName,
+                courseCode: result.courseCode,
+                finalPercentage: result.finalPercentage,
+                finalGradeCode: result.finalGradeCode,
+                pass: result.pass,
+                status: result.status,
+                termId: effectiveExamTermId || null,
+                academicCalendarId: effectiveExamAcademicCalendarId || null,
+              }))
+            );
+          });
+      }
+
+      const payload = { students, teachers, courses, enrollments, feePayments, expenses, examResults, outstandingBalances };
       setDetailedReportData(payload);
       return payload;
     } catch (e) {
       console.error(e);
       toast({ title: 'Error', description: 'Failed to load detailed report data', variant: 'destructive' });
     }
-  }, [token, toast, filters]);
+  }, [token, toast, filters, terms, classes]);
 
-  const handleGenerateReport = async (format: 'excel' | 'pdf', category: 'students' | 'teachers' | 'courses' | 'enrollments' | 'financial' | 'attendance' | 'comprehensive') => {
+  const handleGenerateReport = async (format: 'excel' | 'pdf', category: ReportCategory) => {
     try {
       setGeneratingCategory({ category, format });
       
-      const data = await fetchDetailedData();
+      const data = await fetchDetailedData(category);
       if (!data) throw new Error('Detailed data unavailable');
       
       if (format === 'excel') {
@@ -253,7 +442,13 @@ export default function Reports() {
             reportService.generateEnrollmentsExcel(data.enrollments!, reportData?.schoolInfo);
             break;
           case 'financial':
-            reportService.generateFeePaymentsExcel(data.feePayments!, reportData?.schoolInfo);
+            reportService.generateFinancialExcel(data.feePayments!, data.outstandingBalances || [], reportData?.schoolInfo);
+            break;
+          case 'expenses':
+            reportService.generateExpensesExcel(data.expenses || [], reportData?.schoolInfo);
+            break;
+          case 'exam-results':
+            reportService.generateExamResultsExcel(data.examResults || [], reportData?.schoolInfo);
             break;
           case 'attendance':
             toast({ title: 'Attendance Report', description: 'Attendance reporting will be implemented soon', variant: 'default' });
@@ -287,7 +482,13 @@ export default function Reports() {
             await reportService.generateEnrollmentsPDF?.(data.enrollments as any, reportData?.schoolInfo);
             break;
           case 'financial':
-            await reportService.generateFeePaymentsPDF?.(data.feePayments as any, reportData?.schoolInfo);
+            await reportService.generateFinancialPDF?.(data.feePayments as any, data.outstandingBalances as any, reportData?.schoolInfo);
+            break;
+          case 'expenses':
+            await reportService.generateExpensesPDF?.(data.expenses as any, reportData?.schoolInfo);
+            break;
+          case 'exam-results':
+            await reportService.generateExamResultsPDF?.(data.examResults as any, reportData?.schoolInfo);
             break;
           case 'attendance':
             toast({ title: 'Attendance PDF', description: 'Attendance PDF reporting will be implemented soon', variant: 'default' });
@@ -492,6 +693,41 @@ export default function Reports() {
                 <li>• Financial records and payment history</li>
                 <li>• Attendance tracking and analytics</li>
               </ul>
+            </div>
+
+            <div className="space-y-3 bg-muted/50 p-4 rounded-lg">
+              <h4 className="font-medium text-foreground flex items-center gap-2">
+                <FileText className="h-4 w-4" />
+                Filter Options
+              </h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-sm font-medium text-foreground">Term</label>
+                  <select
+                    value={filters.comprehensiveTermId}
+                    onChange={(e) => setFilters((prev: any) => ({ ...prev, comprehensiveTermId: e.target.value }))}
+                    className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
+                  >
+                    <option value="">All terms</option>
+                    {terms.map(t => (
+                      <option key={t.id} value={t.id}>{t.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-sm font-medium text-foreground">Academic Calendar</label>
+                  <select
+                    value={filters.comprehensiveAcademicCalendarId}
+                    onChange={(e) => setFilters((prev: any) => ({ ...prev, comprehensiveAcademicCalendarId: e.target.value }))}
+                    className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
+                  >
+                    <option value="">All calendars</option>
+                    {academicCalendars.map(a => (
+                      <option key={a.id} value={a.id}>{a.name || a.term || a.id}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
             </div>
 
             {/* Spacer to push buttons to bottom */}

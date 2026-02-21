@@ -417,6 +417,7 @@ const generateEnrollmentsExcel = (data: any[], schoolInfo?: SchoolInfo) => {
   }
 };
 
+// Backward compatible function for comprehensive reports
 const generateFeePaymentsExcel = (data: any[], schoolInfo?: SchoolInfo) => {
   try {
     const school = getSchoolInfo(schoolInfo);
@@ -449,6 +450,154 @@ const generateFeePaymentsExcel = (data: any[], schoolInfo?: SchoolInfo) => {
   } catch (error) {
     console.error('Error generating fee payments Excel:', error);
     throw new Error('Failed to generate fee payments Excel report');
+  }
+};
+
+const generateFinancialExcel = (payments: any[], outstandingBalances: any[], schoolInfo?: SchoolInfo) => {
+  try {
+    const school = getSchoolInfo(schoolInfo);
+    const wb = XLSX.utils.book_new();
+    
+    // Fee Payments sheet
+    const paymentsHeaderRows = [
+      [school.name + (school.logo ? ' (Logo Available)' : '')],
+      [school.address || ''],
+      [school.phone ? `Phone: ${school.phone}` : ''],
+      [school.email ? `Email: ${school.email}` : ''],
+      [],
+      ['Fee Payments Report'],
+      [],
+    ];
+    const paymentsDataRows = payments.map(item => [
+      item.studentHumanId || item.studentId || 'N/A',
+      item.studentName || 'N/A',
+      item.className || 'N/A',
+      item.amount ? `$${item.amount.toLocaleString()}` : 'N/A',
+      item.paymentDate ? new Date(item.paymentDate).toLocaleDateString() : 'N/A',
+      item.paymentMethod || 'N/A',
+      item.status || 'N/A',
+      item.termName || 'N/A',
+    ]);
+    const paymentsAoa = [
+      ...paymentsHeaderRows,
+      ['Student ID', 'Student', 'Class', 'Amount', 'Payment Date', 'Payment Method', 'Status', 'Term'],
+      ...paymentsDataRows,
+    ];
+    const paymentsWs = XLSX.utils.aoa_to_sheet(paymentsAoa as any);
+    XLSX.utils.book_append_sheet(wb, paymentsWs, 'Fee Payments');
+    
+    // Outstanding Balances sheet
+    const balancesHeaderRows = [
+      [school.name + (school.logo ? ' (Logo Available)' : '')],
+      [school.address || ''],
+      [school.phone ? `Phone: ${school.phone}` : ''],
+      [school.email ? `Email: ${school.email}` : ''],
+      [],
+      ['Outstanding Balances Report'],
+      [],
+    ];
+    const balancesDataRows = outstandingBalances.map(item => [
+      item.humanId || item.studentId || 'N/A',
+      item.studentName || 'N/A',
+      item.totalExpected ? `$${Number(item.totalExpected).toLocaleString()}` : 'N/A',
+      item.totalPaid ? `$${Number(item.totalPaid).toLocaleString()}` : 'N/A',
+      item.outstanding ? `$${Number(item.outstanding).toLocaleString()}` : 'N/A',
+      item.paymentPercentage ? `${Number(item.paymentPercentage).toFixed(1)}%` : '0%',
+      item.status || 'N/A',
+      item.creditBalance ? `$${Number(item.creditBalance).toLocaleString()}` : '$0',
+    ]);
+    const balancesAoa = [
+      ...balancesHeaderRows,
+      ['Student ID', 'Student Name', 'Total Expected', 'Total Paid', 'Outstanding', 'Payment %', 'Status', 'Credit Balance'],
+      ...balancesDataRows,
+    ];
+    const balancesWs = XLSX.utils.aoa_to_sheet(balancesAoa as any);
+    XLSX.utils.book_append_sheet(wb, balancesWs, 'Outstanding Balances');
+    
+    XLSX.writeFile(wb, 'financial-report.xlsx');
+  } catch (error) {
+    console.error('Error generating financial Excel:', error);
+    throw new Error('Failed to generate financial Excel report');
+  }
+};
+
+const generateExpensesExcel = (data: any[], schoolInfo?: SchoolInfo) => {
+  try {
+    const school = getSchoolInfo(schoolInfo);
+    const headerRows = [
+      [school.name + (school.logo ? ' (Logo Available)' : '')],
+      [school.address || ''],
+      [school.phone ? `Phone: ${school.phone}` : ''],
+      [school.email ? `Email: ${school.email}` : ''],
+      [],
+    ];
+
+    const dataRows = data.map(item => [
+      item.expenseNumber || item.id || 'N/A',
+      item.title || 'N/A',
+      item.category || 'N/A',
+      item.department || 'N/A',
+      item.status || 'N/A',
+      Number.isFinite(Number(item.amount)) ? `$${Number(item.amount).toLocaleString()}` : 'N/A',
+      Number.isFinite(Number(item.approvedAmount)) ? `$${Number(item.approvedAmount).toLocaleString()}` : 'N/A',
+      item.requestDate ? new Date(item.requestDate).toLocaleDateString() : 'N/A',
+      item.paidDate ? new Date(item.paidDate).toLocaleDateString() : 'N/A',
+      item.term?.name || item.termName || item.termId || 'N/A',
+    ]);
+
+    const aoa = [
+      ...headerRows,
+      ['Expense #', 'Title', 'Category', 'Department', 'Status', 'Amount', 'Approved Amount', 'Request Date', 'Paid Date', 'Term'],
+      ...dataRows,
+    ];
+
+    const ws = XLSX.utils.aoa_to_sheet(aoa as any);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Expenses');
+    XLSX.writeFile(wb, 'expenses-report.xlsx');
+  } catch (error) {
+    console.error('Error generating expenses Excel:', error);
+    throw new Error('Failed to generate expenses Excel report');
+  }
+};
+
+const generateExamResultsExcel = (data: any[], schoolInfo?: SchoolInfo) => {
+  try {
+    const school = getSchoolInfo(schoolInfo);
+    const headerRows = [
+      [school.name + (school.logo ? ' (Logo Available)' : '')],
+      [school.address || ''],
+      [school.phone ? `Phone: ${school.phone}` : ''],
+      [school.email ? `Email: ${school.email}` : ''],
+      [],
+    ];
+
+    const dataRows = data.map(item => [
+      item.studentHumanId || item.studentId || 'N/A',
+      item.studentName || 'N/A',
+      item.className || 'N/A',
+      item.courseName || 'N/A',
+      item.courseCode || 'N/A',
+      Number.isFinite(Number(item.finalPercentage)) ? `${Number(item.finalPercentage).toFixed(2)}%` : 'N/A',
+      item.finalGradeCode || 'N/A',
+      item.pass === true ? 'PASS' : item.pass === false ? 'FAIL' : 'N/A',
+      item.status || 'N/A',
+      item.termName || item.termId || 'N/A',
+    ]);
+
+    const aoa = [
+      ...headerRows,
+      ['Student ID', 'Student', 'Class', 'Course', 'Course Code', 'Score', 'Grade', 'Pass/Fail', 'Status', 'Term'],
+      ...dataRows,
+    ];
+
+    const ws = XLSX.utils.aoa_to_sheet(aoa as any);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Exam Results');
+    XLSX.writeFile(wb, 'exam-results-report.xlsx');
+  } catch (error) {
+    console.error('Error generating exam results Excel:', error);
+    throw new Error('Failed to generate exam results Excel report');
   }
 };
 
@@ -728,6 +877,7 @@ const generateEnrollmentsPDF = async (data: any[], schoolInfo?: SchoolInfo) => {
   }
 };
 
+// Backward compatible function for comprehensive reports
 const generateFeePaymentsPDF = async (data: any[], schoolInfo?: SchoolInfo) => {
   try {
     const { doc, headerFooterOpts } = await createPdfContext(schoolInfo);
@@ -768,6 +918,183 @@ const generateFeePaymentsPDF = async (data: any[], schoolInfo?: SchoolInfo) => {
   } catch (error) {
     console.error('Error generating fee payments PDF:', error);
     throw new Error('Failed to generate fee payments PDF report');
+  }
+};
+
+const generateFinancialPDF = async (payments: any[], outstandingBalances: any[], schoolInfo?: SchoolInfo) => {
+  try {
+    const { doc, headerFooterOpts } = await createPdfContext(schoolInfo);
+    
+    // Fee Payments section
+    const totalPaymentAmount = payments.reduce((sum, item) => sum + (item.amount || 0), 0);
+    const tableStartY = drawReportHeading(
+      doc,
+      'Financial Report - Fee Payments',
+      `Total Payments: ${payments.length} | Total Amount: ${formatCurrency(totalPaymentAmount)}`,
+      headerFooterOpts,
+    );
+
+    autoTable(doc, {
+      head: [['Student ID', 'Student', 'Class', 'Amount', 'Payment Date', 'Method', 'Status', 'Term']],
+      body: payments.slice(0, 50).map(item => [
+        item.studentHumanId || item.studentId || 'N/A',
+        item.studentName || 'N/A',
+        item.className || 'N/A',
+        formatCurrency(item.amount),
+        formatDisplayDate(item.paymentDate),
+        item.paymentMethod || 'N/A',
+        item.status || 'N/A',
+        item.termName || 'N/A',
+      ]),
+      startY: tableStartY,
+      ...getProfessionalTableTheme(headerFooterOpts, [185, 28, 28]),
+      columnStyles: {
+        0: { halign: 'center', cellWidth: 54 },
+        1: { cellWidth: 88 },
+        2: { halign: 'center', cellWidth: 50 },
+        3: { halign: 'right', cellWidth: 68 },
+        4: { halign: 'center', cellWidth: 70 },
+        5: { cellWidth: 68 },
+        6: { halign: 'center', cellWidth: 50 },
+        7: { cellWidth: 66 },
+      },
+    });
+    
+    // Outstanding Balances section - add new page
+    doc.addPage();
+    const totalOutstanding = outstandingBalances.reduce((sum, item) => sum + (Number(item.outstanding) || 0), 0);
+    const totalExpected = outstandingBalances.reduce((sum, item) => sum + (Number(item.totalExpected) || 0), 0);
+    const totalPaid = outstandingBalances.reduce((sum, item) => sum + (Number(item.totalPaid) || 0), 0);
+    
+    const balancesTableStartY = drawReportHeading(
+      doc,
+      'Outstanding Balances Report',
+      `Total Outstanding: ${formatCurrency(totalOutstanding)} | Expected: ${formatCurrency(totalExpected)} | Paid: ${formatCurrency(totalPaid)}`,
+      headerFooterOpts,
+    );
+
+    autoTable(doc, {
+      head: [['Student ID', 'Student Name', 'Expected', 'Paid', 'Outstanding', 'Payment %', 'Status']],
+      body: outstandingBalances.slice(0, 50).map(item => [
+        item.humanId || item.studentId || 'N/A',
+        item.studentName || 'N/A',
+        formatCurrency(item.totalExpected),
+        formatCurrency(item.totalPaid),
+        formatCurrency(item.outstanding),
+        `${Number(item.paymentPercentage || 0).toFixed(1)}%`,
+        item.status || 'N/A',
+      ]),
+      startY: balancesTableStartY,
+      ...getProfessionalTableTheme(headerFooterOpts, [46, 139, 87]),
+      columnStyles: {
+        0: { halign: 'center', cellWidth: 54 },
+        1: { cellWidth: 92 },
+        2: { halign: 'right', cellWidth: 68 },
+        3: { halign: 'right', cellWidth: 68 },
+        4: { halign: 'right', cellWidth: 72 },
+        5: { halign: 'center', cellWidth: 62 },
+        6: { halign: 'center', cellWidth: 58 },
+      },
+    });
+    
+    doc.save('financial-report.pdf');
+  } catch (error) {
+    console.error('Error generating financial PDF:', error);
+    throw new Error('Failed to generate financial PDF report');
+  }
+};
+
+const generateExpensesPDF = async (data: any[], schoolInfo?: SchoolInfo) => {
+  try {
+    const { doc, headerFooterOpts } = await createPdfContext(schoolInfo);
+    const totalAmount = data.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+    const tableStartY = drawReportHeading(
+      doc,
+      'Expenses Report',
+      `Total Expenses: ${data.length} | Total Amount: ${formatCurrency(totalAmount)}`,
+      headerFooterOpts,
+    );
+
+    autoTable(doc, {
+      head: [['Expense #', 'Title', 'Category', 'Dept', 'Status', 'Amount', 'Approved', 'Request Date', 'Term']],
+      body: data.map(item => [
+        item.expenseNumber || item.id || 'N/A',
+        item.title || 'N/A',
+        item.category || 'N/A',
+        item.department || 'N/A',
+        item.status || 'N/A',
+        formatCurrency(item.amount),
+        formatCurrency(item.approvedAmount),
+        formatDisplayDate(item.requestDate || item.createdAt),
+        item.term?.name || item.termName || item.termId || 'N/A',
+      ]),
+      startY: tableStartY,
+      ...getProfessionalTableTheme(headerFooterOpts, [124, 58, 237]),
+      columnStyles: {
+        0: { halign: 'center', cellWidth: 58 },
+        1: { cellWidth: 122 },
+        2: { cellWidth: 74 },
+        3: { cellWidth: 56 },
+        4: { halign: 'center', cellWidth: 54 },
+        5: { halign: 'right', cellWidth: 62 },
+        6: { halign: 'right', cellWidth: 66 },
+        7: { halign: 'center', cellWidth: 70 },
+        8: { cellWidth: 60 },
+      },
+    });
+    doc.save('expenses-report.pdf');
+  } catch (error) {
+    console.error('Error generating expenses PDF:', error);
+    throw new Error('Failed to generate expenses PDF report');
+  }
+};
+
+const generateExamResultsPDF = async (data: any[], schoolInfo?: SchoolInfo) => {
+  try {
+    const { doc, headerFooterOpts } = await createPdfContext(schoolInfo);
+    const passCount = data.filter(r => r.pass === true).length;
+    const avgScore = data.length > 0
+      ? data.reduce((sum, r) => sum + (Number(r.finalPercentage) || 0), 0) / data.length
+      : 0;
+
+    const tableStartY = drawReportHeading(
+      doc,
+      'Exam Results Report',
+      `Rows: ${data.length} | Passes: ${passCount} | Average Score: ${avgScore.toFixed(2)}%`,
+      headerFooterOpts,
+    );
+
+    autoTable(doc, {
+      head: [['Student', 'Class', 'Course', 'Code', 'Score', 'Grade', 'Pass/Fail', 'Status', 'Term']],
+      body: data.map(item => [
+        item.studentName || 'N/A',
+        item.className || 'N/A',
+        item.courseName || 'N/A',
+        item.courseCode || 'N/A',
+        Number.isFinite(Number(item.finalPercentage)) ? `${Number(item.finalPercentage).toFixed(2)}%` : 'N/A',
+        item.finalGradeCode || 'N/A',
+        item.pass === true ? 'PASS' : item.pass === false ? 'FAIL' : 'N/A',
+        item.status || 'N/A',
+        item.termName || item.termId || 'N/A',
+      ]),
+      startY: tableStartY,
+      ...getProfessionalTableTheme(headerFooterOpts, [8, 145, 178]),
+      columnStyles: {
+        0: { cellWidth: 94 },
+        1: { halign: 'center', cellWidth: 50 },
+        2: { cellWidth: 92 },
+        3: { halign: 'center', cellWidth: 44 },
+        4: { halign: 'center', cellWidth: 54 },
+        5: { halign: 'center', cellWidth: 44 },
+        6: { halign: 'center', cellWidth: 56 },
+        7: { halign: 'center', cellWidth: 52 },
+        8: { cellWidth: 64 },
+      },
+    });
+    doc.save('exam-results-report.pdf');
+  } catch (error) {
+    console.error('Error generating exam results PDF:', error);
+    throw new Error('Failed to generate exam results PDF report');
   }
 };
 
@@ -990,12 +1317,18 @@ export {
   generateCoursesPDF,
   generateEnrollmentsPDF,
   generateFeePaymentsPDF,
+  generateFinancialPDF,
+  generateExpensesPDF,
+  generateExamResultsPDF,
   generateComprehensivePDF,
   generateStudentsExcel,
   generateTeachersExcel,
   generateCoursesExcel,
   generateEnrollmentsExcel,
   generateFeePaymentsExcel,
+  generateFinancialExcel,
+  generateExpensesExcel,
+  generateExamResultsExcel,
   generateComprehensiveExcel,
 };
 
@@ -1006,12 +1339,18 @@ export const reportService = {
   generateCoursesPDF,
   generateEnrollmentsPDF,
   generateFeePaymentsPDF,
+  generateFinancialPDF,
+  generateExpensesPDF,
+  generateExamResultsPDF,
   generateComprehensivePDF,
   generateStudentsExcel,
   generateTeachersExcel,
   generateCoursesExcel,
   generateEnrollmentsExcel,
   generateFeePaymentsExcel,
+  generateFinancialExcel,
+  generateExpensesExcel,
+  generateExamResultsExcel,
   generateComprehensiveExcel,
 };
 
