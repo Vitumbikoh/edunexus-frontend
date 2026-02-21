@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import StatCard from "@/components/dashboard/StatCard";
 import { API_BASE_URL } from '@/config/api';
+import { formatCurrency, getDefaultCurrency } from '@/lib/currency';
 import {
   Users,
   BookOpen,
@@ -109,7 +110,7 @@ export const useDashboardStats = () => {
             },
             {
               title: "Fee Collection",
-              value: financesData.totalRevenue || "MWK0",
+              value: formatCurrency(financesData.currentTermRevenue ?? 0, getDefaultCurrency()),
               icon: <DollarSign size={24} />,
               trend: financesData.trend || { value: 0, isPositive: true },
             },
