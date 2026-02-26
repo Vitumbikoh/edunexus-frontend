@@ -93,6 +93,24 @@ interface Classroom {
   name: string;
 }
 
+const isGraduatedClass = (cls?: { name?: string; numericalName?: number }) => {
+  if (!cls) return false;
+  const className = (cls.name || '').toLowerCase();
+  return cls.numericalName === 999 || className.includes('graduated');
+};
+
+const getCoursesForClass = (allCourses: Course[], classId: string) => {
+  const exactMatches = allCourses.filter(
+    (course) => (course.classId || course.class?.id) === classId,
+  );
+
+  if (exactMatches.length > 0) {
+    return exactMatches;
+  }
+
+  return allCourses.filter((course) => Boolean(course.teacher?.id));
+};
+
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
 const TIME_SLOTS = [
   '08:00', '09:00', '10:00', '11:00', // Morning sessions
@@ -186,7 +204,22 @@ export default function WeeklyScheduleGrid() {
       const teachersData = teachersRes.ok ? await teachersRes.json() : { data: [] };
       const classroomsData = classroomsRes.ok ? await classroomsRes.json() : { data: [] };
 
-      setClasses(Array.isArray(classesData.data) ? classesData.data : Array.isArray(classesData) ? classesData : []);
+      const loadedClasses = Array.isArray(classesData.data)
+        ? classesData.data
+        : Array.isArray(classesData)
+        ? classesData
+        : [];
+
+      const activeClasses = loadedClasses
+        .filter((cls: Class) => !isGraduatedClass(cls))
+        .sort((a: Class, b: Class) => {
+          if ((a.numericalName || 0) !== (b.numericalName || 0)) {
+            return (a.numericalName || 0) - (b.numericalName || 0);
+          }
+          return a.name.localeCompare(b.name);
+        });
+
+      setClasses(activeClasses);
       // Debug: Log course data to understand structure
       console.log('Raw courses response:', coursesData);
       const coursesList = Array.isArray(coursesData.courses) ? coursesData.courses : 
@@ -463,8 +496,18 @@ export default function WeeklyScheduleGrid() {
       return;
     }
 
-    // Support both flat classId and nested class.id
-    const classCourses = courses.filter(course => (course.classId || course.class?.id) === selectedClassId);
+    const selectedClass = classes.find((cls) => cls.id === selectedClassId);
+    if (!selectedClass || isGraduatedClass(selectedClass)) {
+      toast({
+        title: "Invalid class selection",
+        description: "Please select a non-graduated class before generating a template",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const classCourses = getCoursesForClass(courses, selectedClassId)
+      .filter((course) => Boolean(course.teacher?.id));
     
     if (classCourses.length === 0) {
       toast({
@@ -525,6 +568,10 @@ export default function WeeklyScheduleGrid() {
         usedToday.add(course.id);
         remainingByCourse[course.id] -= 1;
 
+        const classroom = classrooms.length > 0
+          ? classrooms[(itemIdCounter - 1) % classrooms.length]
+          : undefined;
+
         newScheduleItems.push({
           id: `template-${itemIdCounter++}`,
           day,
@@ -532,10 +579,10 @@ export default function WeeklyScheduleGrid() {
           endTime: getEndTime(timeSlot),
           courseId: course.id,
           teacherId: course.teacher?.id || '',
-          classroomId: '',
-          courseName: course.name,
+          classroomId: classroom?.id || '',
+          courseName: `${course.code} - ${course.name}`,
           teacherName: course.teacher ? `${course.teacher.firstName} ${course.teacher.lastName}` : 'Unassigned',
-          classroomName: 'TBA'
+          classroomName: classroom?.name || ''
         });
       });
       // Rotate start to avoid same ordering every day
@@ -553,8 +600,48 @@ export default function WeeklyScheduleGrid() {
     
     toast({
       title: "Balanced schedule template generated",
-      description: `Generated ${newScheduleItems.length} periods (6 per day) for ${classCourses.length} courses. Distribution: ${dailyDistribution}`,
+      description: `Generated ${newScheduleItems.length} periods (6 per day) for ${selectedClass.name} using ${classCourses.length} school courses and ${classrooms.length} classrooms. Distribution: ${dailyDistribution}`,
     });
+  };
+
+  const generateFullSchoolTemplate = async () => {
+    if (!isAdmin) return;
+
+    setIsLoading(true);
+    try {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/schedules/generate-school-template`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ replaceExisting: true })
+      });
+
+      if (!response.ok) {
+        const errorPayload = await response.json().catch(() => ({}));
+        throw new Error(errorPayload?.message || 'Failed to generate school timetable template');
+      }
+
+      const result = await response.json();
+      if (selectedClassId) {
+        await loadClassSchedule();
+      }
+
+      setIsTemplateDialogOpen(false);
+      toast({
+        title: 'School timetable template generated',
+        description: `Classes: ${result.classesProcessed}, Created: ${result.created}, Deleted: ${result.deleted}`,
+      });
+    } catch (error) {
+      toast({
+        title: 'Template generation failed',
+        description: error instanceof Error ? error.message : 'Failed to generate full-school template',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const getEndTime = (startTime: string): string => {
@@ -810,8 +897,8 @@ export default function WeeklyScheduleGrid() {
                 <li>• <strong>Every Class, Every Day:</strong> Each form gets 6 periods daily (Mon-Fri)</li>
                 <li>• <strong>Daily Structure:</strong> 4 morning periods + 2 afternoon periods</li>
                 <li>• <strong>Protected Lunch:</strong> 12:00 PM - 1:30 PM break (no classes)</li>
-                <li>• <strong>Equal Distribution:</strong> All 10 courses appear ~3 times per week</li>
-                <li>• <strong>Core Priority:</strong> Math & English guaranteed daily presence</li>
+                <li>• <strong>Dynamic Courses:</strong> Pulls live course codes from your school setup</li>
+                <li>• <strong>Classroom Mapping:</strong> Auto-assigns available classrooms</li>
                 <li>• <strong>Auto-Assignment:</strong> Teachers assigned from course data</li>
               </ul>
             </div>
@@ -820,10 +907,11 @@ export default function WeeklyScheduleGrid() {
               <h4 className="font-semibold text-amber-800 mb-2">Current Class Information:</h4>
               <div className="text-sm text-amber-700">
                 <p><strong>Selected Class:</strong> {classes.find(c => c.id === selectedClassId)?.name || 'None'}</p>
-                <p><strong>Available Courses:</strong> {courses.filter(c => (c.classId || c.class?.id) === selectedClassId).length}</p>
+                <p><strong>Available Courses:</strong> {getCoursesForClass(courses, selectedClassId).filter(c => Boolean(c.teacher?.id)).length}</p>
+                <p><strong>Available Classrooms:</strong> {classrooms.length}</p>
                 <p><strong>Template will create:</strong> Exactly 30 periods (6 per day × 5 days)</p>
                 <p><strong>Daily Schedule:</strong> 8:00-12:00 (4 periods), 1:30-3:30 (2 periods)</p>
-                <p><strong>Guaranteed:</strong> Every form has classes every single weekday</p>
+                <p><strong>Guaranteed:</strong> Uses school classes only (excluding Graduated)</p>
               </div>
 
               <div className="mt-3 p-3 bg-white rounded border">
@@ -868,6 +956,13 @@ export default function WeeklyScheduleGrid() {
             >
               <FileUp className="h-4 w-4 mr-2" />
               Generate Optimal Template
+            </Button>
+            <Button
+              onClick={generateFullSchoolTemplate}
+              variant="outline"
+            >
+              <FileUp className="h-4 w-4 mr-2" />
+              Generate All Classes
             </Button>
             <Button
               variant="outline"
