@@ -59,6 +59,9 @@ export default function TeacherAttendance() {
       setLoading(true);
       setError(null);
 
+      const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      const today = daysOfWeek[new Date().getDay()];
+
       // Fetch all schedules assigned to the authenticated teacher
       const response = await fetch(`${API_CONFIG.BASE_URL}/teacher/my-schedules?page=1&limit=500`, {
         headers: {
@@ -102,6 +105,10 @@ export default function TeacherAttendance() {
             name: schedule.class?.name,
           },
         }))
+        .filter((schedule: ScheduledClass) => {
+          const scheduleDay = (schedule.day || '').toLowerCase();
+          return scheduleDay === today.toLowerCase() || scheduleDay.startsWith(today.slice(0, 3).toLowerCase());
+        })
         .filter((schedule: ScheduledClass) => Boolean(schedule.id && schedule.course?.id && schedule.class?.id))
         .sort((a: ScheduledClass, b: ScheduledClass) => {
           const dayOrder: Record<string, number> = {
