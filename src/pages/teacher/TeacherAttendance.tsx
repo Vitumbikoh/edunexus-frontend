@@ -59,26 +59,8 @@ export default function TeacherAttendance() {
       setLoading(true);
       setError(null);
 
-      // Get current day of the week
-      const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-      const today = daysOfWeek[new Date().getDay()];
-
-      // First get teacher's profile to get teacherId
-      const profileResponse = await fetch(`${API_CONFIG.BASE_URL}/profile`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (!profileResponse.ok) {
-        throw new Error('Failed to fetch profile');
-      }
-
-      const profile = await profileResponse.json();
-      const teacherId = profile.teacherId || user?.id;
-
-      // Fetch teacher's weekly schedule
-      const response = await fetch(`${API_CONFIG.BASE_URL}/schedules/teacher/${teacherId}/weekly`, {
+      // Fetch all schedules assigned to the authenticated teacher
+      const response = await fetch(`${API_CONFIG.BASE_URL}/teacher/my-schedules?page=1&limit=500`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -94,18 +76,13 @@ export default function TeacherAttendance() {
 
       const data = await response.json();
 
-      // Filter schedules for today and current/future time slots
-      const now = new Date();
-      const currentTime = now.getHours() * 100 + now.getMinutes(); // Convert to HHMM format for comparison
+      const schedules = Array.isArray(data?.schedules)
+        ? data.schedules
+        : Array.isArray(data?.data)
+        ? data.data
+        : [];
 
-      const todaysSchedules = (data?.days || [])
-        .filter((day: any) => day.day === today)
-        .flatMap((day: any) => (day?.items || []))
-        .filter((schedule: any) => {
-          const startTime = parseInt(schedule.startTime.replace(':', ''));
-          // Include current class or future classes (within next 2 hours)
-          return startTime >= currentTime - 100; // Allow some buffer for ongoing classes
-        })
+      const mappedSchedules = schedules
         .map((schedule: any) => ({
           id: schedule.id,
           day: schedule.day,
@@ -124,9 +101,25 @@ export default function TeacherAttendance() {
             id: schedule.class?.id,
             name: schedule.class?.name,
           },
-        }));
+        }))
+        .filter((schedule: ScheduledClass) => Boolean(schedule.id && schedule.course?.id && schedule.class?.id))
+        .sort((a: ScheduledClass, b: ScheduledClass) => {
+          const dayOrder: Record<string, number> = {
+            Monday: 1,
+            Tuesday: 2,
+            Wednesday: 3,
+            Thursday: 4,
+            Friday: 5,
+            Saturday: 6,
+            Sunday: 7,
+          };
 
-      setScheduledClasses(todaysSchedules);
+          const dayDiff = (dayOrder[a.day] || 99) - (dayOrder[b.day] || 99);
+          if (dayDiff !== 0) return dayDiff;
+          return String(a.startTime || '').localeCompare(String(b.startTime || ''));
+        });
+
+      setScheduledClasses(mappedSchedules);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to load scheduled classes';
       setError(errorMessage);
