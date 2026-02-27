@@ -36,7 +36,7 @@ export default function TeacherAllExams(){
         description: 'Exam administered successfully',
       });
       // Refresh exams to update status
-      fetchExams(selectedTerm);
+      fetchExams();
     } catch (error: any) {
       toast({
         title: 'Error',
@@ -48,25 +48,18 @@ export default function TeacherAllExams(){
 
   const fetchCurrentTerm = async () => {
     try {
-      const res = await fetch(`${API_CONFIG.BASE_URL}/analytics/current-term`, { headers: token? { Authorization: `Bearer ${token}`}:{} });
-      if(res.ok){
-        const data = await res.json();
-        if(data?.term?.id){
-          setCurrentTermId(data.term.id);
-          setSelectedTerm(data.term.id);
-        }
-      }
-    }catch{}
-  };
-
-  const fetchTerms = async () => {
-    try {
       const res = await fetch(`${API_CONFIG.BASE_URL}/settings/terms`, { headers: token? { Authorization: `Bearer ${token}`}:{} });
       if(res.ok){
         const data = await res.json();
         if(Array.isArray(data)){
           setTerms(data);
           setTermLoadError(data.length === 0);
+          // Pick the school-scoped current term from the same list
+          const current = data.find((t: TermOption) => t.isCurrent);
+          if(current?.id){
+            setCurrentTermId(current.id);
+            setSelectedTerm(current.id);
+          }
         } else {
           setTermLoadError(true);
         }
@@ -76,12 +69,14 @@ export default function TeacherAllExams(){
     }catch{ setTermLoadError(true); }
   };
 
-  const fetchExams = async (termId?:string) => {
+  // fetchTerms is now merged into fetchCurrentTerm above
+  const fetchTerms = async () => { /* no-op, handled by fetchCurrentTerm */ };
+
+  const fetchExams = async () => {
     if(!token) return;
     setLoading(true);
     try{
       const url = new URL(`${API_CONFIG.BASE_URL}/teacher/my-exams/all`);
-      if(termId) url.searchParams.set('termId', termId);
       const res = await fetch(url.toString(), { headers:{ Authorization:`Bearer ${token}` }});
       if(res.ok){
         const data = await res.json();
@@ -93,9 +88,26 @@ export default function TeacherAllExams(){
     }catch{ setExams([]);} finally { setLoading(false);} }
 
   useEffect(()=>{ fetchCurrentTerm(); fetchTerms(); },[token]);
-  useEffect(()=>{ fetchExams(selectedTerm); },[selectedTerm, token]);
+  useEffect(()=>{ fetchExams(); },[token]);
 
-  const filtered = exams.filter(e=>{
+  const termFiltered = exams.filter(e => {
+    if(!selectedTerm) return true;
+    const selected = terms.find(t => t.id === selectedTerm);
+    const examTermId = e.Term?.id;
+    const examTermNumber = e.Term?.termNumber;
+
+    if (examTermId && examTermId === selectedTerm) return true;
+    if (
+      selected?.termNumber != null &&
+      examTermNumber != null &&
+      Number(selected.termNumber) === Number(examTermNumber)
+    ) {
+      return true;
+    }
+    return false;
+  });
+
+  const filtered = termFiltered.filter(e=>{
     if(!search.trim()) return true;
     const q=search.toLowerCase();
     return (e.title||'').toLowerCase().includes(q) || (e.course?.name||'').toLowerCase().includes(q) || (e.examType||'').toLowerCase().includes(q);
@@ -125,7 +137,7 @@ export default function TeacherAllExams(){
           <div className="w-56">
             <Input placeholder="Search exams..." value={search} onChange={e=>setSearch(e.target.value)} />
           </div>
-          <Button variant="outline" onClick={()=>fetchExams(selectedTerm)} disabled={loading}>Refresh</Button>
+          <Button variant="outline" onClick={()=>fetchExams()} disabled={loading}>Refresh</Button>
         </div>
       </div>
       {termLoadError && (
