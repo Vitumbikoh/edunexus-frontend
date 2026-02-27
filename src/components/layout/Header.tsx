@@ -24,10 +24,9 @@ export default function Header() {
   const { toast } = useToast();
   const navigate = useNavigate();
   
-  // Only fetch notifications for admin users
-  const isAdmin = user?.role === "admin";
-  const { data: notifications = [], isLoading } = useNotifications(isAdmin);
-  const { data: stats } = useNotificationStats(isAdmin);
+  const enableNotifications = Boolean(token && user);
+  const { data: notifications = [], isLoading } = useNotifications(enableNotifications);
+  const { data: stats } = useNotificationStats(enableNotifications);
   const markAsReadMutation = useMarkNotificationAsRead();
 
   const handleNotificationClick = async (notification: any) => {
@@ -112,7 +111,7 @@ export default function Header() {
         {/* Theme Toggle */}
         <ThemeToggle />
         
-        {isAdmin && (
+        {enableNotifications && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="relative">
