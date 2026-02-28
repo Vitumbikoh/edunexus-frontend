@@ -137,6 +137,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const REFRESH_MIN_INTERVAL_MS = 5 * 60 * 1000; // avoid refreshing on every activity event
   const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastRefreshRef = useRef<number>(0);
+  const unauthorizedRedirectRef = useRef(false);
 
   const persistTokens = useCallback((accessToken: string, refreshToken?: string) => {
     localStorage.setItem('access_token', accessToken);
@@ -251,6 +252,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     
     checkAuth();
   }, [tryRefreshSession]);
+
+  useEffect(() => {
+    const originalFetch = window.fetch;
+
+    const getRequestUrl = (input: RequestInfo | URL): string => {
+      if (typeof input === 'string') return input;
+      if (input instanceof URL) return input.toString();
+      if (input instanceof Request) return input.url;
+      return '';
+    };
+
+    window.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+      const response = await originalFetch.call(window, input, init);
+
+      if (response.status === 401) {
+        const hasActiveSession = Boolean(localStorage.getItem('access_token'));
+        const requestUrl = getRequestUrl(input);
+        const isLoginRequest = requestUrl.includes('/auth/login');
+
+        if (hasActiveSession && !isLoginRequest && !unauthorizedRedirectRef.current) {
+          unauthorizedRedirectRef.current = true;
+          performLogout();
+          if (window.location.pathname !== '/login') {
+            window.location.replace('/login');
+          }
+        }
+      }
+
+      return response;
+    }) as typeof window.fetch;
+
+    return () => {
+      window.fetch = originalFetch;
+    };
+  }, [performLogout]);
 
   useEffect(() => {
     if (!user) {

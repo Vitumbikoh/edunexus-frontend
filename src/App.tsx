@@ -28,6 +28,7 @@ import GraduatedOutstanding from "./pages/finance/GraduatedOutstanding";
 import Settings from "./pages/settings/Settings";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
+import Notifications from "./pages/Notifications";
 import AcademicCalendar from "./pages/setups/AcademicCalendar";
 const GradesReportLazy = React.lazy(() => import('./pages/courses/GradesReport'));
 
@@ -955,6 +956,17 @@ const AppRoutes = () => {
           <ProtectedRoute>
             <Layout>
               <Profile />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/notifications"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <Notifications />
             </Layout>
           </ProtectedRoute>
         }
