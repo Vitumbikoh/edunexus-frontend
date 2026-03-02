@@ -16,6 +16,7 @@ type Notifications = {
   email: boolean;
   sms: boolean;
   browser: boolean;
+  whatsapp: boolean;
   weeklySummary: boolean;
 };
 
@@ -26,12 +27,14 @@ type Props = {
 export default function PreferencesSection({ variant }: Props) {
   const { toast } = useToast();
   const { theme, setTheme } = useTheme();
-  const { token } = useAuth();
+  const { token, user } = useAuth();
+  const canUseWeeklySummary = user?.role === "teacher" || user?.role === "finance";
   
   const [notifications, setNotifications] = useState<Notifications>({
     email: false,
     sms: false,
     browser: false,
+    whatsapp: false,
     weeklySummary: false,
   });
 
@@ -55,12 +58,13 @@ export default function PreferencesSection({ variant }: Props) {
       });
       if (!res.ok) throw new Error(await res.text());
       const data = await res.json();
-      const n = data.notifications || data;
+      const n = data?.user?.notifications || data?.notifications || data;
       setNotifications({
         email: n.email || false,
         sms: n.sms || false,
         browser: n.browser || false,
-        weeklySummary: n.weeklySummary || false,
+        whatsapp: n.whatsapp || false,
+        weeklySummary: canUseWeeklySummary ? (n.weeklySummary || false) : false,
       });
     } catch (error) {
       console.error('Failed to fetch notification preferences:', error);
@@ -80,7 +84,12 @@ export default function PreferencesSection({ variant }: Props) {
           'Content-Type': 'application/json',
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        body: JSON.stringify({ notifications }),
+        body: JSON.stringify({
+          notifications: {
+            ...notifications,
+            weeklySummary: canUseWeeklySummary ? notifications.weeklySummary : false,
+          },
+        }),
       });
       if (!res.ok) throw new Error(await res.text());
       toast({
@@ -134,11 +143,21 @@ export default function PreferencesSection({ variant }: Props) {
 
             <div className="flex items-center justify-between">
               <div>
-                <h4 className="font-medium">Weekly Summary</h4>
-                <p className="text-sm text-muted-foreground">Receive weekly summary reports</p>
+                <h4 className="font-medium">WhatsApp Notifications</h4>
+                <p className="text-sm text-muted-foreground">Receive notifications via WhatsApp</p>
               </div>
-              <Switch checked={notifications.weeklySummary} onCheckedChange={() => handleNotificationToggle("weeklySummary")} />
+              <Switch checked={notifications.whatsapp} onCheckedChange={() => handleNotificationToggle("whatsapp")} />
             </div>
+
+            {canUseWeeklySummary && (
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="font-medium">Weekly Summary</h4>
+                  <p className="text-sm text-muted-foreground">Receive weekly summary reports</p>
+                </div>
+                <Switch checked={notifications.weeklySummary} onCheckedChange={() => handleNotificationToggle("weeklySummary")} />
+              </div>
+            )}
           </div>
 
           <div className="flex justify-end">
