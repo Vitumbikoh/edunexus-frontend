@@ -3,6 +3,7 @@ import { Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Skeleton } from './skeleton';
 import { useOptionalSystemPreloader } from '@/contexts/SystemPreloaderContext';
+import { useOptionalSidebar } from '@/contexts/SidebarContext';
 
 interface PreloaderProps {
   /**
@@ -196,12 +197,31 @@ export const SystemPreloader: React.FC<{
   subtext = 'Please wait while we fetch your information',
   visible = true,
 }) => {
+  const sidebar = useOptionalSidebar();
+
   if (!visible) {
     return null;
   }
 
+  const hasDesktopLayout = typeof window !== 'undefined'
+    ? window.matchMedia('(min-width: 1280px)').matches
+    : true;
+
+  const contentInsetTop = sidebar ? 64 : 0;
+  const contentInsetLeft = sidebar
+    ? (hasDesktopLayout ? (sidebar.isOpen ? 256 : 80) : 0)
+    : 0;
+
   return (
-    <div className="fixed inset-0 z-[120] flex items-center justify-center bg-background/95 backdrop-blur-sm">
+    <div
+      className="fixed z-[120] flex items-center justify-center bg-background/95 backdrop-blur-sm"
+      style={{
+        top: contentInsetTop,
+        left: contentInsetLeft,
+        right: 0,
+        bottom: 0,
+      }}
+    >
       <div className="w-[min(92vw,24rem)] rounded-xl border bg-card/95 p-6 shadow-lg">
         <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full border border-primary/30 bg-primary/10">
           <Loader2 className="h-7 w-7 animate-spin text-primary" />

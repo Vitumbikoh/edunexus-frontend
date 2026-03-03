@@ -29,3 +29,7 @@ export function useSidebar() {
   }
   return context;
 }
+
+export function useOptionalSidebar() {
+  return useContext(SidebarContext) ?? null;
+}
