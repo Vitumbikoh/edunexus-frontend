@@ -29,6 +29,9 @@ interface StudentFinancialDetails {
     studentId: string;
     email?: string;
     className: string;
+    admissionTermId?: string | null;
+    admissionTermNumber?: number | null;
+    admissionAcademicYear?: string | null;
   };
   summary: {
     totalExpectedAllTerms: number;
@@ -175,10 +178,7 @@ export function StudentFinancialDetailsModal({
         throw new Error('No authentication token found');
       }
 
-      let url = `${API_CONFIG.BASE_URL}/finance/student-financial-details/${studentId}`;
-      if (academicCalendarId) {
-        url += `?academicCalendarId=${encodeURIComponent(academicCalendarId)}`;
-      }
+      const url = `${API_CONFIG.BASE_URL}/finance/student-financial-details/${studentId}`;
 
       let response = await fetch(url, {
         headers: { Authorization: `Bearer ${storedToken}` }
@@ -376,6 +376,18 @@ export function StudentFinancialDetailsModal({
                     <div>
                       <p className="text-sm font-medium text-muted-foreground">Class</p>
                       <p className="text-lg font-semibold">{details.student.className}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Admission Term</p>
+                      <p className="text-lg font-semibold">
+                        {details.student.admissionTermNumber ? `Term ${details.student.admissionTermNumber}` : '—'}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Admission Academic Calendar</p>
+                      <p className="text-lg font-semibold">
+                        {details.student.admissionAcademicYear || '—'}
+                      </p>
                     </div>
                     {details.student.email && (
                       <div className="md:col-span-3">

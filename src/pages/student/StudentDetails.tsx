@@ -1,11 +1,14 @@
-import React from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { API_CONFIG } from '@/config/api';
 
 type Student = {
+  id?: string;
   firstName: string;
   lastName: string;
   studentId?: string; // human readable student ID
@@ -15,6 +18,12 @@ type Student = {
   };
   class?: {
     name?: string;
+  };
+  enrollmentTerm?: {
+    termNumber?: number;
+    academicCalendar?: {
+      term?: string;
+    };
   };
   gradeLevel?: string;
   dateOfBirth?: string;
@@ -33,10 +42,36 @@ type Student = {
 
 export default function StudentDetails() {
   const { state } = useLocation();
+  const { id } = useParams();
   const navigate = useNavigate();
-  const student: Student = state?.student;
+  const { token } = useAuth();
+  const [student, setStudent] = useState<Student | null>(state?.student || null);
+  const [loading, setLoading] = useState(false);
 
-  if (!student) {
+  useEffect(() => {
+    const fetchStudent = async () => {
+      if (!id || !token) return;
+      setLoading(true);
+      try {
+        const response = await fetch(`${API_CONFIG.BASE_URL}/student/students/${id}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!response.ok) {
+          throw new Error('Failed to fetch student details');
+        }
+        const data = await response.json();
+        setStudent(data);
+      } catch {
+        // Keep state fallback if request fails
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchStudent();
+  }, [id, token]);
+
+  if (!student && !loading) {
     return (
       <div className="flex items-center justify-center h-96">
         <div className="text-center p-8 rounded-lg bg-red-50 border border-red-200 text-red-700 font-semibold">
@@ -93,6 +128,14 @@ export default function StudentDetails() {
           <div className="space-y-2">
             <p className="text-sm font-medium text-muted-foreground">Class</p>
             <p>{student.class?.name || '-'}</p>
+          </div>
+          <div className="space-y-2">
+            <p className="text-sm font-medium text-muted-foreground">Admission Term</p>
+            <p>{student.enrollmentTerm?.termNumber ? `Term ${student.enrollmentTerm.termNumber}` : '-'}</p>
+          </div>
+          <div className="space-y-2">
+            <p className="text-sm font-medium text-muted-foreground">Admission Academic Calendar</p>
+            <p>{student.enrollmentTerm?.academicCalendar?.term || '-'}</p>
           </div>
           <div className="space-y-2">
             <p className="text-sm font-medium text-muted-foreground">Grade Level</p>

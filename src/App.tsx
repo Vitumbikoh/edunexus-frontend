@@ -1270,15 +1270,15 @@ const App = () => {
       <TooltipProvider>
         <AuthProvider>
           <ThemeProvider>
-            <SystemPreloaderProvider>
-              <BrowserRouter>
-                <SidebarProvider>
+            <BrowserRouter>
+              <SidebarProvider>
+                <SystemPreloaderProvider>
                   <AppRoutes />
                   <Toaster />
                   <Sonner />
-                </SidebarProvider>
-              </BrowserRouter>
-            </SystemPreloaderProvider>
+                </SystemPreloaderProvider>
+              </SidebarProvider>
+            </BrowserRouter>
           </ThemeProvider>
         </AuthProvider>
       </TooltipProvider>
