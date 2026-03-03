@@ -66,6 +66,16 @@ export const authApi = {
     return response.json() as Promise<{ access_token: string; refresh_token?: string }>;
   },
 
+  logout: async (refreshToken?: string) => {
+    await fetch(`${API_BASE}/api/v1/auth/logout`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ refresh_token: refreshToken }),
+    }).catch(() => undefined);
+  },
+
   // First-login / standard password change. Some backends expect newPassword, others password.
   changePassword: async (newPassword: string, token: string) => {
     const url = `${API_BASE}/api/v1/users/me/change-password`;

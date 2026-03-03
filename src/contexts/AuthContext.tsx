@@ -136,6 +136,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const IDLE_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes
   const REFRESH_MIN_INTERVAL_MS = 5 * 60 * 1000; // avoid refreshing on every activity event
   const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastActivityAtRef = useRef<number>(Date.now());
+  const refreshInFlightRef = useRef<Promise<boolean> | null>(null);
   const lastRefreshRef = useRef<number>(0);
   const unauthorizedRedirectRef = useRef(false);
 
@@ -154,12 +156,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const performLogout = useCallback(() => {
+  const performLogout = useCallback(async () => {
     clearIdleTimer();
+    const refreshToken = localStorage.getItem('refresh_token') || undefined;
+    if (refreshToken) {
+      await authApi.logout(refreshToken);
+    }
     const currentUser = JSON.parse(localStorage.getItem('user_data') || 'null') as User | null;
     localStorage.removeItem('access_token');
     localStorage.removeItem('refresh_token');
     localStorage.removeItem('user_data');
+    localStorage.removeItem('token');
+    localStorage.removeItem('session');
+    sessionStorage.clear();
     if (currentUser?.id) {
       localStorage.removeItem(`theme-${currentUser.id}`);
     }
@@ -169,23 +178,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [clearIdleTimer]);
 
   const tryRefreshSession = useCallback(async () => {
+    if (refreshInFlightRef.current) {
+      return refreshInFlightRef.current;
+    }
+
     const refreshToken = localStorage.getItem('refresh_token');
     if (!refreshToken) return false;
-    try {
-      const refreshed = await authApi.refreshToken(refreshToken);
-      if (!refreshed?.access_token) return false;
-      persistTokens(refreshed.access_token, refreshed.refresh_token);
-      lastRefreshRef.current = Date.now();
-      return true;
-    } catch {
-      return false;
-    }
+
+    refreshInFlightRef.current = (async () => {
+      try {
+        const refreshed = await authApi.refreshToken(refreshToken);
+        if (!refreshed?.access_token) return false;
+        persistTokens(refreshed.access_token, refreshed.refresh_token);
+        lastRefreshRef.current = Date.now();
+        return true;
+      } catch {
+        return false;
+      } finally {
+        refreshInFlightRef.current = null;
+      }
+    })();
+
+    return refreshInFlightRef.current;
   }, [persistTokens]);
 
   const scheduleIdleLogout = useCallback(() => {
     clearIdleTimer();
+    const now = Date.now();
+    lastActivityAtRef.current = now;
+    localStorage.setItem('last_activity_at', String(now));
     idleTimerRef.current = setTimeout(() => {
-      performLogout();
+      void performLogout();
     }, IDLE_TIMEOUT_MS);
   }, [clearIdleTimer, performLogout]);
 
@@ -263,17 +286,54 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return '';
     };
 
+    const getHeaderValue = (input: RequestInfo | URL, init: RequestInit | undefined, headerName: string): string | null => {
+      if (init?.headers instanceof Headers) return init.headers.get(headerName);
+      if (init?.headers && typeof init.headers === 'object' && !Array.isArray(init.headers)) {
+        const value = (init.headers as Record<string, string>)[headerName] || (init.headers as Record<string, string>)[headerName.toLowerCase()];
+        return value || null;
+      }
+      if (input instanceof Request) return input.headers.get(headerName);
+      return null;
+    };
+
     window.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
-      const response = await originalFetch.call(window, input, init);
+      let response = await originalFetch.call(window, input, init);
 
       if (response.status === 401) {
         const hasActiveSession = Boolean(localStorage.getItem('access_token'));
         const requestUrl = getRequestUrl(input);
         const isLoginRequest = requestUrl.includes('/auth/login');
+        const isRefreshRequest = requestUrl.includes('/auth/refresh');
+        const isLogoutRequest = requestUrl.includes('/auth/logout');
+        const retryHeader = getHeaderValue(input, init, 'x-auth-retry');
+        const alreadyRetried = retryHeader === '1';
 
-        if (hasActiveSession && !isLoginRequest && !unauthorizedRedirectRef.current) {
+        if (hasActiveSession && !isLoginRequest && !isRefreshRequest && !isLogoutRequest && !alreadyRetried) {
+          const refreshed = await tryRefreshSession();
+          if (refreshed) {
+            const newToken = localStorage.getItem('access_token');
+            if (newToken) {
+              if (input instanceof Request) {
+                const retryRequest = new Request(input);
+                retryRequest.headers.set('Authorization', `Bearer ${newToken}`);
+                retryRequest.headers.set('x-auth-retry', '1');
+                response = await originalFetch.call(window, retryRequest);
+              } else {
+                const retryHeaders = new Headers(init?.headers || {});
+                retryHeaders.set('Authorization', `Bearer ${newToken}`);
+                retryHeaders.set('x-auth-retry', '1');
+                response = await originalFetch.call(window, input, {
+                  ...(init || {}),
+                  headers: retryHeaders,
+                });
+              }
+            }
+          }
+        }
+
+        if (response.status === 401 && hasActiveSession && !isLoginRequest && !unauthorizedRedirectRef.current) {
           unauthorizedRedirectRef.current = true;
-          performLogout();
+          void performLogout();
           if (window.location.pathname !== '/login') {
             window.location.replace('/login');
           }
@@ -286,7 +346,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => {
       window.fetch = originalFetch;
     };
-  }, [performLogout]);
+  }, [performLogout, tryRefreshSession]);
 
   useEffect(() => {
     if (!user) {
@@ -307,12 +367,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       'scroll',
       'touchstart',
       'click',
+      'pointermove',
+      'pointerdown',
+      'focus',
     ];
 
     events.forEach((eventName) => window.addEventListener(eventName, onActivity, { passive: true }));
 
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        void handleUserActivity();
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+
     return () => {
       events.forEach((eventName) => window.removeEventListener(eventName, onActivity));
+      document.removeEventListener('visibilitychange', onVisibility);
       clearIdleTimer();
     };
   }, [user, handleUserActivity, scheduleIdleLogout, clearIdleTimer]);
@@ -374,7 +445,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = () => {
-    performLogout();
+    void performLogout();
   };
 
   return (
