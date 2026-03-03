@@ -389,12 +389,7 @@ export function StudentFinancialDetailsModal({
                         {details.student.admissionAcademicYear || '—'}
                       </p>
                     </div>
-                    {details.student.email && (
-                      <div className="md:col-span-3">
-                        <p className="text-sm font-medium text-muted-foreground">Email</p>
-                        <p className="text-lg">{details.student.email}</p>
-                      </div>
-                    )}
+                    {/* Email intentionally omitted from financial details */}
                   </div>
                 </CardContent>
               </Card>
