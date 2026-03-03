@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { SidebarProvider } from "@/contexts/SidebarContext";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
+import { SystemPreloaderProvider } from "@/contexts/SystemPreloaderContext";
 import { useThemePersistence } from "@/hooks/useThemePersistence";
 import Layout from "@/components/layout/Layout";
 import RoleBasedDashboard from "@/components/auth/RoleBasedDashboard";
@@ -1269,13 +1270,15 @@ const App = () => {
       <TooltipProvider>
         <AuthProvider>
           <ThemeProvider>
-            <BrowserRouter>
-              <SidebarProvider>
-                <AppRoutes />
-                <Toaster />
-                <Sonner />
-              </SidebarProvider>
-            </BrowserRouter>
+            <SystemPreloaderProvider>
+              <BrowserRouter>
+                <SidebarProvider>
+                  <AppRoutes />
+                  <Toaster />
+                  <Sonner />
+                </SidebarProvider>
+              </BrowserRouter>
+            </SystemPreloaderProvider>
           </ThemeProvider>
         </AuthProvider>
       </TooltipProvider>

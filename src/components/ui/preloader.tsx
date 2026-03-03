@@ -2,6 +2,7 @@ import React from 'react';
 import { Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Skeleton } from './skeleton';
+import { useOptionalSystemPreloader } from '@/contexts/SystemPreloaderContext';
 
 interface PreloaderProps {
   /**
@@ -59,6 +60,14 @@ const Preloader: React.FC<PreloaderProps> = ({
   height,
   fullScreen = false,
 }) => {
+  const systemPreloader = useOptionalSystemPreloader();
+
+  // Enforce a single loader across the app: when global system preloader is active,
+  // suppress local page/table/card preloaders to avoid duplicate loaders.
+  if (systemPreloader?.isVisible) {
+    return null;
+  }
+
   const sizeClasses = {
     sm: 'h-4 w-4',
     md: 'h-8 w-8',
@@ -177,5 +186,51 @@ export const PagePreloader: React.FC<{ text?: string }> = ({ text = 'Loading pag
 export const FullScreenPreloader: React.FC<{ text?: string }> = ({ text = 'Loading...' }) => (
   <Preloader variant="spinner" size="lg" text={text} fullScreen />
 );
+
+export const SystemPreloader: React.FC<{
+  text?: string;
+  subtext?: string;
+  visible?: boolean;
+}> = ({
+  text = 'Loading system data',
+  subtext = 'Please wait while we fetch your information',
+  visible = true,
+}) => {
+  if (!visible) {
+    return null;
+  }
+
+  return (
+    <div className="fixed inset-0 z-[120] flex items-center justify-center bg-background/95 backdrop-blur-sm">
+      <div className="w-[min(92vw,24rem)] rounded-xl border bg-card/95 p-6 shadow-lg">
+        <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full border border-primary/30 bg-primary/10">
+          <Loader2 className="h-7 w-7 animate-spin text-primary" />
+        </div>
+
+        <div className="text-center">
+          <h3 className="text-base font-semibold text-foreground">{text}</h3>
+          <p className="mt-1 text-sm text-muted-foreground">{subtext}</p>
+        </div>
+
+        <div className="mt-5 space-y-2">
+          <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+            <div className="h-full w-1/2 animate-pulse rounded-full bg-primary" />
+          </div>
+          <div className="flex items-center justify-center gap-1">
+            <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-primary" />
+            <span
+              className="h-1.5 w-1.5 animate-bounce rounded-full bg-primary"
+              style={{ animationDelay: '0.12s' }}
+            />
+            <span
+              className="h-1.5 w-1.5 animate-bounce rounded-full bg-primary"
+              style={{ animationDelay: '0.24s' }}
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export { Preloader };

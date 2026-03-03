@@ -1,215 +1,311 @@
-
-import React, { useState, useEffect } from 'react';
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import React, { useEffect, useMemo, useState } from 'react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { API_CONFIG } from '@/config/api';
-import { useToast } from '@/components/ui/use-toast';
 
-interface ProfileActivity {
+type ProfileData = {
   id: string;
-  action: string;
-  date: string;
-  description?: string;
-}
+  username?: string;
+  role?: string;
+  email?: string | null;
+  phone?: string | null;
+  phoneNumber?: string | null;
+  firstName?: string;
+  lastName?: string;
+  status?: string;
+  createdAt?: string;
+  image?: string;
+  avatar?: string;
+  profilePicture?: string;
+  school?: {
+    id: string;
+    name: string;
+    code: string;
+  } | null;
+};
 
-interface ProfileStats {
-  loginCount: number;
-  lastLogin: string | null;
-  accountAge: number;
-  isActive: boolean;
-  
-  // Role-specific stats
-  classesCount?: number;
-  studentsCount?: number;
-  assignmentsCreated?: number;
-  averageRating?: number;
-  currentGPA?: number;
-  attendanceRate?: number;
-  assignmentsCompleted?: number;
-  activitiesCount?: number;
-  reportsGenerated?: number;
-  systemChanges?: number;
-  usersManaged?: number;
-  childrenCount?: number;
-  meetingsAttended?: number;
-  messagesExchanged?: number;
-  paymentsCount?: number;
-  transactionsProcessed?: number;
-  expensesManaged?: number;
-}
+type ProfileFormState = {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+};
+
+type NotificationPreferences = {
+  email: boolean;
+  sms: boolean;
+  browser: boolean;
+  whatsapp: boolean;
+  weeklySummary: boolean;
+};
+
+const defaultPreferences: NotificationPreferences = {
+  email: false,
+  sms: false,
+  browser: false,
+  whatsapp: false,
+  weeklySummary: false,
+};
+
+const getDisplayName = (data: ProfileData | null) => {
+  if (!data) return 'User';
+  if (data.firstName || data.lastName) {
+    return `${data.firstName || ''} ${data.lastName || ''}`.trim();
+  }
+  return data.username || data.email?.split('@')[0] || 'User';
+};
+
+const getInitials = (name: string) => {
+  const cleaned = name.trim();
+  if (!cleaned) return 'U';
+  return cleaned
+    .split(' ')
+    .filter(Boolean)
+    .map((part) => part[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
+};
+
+const hydrateForm = (data: Partial<ProfileData> | null | undefined): ProfileFormState => ({
+  firstName: data?.firstName || '',
+  lastName: data?.lastName || '',
+  email: data?.email || '',
+  phone: data?.phone || data?.phoneNumber || '',
+});
+
+const normalizeRole = (role?: string) => (role || '').replace('_', ' ').toUpperCase();
+
+const mapUserToProfile = (userData: ReturnType<typeof useAuth>['user']): ProfileData | null => {
+  if (!userData) return null;
+
+  return {
+    id: userData.id,
+    username: userData.username,
+    role: userData.role,
+    email: userData.email,
+    phone: userData.phone,
+    firstName: userData.firstName,
+    lastName: userData.lastName,
+    avatar: userData.avatar,
+    image: userData.image,
+    createdAt: userData.createdAt ? new Date(userData.createdAt).toISOString() : undefined,
+  };
+};
 
 export default function Profile() {
   const { user, token } = useAuth();
   const { toast } = useToast();
-  const [profile, setProfile] = useState<any>(null);
-  const [activities, setActivities] = useState<ProfileActivity[]>([]);
-  const [stats, setStats] = useState<ProfileStats | null>(null);
+
   const [loading, setLoading] = useState(true);
-  const [activitiesLoading, setActivitiesLoading] = useState(false);
-  const [statsLoading, setStatsLoading] = useState(false);
-  
+  const [profile, setProfile] = useState<ProfileData | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [savingProfile, setSavingProfile] = useState(false);
+
+  const [preferences, setPreferences] = useState<NotificationPreferences>(defaultPreferences);
+  const [preferencesLoading, setPreferencesLoading] = useState(false);
+  const [savingPreferences, setSavingPreferences] = useState(false);
+
+  const userProfile = useMemo(() => mapUserToProfile(user), [user]);
+
+  const [form, setForm] = useState<ProfileFormState>(hydrateForm(userProfile));
+
+  const displayName = useMemo(() => getDisplayName(profile || userProfile), [profile, userProfile]);
+
   useEffect(() => {
-    const fetchProfileData = async () => {
-      if (!token) return;
-      
+    const fetchProfile = async () => {
+      if (!token) {
+        setLoading(false);
+        return;
+      }
+
       try {
         setLoading(true);
-        
-        // Fetch profile information
-        const profileResponse = await fetch(`${API_CONFIG.BASE_URL}/profile`, {
+        const response = await fetch(`${API_CONFIG.BASE_URL}/profile`, {
           headers: {
-            'Authorization': `Bearer ${token}`,
+            Authorization: `Bearer ${token}`,
             'Content-Type': 'application/json',
           },
         });
 
-        if (!profileResponse.ok) {
-          throw new Error(`Failed to fetch profile: ${profileResponse.status}`);
+        if (!response.ok) {
+          throw new Error(`Failed to fetch profile (${response.status})`);
         }
 
-        const profileData = await profileResponse.json();
-        setProfile(profileData);
-        
+        const data: ProfileData = await response.json();
+        setProfile(data);
+        setForm(hydrateForm(data));
       } catch (error) {
-        console.error('Error fetching profile:', error);
+        console.error('Failed to fetch profile:', error);
+        setProfile(userProfile);
+        setForm(hydrateForm(userProfile));
         toast({
-          title: "Error",
-          description: "Failed to load profile information",
-          variant: "destructive",
+          title: 'Error',
+          description: 'Failed to load profile information',
+          variant: 'destructive',
         });
-        // Fallback to user data from auth context
-        setProfile(user);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchProfileData();
-  }, [token, user, toast]);
+    fetchProfile();
+  }, [token, user, userProfile, toast]);
 
-  const fetchActivities = async () => {
-    if (!token) return;
-    
-    try {
-      setActivitiesLoading(true);
-      console.log('Fetching activities from:', `${API_CONFIG.BASE_URL}/profile/activities?limit=10`);
-      
-      const response = await fetch(`${API_CONFIG.BASE_URL}/profile/activities?limit=10`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
+  useEffect(() => {
+    const fetchPreferences = async () => {
+      if (!token) return;
 
-      console.log('Activities response status:', response.status);
-      
-      if (response.ok) {
-        const activitiesData = await response.json();
-        console.log('Activities data received:', activitiesData);
-        setActivities(activitiesData);
-      } else {
-        const errorText = await response.text();
-        console.error('Activities fetch failed:', response.status, errorText);
-        toast({
-          title: "Error",
-          description: `Failed to load activities: ${response.status}`,
-          variant: "destructive",
+      try {
+        setPreferencesLoading(true);
+        const response = await fetch(`${API_CONFIG.BASE_URL}/settings`, {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
         });
-      }
-    } catch (error) {
-      console.error('Error fetching activities:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load activities",
-        variant: "destructive",
-      });
-    } finally {
-      setActivitiesLoading(false);
-    }
-  };
 
-  const fetchStats = async () => {
-    if (!token) return;
-    
-    try {
-      setStatsLoading(true);
-      console.log('Fetching stats from:', `${API_CONFIG.BASE_URL}/profile/stats`);
-      
-      const response = await fetch(`${API_CONFIG.BASE_URL}/profile/stats`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
+        if (!response.ok) {
+          throw new Error(`Failed to fetch preferences (${response.status})`);
+        }
 
-      console.log('Stats response status:', response.status);
-      
-      if (response.ok) {
-        const statsData = await response.json();
-        console.log('Stats data received:', statsData);
-        setStats(statsData);
-      } else {
-        const errorText = await response.text();
-        console.error('Stats fetch failed:', response.status, errorText);
-        toast({
-          title: "Error",
-          description: `Failed to load statistics: ${response.status}`,
-          variant: "destructive",
+        const data = await response.json();
+        const notifications = data?.user?.notifications || data?.notifications || data;
+
+        setPreferences({
+          email: Boolean(notifications?.email),
+          sms: Boolean(notifications?.sms),
+          browser: Boolean(notifications?.browser),
+          whatsapp: Boolean(notifications?.whatsapp),
+          weeklySummary: Boolean(notifications?.weeklySummary),
         });
+      } catch (error) {
+        console.error('Failed to fetch preferences:', error);
+      } finally {
+        setPreferencesLoading(false);
       }
-    } catch (error) {
-      console.error('Error fetching stats:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load statistics",
-        variant: "destructive",
-      });
-    } finally {
-      setStatsLoading(false);
-    }
-  };
-  
-  // Use profile data if available, otherwise fallback to user data
-  const displayData = profile || user;
-  
+    };
+
+    fetchPreferences();
+  }, [token]);
+
   if (!user) return null;
-  
-  const getInitials = (name: string) => {
-    return name.split(' ')
-      .map(n => n[0])
-      .join('')
-      .toUpperCase();
+
+  const activeProfile = profile || userProfile;
+
+  if (!activeProfile) return null;
+
+  const handleInputChange = (field: keyof ProfileFormState, value: string) => {
+    setForm((prev) => ({ ...prev, [field]: value }));
   };
 
-  const getDisplayName = () => {
-    if (loading) return "Loading...";
-    
-    // For profile data, try different field combinations
-    if (displayData.firstName && displayData.lastName) {
-      return `${displayData.firstName} ${displayData.lastName}`;
-    }
-    if (displayData.fullName) {
-      return displayData.fullName;
-    }
-    return displayData.name || displayData.email?.split('@')[0] || 'User';
+  const handleCancelEdit = () => {
+    setForm(hydrateForm(activeProfile));
+    setIsEditing(false);
   };
 
-  if (loading) {
-    return (
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold">My Profile</h1>
-          <p className="text-muted-foreground">View and manage your profile information</p>
-        </div>
-        <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-        </div>
-      </div>
-    );
-  }
+  const handleSaveProfile = async () => {
+    if (!token) return;
+
+    try {
+      setSavingProfile(true);
+
+      const role = (activeProfile.role || user.role || '').toLowerCase();
+      const phone = form.phone.trim();
+
+      const payload: Record<string, string> = {
+        firstName: form.firstName.trim(),
+        lastName: form.lastName.trim(),
+        email: form.email.trim(),
+      };
+
+      if (role === 'admin' || role === 'super_admin') {
+        payload.phone = phone;
+      } else {
+        payload.phoneNumber = phone;
+      }
+
+      const response = await fetch(`${API_CONFIG.BASE_URL}/profile`, {
+        method: 'PUT',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || `Failed to update profile (${response.status})`);
+      }
+
+      const updatedProfile: ProfileData = await response.json();
+      setProfile(updatedProfile);
+      setForm(hydrateForm(updatedProfile));
+      setIsEditing(false);
+
+      toast({
+        title: 'Success',
+        description: 'Profile updated successfully',
+      });
+    } catch (error) {
+      console.error('Failed to update profile:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to update profile details',
+        variant: 'destructive',
+      });
+    } finally {
+      setSavingProfile(false);
+    }
+  };
+
+  const togglePreference = (key: keyof NotificationPreferences) => {
+    setPreferences((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  const handleSavePreferences = async () => {
+    if (!token) return;
+
+    try {
+      setSavingPreferences(true);
+
+      const response = await fetch(`${API_CONFIG.BASE_URL}/settings`, {
+        method: 'PATCH',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ notifications: preferences }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || `Failed to save preferences (${response.status})`);
+      }
+
+      toast({
+        title: 'Success',
+        description: 'Preferences updated successfully',
+      });
+    } catch (error) {
+      console.error('Failed to save preferences:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to save preferences',
+        variant: 'destructive',
+      });
+    } finally {
+      setSavingPreferences(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -217,283 +313,182 @@ export default function Profile() {
         <h1 className="text-2xl font-bold">My Profile</h1>
         <p className="text-muted-foreground">View and manage your profile information</p>
       </div>
-      
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card className="lg:col-span-1">
-          <CardHeader>
-            <CardTitle>Profile Information</CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col items-center text-center">
-            <Avatar className="h-24 w-24 mb-4">
-              <AvatarImage src={displayData.avatar || displayData.profilePicture} alt={getDisplayName()} />
-              <AvatarFallback>{getInitials(getDisplayName())}</AvatarFallback>
-            </Avatar>
-            
-            <h2 className="text-xl font-bold">{getDisplayName()}</h2>
-            <p className="text-muted-foreground capitalize">{displayData.role}</p>
-            <p className="text-sm mt-1">{displayData.email}</p>
-            
-            <div className="mt-6 w-full">
-              <Button className="w-full">Edit Profile</Button>
-            </div>
-            
-            <div className="mt-8 w-full space-y-4">
-              <div className="flex justify-between items-center border-b pb-2">
-                <span className="text-muted-foreground">Role:</span>
-                <span className="capitalize">{displayData.role}</span>
+
+      {loading ? (
+        <div className="flex justify-center items-center h-48">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <Card className="lg:col-span-1">
+            <CardHeader>
+              <CardTitle>Profile Information</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="flex flex-col items-center text-center">
+                <Avatar className="h-24 w-24 mb-4">
+                  <AvatarImage
+                    src={activeProfile.avatar || activeProfile.profilePicture || activeProfile.image}
+                    alt={displayName}
+                  />
+                  <AvatarFallback>{getInitials(displayName)}</AvatarFallback>
+                </Avatar>
+                <h2 className="text-xl font-semibold">{displayName}</h2>
+                <p className="text-muted-foreground text-sm">{normalizeRole(activeProfile.role || user.role)}</p>
+                <p className="text-sm mt-1">{activeProfile.email || '-'}</p>
               </div>
-              <div className="flex justify-between items-center border-b pb-2">
-                <span className="text-muted-foreground">Status:</span>
-                <span className={displayData.status === 'Active' ? 'text-green-500' : 'text-red-500'}>
-                  {displayData.status || 'Active'}
-                </span>
+
+              <div className="space-y-3 text-sm">
+                <div className="flex justify-between border-b pb-2">
+                  <span className="text-muted-foreground">Status</span>
+                  <span>{activeProfile.status || 'Active'}</span>
+                </div>
+                <div className="flex justify-between border-b pb-2">
+                  <span className="text-muted-foreground">Joined</span>
+                  <span>
+                    {activeProfile.createdAt
+                      ? new Date(activeProfile.createdAt).toLocaleDateString()
+                      : '-'}
+                  </span>
+                </div>
+                <div className="flex justify-between border-b pb-2">
+                  <span className="text-muted-foreground">Phone</span>
+                  <span>{activeProfile.phone || activeProfile.phoneNumber || '-'}</span>
+                </div>
+                <div className="flex justify-between border-b pb-2">
+                  <span className="text-muted-foreground">School</span>
+                  <span>{activeProfile.school?.name || '-'}</span>
+                </div>
               </div>
-              <div className="flex justify-between items-center border-b pb-2">
-                <span className="text-muted-foreground">Joined:</span>
-                <span>
-                  {displayData.createdAt 
-                    ? new Date(displayData.createdAt).toLocaleDateString()
-                    : 'Unknown'
-                  }
-                </span>
-              </div>
-              {(displayData.phone || displayData.phoneNumber) && (
-                <div className="flex justify-between items-center border-b pb-2">
-                  <span className="text-muted-foreground">Phone:</span>
-                  <span>{displayData.phone || displayData.phoneNumber}</span>
-                </div>
-              )}
-              {displayData.department && (
-                <div className="flex justify-between items-center border-b pb-2">
-                  <span className="text-muted-foreground">Department:</span>
-                  <span>{displayData.department}</span>
-                </div>
-              )}
-              {displayData.school && (
-                <div className="flex justify-between items-center border-b pb-2">
-                  <span className="text-muted-foreground">School:</span>
-                  <span>{displayData.school.name}</span>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle>Account Overview</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Tabs defaultValue="activity">
-              <TabsList className="mb-4">
-                <TabsTrigger value="activity">Recent Activity</TabsTrigger>
-                <TabsTrigger value="stats">Stats</TabsTrigger>
-                <TabsTrigger value="preferences">Preferences</TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="activity">
-                <div className="space-y-4">
-                  {!activities.length && !activitiesLoading && (
-                    <Button 
-                      onClick={fetchActivities}
-                      variant="outline"
-                      className="w-full"
-                    >
-                      Load Recent Activities
-                    </Button>
-                  )}
-                  
-                  {activitiesLoading && (
-                    <div className="flex justify-center py-4">
-                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
-                    </div>
-                  )}
-                  
-                  {activities.map((activity) => (
-                    <div key={activity.id} className="flex items-start space-x-4 border-b pb-4">
-                      <div className="h-2 w-2 mt-2 rounded-full bg-primary" />
-                      <div className="flex-1">
-                        <p className="font-medium">{activity.action}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {new Date(activity.date).toLocaleString()}
-                        </p>
-                        {activity.description && (
-                          <p className="text-sm text-muted-foreground mt-1">{activity.description}</p>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                  
-                  {activities.length === 0 && !activitiesLoading && activities.length > 0 && (
-                    <div className="text-center py-8 text-muted-foreground">
-                      No recent activities found.
-                    </div>
-                  )}
-                </div>
-              </TabsContent>
-              
-              <TabsContent value="stats">
-                <div className="space-y-4">
-                  {!stats && !statsLoading && (
-                    <Button 
-                      onClick={fetchStats}
-                      variant="outline"
-                      className="w-full"
-                    >
-                      Load Statistics
-                    </Button>
-                  )}
-                  
-                  {statsLoading && (
-                    <div className="flex justify-center py-4">
-                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
-                    </div>
-                  )}
-                  
-                  {stats && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {/* Base Stats for all users */}
-                      <Card>
-                        <CardContent className="p-6">
-                          <h3 className="font-bold">Total Logins</h3>
-                          <p className="text-3xl font-bold mt-2">{stats.loginCount}</p>
-                        </CardContent>
-                      </Card>
-                      <Card>
-                        <CardContent className="p-6">
-                          <h3 className="font-bold">Account Age</h3>
-                          <p className="text-3xl font-bold mt-2">{stats.accountAge} days</p>
-                        </CardContent>
-                      </Card>
-                      
-                      {/* Teacher specific stats */}
-                      {user.role === 'teacher' && (
-                        <>
-                          <Card>
-                            <CardContent className="p-6">
-                              <h3 className="font-bold">Classes Taught</h3>
-                              <p className="text-3xl font-bold mt-2">{stats.classesCount || 0}</p>
-                            </CardContent>
-                          </Card>
-                          <Card>
-                            <CardContent className="p-6">
-                              <h3 className="font-bold">Students</h3>
-                              <p className="text-3xl font-bold mt-2">{stats.studentsCount || 0}</p>
-                            </CardContent>
-                          </Card>
-                        </>
-                      )}
-                      
-                      {/* Student specific stats */}
-                      {user.role === 'student' && (
-                        <>
-                          <Card>
-                            <CardContent className="p-6">
-                              <h3 className="font-bold">Current GPA</h3>
-                              <p className="text-3xl font-bold mt-2">{stats.currentGPA || 0}</p>
-                            </CardContent>
-                          </Card>
-                          <Card>
-                            <CardContent className="p-6">
-                              <h3 className="font-bold">Attendance Rate</h3>
-                              <p className="text-3xl font-bold mt-2">{stats.attendanceRate || 0}%</p>
-                            </CardContent>
-                          </Card>
-                        </>
-                      )}
-                      
-                      {/* Admin specific stats */}
-                      {(user.role === 'admin' || user.role === 'super_admin') && (
-                        <>
-                          <Card>
-                            <CardContent className="p-6">
-                              <h3 className="font-bold">Reports Generated</h3>
-                              <p className="text-3xl font-bold mt-2">{stats.reportsGenerated || 0}</p>
-                            </CardContent>
-                          </Card>
-                          <Card>
-                            <CardContent className="p-6">
-                              <h3 className="font-bold">Users Managed</h3>
-                              <p className="text-3xl font-bold mt-2">{stats.usersManaged || 0}</p>
-                            </CardContent>
-                          </Card>
-                        </>
-                      )}
-                      
-                      {/* Finance specific stats */}
-                      {user.role === 'finance' && (
-                        <>
-                          <Card>
-                            <CardContent className="p-6">
-                              <h3 className="font-bold">Transactions Processed</h3>
-                              <p className="text-3xl font-bold mt-2">{stats.transactionsProcessed || 0}</p>
-                            </CardContent>
-                          </Card>
-                          <Card>
-                            <CardContent className="p-6">
-                              <h3 className="font-bold">Expenses Managed</h3>
-                              <p className="text-3xl font-bold mt-2">{stats.expensesManaged || 0}</p>
-                            </CardContent>
-                          </Card>
-                        </>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </TabsContent>
-              
-              <TabsContent value="preferences">
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <h3 className="font-bold mb-2">Email Notifications</h3>
-                      <div className="space-y-2">
-                        <div className="flex items-center space-x-2">
-                          <Switch id="email-news" defaultChecked />
-                          <Label htmlFor="email-news">School news and updates</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Switch id="email-events" defaultChecked />
-                          <Label htmlFor="email-events">Upcoming events</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Switch id="email-grades" defaultChecked />
-                          <Label htmlFor="email-grades">Grade updates</Label>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <h3 className="font-bold mb-2">System Preferences</h3>
-                      <div className="space-y-2">
-                        <div className="flex items-center space-x-2">
-                          <Switch id="show-status" defaultChecked />
-                          <Label htmlFor="show-status">Show online status</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Switch id="app-notifs" defaultChecked />
-                          <Label htmlFor="app-notifs">In-app notifications</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Switch id="sound-notifs" />
-                          <Label htmlFor="sound-notifs">Sound notifications</Label>
-                        </div>
-                      </div>
-                    </div>
+            </CardContent>
+          </Card>
+
+          <div className="lg:col-span-2 space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Edit Profile</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="firstName">First Name</Label>
+                    <Input
+                      id="firstName"
+                      value={form.firstName}
+                      onChange={(e) => handleInputChange('firstName', e.target.value)}
+                      disabled={!isEditing}
+                    />
                   </div>
-                  
-                  <div className="pt-4 flex justify-end">
-                    <Button>Save Preferences</Button>
+                  <div className="space-y-2">
+                    <Label htmlFor="lastName">Last Name</Label>
+                    <Input
+                      id="lastName"
+                      value={form.lastName}
+                      onChange={(e) => handleInputChange('lastName', e.target.value)}
+                      disabled={!isEditing}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={form.email}
+                      onChange={(e) => handleInputChange('email', e.target.value)}
+                      disabled={!isEditing}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="phone">Phone</Label>
+                    <Input
+                      id="phone"
+                      value={form.phone}
+                      onChange={(e) => handleInputChange('phone', e.target.value)}
+                      disabled={!isEditing}
+                    />
                   </div>
                 </div>
-              </TabsContent>
-            </Tabs>
-          </CardContent>
-        </Card>
-      </div>
+
+                <div className="flex justify-end gap-2 pt-2">
+                  {!isEditing ? (
+                    <Button onClick={() => setIsEditing(true)}>Edit Profile</Button>
+                  ) : (
+                    <>
+                      <Button variant="outline" onClick={handleCancelEdit} disabled={savingProfile}>
+                        Cancel
+                      </Button>
+                      <Button onClick={handleSaveProfile} disabled={savingProfile}>
+                        {savingProfile ? 'Saving...' : 'Save Changes'}
+                      </Button>
+                    </>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Preferences</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="pref-email">Email notifications</Label>
+                    <Switch
+                      id="pref-email"
+                      checked={preferences.email}
+                      onCheckedChange={() => togglePreference('email')}
+                      disabled={preferencesLoading}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="pref-sms">SMS notifications</Label>
+                    <Switch
+                      id="pref-sms"
+                      checked={preferences.sms}
+                      onCheckedChange={() => togglePreference('sms')}
+                      disabled={preferencesLoading}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="pref-browser">In-app notifications</Label>
+                    <Switch
+                      id="pref-browser"
+                      checked={preferences.browser}
+                      onCheckedChange={() => togglePreference('browser')}
+                      disabled={preferencesLoading}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="pref-whatsapp">WhatsApp notifications</Label>
+                    <Switch
+                      id="pref-whatsapp"
+                      checked={preferences.whatsapp}
+                      onCheckedChange={() => togglePreference('whatsapp')}
+                      disabled={preferencesLoading}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="pref-weekly">Weekly summary reports</Label>
+                    <Switch
+                      id="pref-weekly"
+                      checked={preferences.weeklySummary}
+                      onCheckedChange={() => togglePreference('weeklySummary')}
+                      disabled={preferencesLoading}
+                    />
+                  </div>
+                </div>
+
+                <div className="pt-2 flex justify-end">
+                  <Button onClick={handleSavePreferences} disabled={savingPreferences || preferencesLoading}>
+                    {savingPreferences ? 'Saving...' : 'Save Preferences'}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
-
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
