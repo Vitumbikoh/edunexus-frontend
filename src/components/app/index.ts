@@ -1,6 +1,7 @@
 export * from "@/components/app/AppButton";
 export * from "@/components/app/AppDialog";
 export * from "@/components/app/AppTable";
+export * from "@/components/app/AccessDeniedState";
 export * from "@/components/app/DataCard";
 export * from "@/components/app/EmptyState";
 export * from "@/components/app/FilterBar";

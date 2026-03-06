@@ -12,6 +12,16 @@ import {
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
+type AppDialogSize = "sm" | "md" | "lg" | "xl" | "full";
+
+const sizeClassMap: Record<AppDialogSize, string> = {
+  sm: "sm:max-w-md",
+  md: "sm:max-w-xl",
+  lg: "sm:max-w-2xl",
+  xl: "sm:max-w-4xl",
+  full: "sm:max-w-[min(96vw,72rem)]",
+};
+
 export interface AppDialogProps {
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
@@ -22,7 +32,11 @@ export interface AppDialogProps {
   footer?: React.ReactNode;
   showCloseButton?: boolean;
   closeLabel?: string;
+  size?: AppDialogSize;
   contentClassName?: string;
+  headerClassName?: string;
+  bodyClassName?: string;
+  footerClassName?: string;
 }
 
 export function AppDialog({
@@ -35,19 +49,23 @@ export function AppDialog({
   footer,
   showCloseButton = false,
   closeLabel = "Close",
+  size = "md",
   contentClassName,
+  headerClassName,
+  bodyClassName,
+  footerClassName,
 }: AppDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       {trigger ? <DialogTrigger asChild>{trigger}</DialogTrigger> : null}
-      <DialogContent className={cn("sm:max-w-xl", contentClassName)}>
-        <DialogHeader>
+      <DialogContent className={cn(sizeClassMap[size], contentClassName)}>
+        <DialogHeader className={headerClassName}>
           <DialogTitle>{title}</DialogTitle>
           {description ? <DialogDescription>{description}</DialogDescription> : null}
         </DialogHeader>
-        <div className="py-1">{children}</div>
+        <div className={cn("py-1", bodyClassName)}>{children}</div>
         {footer || showCloseButton ? (
-          <DialogFooter>
+          <DialogFooter className={footerClassName}>
             {footer}
             {showCloseButton ? (
               <DialogClose asChild>

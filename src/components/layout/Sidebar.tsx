@@ -1,7 +1,8 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useSidebar } from "@/contexts/SidebarContext";
 import { useAuth, UserRole } from "@/contexts/AuthContext";
+import { useQuery } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 import {
   User,
@@ -9,20 +10,26 @@ import {
   Users,
   BookOpen,
   Calendar,
+  CalendarDays,
   Settings,
   DollarSign,
   ChevronLeft,
+  ChevronRight,
   Check,
   Upload,
   FileText,
   Award,
-  Download,
   ChartPie,
   MessageSquare,
   CreditCard,
   ChevronDown,
   Library,
   BarChart3,
+  Bell,
+  Shield,
+  Palette,
+  School,
+  UserCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -37,11 +44,14 @@ import {
   TooltipProvider,
 } from "@/components/ui/tooltip";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { termService } from "@/services/termService";
 
 type SubNavItem = {
   label: string;
   href: string;
   roles: UserRole[];
+  icon?: React.ElementType;
+  description?: string;
 };
 
 type NavItem = {
@@ -50,26 +60,29 @@ type NavItem = {
   href?: string;
   roles: UserRole[];
   subItems?: SubNavItem[];
+  /** When set, renders a section heading above this item */
+  sectionTitle?: string;
 };
 
+// ─────────────────────────────────────────────────────────────────────────────
+// ADMIN NAV
+// ─────────────────────────────────────────────────────────────────────────────
 const adminNavItems: NavItem[] = [
+  // ── Main Menu ──────────────────────────────────────────────
   {
     label: "Dashboard",
     icon: Home,
     href: "/dashboard",
-    roles: ["admin", "teacher", "student", "parent"],
+    roles: ["admin"],
+    sectionTitle: "Main Menu",
   },
   {
     label: "Students",
     icon: Users,
-    roles: ["admin", "teacher"],
+    roles: ["admin"],
     subItems: [
-      {
-        label: "View Students",
-        href: "/students/view",
-        roles: ["admin", "teacher"],
-      },
-      { label: "Add Students", href: "/students/add", roles: ["admin"] },
+      { label: "View Students", href: "/students/view", roles: ["admin"] },
+      { label: "Add Students",  href: "/students/add",  roles: ["admin"] },
     ],
   },
   {
@@ -78,296 +91,267 @@ const adminNavItems: NavItem[] = [
     roles: ["admin"],
     subItems: [
       { label: "View Teachers", href: "/teachers/view", roles: ["admin"] },
-      { label: "Add Teachers", href: "/teachers/add", roles: ["admin"] },
+      { label: "Add Teachers",  href: "/teachers/add",  roles: ["admin"] },
     ],
   },
   {
     label: "Courses",
     icon: BookOpen,
-    roles: ["admin", "teacher", "student"],
+    roles: ["admin"],
     subItems: [
-      {
-        label: "View Courses",
-        href: "/courses/view",
-        roles: ["admin", "teacher", "student"],
-      },
-      { label: "Add Courses", href: "/courses/add", roles: ["admin"] },
+      { label: "View Courses", href: "/courses/view", roles: ["admin"] },
+      { label: "Add Courses",  href: "/courses/add",  roles: ["admin"] },
     ],
   },
   {
     label: "Exams",
     icon: FileText,
-    roles: ["admin", "teacher"],
+    roles: ["admin"],
     subItems: [
-      {
-        label: "View Exams",
-        href: "/courses/exams",
-        roles: ["admin"],
-      },
-      {
-        label: "View Exam Results",
-        href: "/courses/exam-results",
-        roles: ["admin"],
-      },
-      {
-        label: "View Grades Report",
-        href: "/courses/grades-report",
-        roles: ["admin"],
-      },
-      {
-        label: "Student Progression",
-        href: "/exams/student-progression",
-        roles: ["admin"],
-      },
+      { label: "View Exams",         href: "/courses/exams",            roles: ["admin"] },
+      { label: "View Exam Results",  href: "/courses/exam-results",     roles: ["admin"] },
+      { label: "View Grades Report", href: "/courses/grades-report",    roles: ["admin"] },
+      { label: "Student Progression",href: "/exams/student-progression",roles: ["admin"] },
     ],
   },
+  // ── Management ─────────────────────────────────────────────
   {
     label: "Library",
     icon: Library,
-    roles: ["admin", "teacher", "student", "finance"],
+    roles: ["admin"],
+    sectionTitle: "Management",
     subItems: [
-      { label: "Catalog", href: "/library/catalog", roles: ["admin", "teacher", "student", "finance"] },
-      { label: "Borrowings", href: "/library/borrowings", roles: ["admin", "teacher", "finance"] },
-      { label: "Returnings", href: "/library/returnings", roles: ["admin", "teacher", "finance"] },
+      { label: "Catalog",    href: "/library/catalog",    roles: ["admin"] },
+      { label: "Borrowings", href: "/library/borrowings", roles: ["admin"] },
+      { label: "Returnings", href: "/library/returnings", roles: ["admin"] },
     ],
   },
-
   {
     label: "Finance",
     icon: DollarSign,
-    roles: ["admin", "parent", "finance"],
+    roles: ["admin"],
     subItems: [
-      {
-        label: "View Financial Records",
-        href: "/finance",
-        roles: ["admin", "parent", "finance"],
-      },
-      {
-        label: "Financial Reports",
-        href: "/finance/reports",
-        roles: ["admin", "finance"],
-      },
-      {
-        label: "Finance Approvals",
-        href: "/finance/approvals",
-        roles: ["admin", "finance"],
-      },
-      {
-        label: "Pay Components",
-        href: "/payroll/components",
-        roles: ["admin", "finance"],
-      },
-      {
-        label: "Graduated Outstanding",
-        href: "/finance/graduated-outstanding",
-        roles: ["admin", "finance"],
-      },
-      {
-        label: "View Financial Officers",
-        href: "/finance/officers/view",
-        roles: ["admin"],
-      },
-      // {
-      //   label: "Add Financial Officers",
-      //   href: "/finance/officers/add",
-      //   roles: ["admin"],
-      // },
+      { label: "View Financial Records",  href: "/finance",                       roles: ["admin"] },
+      { label: "Financial Reports",       href: "/finance/reports",               roles: ["admin"] },
+      { label: "Finance Approvals",       href: "/finance/approvals",             roles: ["admin"] },
+      { label: "Pay Components",          href: "/payroll/components",            roles: ["admin"] },
+      { label: "Graduated Outstanding",   href: "/finance/graduated-outstanding", roles: ["admin"] },
+      { label: "View Financial Officers", href: "/finance/officers/view",         roles: ["admin"] },
     ],
   },
   {
     label: "Setups",
     icon: Calendar,
-    roles: ["admin", "teacher", "student"],
+    roles: ["admin"],
     subItems: [
-      {
-        label: "View Classes",
-        href: "/classes/view",
-        roles: ["admin", "teacher", "student"],
-      },
-      {
-        label: "Academic Calendar",
-        href: "/setups/academic-calendar",
-        roles: ["admin"],
-      },
-      // { label: 'Add Classes', href: '/classes/add', roles: ['admin'] },
-      {
-        label: "Schedule Management",
-        href: "/schedules/view",
-        roles: ["admin", "teacher", "student"],
-      },
-      {
-        label: "Grading Format",
-        href: "/admin/grading-format",
-        roles: ["admin"],
-      },
-      {
-        label: "Weighting Scheme",
-        href: "/admin/weighting-scheme",
-        roles: ["admin"],
-      },
-      // { label: 'Add Schedules', href: '/schedules/add', roles: ['admin'] },
+      { label: "View Classes",        href: "/classes/view",          roles: ["admin"] },
+      { label: "Schedule Management", href: "/schedules/view",        roles: ["admin"] },
+      { label: "Grading Format",      href: "/admin/grading-format",  roles: ["admin"] },
+      { label: "Weighting Scheme",    href: "/admin/weighting-scheme",roles: ["admin"] },
     ],
   },
   { label: "Reports", icon: BarChart3, href: "/reports", roles: ["admin"] },
-  { label: "Settings", icon: Settings, href: "/settings", roles: ["admin"] },
-];
-
-const teacherNavItems: NavItem[] = [
-  { label: "Dashboard", icon: Home, href: "/dashboard", roles: ["teacher"] },
+  // ── Communications ─────────────────────────────────────────
   {
-    label: "My Students",
-    icon: Users,
-    href: "/my-students",
-    roles: ["teacher"],
+    label: "Notices",
+    icon: Bell,
+    href: "/notifications",
+    roles: ["admin"],
+    sectionTitle: "Communications",
   },
+  { label: "Messages", icon: MessageSquare, href: "/messages", roles: ["admin"] },
+  // ── System ─────────────────────────────────────────────────
   {
-    label: "My Courses",
-    icon: Users,
-    roles: ["admin", "teacher"],
+    label: "Settings",
+    icon: Settings,
+    roles: ["admin"],
+    sectionTitle: "System",
     subItems: [
-      {
-        label: "View Courses",
-        href: "/my-courses",
-        roles: ["admin", "teacher"],
-      },
-      {
-        label: "View Exams",
-        href: "/teacher/exams",
-        roles: ["teacher"],
-      },
-      {
-        label: "Weighting Scheme",
-        href: "/teacher/course-scheme",
-        roles: ["teacher"],
-      },
-      {
-        label: "Aggregated Results",
-        href: "/teacher/aggregated-results",
-        roles: ["teacher"],
-      },
-      
-      { label: "Submit Grades", href: "/submit-grades", roles: ["teacher"] },
+      { label: "Account",       href: "/settings?tab=account",       roles: ["admin"], icon: UserCircle,    description: "Profile & personal info" },
+      { label: "Security",      href: "/settings?tab=security",      roles: ["admin"], icon: Shield,        description: "Password & access" },
+      { label: "Notifications", href: "/settings?tab=notifications", roles: ["admin"], icon: Bell,          description: "Alert preferences" },
+      { label: "Appearance",    href: "/settings?tab=appearance",    roles: ["admin"], icon: Palette,       description: "Theme & display" },
+      { label: "School",        href: "/settings?tab=school",        roles: ["admin"], icon: School,        description: "School profile" },
     ],
   },
+];
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TEACHER NAV
+// ─────────────────────────────────────────────────────────────────────────────
+const teacherNavItems: NavItem[] = [
+  { label: "Dashboard", icon: Home, href: "/dashboard", roles: ["teacher"] },
+  { label: "My Students", icon: Users, href: "/my-students", roles: ["teacher"] },
   {
-    label: "My Schedule",
-    icon: Calendar,
-    href: "/my-schedule",
+    label: "My Courses",
+    icon: BookOpen,
     roles: ["teacher"],
+    subItems: [
+      { label: "View Courses",         href: "/my-courses",                  roles: ["teacher"] },
+      { label: "View Exams",           href: "/teacher/exams",               roles: ["teacher"] },
+      { label: "Weighting Scheme",     href: "/teacher/course-scheme",       roles: ["teacher"] },
+      { label: "Aggregated Results",   href: "/teacher/aggregated-results",  roles: ["teacher"] },
+      { label: "Submit Grades",        href: "/submit-grades",               roles: ["teacher"] },
+    ],
   },
+  { label: "My Schedule", icon: Calendar, href: "/my-schedule", roles: ["teacher"] },
   {
     label: "Attendance",
     icon: Check,
     roles: ["teacher"],
     subItems: [
-      {
-        label: "Take Attendance",
-        href: "/take-attendance",
-        roles: ["teacher"],
-      },
-      {
-        label: "View Attendance",
-        href: "/teacher/attendance/view",
-        roles: ["teacher"],
-      },
+      { label: "Take Attendance", href: "/take-attendance",          roles: ["teacher"] },
+      { label: "View Attendance", href: "/teacher/attendance/view",  roles: ["teacher"] },
     ],
   },
+  { label: "Learning Materials", icon: Upload, href: "/learning-materials", roles: ["teacher"] },
   {
-    label: "Learning Materials",
-    icon: Upload,
-    href: "/learning-materials",
+    label: "Notices",
+    icon: Bell,
+    href: "/notifications",
     roles: ["teacher"],
+    sectionTitle: "Communications",
   },
-
-  { label: "Settings", icon: Settings, href: "/settings", roles: ["teacher"] },
+  { label: "Messages", icon: MessageSquare, href: "/messages", roles: ["teacher"] },
+  {
+    label: "Settings",
+    icon: Settings,
+    roles: ["teacher"],
+    sectionTitle: "System",
+    subItems: [
+      { label: "Account",       href: "/settings?tab=account",       roles: ["teacher"], icon: UserCircle },
+      { label: "Security",      href: "/settings?tab=security",      roles: ["teacher"], icon: Shield },
+      { label: "Notifications", href: "/settings?tab=notifications", roles: ["teacher"], icon: Bell },
+      { label: "Appearance",    href: "/settings?tab=appearance",    roles: ["teacher"], icon: Palette },
+    ],
+  },
 ];
 
+// ─────────────────────────────────────────────────────────────────────────────
+// STUDENT NAV
+// ─────────────────────────────────────────────────────────────────────────────
 const studentNavItems: NavItem[] = [
-  { label: "Dashboard", icon: Home, href: "/dashboard", roles: ["student"] },
-  { label: "My Courses", icon: BookOpen, href: "/courses", roles: ["student"] },
-  { label: "Exam Results", icon: Award, href: "/grades", roles: ["student"] },
-  { label: "Schedule", icon: Calendar, href: "/schedule", roles: ["student"] },
-  { label: "Learning Materials", icon: FileText, href: "/materials", roles: ["student"] },
-  { label: "Settings", icon: Settings, href: "/settings", roles: ["student"] },
+  { label: "Dashboard",         icon: Home,      href: "/dashboard", roles: ["student"] },
+  { label: "My Courses",        icon: BookOpen,  href: "/courses",   roles: ["student"] },
+  { label: "Exam Results",      icon: Award,     href: "/grades",    roles: ["student"] },
+  { label: "Schedule",          icon: Calendar,  href: "/schedule",  roles: ["student"] },
+  { label: "Learning Materials",icon: FileText,  href: "/materials", roles: ["student"] },
+  {
+    label: "Notices",
+    icon: Bell,
+    href: "/notifications",
+    roles: ["student"],
+    sectionTitle: "Communications",
+  },
+  { label: "Messages", icon: MessageSquare, href: "/messages", roles: ["student"] },
+  {
+    label: "Settings",
+    icon: Settings,
+    roles: ["student"],
+    sectionTitle: "System",
+    subItems: [
+      { label: "Account",       href: "/settings?tab=account",       roles: ["student"], icon: UserCircle },
+      { label: "Security",      href: "/settings?tab=security",      roles: ["student"], icon: Shield },
+      { label: "Notifications", href: "/settings?tab=notifications", roles: ["student"], icon: Bell },
+      { label: "Appearance",    href: "/settings?tab=appearance",    roles: ["student"], icon: Palette },
+    ],
+  },
 ];
 
+// ─────────────────────────────────────────────────────────────────────────────
+// PARENT NAV
+// ─────────────────────────────────────────────────────────────────────────────
 const parentNavItems: NavItem[] = [
-  { label: "Dashboard", icon: Home, href: "/dashboard", roles: ["parent"] },
+  { label: "Dashboard",             icon: Home,       href: "/dashboard",          roles: ["parent"] },
+  { label: "Children's Performance",icon: ChartPie,   href: "/children/performance",roles: ["parent"] },
+  { label: "Attendance",            icon: Users,      href: "/attendance",          roles: ["parent"] },
+  { label: "Finance",               icon: DollarSign, href: "/parent/finance",      roles: ["parent"] },
   {
-    label: "Children's Performance",
-    icon: ChartPie,
-    href: "/children/performance",
+    label: "Notices",
+    icon: Bell,
+    href: "/notifications",
     roles: ["parent"],
+    sectionTitle: "Communications",
   },
-  { label: "Attendance", icon: Users, href: "/attendance", roles: ["parent"] },
+  { label: "Messages", icon: MessageSquare, href: "/messages", roles: ["parent"] },
   {
-    label: "Finance",
-    icon: DollarSign,
-    href: "/parent/finance",
+    label: "Settings",
+    icon: Settings,
     roles: ["parent"],
+    sectionTitle: "System",
+    subItems: [
+      { label: "Account",       href: "/settings?tab=account",       roles: ["parent"], icon: UserCircle },
+      { label: "Security",      href: "/settings?tab=security",      roles: ["parent"], icon: Shield },
+      { label: "Notifications", href: "/settings?tab=notifications", roles: ["parent"], icon: Bell },
+      { label: "Appearance",    href: "/settings?tab=appearance",    roles: ["parent"], icon: Palette },
+    ],
   },
-  {
-    label: "Messages",
-    icon: MessageSquare,
-    href: "/messages",
-    roles: ["parent"],
-  },
-  { label: "Settings", icon: Settings, href: "/settings", roles: ["parent"] },
 ];
 
+// ─────────────────────────────────────────────────────────────────────────────
+// FINANCE NAV
+// ─────────────────────────────────────────────────────────────────────────────
 const financeNavItems: NavItem[] = [
-  { label: "Dashboard", icon: Home, href: "/dashboard", roles: ["finance"] },
+  { label: "Dashboard",     icon: Home,       href: "/dashboard",          roles: ["finance"] },
+  { label: "Finance Summary",icon: DollarSign, href: "/finance",            roles: ["finance"] },
+  { label: "Transactions",  icon: CreditCard, href: "/finance/transactions",roles: ["finance"] },
+  { label: "Expenses",      icon: FileText,   href: "/finance/expenses",    roles: ["finance"] },
+  { label: "Payroll",       icon: Users,      href: "/payroll",             roles: ["finance"] },
+  { label: "Reports",       icon: ChartPie,   href: "/finance/reports",     roles: ["finance"] },
   {
-    label: "Finance Summary",
-    icon: DollarSign,
-    href: "/finance",
+    label: "Notices",
+    icon: Bell,
+    href: "/notifications",
     roles: ["finance"],
+    sectionTitle: "Communications",
   },
+  { label: "Messages", icon: MessageSquare, href: "/messages", roles: ["finance"] },
   {
-    label: "Transactions",
-    icon: CreditCard,
-    href: "/finance/transactions",
+    label: "Settings",
+    icon: Settings,
     roles: ["finance"],
+    sectionTitle: "System",
+    subItems: [
+      { label: "Account",       href: "/settings?tab=account",       roles: ["finance"], icon: UserCircle },
+      { label: "Security",      href: "/settings?tab=security",      roles: ["finance"], icon: Shield },
+      { label: "Notifications", href: "/settings?tab=notifications", roles: ["finance"], icon: Bell },
+      { label: "Appearance",    href: "/settings?tab=appearance",    roles: ["finance"], icon: Palette },
+    ],
   },
-  {
-    label: "Expenses",
-    icon: FileText,
-    href: "/finance/expenses",
-    roles: ["finance"],
-  },
-  {
-    label: "Payroll",
-    icon: Users,
-    href: "/payroll",
-    roles: ["finance"],
-  },
-  {
-    label: "Reports",
-    icon: ChartPie,
-    href: "/finance/reports",
-    roles: ["finance"],
-  },
-  { label: "Settings", icon: Settings, href: "/settings", roles: ["finance"] },
 ];
+
+// Light-mode sidebar background (dark mode falls back to theme bg)
+const SIDEBAR_LIGHT_CLS = "bg-[hsl(222,60%,22%)] dark:bg-background";
 
 export default function Sidebar() {
   const { isOpen, toggle } = useSidebar();
   const { user } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
   const [openDropdowns, setOpenDropdowns] = useState<string[]>([]);
+
+  // Fetch active term for the bottom pinned section
+  const { data: terms = [] } = useQuery({
+    queryKey: ["sidebar-terms"],
+    queryFn: async () => {
+      const token = (user as any)?.token ?? localStorage.getItem("token") ?? "";
+      return termService.getTerms(token);
+    },
+    enabled: !!user,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const activeTerm = terms.find(
+    (t) => t.isActive || t.isCurrent || t.current
+  );
 
   if (!user) return null;
 
   let navItems = adminNavItems;
-
-  if (user.role === "teacher") {
-    navItems = teacherNavItems;
-  } else if (user.role === "student") {
-    navItems = studentNavItems;
-  } else if (user.role === "parent") {
-    navItems = parentNavItems;
-  } else if (user.role === "finance") {
-    navItems = financeNavItems;
-  }
+  if (user.role === "teacher")       navItems = teacherNavItems;
+  else if (user.role === "student")  navItems = studentNavItems;
+  else if (user.role === "parent")   navItems = parentNavItems;
+  else if (user.role === "finance")  navItems = financeNavItems;
 
   const filteredNavItems = navItems.filter((item) =>
     item.roles.includes(user.role)
@@ -375,9 +359,174 @@ export default function Sidebar() {
 
   const toggleDropdown = (label: string) => {
     setOpenDropdowns((prev) =>
-      prev.includes(label)
-        ? [] // Close all dropdowns if the clicked one is already open
-        : [label] // Open only the clicked dropdown and close all others
+      prev.includes(label) ? [] : [label]
+    );
+  };
+
+  const isItemActive = (href?: string) => {
+    if (!href) return false;
+    const path = href.split("?")[0];
+    return location.pathname === path;
+  };
+
+  // ── Shared item renderer ─────────────────────────────────────
+  const renderNavItem = (item: { label: string; icon: React.ElementType; href?: string; subItems?: SubNavItem[]; sectionTitle?: string }, depth = 0) => {
+    const Icon = item.icon;
+    const active = isItemActive(item.href);
+
+    if (item.subItems && item.subItems.length > 0) {
+      const filteredSubs = item.subItems.filter((s) => s.roles.includes(user.role));
+      if (filteredSubs.length === 0) return null;
+
+      if (!isOpen) {
+        // Minimized — popover
+        return (
+          <Popover key={item.label}>
+            <PopoverTrigger asChild>
+              <button
+                aria-label={item.label}
+                className="flex w-full items-center justify-center rounded-md px-2 py-2.5 text-white/80 hover:bg-white/10 hover:text-white dark:text-muted-foreground dark:hover:bg-accent dark:hover:text-accent-foreground transition-colors"
+              >
+                <Icon className="h-5 w-5 flex-shrink-0" />
+              </button>
+            </PopoverTrigger>
+            <PopoverContent side="right" className="w-60 p-2 bg-white dark:bg-card shadow-xl border border-border">
+              {/* Settings header inside popover */}
+              {item.label === "Settings" && (
+                <div className="mb-3 px-2">
+                  <p className="font-semibold text-sm text-foreground">{item.label}</p>
+                  <p className="text-xs text-muted-foreground">Manage your account settings and preferences.</p>
+                </div>
+              )}
+              {!item.sectionTitle || item.label !== "Settings" ? (
+                <h4 className="mb-2 px-2 text-sm font-semibold text-foreground">{item.label}</h4>
+              ) : null}
+              <div className="space-y-0.5">
+                {filteredSubs.map((sub) => {
+                  const SubIcon = sub.icon;
+                  return (
+                    <Link
+                      key={sub.href}
+                      to={sub.href}
+                      className="flex items-center gap-2 rounded-md px-2 py-2 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
+                    >
+                      {SubIcon && <SubIcon className="h-4 w-4 flex-shrink-0" />}
+                      <div>
+                        <span className="font-medium">{sub.label}</span>
+                        {sub.description && (
+                          <p className="text-xs text-muted-foreground">{sub.description}</p>
+                        )}
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            </PopoverContent>
+          </Popover>
+        );
+      }
+
+      // Expanded — dropdown
+      const isOpen_ = openDropdowns.includes(item.label);
+      const isSettings = item.label === "Settings";
+
+      return (
+        <div key={item.label}>
+          <button
+            className={cn(
+              "flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-[14px] font-medium transition-colors",
+              active
+                ? "bg-white/15 text-white dark:bg-accent dark:text-accent-foreground"
+                : "text-white/90 hover:bg-white/10 hover:text-white dark:text-foreground dark:hover:bg-accent dark:hover:text-accent-foreground"
+            )}
+            onClick={() => toggleDropdown(item.label)}
+          >
+            <Icon className="h-[18px] w-[18px] flex-shrink-0" />
+            <div className="flex-1 text-left">
+              <span>{item.label}</span>
+              {isSettings && (
+                <p className="text-xs text-white/50 dark:text-muted-foreground font-normal leading-tight">
+                  Manage your account settings and preferences.
+                </p>
+              )}
+            </div>
+            <ChevronDown
+              className={cn(
+                "h-4 w-4 flex-shrink-0 transition-transform text-white/50 dark:text-muted-foreground",
+                isOpen_ && "rotate-180"
+              )}
+            />
+          </button>
+
+          {isOpen_ && (
+            <div className="ml-6 mt-0.5 space-y-0.5 border-l border-white/10 dark:border-border pl-3">
+              {filteredSubs.map((sub) => {
+                const SubIcon = sub.icon;
+                const subActive = isItemActive(sub.href);
+                return (
+                  <Link
+                    key={sub.href}
+                    to={sub.href}
+                    className={cn(
+                      "flex items-center gap-2 rounded-md px-2 py-2 text-[13px] transition-colors",
+                      subActive
+                        ? "bg-white/15 text-white font-medium dark:bg-accent dark:text-accent-foreground"
+                        : "text-white/70 hover:bg-white/10 hover:text-white dark:text-muted-foreground dark:hover:bg-accent dark:hover:text-accent-foreground"
+                    )}
+                  >
+                    {SubIcon && <SubIcon className="h-4 w-4 flex-shrink-0" />}
+                    <div>
+                      <span>{sub.label}</span>
+                      {sub.description && (
+                        <p className="text-xs text-white/40 dark:text-muted-foreground/70 leading-tight">{sub.description}</p>
+                      )}
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // Simple link
+    if (!isOpen) {
+      return (
+        <Tooltip key={item.label}>
+          <TooltipTrigger asChild>
+            <Link
+              to={item.href!}
+              aria-label={item.label}
+              className={cn(
+                "flex items-center justify-center rounded-md px-2 py-2.5 transition-colors",
+                active
+                  ? "bg-white/15 text-white dark:bg-accent dark:text-accent-foreground"
+                  : "text-white/80 hover:bg-white/10 hover:text-white dark:text-muted-foreground dark:hover:bg-accent dark:hover:text-accent-foreground"
+              )}
+            >
+              <Icon className="h-5 w-5 flex-shrink-0" />
+            </Link>
+          </TooltipTrigger>
+          <TooltipContent side="right"><p>{item.label}</p></TooltipContent>
+        </Tooltip>
+      );
+    }
+
+    return (
+      <Link
+        key={item.label}
+        to={item.href!}
+        className={cn(
+          "flex items-center gap-3 rounded-md px-3 py-2.5 text-[14px] font-medium transition-colors",
+          active
+            ? "bg-white/15 text-white dark:bg-accent dark:text-accent-foreground"
+            : "text-white/90 hover:bg-white/10 hover:text-white dark:text-foreground dark:hover:bg-accent dark:hover:text-accent-foreground"
+        )}
+      >
+        <Icon className="h-[18px] w-[18px] flex-shrink-0" />
+        <span>{item.label}</span>
+      </Link>
     );
   };
 
@@ -385,155 +534,150 @@ export default function Sidebar() {
     <TooltipProvider>
       <div
         className={cn(
-          "h-screen bg-background flex flex-col fixed left-0 top-0 z-40 transition-all duration-300 border-r border-border shadow-sm",
+          "h-screen flex flex-col fixed left-0 top-0 z-40 transition-all duration-300 border-r border-white/10 dark:border-border shadow-xl",
+          SIDEBAR_LIGHT_CLS,
           isOpen ? "w-64" : "w-16"
         )}
       >
-        <div className="h-16 flex items-center justify-between px-4 border-b border-gray-200 dark:border-gray-700 bg-background">
-          <div
-            className={cn(
-              "flex items-center",
-              isOpen ? "justify-start" : "justify-center w-full"
-            )}
-          >
-            <div className="rounded-lg w-8 h-8 flex items-center justify-center">
-              <img 
-                src="/polymilesicon.png" 
-                alt="Schomas Academy" 
+        {/* ── Header ──────────────────────────────────────── */}
+        <div
+          className={cn(
+            "h-16 flex items-center justify-between px-4 border-b border-white/10 dark:border-border flex-shrink-0",
+            SIDEBAR_LIGHT_CLS
+          )}
+        >
+          <div className={cn("flex items-center", isOpen ? "justify-start" : "justify-center w-full")}>
+            <div className="rounded-lg w-8 h-8 flex items-center justify-center flex-shrink-0">
+              <img
+                src="/polymilesicon.png"
+                alt="Schomas"
                 className="w-8 h-8 rounded-lg object-contain"
               />
             </div>
             {isOpen && (
-              <span className="ml-3 font-semibold text-foreground">
-                Schomas Academy
-              </span>
+              <span className="ml-3 font-semibold text-white dark:text-foreground">Schomas Academy</span>
             )}
           </div>
           <Button
             variant="ghost"
             size="icon"
             onClick={toggle}
-            className={cn("h-8 w-8", isOpen ? "" : "hidden")}
+            className={cn("h-8 w-8 text-white/60 hover:text-white hover:bg-white/10 dark:text-muted-foreground dark:hover:text-foreground dark:hover:bg-accent", !isOpen && "hidden")}
           >
             <ChevronLeft className="h-4 w-4" />
           </Button>
+          {!isOpen && (
+            <button
+              onClick={toggle}
+              className="absolute -right-3 top-16 z-50 flex h-6 w-6 items-center justify-center rounded-full border border-white/20 dark:border-border bg-[hsl(222,60%,18%)] dark:bg-background text-white/60 dark:text-muted-foreground hover:text-white dark:hover:text-foreground shadow"
+            >
+              <ChevronRight className="h-3 w-3" />
+            </button>
+          )}
         </div>
 
-        <ScrollArea className="flex-1 py-4 sidebar-scroll">
-          <nav className="px-3 space-y-1">
+        {/* ── Scrollable nav ──────────────────────────────── */}
+        <ScrollArea className="flex-1 min-h-0 py-3">
+          <nav className="px-2 space-y-0.5">
             {filteredNavItems.map((item) => (
               <div key={item.label}>
-                {item.subItems ? (
-                  <div>
-                    {!isOpen ? (
-                      // When sidebar is minimized, use popover for dropdown items
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <button
-                            aria-label={item.label}
-                            className={cn(
-                              "flex items-center px-3 py-3 text-base font-medium rounded-md hover:bg-accent hover:text-accent-foreground group transition-all duration-200 cursor-pointer justify-center bg-transparent border-none w-full"
-                            )}
-                          >
-                            <span className="inline-flex h-8 w-8 items-center justify-center">
-                              <item.icon className="h-5 w-5 text-foreground group-hover:text-accent-foreground" />
-                            </span>
-                          </button>
-                        </PopoverTrigger>
-                        <PopoverContent side="right" className="w-56 p-2">
-                          <div className="space-y-1">
-                            <h4 className="font-medium text-sm text-foreground mb-2">
-                              {item.label}
-                            </h4>
-                            {item.subItems
-                              .filter((subItem) =>
-                                subItem.roles.includes(user.role)
-                              )
-                              .map((subItem) => (
-                                <Link
-                                  key={subItem.href}
-                                  to={subItem.href}
-                                  className="block px-3 py-2 text-sm font-medium text-muted-foreground rounded-md hover:bg-accent hover:text-accent-foreground transition-all duration-200"
-                                >
-                                  {subItem.label}
-                                </Link>
-                              ))}
-                          </div>
-                        </PopoverContent>
-                      </Popover>
-                    ) : (
-                      // When sidebar is expanded, use normal dropdown
-                      <>
-                        <div
-                          className={cn(
-                            "flex items-center px-3 py-3 text-base font-medium rounded-md hover:bg-accent hover:text-accent-foreground group transition-all duration-200 cursor-pointer"
-                          )}
-                          onClick={() => toggleDropdown(item.label)}
-                        >
-                          <item.icon className="h-5 w-5 text-foreground group-hover:text-accent-foreground" />
-                          <span className="ml-3 flex-1">{item.label}</span>
-                          <ChevronDown
-                            className={cn(
-                              "h-4 w-4 transition-transform text-muted-foreground",
-                              openDropdowns.includes(item.label) && "rotate-180"
-                            )}
-                          />
-                        </div>
-                        {openDropdowns.includes(item.label) && (
-                          <div className="ml-4 mt-1 space-y-1 border-l border-border pl-4">
-                            {item.subItems
-                              .filter((subItem) =>
-                                subItem.roles.includes(user.role)
-                              )
-                              .map((subItem) => (
-                                <Link
-                                  key={subItem.href}
-                                  to={subItem.href}
-                                  className="flex items-center px-3 py-2 text-sm font-medium text-muted-foreground rounded-md hover:bg-accent hover:text-accent-foreground group transition-all duration-200"
-                                >
-                                  <span>{subItem.label}</span>
-                                </Link>
-                              ))}
-                          </div>
-                        )}
-                      </>
-                    )}
+                {/* Section heading */}
+                {item.sectionTitle && isOpen && (
+                  <div className="mt-4 mb-1 px-2">
+                    <p className="text-xs font-semibold uppercase tracking-widest text-white/50 dark:text-muted-foreground">
+                      {item.sectionTitle}
+                    </p>
                   </div>
-                ) : !isOpen ? (
-                  // Add tooltip for regular items when sidebar is minimized
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Link
-                        to={item.href!}
-                        aria-label={item.label}
-                        className={cn(
-                          "flex items-center px-3 py-3 text-base font-medium rounded-md hover:bg-accent hover:text-accent-foreground group transition-all duration-200 justify-center"
-                        )}
-                      >
-                        <span className="inline-flex h-8 w-8 items-center justify-center">
-                          <item.icon className="h-5 w-5 text-foreground group-hover:text-accent-foreground" />
-                        </span>
-                      </Link>
-                    </TooltipTrigger>
-                    <TooltipContent side="right">
-                      <p>{item.label}</p>
-                    </TooltipContent>
-                  </Tooltip>
-                ) : (
-                  <Link
-                    to={item.href!}
-                    className={cn(
-                      "flex items-center px-3 py-3 text-base font-medium rounded-md hover:bg-accent hover:text-accent-foreground group transition-all duration-200"
-                    )}
-                  >
-                    <item.icon className="h-5 w-5 text-foreground group-hover:text-accent-foreground" />
-                    <span className="ml-3">{item.label}</span>
-                  </Link>
                 )}
+                {item.sectionTitle && !isOpen && (
+                  <div className="my-2 mx-2 border-t border-white/10 dark:border-border" />
+                )}
+                {renderNavItem(item)}
               </div>
             ))}
           </nav>
         </ScrollArea>
+
+        {/* ── Bottom pinned — Academic Calendar (non-scrollable) ── */}
+        <div
+          className={cn(
+            "flex-shrink-0 border-t border-white/10 dark:border-border px-2 py-3",
+            SIDEBAR_LIGHT_CLS
+          )}
+        >
+          {isOpen && (
+            <p className="mb-1.5 px-2 text-xs font-semibold uppercase tracking-widest text-white/50 dark:text-muted-foreground">
+              Academic
+            </p>
+          )}
+
+          {/* Academic Calendar link */}
+          {isOpen ? (
+            <Link
+              to="/setups/academic-calendar"
+              className={cn(
+                "flex items-center gap-3 rounded-md px-3 py-2.5 text-[14px] font-medium transition-colors",
+                isItemActive("/setups/academic-calendar")
+                  ? "bg-white/15 text-white dark:bg-accent dark:text-accent-foreground"
+                  : "text-white/90 hover:bg-white/10 hover:text-white dark:text-foreground dark:hover:bg-accent dark:hover:text-accent-foreground"
+              )}
+            >
+              <CalendarDays className="h-[18px] w-[18px] flex-shrink-0" />
+              <div className="flex-1 min-w-0">
+                <span>Academic Calendar</span>
+                {activeTerm ? (
+                  <p className="text-xs text-white/55 dark:text-muted-foreground truncate leading-snug mt-0.5 flex items-center gap-1 flex-wrap">
+                    <span>
+                      {[
+                        activeTerm.name ?? activeTerm.term,
+                        activeTerm.periodName ?? (activeTerm.termNumber ? `Term ${activeTerm.termNumber}` : null),
+                      ]
+                        .filter(Boolean)
+                        .join(" · ")}
+                    </span>
+                    {(activeTerm.isActive || activeTerm.isCurrent || activeTerm.current) && (
+                      <span className="inline-flex items-center rounded-full bg-emerald-500/20 px-1.5 py-0 text-[10px] font-semibold text-emerald-300 dark:text-emerald-400 dark:bg-emerald-500/10 leading-4">
+                        Active
+                      </span>
+                    )}
+                  </p>
+                ) : (
+                  <p className="text-xs text-white/40 dark:text-muted-foreground/60 leading-snug mt-0.5">No active term</p>
+                )}
+              </div>
+            </Link>
+          ) : (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Link
+                  to="/setups/academic-calendar"
+                  className={cn(
+                    "flex items-center justify-center rounded-md px-2 py-2.5 transition-colors",
+                    isItemActive("/setups/academic-calendar")
+                      ? "bg-white/15 text-white dark:bg-accent dark:text-accent-foreground"
+                      : "text-white/80 hover:bg-white/10 hover:text-white dark:text-muted-foreground dark:hover:bg-accent"
+                  )}
+                >
+                  <CalendarDays className="h-5 w-5" />
+                </Link>
+              </TooltipTrigger>
+              <TooltipContent side="right">
+                <p className="font-medium">Academic Calendar</p>
+                {activeTerm && (
+                  <p className="text-xs text-muted-foreground">
+                    {[
+                      activeTerm.name ?? activeTerm.term,
+                      activeTerm.periodName ?? (activeTerm.termNumber ? `Term ${activeTerm.termNumber}` : null),
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")}
+                    {(activeTerm.isActive || activeTerm.isCurrent || activeTerm.current) && " (Active)"}
+                  </p>
+                )}
+              </TooltipContent>
+            </Tooltip>
+          )}
+        </div>
       </div>
     </TooltipProvider>
   );

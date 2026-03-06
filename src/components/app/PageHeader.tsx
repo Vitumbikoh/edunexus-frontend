@@ -22,11 +22,13 @@ export function PageHeader({
       )}
       {...props}
     >
-      <div className="space-y-1">
+      <div className="space-y-1.5">
         <h1 className="app-page-title">{title}</h1>
-        {description ? <p className="app-page-description">{description}</p> : null}
+        {description ? <p className="app-page-description max-w-3xl">{description}</p> : null}
       </div>
-      {actions ? <div className="flex flex-wrap items-center gap-2">{actions}</div> : null}
+      {actions ? (
+        <div className="flex flex-wrap items-center gap-2 sm:justify-end">{actions}</div>
+      ) : null}
     </header>
   );
 }

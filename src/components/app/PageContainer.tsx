@@ -22,7 +22,14 @@ export function PageContainer({
   ...props
 }: PageContainerProps) {
   return (
-    <Component className={cn("app-page", maxWidthClassMap[maxWidth], className)} {...props}>
+    <Component
+      className={cn(
+        "app-page px-4 py-1 sm:px-6 lg:px-8",
+        maxWidthClassMap[maxWidth],
+        className
+      )}
+      {...props}
+    >
       {children}
     </Component>
   );

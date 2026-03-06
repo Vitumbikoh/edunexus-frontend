@@ -1,17 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React, { useMemo, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import PaginationBar from "@/components/common/PaginationBar";
 import {
   Select,
   SelectContent,
@@ -19,294 +8,256 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, Users } from "lucide-react";
-import { useToast } from "@/components/ui/use-toast";
-import { API_CONFIG } from '@/config/api';
-import { Preloader } from "@/components/ui/preloader";
+import { Eye, Users } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import {
+  AccessDeniedState,
+  AppTable,
+  DataCard,
+  FilterBar,
+  PageContainer,
+  PageHeader,
+  StatusBadge,
+} from "@/components/app";
+import type { AppTableColumn } from "@/components/app";
+import {
+  useTeacherStudentClasses,
+  useTeacherStudents,
+} from "@/hooks/useTeacherPortal";
+import type { TeacherStudentRecord } from "@/services/teacherService";
 
-interface Student {
-  id: string;
-  studentId: string;
-  firstName: string;
-  lastName: string;
-  user: {
-    email: string;
-  };
-  class?: {
-    name: string;
-  };
-  attendance?: number;
-  performance?: string;
-}
+const ALL_CLASSES_VALUE = "__all_classes__";
+const DEFAULT_PAGE_SIZE = 10;
 
 export default function TeacherStudents() {
   const { user, token } = useAuth();
-  const { toast } = useToast();
   const navigate = useNavigate();
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedClass, setSelectedClass] = useState<string>("");
-  const [students, setStudents] = useState<Student[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [currentPage, setCurrentPage] = useState<number>(1);
-  const [totalPages, setTotalPages] = useState<number>(1);
-  const [totalItems, setTotalItems] = useState<number>(0);
-  const [itemsPerPage, setItemsPerPage] = useState<number>(10);
-  const [allClasses, setAllClasses] = useState<string[]>([]);
+  const [searchInput, setSearchInput] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedClass, setSelectedClass] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(DEFAULT_PAGE_SIZE);
 
-  // Fetch students from the API
-  useEffect(() => {
-    const fetchStudents = async () => {
-      try {
-        setIsLoading(true);
-        setError(null);
+  const canView = user?.role === "teacher";
 
-        if (!token || !user) {
-          throw new Error("Authentication required");
-        }
+  const studentsQuery = useTeacherStudents({
+    token,
+    page: currentPage,
+    limit: itemsPerPage,
+    search: searchTerm,
+    className: selectedClass,
+    enabled: canView,
+  });
 
-        // Fetch 10 students per page with server-side pagination
-        const params = new URLSearchParams({
-          page: String(currentPage),
-          limit: String(itemsPerPage),
-          ...(searchQuery ? { search: searchQuery } : {}),
-          ...(selectedClass ? { class: selectedClass } : {}),
-        });
-        const response = await fetch(
-          `${API_CONFIG.BASE_URL}/teacher/my-students?${params.toString()}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-          }
-        );
+  const classesQuery = useTeacherStudentClasses(token, canView);
 
-        if (response.status === 403) {
-          const errorData = await response.json();
-          throw new Error(
-            errorData.message ||
-              "You don't have permission to view these students"
-          );
-        }
+  const students = studentsQuery.data?.students ?? [];
+  const pagination = studentsQuery.data?.pagination ?? {
+    currentPage,
+    totalPages: 1,
+    totalItems: 0,
+    itemsPerPage,
+  };
 
-        if (!response.ok) {
-          throw new Error(
-            `Failed to fetch students (${response.status}): ${response.statusText}`
-          );
-        }
+  const totalItems = pagination.totalItems;
+  const startItem = totalItems === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
+  const endItem = Math.min(currentPage * itemsPerPage, totalItems);
 
-        const data = await response.json();
-        if (data.success && data.students) {
-          setStudents(data.students);
-          if (data.pagination) {
-            setCurrentPage(data.pagination.currentPage || 1);
-            setTotalPages(data.pagination.totalPages || 1);
-            setTotalItems(data.pagination.totalItems || data.students.length || 0);
-            setItemsPerPage(data.pagination.itemsPerPage || 10);
-          }
-        } else {
-          throw new Error(data.message || "Invalid response format");
-        }
-      } catch (err) {
-        const errorMessage =
-          err instanceof Error ? err.message : "Failed to fetch students";
-        setError(errorMessage);
-        toast({
-          title: "Error",
-          description: errorMessage,
-          variant: "destructive",
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
+  const averageAttendance = useMemo(() => {
+    const attendanceValues = students
+      .map((student) => student.attendance)
+      .filter((value): value is number => typeof value === "number");
 
-    if (user?.role === "teacher") {
-      fetchStudents();
+    if (attendanceValues.length === 0) {
+      return null;
     }
-  }, [token, user, toast, currentPage, searchQuery, selectedClass]);
 
-  // Fetch all classes available to the teacher (independent of pagination)
-  useEffect(() => {
-    const fetchAllClasses = async () => {
-      try {
-        if (!token || !user) return;
-        const params = new URLSearchParams({ page: "1", limit: "5000" });
-        const response = await fetch(
-          `${API_CONFIG.BASE_URL}/teacher/my-students?${params.toString()}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-          }
-        );
-        if (!response.ok) return;
-        const data = await response.json();
-        if (data?.students) {
-          const classes = Array.from(
-            new Set(
-              data.students
-                .map((s: Student) => s.class?.name)
-                .filter((n: string | undefined): n is string => Boolean(n))
-            )
-          );
-          setAllClasses(classes);
-        }
-      } catch {}
-    };
-    if (user?.role === "teacher") {
-      fetchAllClasses();
-    }
-  }, [token, user]);
+    const totalAttendance = attendanceValues.reduce((sum, value) => sum + value, 0);
+    return Math.round(totalAttendance / attendanceValues.length);
+  }, [students]);
 
-  // Reset to first page when class filter changes
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [selectedClass]);
+  const columns = useMemo<AppTableColumn<TeacherStudentRecord>[]>(
+    () => [
+      {
+        id: "student-id",
+        header: "Student ID",
+        cell: (student) => <span className="font-medium">{student.studentId || "N/A"}</span>,
+      },
+      {
+        id: "name",
+        header: "Name",
+        cell: (student) => (
+          <div>
+            <div className="font-medium text-foreground">
+              {student.firstName} {student.lastName}
+            </div>
+            <div className="text-sm text-muted-foreground">{student.user?.email || "-"}</div>
+          </div>
+        ),
+      },
+      {
+        id: "class",
+        header: "Class",
+        cell: (student) => student.class?.name || "Unassigned",
+      },
+      {
+        id: "attendance",
+        header: "Attendance",
+        cell: (student) =>
+          typeof student.attendance === "number" ? (
+            <StatusBadge
+              status={student.attendance >= 75 ? "active" : "pending"}
+              label={`${student.attendance}%`}
+            />
+          ) : (
+            <span className="text-sm text-muted-foreground">Not recorded</span>
+          ),
+      },
+      {
+        id: "performance",
+        header: "Performance",
+        cell: (student) => student.performance || "-",
+      },
+    ],
+    []
+  );
 
-  if (!user || user.role !== "teacher") {
+  if (!canView) {
     return (
-      <div className="flex items-center justify-center h-96">
-        <div className="text-center p-8 rounded-lg bg-red-50 border border-red-200 text-red-700 font-semibold">
-          You do not have permission to access this page.
-        </div>
-      </div>
+      <PageContainer>
+        <AccessDeniedState compact />
+      </PageContainer>
     );
   }
 
-  // Get unique classes from the students
-  const teacherClasses = Array.from(
-    new Set(students.map((student) => student.class?.name).filter(Boolean))
-  );
-
-  // Filter students based on search and class selection
-  let filteredStudents = students.filter((student) => {
-    const matchesSearch = searchQuery
-      ? `${student.firstName} ${student.lastName}`
-          .toLowerCase()
-          .includes(searchQuery.toLowerCase()) ||
-        student.user.email.toLowerCase().includes(searchQuery.toLowerCase())
-      : true;
-
-    const matchesClass = selectedClass
-      ? student.class?.name === selectedClass
-      : true;
-
-    return matchesSearch && matchesClass;
-  });
-
-  // Handle view details button click
-  const handleViewDetails = (student: Student) => {
-    // Navigate to student details page with student data
+  const handleViewDetails = (student: TeacherStudentRecord) => {
     navigate(`/teacher/students/${student.id}`, { state: { student } });
   };
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">My Students</h1>
-        <p className="text-muted-foreground">View and manage your students</p>
+    <PageContainer>
+      <PageHeader
+        title="My Students"
+        description="Track attendance, class distribution, and performance for students assigned to you."
+      />
+
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <DataCard
+          title="Students"
+          value={pagination.totalItems}
+          loading={studentsQuery.isPending}
+          icon={<Users className="h-5 w-5" />}
+          tone="info"
+        />
+        <DataCard
+          title="Classes"
+          value={classesQuery.data?.length ?? 0}
+          loading={classesQuery.isPending}
+          tone="default"
+        />
+        <DataCard
+          title="Avg. Attendance"
+          value={averageAttendance !== null ? `${averageAttendance}%` : "—"}
+          description="Based on the current page"
+          loading={studentsQuery.isPending}
+          tone="success"
+        />
+        <DataCard
+          title="Visible Records"
+          value={students.length}
+          description="Current filtered result set"
+          loading={studentsQuery.isPending}
+          tone="warning"
+        />
       </div>
 
-      <Card>
-        <CardHeader className="pb-3">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <CardTitle className="flex items-center">
-              <Users className="mr-2 h-5 w-5" />
-              Student List
-            </CardTitle>
-            <div className="flex flex-col md:flex-row gap-4">
-              <div className="relative w-full md:w-auto">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  type="search"
-                  placeholder="Search students..."
-                  className="pl-8 w-full md:w-[200px]"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </div>
-              <Select value={selectedClass} onValueChange={setSelectedClass}>
-                <SelectTrigger className="w-full md:w-[150px]">
-                  <SelectValue placeholder="All Classes" />
+      {studentsQuery.error instanceof Error ? (
+        <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
+          {studentsQuery.error.message}
+        </div>
+      ) : null}
+
+      <FilterBar
+        searchValue={searchInput}
+        onSearchChange={setSearchInput}
+        onSearchDebouncedChange={(value) => {
+          setCurrentPage(1);
+          setSearchTerm(value);
+        }}
+        searchPlaceholder="Search students by name or email..."
+        filters={
+          <Select
+            value={selectedClass || ALL_CLASSES_VALUE}
+            onValueChange={(value) => {
+              setCurrentPage(1);
+              setSelectedClass(value === ALL_CLASSES_VALUE ? "" : value);
+            }}
+          >
+            <SelectTrigger className="w-full sm:w-[180px]">
+              <SelectValue placeholder="All Classes" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={ALL_CLASSES_VALUE}>All Classes</SelectItem>
+              {(classesQuery.data ?? []).map((className) => (
+                <SelectItem key={className} value={className}>
+                  {className}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        }
+      />
+
+      <AppTable<TeacherStudentRecord>
+        columns={columns}
+        data={students}
+        getRowKey={(student) => student.id}
+        loading={studentsQuery.isPending}
+        loadingText="Loading students..."
+        emptyTitle="No students found"
+        emptyDescription={
+          searchTerm || selectedClass
+            ? "Try a different search term or class filter."
+            : "No students are currently assigned to you."
+        }
+        renderActions={(student) => (
+          <div className="flex items-center justify-end gap-2">
+            <Button variant="ghost" size="sm" onClick={() => handleViewDetails(student)}>
+              <Eye className="h-4 w-4" />
+              <span className="sr-only">View student details</span>
+            </Button>
+          </div>
+        )}
+        pagination={{
+          currentPage,
+          totalPages: pagination.totalPages,
+          onPageChange: setCurrentPage,
+          isLoading: studentsQuery.isFetching,
+          summary: `Showing ${startItem} to ${endItem} of ${totalItems} students`,
+          controls: (
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">Show</span>
+              <Select
+                value={String(itemsPerPage)}
+                onValueChange={(value) => {
+                  setItemsPerPage(Number(value));
+                  setCurrentPage(1);
+                }}
+              >
+                <SelectTrigger className="w-[78px]">
+                  <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Classes</SelectItem>
-                  {(allClasses.length ? allClasses : teacherClasses).map((className) => (
-                    <SelectItem key={className} value={className}>
-                      {className}
-                    </SelectItem>
-                  ))}
+                  <SelectItem value="10">10</SelectItem>
+                  <SelectItem value="20">20</SelectItem>
+                  <SelectItem value="50">50</SelectItem>
                 </SelectContent>
               </Select>
+              <span className="text-sm text-muted-foreground">per page</span>
             </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <Preloader variant="skeleton" rows={4} className="space-y-6" />
-          ) : error ? (
-            <div className="text-center py-8 text-red-600">{error}</div>
-          ) : filteredStudents.length > 0 ? (
-            <>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Student ID</TableHead>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Class</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Attendance</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredStudents.map((student) => (
-                  <TableRow key={student.id}>
-                    <TableCell className="font-medium">
-                      {student.studentId || "N/A"}
-                    </TableCell>
-                    <TableCell className="font-medium">
-                      {student.firstName} {student.lastName}
-                    </TableCell>
-                    <TableCell>{student.class?.name || "Unassigned"}</TableCell>
-                    <TableCell>{student.user?.email || "-"}</TableCell>
-                    <TableCell>
-                      {student.attendance ? `${student.attendance}%` : "-"}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        onClick={() => handleViewDetails(student)}
-                      >
-                        View Details
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-            <PaginationBar
-              currentPage={currentPage}
-              totalPages={totalPages}
-              onPageChange={setCurrentPage}
-              isLoading={isLoading}
-              className="mt-4"
-            />
-            </>
-          ) : (
-            <div className="text-center py-8 text-muted-foreground">
-              {searchQuery
-                ? "No students found matching your search."
-                : "You don't have any students assigned."}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+          ),
+        }}
+      />
+    </PageContainer>
   );
 }

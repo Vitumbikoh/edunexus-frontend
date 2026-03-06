@@ -15,6 +15,16 @@ const STATUS_STYLE_MAP: Record<
   completed: { variant: "default", className: "bg-blue-600 text-white hover:bg-blue-600/90" },
   draft: { variant: "secondary" },
   "on-leave": { variant: "secondary" },
+  upcoming: { variant: "outline", className: "border-amber-300 text-amber-700 dark:border-amber-700 dark:text-amber-300" },
+  administered: { variant: "default", className: "bg-sky-600 text-white hover:bg-sky-600/90" },
+  graded: { variant: "default", className: "bg-violet-600 text-white hover:bg-violet-600/90" },
+  published: { variant: "default", className: "bg-emerald-600 text-white hover:bg-emerald-600/90" },
+  archived: { variant: "outline", className: "text-muted-foreground" },
+  overdue: { variant: "destructive" },
+  paid: { variant: "default", className: "bg-emerald-600 text-white hover:bg-emerald-600/90" },
+  unpaid: { variant: "secondary" },
+  partial: { variant: "outline", className: "border-amber-300 text-amber-700 dark:border-amber-700 dark:text-amber-300" },
+  "finance review": { variant: "secondary" },
 };
 
 const toLabel = (value: string) =>

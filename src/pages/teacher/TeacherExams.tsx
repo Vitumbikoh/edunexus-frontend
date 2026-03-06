@@ -1,167 +1,199 @@
-import React, { useEffect, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
-import { Button } from '@/components/ui/button';
-import { RefreshCw, FileText, Play } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { API_CONFIG } from '@/config/api';
-import { Preloader } from '@/components/ui/preloader';
-import { examService } from '@/services/examService';
-import { useToast } from '@/components/ui/use-toast';
+import React, { useMemo, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { FileText, Play, RefreshCw } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/components/ui/use-toast";
+import {
+  AppTable,
+  DataCard,
+  EmptyState,
+  FilterBar,
+  PageContainer,
+  PageHeader,
+  StatusBadge,
+} from "@/components/app";
+import type { AppTableColumn } from "@/components/app";
+import {
+  useAdministerTeacherExam,
+  useTeacherCourseExams,
+} from "@/hooks/useTeacherPortal";
+import type { TeacherExamRecord } from "@/services/teacherService";
 
 export default function TeacherExams() {
   const { token } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const params = new URLSearchParams(location.search);
-  const courseId = params.get('courseId') || '';
+  const courseId = params.get("courseId") || "";
   const { toast } = useToast();
+  const [searchInput, setSearchInput] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
 
-  const [exams, setExams] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [search, setSearch] = useState('');
-  const courseName = exams?.[0]?.course?.name || '';
+  const examsQuery = useTeacherCourseExams(token, courseId, Boolean(courseId));
+  const administerExamMutation = useAdministerTeacherExam(token);
 
-  const fetchExams = async () => {
-    if (!courseId || !token) return;
-    setLoading(true);
-    try {
-      const res = await fetch(`${API_CONFIG.BASE_URL}/teacher/my-exams?courseId=${courseId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok) throw new Error(`Failed to fetch exams: ${res.status}`);
-      const data = await res.json();
-      const list = Array.isArray(data) ? data : (data.exams || []);
-      setExams(list);
-    } catch (e) {
-      // noop simple error handling
-    } finally {
-      setLoading(false);
+  const exams = examsQuery.data ?? [];
+  const courseName = exams[0]?.course?.name || "";
+
+  const filteredExams = useMemo(() => {
+    const needle = searchTerm.trim().toLowerCase();
+    if (!needle) {
+      return exams;
     }
-  };
+
+    return exams.filter((exam) =>
+      [exam.title, exam.course?.name, exam.examType]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(needle))
+    );
+  }, [exams, searchTerm]);
+
+  const examStats = useMemo(
+    () => ({
+      total: exams.length,
+      upcoming: exams.filter((exam) => exam.status === "upcoming").length,
+      administered: exams.filter((exam) => exam.status === "administered").length,
+      graded: exams.filter((exam) => exam.status === "graded").length,
+    }),
+    [exams]
+  );
+
+  const columns = useMemo<AppTableColumn<TeacherExamRecord>[]>(
+    () => [
+      {
+        id: "title",
+        header: "Title",
+        cell: (exam) => <span className="font-medium">{exam.title}</span>,
+      },
+      {
+        id: "course",
+        header: "Course",
+        cell: (exam) => exam.course?.name || "-",
+      },
+      {
+        id: "date",
+        header: "Date",
+        cell: (exam) =>
+          exam.date ? new Date(exam.date).toLocaleDateString() : "Not scheduled",
+      },
+      {
+        id: "total-marks",
+        header: "Total Marks",
+        cell: (exam) => exam.totalMarks ?? "-",
+      },
+      {
+        id: "status",
+        header: "Status",
+        cell: (exam) => <StatusBadge status={exam.status} />,
+      },
+    ],
+    []
+  );
 
   const handleAdministerExam = async (examId: string) => {
-    if (!token) return;
     try {
-      const updatedExam = await examService.administerExam(examId, token);
-      // Update the exam in the local state
-      setExams(prev => prev.map(exam => 
-        exam.id === examId ? { ...exam, status: 'administered' } : exam
-      ));
+      await administerExamMutation.mutateAsync(examId);
       toast({
-        title: 'Exam Administered',
-        description: 'The exam has been marked as administered and is now ready for grading.',
-        variant: 'default',
+        title: "Exam administered",
+        description: "The exam is now ready for grading.",
       });
     } catch (error) {
       toast({
-        title: 'Error',
-        description: error instanceof Error ? error.message : 'Failed to administer exam',
-        variant: 'destructive',
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to administer exam",
+        variant: "destructive",
       });
     }
   };
 
-  useEffect(() => {
-    fetchExams();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [courseId, token]);
-
-  const filtered = exams.filter(e => {
-    if (!search.trim()) return true;
-    const q = search.toLowerCase();
+  if (!courseId) {
     return (
-      (e.title || '').toLowerCase().includes(q) ||
-      (e.course?.name || '').toLowerCase().includes(q) ||
-      (e.examType || '').toLowerCase().includes(q)
+      <PageContainer>
+        <EmptyState
+          title="No course selected"
+          description="Open exams from a course context to view course-specific assessments."
+        />
+      </PageContainer>
     );
-  });
+  }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Course Exams</h1>
-          <p className="text-muted-foreground">All exams for this course{courseName ? `: ${courseName}` : ''} (you as the teacher)</p>
+    <PageContainer>
+      <PageHeader
+        title="Course Exams"
+        description={`All exams for ${courseName || "the selected course"}. Manage delivery and jump into the grading workflow faster.`}
+        actions={
+          <Button
+            variant="outline"
+            onClick={() => void examsQuery.refetch()}
+            className="gap-2"
+            disabled={examsQuery.isFetching}
+          >
+            <RefreshCw className={`h-4 w-4 ${examsQuery.isFetching ? "animate-spin" : ""}`} />
+            Refresh
+          </Button>
+        }
+      />
+
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <DataCard title="Total Exams" value={examStats.total} loading={examsQuery.isPending} tone="info" />
+        <DataCard title="Upcoming" value={examStats.upcoming} loading={examsQuery.isPending} tone="warning" />
+        <DataCard title="Administered" value={examStats.administered} loading={examsQuery.isPending} tone="default" />
+        <DataCard title="Graded" value={examStats.graded} loading={examsQuery.isPending} tone="success" />
+      </div>
+
+      {examsQuery.error instanceof Error ? (
+        <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
+          {examsQuery.error.message}
         </div>
-        <Button variant="outline" onClick={fetchExams} className="gap-2" disabled={loading}>
-          <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-          Refresh
-        </Button>
-      </div>
+      ) : null}
 
-      <div className="relative max-w-sm">
-        <Input placeholder="Search exams..." value={search} onChange={e => setSearch(e.target.value)} />
-      </div>
+      <FilterBar
+        searchValue={searchInput}
+        onSearchChange={setSearchInput}
+        onSearchDebouncedChange={setSearchTerm}
+        searchPlaceholder="Search exams by title, course, or type..."
+      />
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Exams</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Title</TableHead>
-                  <TableHead>Course</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Total Marks</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {loading ? (
-                  <TableRow>
-                    <TableCell colSpan={6}>
-                      <Preloader variant="skeleton" rows={4} className="space-y-6" />
-                    </TableCell>
-                  </TableRow>
-                ) : filtered.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={6} className="py-8 text-center text-muted-foreground">No exams found</TableCell>
-                  </TableRow>
-                ) : (
-                  filtered.map(exam => (
-                    <TableRow key={exam.id}>
-                      <TableCell className="font-medium">{exam.title}</TableCell>
-                      <TableCell>{exam.course?.name || '-'}</TableCell>
-                      <TableCell>{exam.date ? new Date(exam.date).toLocaleDateString() : 'N/A'}</TableCell>
-                      <TableCell>{exam.totalMarks}</TableCell>
-                      <TableCell>
-                        <Badge variant="secondary">{exam.status}</Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex gap-2 justify-end">
-                          {exam.status === 'upcoming' && (
-                            <Button 
-                              variant="outline" 
-                              size="sm" 
-                              className="gap-2" 
-                              onClick={() => handleAdministerExam(exam.id)}
-                            >
-                              <Play className="h-4 w-4" />
-                              Administer
-                            </Button>
-                          )}
-                          <Button variant="ghost" size="sm" className="gap-2" onClick={() => navigate(`/exams/${exam.id}`)}>
-                            <FileText className="h-4 w-4" />
-                            View
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
+      <AppTable<TeacherExamRecord>
+        columns={columns}
+        data={filteredExams}
+        getRowKey={(exam) => exam.id}
+        loading={examsQuery.isPending}
+        loadingText="Loading exams..."
+        emptyTitle="No exams found"
+        emptyDescription={
+          searchTerm
+            ? "Try a different search term."
+            : "This course does not have any exams yet."
+        }
+        renderActions={(exam) => (
+          <div className="flex items-center justify-end gap-2">
+            {exam.status === "upcoming" ? (
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2"
+                onClick={() => void handleAdministerExam(exam.id)}
+                disabled={administerExamMutation.isPending}
+              >
+                <Play className="h-4 w-4" />
+                Administer
+              </Button>
+            ) : null}
+            <Button
+              variant="ghost"
+              size="sm"
+              className="gap-2"
+              onClick={() => navigate(`/exams/${exam.id}`)}
+            >
+              <FileText className="h-4 w-4" />
+              View
+            </Button>
           </div>
-        </CardContent>
-      </Card>
-    </div>
+        )}
+      />
+    </PageContainer>
   );
 }

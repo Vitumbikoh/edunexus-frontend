@@ -54,6 +54,7 @@ import StudentCourses from "./pages/student/StudentCourses";
 import ParentChildrenPerformance from "./pages/parent/ParentChildrenPerformance";
 import ParentAttendance from "./pages/parent/ParentAttendance";
 import ParentMessages from "./pages/parent/ParentMessages";
+import Messages from "./pages/Messages";
 import ParentFinance from "./pages/parent/ParentFinance";
 import TeacherCourses from "./pages/teacher/TeacherCourses";
 import TeacherExams from "./pages/teacher/TeacherExams";
@@ -1243,8 +1244,24 @@ const AppRoutes = () => {
         }
       />
 
+      {/* /notices → redirect to the notifications page */}
+      <Route path="/notices" element={<Navigate to="/notifications" replace />} />
+
+      {/* Messages — accessible to all authenticated roles */}
       <Route
         path="/messages"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <Messages />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Keep /parent/messages for backward compat */}
+      <Route
+        path="/parent/messages"
         element={
           <ParentRoute>
             <Layout>

@@ -45,6 +45,7 @@ export interface AppTableProps<T> {
   rowClassName?: (row: T, index: number) => string | undefined;
   className?: string;
   cardClassName?: string;
+  actionsCellClassName?: string;
   pagination?: AppTablePagination;
 }
 
@@ -63,6 +64,7 @@ export function AppTable<T>({
   rowClassName,
   className,
   cardClassName,
+  actionsCellClassName,
   pagination,
 }: AppTableProps<T>) {
   const hasActions = Boolean(renderActions);
@@ -112,14 +114,19 @@ export function AppTable<T>({
 
             {!loading &&
               data.map((row, index) => (
-                <TableRow key={getRowKey(row, index)} className={rowClassName?.(row, index)}>
+                <TableRow
+                  key={getRowKey(row, index)}
+                  className={cn("hover:bg-muted/30", rowClassName?.(row, index))}
+                >
                   {columns.map((column) => (
                     <TableCell key={column.id} className={column.cellClassName}>
                       {column.cell(row, index)}
                     </TableCell>
                   ))}
                   {hasActions ? (
-                    <TableCell className="text-right">{renderActions?.(row, index)}</TableCell>
+                    <TableCell className={cn("text-right", actionsCellClassName)}>
+                      {renderActions?.(row, index)}
+                    </TableCell>
                   ) : null}
                 </TableRow>
               ))}
