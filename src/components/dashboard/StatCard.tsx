@@ -19,18 +19,18 @@ type StatCardProps = {
 export default function StatCard({ title, value, icon, trend, className }: StatCardProps) {
   return (
     <Card className={cn("relative overflow-hidden", className)}>
-      <CardContent className="p-3">
-        <div className="flex items-center justify-between space-y-0 pb-1">
-          <div className="text-xs font-medium text-muted-foreground leading-tight">
+      <CardContent className="p-4">
+        <div className="flex items-center justify-between space-y-0 pb-2">
+          <div className="text-sm font-medium text-muted-foreground">
             {title}
           </div>
           <div className="flex h-6 w-6 items-center justify-center rounded-md bg-primary/10">
-            <div className="h-3.5 w-3.5 text-primary">
+            <div className="h-3 w-3 text-primary">
               {icon}
             </div>
           </div>
         </div>
-        <div className="text-lg font-bold">{value}</div>
+        <div className="text-xl font-bold">{value}</div>
         {trend && (
           <div className="flex items-center gap-2 text-xs">
             {trend.isPositive ? (

@@ -470,12 +470,12 @@ export const DashboardStats = () => {
 
   if (loading) {
     return (
-      <div className="space-y-3">
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-          {[...Array(6)].map((_, index) => (
+      <div className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {[...Array(4)].map((_, index) => (
             <div
               key={index}
-              className="h-24 bg-muted rounded-xl animate-pulse"
+              className="h-32 bg-muted rounded-xl animate-pulse"
             />
           ))}
         </div>
@@ -498,8 +498,8 @@ export const DashboardStats = () => {
   }
 
   return (
-    <div className="space-y-3">
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {stats.map((stat, index) => (
           <StatCard
             key={index}
