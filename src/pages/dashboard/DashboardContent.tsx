@@ -128,35 +128,35 @@ export const DashboardContent = () => {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-4">
       {/* Enhanced Header Section */}
-      <div className="bg-gradient-to-r from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 rounded-lg p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-          <div className="space-y-2">
-            <div className="flex items-center gap-3">
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-gray-100 dark:to-gray-300 bg-clip-text text-transparent">
+      <div className="bg-gradient-to-r from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 rounded-lg px-4 py-3 border border-gray-200 dark:border-gray-700 shadow-sm">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-2">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <h1 className="text-xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-gray-100 dark:to-gray-300 bg-clip-text text-transparent">
                 Dashboard
               </h1>
               {user?.role && (
-                <Badge variant={getRoleBadgeVariant(user.role) as any} className="px-3 py-1">
+                <Badge variant={getRoleBadgeVariant(user.role) as any} className="px-2 py-0.5 text-xs">
                   <User className="h-3 w-3 mr-1" />
                   {getRoleDisplayName(user.role)}
                 </Badge>
               )}
             </div>
-            <p className="text-lg text-gray-600 dark:text-gray-300">
+            <p className="text-sm text-gray-600 dark:text-gray-300">
               Welcome back, <span className="font-semibold text-gray-900 dark:text-gray-100">
                 {getDisplayName()}
               </span>
             </p>
           </div>
           
-          <div className="flex flex-col sm:flex-row gap-4 lg:text-right">
-            <div className="flex items-center gap-2 text-gray-600 dark:text-gray-300">
+          <div className="flex flex-col sm:flex-row gap-2 lg:text-right">
+            <div className="flex items-center gap-2 text-gray-600 dark:text-gray-300 text-sm">
               <CalendarDays className="h-4 w-4" />
               <span className="font-medium">{getCurrentDate()}</span>
             </div>
-            <div className="flex items-center gap-2 text-gray-600 dark:text-gray-300">
+            <div className="flex items-center gap-2 text-gray-600 dark:text-gray-300 text-sm">
               <Clock className="h-4 w-4" />
               <span className="font-medium">{getCurrentTime()}</span>
             </div>

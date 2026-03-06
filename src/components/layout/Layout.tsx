@@ -44,7 +44,7 @@ export default function Layout({ children }: LayoutProps) {
       <Sidebar />
       <div className={cn(
         "flex-1 flex flex-col transition-all duration-300",
-        isOpen ? "ml-64" : "ml-20"
+        isOpen ? "ml-56" : "ml-20"
       )}>
         <Header />
         <main className="flex-1 overflow-y-auto p-4">

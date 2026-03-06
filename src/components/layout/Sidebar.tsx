@@ -22,7 +22,6 @@ import {
   ChartPie,
   MessageSquare,
   CreditCard,
-  ChevronDown,
   Library,
   BarChart3,
   Bell,
@@ -450,10 +449,10 @@ export default function Sidebar() {
                 </p>
               )}
             </div>
-            <ChevronDown
+            <ChevronRight
               className={cn(
-                "h-4 w-4 flex-shrink-0 transition-transform text-white/50 dark:text-muted-foreground",
-                isOpen_ && "rotate-180"
+                "h-3.5 w-3.5 flex-shrink-0 transition-transform text-white/50 dark:text-muted-foreground",
+                isOpen_ && "rotate-90"
               )}
             />
           </button>
@@ -536,7 +535,7 @@ export default function Sidebar() {
         className={cn(
           "h-screen flex flex-col fixed left-0 top-0 z-40 transition-all duration-300 border-r border-white/10 dark:border-border shadow-xl",
           SIDEBAR_LIGHT_CLS,
-          isOpen ? "w-64" : "w-16"
+          isOpen ? "w-56" : "w-16"
         )}
       >
         {/* ── Header ──────────────────────────────────────── */}
@@ -555,7 +554,7 @@ export default function Sidebar() {
               />
             </div>
             {isOpen && (
-              <span className="ml-3 font-semibold text-white dark:text-foreground">Schomas Academy</span>
+              <span className="ml-3 font-semibold text-white dark:text-foreground">Schomas Portal</span>
             )}
           </div>
           <Button
