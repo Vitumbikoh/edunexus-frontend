@@ -132,7 +132,7 @@ button:hover,
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background font-sans text-foreground antialiased;
   }
 
   h1,h2,h3,h4,h5,h6 { @apply text-foreground; }
@@ -205,5 +205,51 @@ button:hover,
 
   .sidebar-scroll::-webkit-scrollbar-thumb:hover {
     background: hsl(var(--sidebar-accent));
+  }
+}
+
+@layer components {
+  .app-page {
+    @apply space-y-6;
+  }
+
+  .app-page-title {
+    @apply text-3xl font-semibold tracking-tight text-foreground;
+  }
+
+  .app-page-description {
+    @apply text-sm text-muted-foreground;
+  }
+
+  .app-section-title {
+    @apply text-xl font-semibold text-foreground;
+  }
+
+  .app-section-description {
+    @apply text-sm text-muted-foreground;
+  }
+
+  .app-table-head {
+    @apply h-11 px-4 text-xs font-semibold uppercase tracking-wide text-muted-foreground;
+  }
+
+  .app-label {
+    @apply text-sm font-medium text-foreground;
+  }
+
+  .app-button-text {
+    @apply text-sm font-medium;
+  }
+
+  .app-card-label {
+    @apply text-xs font-medium uppercase tracking-wide text-muted-foreground;
+  }
+
+  .app-card-value {
+    @apply text-2xl font-semibold text-foreground;
+  }
+
+  .app-card-description {
+    @apply text-xs text-muted-foreground;
   }
 }

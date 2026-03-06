@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -8,16 +8,14 @@ import { SidebarProvider } from "@/contexts/SidebarContext";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { SystemPreloaderProvider } from "@/contexts/SystemPreloaderContext";
-import { useThemePersistence } from "@/hooks/useThemePersistence";
+import { LoadingState } from "@/components/app";
 import Layout from "@/components/layout/Layout";
 import RoleBasedDashboard from "@/components/auth/RoleBasedDashboard";
 
 // Pages
 import Login from "./pages/Login";
 import Dashboard from "./pages/dashboard/Dashboard";
-import Students from "./pages/student/Students";
 import StudentForm from "./pages/student/StudentForm";
-import Teachers from "./pages/teacher/Teachers";
 import TeacherForm from "./pages/teacher/TeacherForm";
 import TeacherDetails from "./pages/teacher/TeacherDetails";
 import CourseForm from "./pages/courses/CourseForm";
@@ -31,7 +29,10 @@ import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 import Notifications from "./pages/Notifications";
 import AcademicCalendar from "./pages/setups/AcademicCalendar";
-const GradesReportLazy = React.lazy(() => import('./pages/courses/GradesReport'));
+const StudentsLazy = React.lazy(() => import("./pages/student/Students"));
+const TeachersLazy = React.lazy(() => import("./pages/teacher/Teachers"));
+const FinanceOfficersLazy = React.lazy(() => import("./pages/finance/FinanceOfficers"));
+const GradesReportLazy = React.lazy(() => import("./pages/courses/GradesReport"));
 
 // Teacher specific pages
 import TeacherStudentDetails from "./pages/teacher/TeacherStudentDetails";
@@ -62,7 +63,6 @@ import AggregatedResults from "./pages/teacher/AggregatedResults";
 import AggregatedResultsAdmin from "./pages/admin/AggregatedResultsAdmin";
 import CourseEnrollments from "./pages/courses/CourseEnrollments";
 import StudentDetails from "./pages/student/StudentDetails";
-import FinanceOfficers from "./pages/finance/FinanceOfficers";
 import FinanceForm from "./pages/finance/FinanceForm";
 import FinanceOfficerDetails from "./pages/finance/FinanceOfficerDetails";
 import Transactions from "./pages/finance/Transactions";
@@ -268,6 +268,16 @@ const FinanceRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
+const RouteLoader = () => (
+  <div className="p-4">
+    <LoadingState text="Loading page..." />
+  </div>
+);
+
+const withSuspense = (children: React.ReactNode) => (
+  <React.Suspense fallback={<RouteLoader />}>{children}</React.Suspense>
+);
+
 const AppRoutes = () => {
   const { user } = useAuth();
 
@@ -295,7 +305,7 @@ const AppRoutes = () => {
           <ProtectedRoute>
             <AdminRoute>
               <Layout>
-                <Students />
+                {withSuspense(<StudentsLazy />)}
               </Layout>
             </AdminRoute>
           </ProtectedRoute>
@@ -348,7 +358,7 @@ const AppRoutes = () => {
           <ProtectedRoute>
             <AdminRoute>
               <Layout>
-                <Teachers />
+                {withSuspense(<TeachersLazy />)}
               </Layout>
             </AdminRoute>
           </ProtectedRoute>
@@ -557,9 +567,7 @@ const AppRoutes = () => {
           <ProtectedRoute>
             <AdminRoute>
               <Layout>
-                <React.Suspense fallback={<div>Loading...</div>}>
-                  <GradesReportLazy />
-                </React.Suspense>
+                {withSuspense(<GradesReportLazy />)}
               </Layout>
             </AdminRoute>
           </ProtectedRoute>
@@ -659,7 +667,7 @@ const AppRoutes = () => {
           <ProtectedRoute>
             <AdminRoute>
               <Layout>
-                <FinanceOfficers />
+                {withSuspense(<FinanceOfficersLazy />)}
               </Layout>
             </AdminRoute>
           </ProtectedRoute>
@@ -1263,7 +1271,22 @@ const AppRoutes = () => {
 };
 
 const App = () => {
-  const [queryClient] = React.useState(() => new QueryClient());
+  const [queryClient] = React.useState(
+    () =>
+      new QueryClient({
+        defaultOptions: {
+          queries: {
+            staleTime: 60 * 1000,
+            gcTime: 10 * 60 * 1000,
+            refetchOnWindowFocus: false,
+            retry: 1,
+          },
+          mutations: {
+            retry: 1,
+          },
+        },
+      })
+  );
 
   return (
     <QueryClientProvider client={queryClient}>

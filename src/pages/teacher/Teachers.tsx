@@ -1,321 +1,213 @@
-import React, { useEffect, useState } from 'react';
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { 
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Search, Eye, Pencil, UserX } from 'lucide-react';
+import React, { useMemo, useState } from "react";
+import { Link } from "react-router-dom";
+import { Eye, Pencil, UserX } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { Link, useNavigate } from 'react-router-dom';
-import { Badge } from "@/components/ui/badge";
-import PaginationBar from "@/components/common/PaginationBar";
 import { useToast } from "@/components/ui/use-toast";
-import { API_CONFIG } from '@/config/api';
-import { Preloader } from "@/components/ui/preloader";
+import { Button } from "@/components/ui/button";
+import { AppTable, FilterBar, PageContainer, PageHeader, StatusBadge } from "@/components/app";
+import { useTeacherStatusMutation, useTeachers } from "@/hooks/useTeachers";
+import type { AppTableColumn } from "@/components/app";
+import type { TeacherRecord } from "@/services/teacherService";
 
-interface Teacher {
-  id: string;
-  firstName: string;
-  lastName: string;
-  phoneNumber?: string;
-  address?: string;
-  qualification?: string;
-  subjectSpecialization?: string;
-  dateOfBirth?: string;
-  gender?: string;
-  hireDate?: string;
-  yearsOfExperience: number;
-  status: string;
-  user: {
-    id: string;
-    username: string;
-    email: string;
-    role: string;
-  };
-}
-
-interface PaginatedData {
-  teachers: Teacher[];
-  totalPages: number;
-  totalItems: number;
-  itemsPerPage: number;
-}
+const PAGE_SIZE = 10;
 
 export default function Teachers() {
   const { user, token } = useAuth();
-  const navigate = useNavigate();
   const { toast } = useToast();
-  const [searchPeriod, setSearchPeriod] = useState("");
+  const [searchInput, setSearchInput] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(10);
-  const [paginatedData, setPaginatedData] = useState<PaginatedData>({
-    teachers: [],
-    totalPages: 1,
-    totalItems: 0,
-    itemsPerPage: 10
-  });
-  const [apiError, setApiError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
 
   const canAdd = user?.role === "admin";
   const canEdit = user?.role === "admin";
   const canView = user?.role === "admin" || user?.role === "teacher";
-  const canShow = canView;
 
-  const fetchTeachers = async (page: number, limit: number, search: string = "") => {
-    try {
-      setIsLoading(true);
-      setApiError(null);
+  const teachersQuery = useTeachers({
+    token,
+    page: currentPage,
+    limit: PAGE_SIZE,
+    search: searchTerm,
+    enabled: canView,
+  });
 
-      if (!token) {
-        throw new Error("Authentication token not found. Please log in again.");
-      }
+  const teacherStatusMutation = useTeacherStatusMutation(token);
 
-      const response = await fetch(
-        `${API_CONFIG.BASE_URL}/teacher/teachers?page=${page}&limit=${limit}&search=${encodeURIComponent(search)}`,
-        {
-          headers: {
-            "Authorization": `Bearer ${token}`,
-          },
-        }
-      );
-
-      if (response.status === 401) {
-        localStorage.removeItem("token");
-        navigate('/login');
-        throw new Error("Session expired. Please log in again.");
-      }
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to fetch teachers");
-      }
-
-      const result = await response.json();
-      setPaginatedData({
-        teachers: result.teachers,
-        totalPages: result.pagination.totalPages,
-        totalItems: result.pagination.totalItems,
-        itemsPerPage: result.pagination.itemsPerPage,
-      });
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Failed to fetch teachers";
-      setApiError(errorMessage);
-      toast({
-        title: "Error",
-        description: errorMessage,
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
+  const teachers = teachersQuery.data?.teachers ?? [];
+  const pagination = teachersQuery.data?.pagination ?? {
+    totalPages: 1,
+    totalItems: 0,
+    itemsPerPage: PAGE_SIZE,
   };
 
-  useEffect(() => {
-    if (canShow) {
-      fetchTeachers(currentPage, itemsPerPage, searchPeriod);
-    }
-  }, [currentPage, searchPeriod, canShow, token]);
+  const apiError = teachersQuery.error instanceof Error ? teachersQuery.error.message : null;
+  const totalItems = pagination.totalItems;
+  const startItem = totalItems === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1;
+  const endItem = Math.min(currentPage * PAGE_SIZE, totalItems);
 
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchPeriod(e.target.value);
-    setCurrentPage(1); // Reset to first page when searching
-  };
+  const columns = useMemo<AppTableColumn<TeacherRecord>[]>(
+    () => [
+      {
+        id: "name",
+        header: "Name",
+        cell: (teacher) => (
+          <span className="font-medium">
+            {teacher.firstName} {teacher.lastName}
+          </span>
+        ),
+      },
+      {
+        id: "contact",
+        header: "Contact",
+        cell: (teacher) => (
+          <div>
+            <div className="text-sm text-muted-foreground">{teacher.user.email}</div>
+            {teacher.phoneNumber ? <div className="text-sm">{teacher.phoneNumber}</div> : null}
+          </div>
+        ),
+      },
+      {
+        id: "specialization",
+        header: "Specialization",
+        cell: (teacher) => teacher.subjectSpecialization || "-",
+      },
+      {
+        id: "experience",
+        header: "Experience",
+        cell: (teacher) => (
+          <div>
+            {teacher.yearsOfExperience} years
+            <div className="text-sm text-muted-foreground">
+              Hired: {teacher.hireDate ? new Date(teacher.hireDate).toLocaleDateString() : "-"}
+            </div>
+          </div>
+        ),
+      },
+      {
+        id: "status",
+        header: "Status",
+        cell: (teacher) => <StatusBadge status={teacher.status} />,
+      },
+    ],
+    []
+  );
 
-  const handlePageChange = (newPage: number) => {
-    if (newPage >= 1 && newPage <= paginatedData.totalPages) {
-      setCurrentPage(newPage);
-    }
-  };
-
-  const handleToggleTeacherStatus = async (teacherId: string, currentStatus: string) => {
-    try {
-      const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
-      const action = newStatus === 'active' ? 'activate' : 'deactivate';
-      
-      const response = await fetch(
-        `${API_CONFIG.BASE_URL}/teacher/teachers/${teacherId}/status`,
-        {
-          method: 'PATCH',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ status: newStatus }),
-        }
-      );
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || `Failed to ${action} teacher`);
-      }
-
-      // Refresh the teachers list
-      await fetchTeachers(currentPage, itemsPerPage, searchPeriod);
-      
-      toast({
-        title: "Success",
-        description: `Teacher ${action}d successfully`,
-        variant: "default",
-      });
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : `Failed to update teacher status`;
-      toast({
-        title: "Error",
-        description: errorMessage,
-        variant: "destructive",
-      });
-    }
-  };
-
-  if (!canShow) {
+  if (!canView) {
     return (
-      <div className="flex items-center justify-center h-96">
-        <div className="text-center p-8 rounded-lg bg-red-50 border border-red-200 text-red-700 font-semibold">
+      <PageContainer>
+        <div className="flex items-center justify-center rounded-lg border border-destructive/30 bg-destructive/10 p-6 text-center text-sm font-semibold text-destructive">
           You do not have permission to view teachers.
         </div>
-      </div>
+      </PageContainer>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold">Teachers</h1>
-          <p className="text-muted-foreground">
-            Showing {paginatedData.teachers.length} of {paginatedData.totalItems} teachers
-          </p>
-        </div>
-        {canAdd && (
-          <Button asChild>
-            <Link to="/teachers/add">Add New Teacher</Link>
-          </Button>
-        )}
-      </div>
+    <PageContainer>
+      <PageHeader
+        title="Teachers"
+        description={`Showing ${teachers.length} of ${pagination.totalItems} teachers`}
+        actions={
+          canAdd ? (
+            <Button asChild>
+              <Link to="/teachers/add">Add New Teacher</Link>
+            </Button>
+          ) : null
+        }
+      />
 
-      {apiError && (
-        <div className="p-4 text-sm text-red-700 bg-red-100 rounded-lg">
+      {apiError ? (
+        <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
           {apiError}
         </div>
-      )}
-      
-      <Card>
-        <CardHeader>
-          <div className="flex justify-between items-center">
-            <CardTitle>Teaching Staff</CardTitle>
-            <div className="relative">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="search"
-                placeholder="Search teachers..."
-                className="pl-8 w-[250px]"
-                value={searchPeriod}
-                onChange={handleSearchChange}
-              />
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <Preloader variant="skeleton" rows={4} className="space-y-6" />
-          ) : (
-            <>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Contact</TableHead>
-                    <TableHead>Specialization</TableHead>
-                    <TableHead>Experience</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {paginatedData.teachers.length > 0 ? (
-                    paginatedData.teachers.map((teacher) => (
-                      <TableRow key={teacher.id}>
-                        <TableCell className="font-medium">
-                          {teacher.firstName} {teacher.lastName}
-                        </TableCell>
-                        <TableCell>
-                          <div className="text-sm text-muted-foreground">{teacher.user.email}</div>
-                          {teacher.phoneNumber && (
-                            <div className="text-sm">{teacher.phoneNumber}</div>
-                          )}
-                        </TableCell>
-                        <TableCell>{teacher.subjectSpecialization || '-'}</TableCell>
-                        <TableCell>
-                          {teacher.yearsOfExperience} years
-                          <div className="text-sm text-muted-foreground">
-                            Hired: {new Date(teacher.hireDate || '').toLocaleDateString()}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge 
-                            variant={teacher.status === 'active' ? 'default' : 
-                                    teacher.status === 'on-leave' ? 'secondary' : 
-                                    teacher.status === 'inactive' ? 'outline' : 'destructive'}
-                          >
-                            {teacher.status.charAt(0).toUpperCase() + teacher.status.slice(1).replace('-', ' ')}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-right space-x-2">
-                          <Button variant="ghost" size="sm" asChild>
-                            <Link to={`/teachers/${teacher.id}`}>
-                              <Eye className="h-4 w-4" />
-                            </Link>
-                          </Button>
-                          {canEdit && (
-                            <Button variant="ghost" size="sm" asChild>
-                              <Link to={`/teachers/${teacher.id}/edit`}>
-                                <Pencil className="h-4 w-4" />
-                              </Link>
-                            </Button>
-                          )} 
-                          {canEdit && (
-                            <Button 
-                              variant="ghost" 
-                              size="sm"
-                              title={teacher.status === 'active' ? 'Deactivate Teacher' : 'Activate Teacher'}
-                              onClick={() => handleToggleTeacherStatus(teacher.id, teacher.status)}
-                            >
-                              <UserX className={`h-4 w-4 ${teacher.status === 'active' ? 'text-orange-600' : 'text-green-600'}`} />
-                            </Button>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  ) : (
-                    <TableRow>
-                      <TableCell colSpan={6} className="text-center py-8">
-                        No teachers found
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
+      ) : null}
 
-              {paginatedData.totalPages > 1 && (
-                <PaginationBar
-                  className="mt-6"
-                  currentPage={currentPage}
-                  totalPages={paginatedData.totalPages}
-                  onPageChange={handlePageChange}
-                  isLoading={isLoading}
+      <FilterBar
+        searchValue={searchInput}
+        onSearchChange={setSearchInput}
+        onSearchDebouncedChange={(value) => {
+          setCurrentPage(1);
+          setSearchTerm(value);
+        }}
+        searchPlaceholder="Search teachers..."
+      />
+
+      <AppTable<TeacherRecord>
+        columns={columns}
+        data={teachers}
+        getRowKey={(teacher) => teacher.id}
+        loading={teachersQuery.isPending}
+        loadingText="Loading teachers..."
+        emptyTitle="No teachers found"
+        renderActions={(teacher) => (
+          <div className="flex items-center justify-end gap-1">
+            <Button variant="ghost" size="sm" asChild>
+              <Link to={`/teachers/${teacher.id}`}>
+                <Eye className="h-4 w-4" />
+              </Link>
+            </Button>
+
+            {canEdit ? (
+              <Button variant="ghost" size="sm" asChild>
+                <Link to={`/teachers/${teacher.id}/edit`}>
+                  <Pencil className="h-4 w-4" />
+                </Link>
+              </Button>
+            ) : null}
+
+            {canEdit ? (
+              <Button
+                variant="ghost"
+                size="sm"
+                title={teacher.status === "active" ? "Deactivate Teacher" : "Activate Teacher"}
+                onClick={async () => {
+                  const isActive = teacher.status === "active";
+                  const targetStatus = isActive ? "inactive" : "active";
+                  const action = isActive ? "deactivate" : "activate";
+
+                  const confirmed = window.confirm(
+                    `${action.charAt(0).toUpperCase() + action.slice(1)} ${teacher.firstName} ${teacher.lastName}?`
+                  );
+                  if (!confirmed) return;
+
+                  try {
+                    await teacherStatusMutation.mutateAsync({
+                      teacherId: teacher.id,
+                      status: targetStatus,
+                    });
+                    toast({
+                      title: "Success",
+                      description: `Teacher ${action}d successfully.`,
+                    });
+                  } catch (error) {
+                    toast({
+                      title: "Error",
+                      description:
+                        error instanceof Error
+                          ? error.message
+                          : "Failed to update teacher status.",
+                      variant: "destructive",
+                    });
+                  }
+                }}
+              >
+                <UserX
+                  className={`h-4 w-4 ${
+                    teacher.status === "active" ? "text-orange-600" : "text-emerald-600"
+                  }`}
                 />
-              )}
-            </>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+              </Button>
+            ) : null}
+          </div>
+        )}
+        pagination={{
+          currentPage,
+          totalPages: pagination.totalPages,
+          onPageChange: setCurrentPage,
+          isLoading: teachersQuery.isFetching,
+          summary: `Showing ${startItem} to ${endItem} of ${totalItems} teachers`,
+        }}
+      />
+    </PageContainer>
   );
 }
+

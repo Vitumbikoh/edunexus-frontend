@@ -1,299 +1,169 @@
-import React, { useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { SearchBar } from "@/components/ui/search-bar";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import React, { useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { Eye, Pencil } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { Link, useNavigate } from "react-router-dom";
-import { Badge } from "@/components/ui/badge";
-import PaginationBar from "@/components/common/PaginationBar";
-import { useToast } from "@/components/ui/use-toast";
-import { API_CONFIG } from '@/config/api';
+import { Button } from "@/components/ui/button";
+import { AppTable, FilterBar, PageContainer, PageHeader, StatusBadge } from "@/components/app";
+import { useFinanceOfficers } from "@/hooks/useFinanceOfficers";
+import type { AppTableColumn } from "@/components/app";
+import type { FinanceOfficerRecord } from "@/services/financeOfficerService";
 
-interface FinanceOfficer {
-  id: string;
-  firstName: string;
-  lastName: string;
-  username?: string;
-  email: string;
-  phoneNumber?: string;
-  department?: string;
-  canApproveBudgets: boolean;
-  canProcessPayments: boolean;
-  status: string;
-  hireDate: string;
-}
-
-interface PaginatedData {
-  financeOfficers: FinanceOfficer[];
-  totalPages: number;
-  totalItems: number;
-  itemsPerPage: number;
-}
+const PAGE_SIZE = 10;
 
 export default function FinanceOfficers() {
   const { user, token } = useAuth();
-  const navigate = useNavigate();
-  const { toast } = useToast();
-  const [searchPeriod, setSearchPeriod] = useState("");
   const [searchInput, setSearchInput] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(10);
-  const [paginatedData, setPaginatedData] = useState<PaginatedData>({
-    financeOfficers: [],
-    totalPages: 1,
-    totalItems: 0,
-    itemsPerPage: 10,
-  });
-  const [apiError, setApiError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
 
   const canAdd = user?.role === "admin";
   const canEdit = user?.role === "admin";
   const canView = user?.role === "admin" || user?.role === "finance";
-  const canShow = canView;
 
-  // In your frontend component
-  const fetchFinanceOfficers = async (
-    page: number,
-    limit: number,
-    search: string = ""
-  ) => {
-    try {
-      setIsLoading(true);
-      setApiError(null);
+  const financeOfficersQuery = useFinanceOfficers({
+    token,
+    page: currentPage,
+    limit: PAGE_SIZE,
+    search: searchTerm,
+    enabled: canView,
+  });
 
-      const response = await fetch(
-        `${API_CONFIG.BASE_URL}/finance/officers?page=${page}&limit=${limit}&search=${encodeURIComponent(
-          search
-        )}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(
-          errorData.message || "Failed to fetch finance officers"
-        );
-      }
-
-      const result = await response.json();
-
-      setPaginatedData({
-        financeOfficers: result.financeOfficers,
-        totalPages: result.pagination.totalPages,
-        totalItems: result.pagination.totalItems,
-        itemsPerPage: result.pagination.itemsPerPage,
-      });
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error
-          ? error.message
-          : "Failed to fetch finance officers";
-      setApiError(errorMessage);
-      toast({
-        title: "Error",
-        description: errorMessage,
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
+  const financeOfficers = financeOfficersQuery.data?.financeOfficers ?? [];
+  const pagination = financeOfficersQuery.data?.pagination ?? {
+    totalPages: 1,
+    totalItems: 0,
+    itemsPerPage: PAGE_SIZE,
   };
 
-  useEffect(() => {
-    if (canShow) {
-      fetchFinanceOfficers(currentPage, itemsPerPage, searchPeriod);
-    }
-  }, [currentPage, searchPeriod, canShow, token]);
+  const apiError =
+    financeOfficersQuery.error instanceof Error ? financeOfficersQuery.error.message : null;
 
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchPeriod(e.target.value);
-    setCurrentPage(1); // Reset to first page when searching
-  };
+  const totalItems = pagination.totalItems;
+  const startItem = totalItems === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1;
+  const endItem = Math.min(currentPage * PAGE_SIZE, totalItems);
 
-  const handlePageChange = (newPage: number) => {
-    if (newPage >= 1 && newPage <= paginatedData.totalPages) {
-      setCurrentPage(newPage);
-    }
-  };
+  const columns = useMemo<AppTableColumn<FinanceOfficerRecord>[]>(
+    () => [
+      {
+        id: "name",
+        header: "Name",
+        cell: (officer) => (
+          <span className="font-medium">
+            {officer.firstName} {officer.lastName}
+          </span>
+        ),
+      },
+      {
+        id: "username",
+        header: "Username",
+        cell: (officer) => (
+          <span className="text-sm text-muted-foreground">@{officer.username || "N/A"}</span>
+        ),
+      },
+      {
+        id: "contact",
+        header: "Contact",
+        cell: (officer) => (
+          <div>
+            <div className="text-sm text-muted-foreground">{officer.email}</div>
+            {officer.phoneNumber ? <div className="text-sm">{officer.phoneNumber}</div> : null}
+          </div>
+        ),
+      },
+      {
+        id: "department",
+        header: "Department",
+        cell: (officer) => officer.department || "-",
+      },
+      {
+        id: "status",
+        header: "Status",
+        cell: (officer) => (
+          <div className="space-y-1">
+            <StatusBadge status={officer.status} />
+            <div className="text-xs text-muted-foreground">
+              Hired: {new Date(officer.hireDate).toLocaleDateString()}
+            </div>
+          </div>
+        ),
+      },
+    ],
+    []
+  );
 
-  if (!canShow) {
+  if (!canView) {
     return (
-      <div className="flex items-center justify-center h-96">
-        <div className="text-center p-8 rounded-lg bg-red-50 border border-red-200 text-red-700 font-semibold">
+      <PageContainer>
+        <div className="flex items-center justify-center rounded-lg border border-destructive/30 bg-destructive/10 p-6 text-center text-sm font-semibold text-destructive">
           You do not have permission to view finance officers.
         </div>
-      </div>
+      </PageContainer>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold">Finance Officers</h1>
-          <p className="text-muted-foreground">
-            Showing {paginatedData.financeOfficers.length} of{" "}
-            {paginatedData.totalItems} officers
-          </p>
-        </div>
-        {canAdd && (
-          <Button asChild>
-            <Link to="/finance/officers/add">Add New Officer</Link>
-          </Button>
-        )}
-      </div>
+    <PageContainer>
+      <PageHeader
+        title="Finance Officers"
+        description={`Showing ${financeOfficers.length} of ${pagination.totalItems} officers`}
+        actions={
+          canAdd ? (
+            <Button asChild>
+              <Link to="/finance/officers/add">Add New Officer</Link>
+            </Button>
+          ) : null
+        }
+      />
 
-      {apiError && (
-        <div className="p-4 text-sm text-red-700 bg-red-100 rounded-lg">
+      {apiError ? (
+        <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
           {apiError}
         </div>
-      )}
+      ) : null}
 
-      <Card>
-        <CardHeader>
-          <div className="flex justify-between items-center">
-            <CardTitle>Finance Department</CardTitle>
-            <SearchBar
-              value={searchInput}
-              onChange={setSearchInput}
-              onDebouncedChange={(v) => { setSearchPeriod(v); setCurrentPage(1); }}
-              delay={300}
-              placeholder="Search finance officers..."
-              inputClassName="w-[250px]"
-            />
+      <FilterBar
+        searchValue={searchInput}
+        onSearchChange={setSearchInput}
+        onSearchDebouncedChange={(value) => {
+          setCurrentPage(1);
+          setSearchTerm(value);
+        }}
+        searchPlaceholder="Search finance officers..."
+      />
+
+      <AppTable<FinanceOfficerRecord>
+        columns={columns}
+        data={financeOfficers}
+        getRowKey={(officer) => officer.id}
+        loading={financeOfficersQuery.isPending}
+        loadingText="Loading finance officers..."
+        emptyTitle="No finance officers found"
+        renderActions={(officer) => (
+          <div className="flex items-center justify-end gap-1">
+            <Button variant="ghost" size="sm" asChild>
+              <Link to={`/finance/officers/${officer.id}`}>
+                <Eye className="h-4 w-4" />
+              </Link>
+            </Button>
+
+            {canEdit ? (
+              <Button variant="ghost" size="sm" asChild>
+                <Link to={`/finance/officers/${officer.id}/edit`}>
+                  <Pencil className="h-4 w-4" />
+                </Link>
+              </Button>
+            ) : null}
           </div>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="flex justify-center items-center h-64">
-              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
-            </div>
-          ) : (
-            <>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Username</TableHead>
-                    <TableHead>Contact</TableHead>
-                    <TableHead>Department</TableHead>
-                    {/* <TableHead>Permissions</TableHead> */}
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {paginatedData.financeOfficers.length > 0 ? (
-                    paginatedData.financeOfficers.map((officer) => (
-                      <TableRow key={officer.id}>
-                        <TableCell className="font-medium">
-                          {officer.firstName} {officer.lastName}
-                        </TableCell>
-                        <TableCell>
-                          <span className="text-sm text-muted-foreground">
-                            @{officer.username || 'N/A'}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          <div className="text-sm text-muted-foreground">
-                            {officer.email}
-                          </div>
-                          {officer.phoneNumber && (
-                            <div className="text-sm">{officer.phoneNumber}</div>
-                          )}
-                        </TableCell>
-                        <TableCell>{officer.department || "-"}</TableCell>
-                        {/* <TableCell>
-                          <div className="flex flex-wrap gap-1">
-                            {officer.canApproveBudgets && (
-                              <Badge variant="secondary">Budget Approval</Badge>
-                            )}
-                            {officer.canProcessPayments && (
-                              <Badge variant="secondary">
-                                Payment Processing
-                              </Badge>
-                            )}
-                            {!officer.canApproveBudgets &&
-                              !officer.canProcessPayments && (
-                                <span className="text-sm text-muted-foreground">
-                                  No special permissions
-                                </span>
-                              )}
-                          </div>
-                        </TableCell> */}
-                        <TableCell>
-                          <Badge
-                            variant={
-                              officer.status === "active"
-                                ? "default"
-                                : officer.status === "on-leave"
-                                ? "secondary"
-                                : "destructive"
-                            }
-                          >
-                            {officer.status.charAt(0).toUpperCase() +
-                              officer.status.slice(1)}
-                          </Badge>
-                          <div className="text-sm text-muted-foreground">
-                            Hired:{" "}
-                            {new Date(officer.hireDate).toLocaleDateString()}
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-right space-x-2">
-                          <Button variant="ghost" size="sm" asChild>
-                            <Link to={`/finance/officers/${officer.id}`}>
-                              <Eye className="h-4 w-4 mr-1" />
-                              View
-                            </Link>
-                          </Button>
-                          {canEdit && (
-                            <Button variant="ghost" size="sm" asChild>
-                              <Link to={`/finance/officers/${officer.id}/edit`}>
-                                <Pencil className="h-4 w-4 mr-1" />
-                                Edit
-                              </Link>
-                            </Button>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  ) : (
-                    <TableRow>
-                      <TableCell colSpan={6} className="text-center py-8">
-                        No finance officers found
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-
-              {paginatedData.totalPages > 1 && (
-                <PaginationBar
-                  className="mt-6"
-                  currentPage={currentPage}
-                  totalPages={paginatedData.totalPages}
-                  onPageChange={handlePageChange}
-                  isLoading={isLoading}
-                />
-              )}
-            </>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+        )}
+        pagination={{
+          currentPage,
+          totalPages: pagination.totalPages,
+          onPageChange: setCurrentPage,
+          isLoading: financeOfficersQuery.isFetching,
+          summary: `Showing ${startItem} to ${endItem} of ${totalItems} officers`,
+        }}
+      />
+    </PageContainer>
   );
 }
+
