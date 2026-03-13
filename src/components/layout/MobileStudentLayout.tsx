@@ -104,7 +104,11 @@ export default function MobileStudentLayout({ children }: MobileStudentLayoutPro
   const isActivePath = (path: string) => {
     return location.pathname === path;
   };
-  const isDashboard = location.pathname === '/dashboard';
+
+  const handleNavigation = (path: string) => {
+    setIsMenuOpen(false);
+    window.setTimeout(() => navigate(path), 120);
+  };
 
   if (!user) return null;
 
@@ -123,8 +127,8 @@ export default function MobileStudentLayout({ children }: MobileStudentLayoutPro
                   <span className="sr-only">Open menu</span>
                 </Button>
               </SheetTrigger>
-              <SheetContent side="left" className="w-80 p-0" aria-describedby="student-menu-desc">
-                <div className="flex flex-col h-full">
+              <SheetContent side="left" className="w-80 p-0 h-[100dvh] overflow-hidden" aria-describedby="student-menu-desc">
+                <div className="flex flex-col h-full min-h-0">
                   {/* Accessible title/description for screen readers */}
                   <SheetHeader className="sr-only">
                     <SheetTitle>Student Menu</SheetTitle>
@@ -158,7 +162,7 @@ export default function MobileStudentLayout({ children }: MobileStudentLayoutPro
                   </div>
 
                   {/* Navigation */}
-                  <div className="flex-1 overflow-y-auto py-4">
+                  <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain py-4">
                     <nav className="space-y-3 px-4 mobile-student-nav">
                       {studentNavItems.map((item) => {
                         const Icon = item.icon;
@@ -168,14 +172,16 @@ export default function MobileStudentLayout({ children }: MobileStudentLayoutPro
                           <Link
                             key={item.href}
                             to={item.href}
-                            onClick={() => setIsMenuOpen(false)}
+                            onClick={(event) => {
+                              event.preventDefault();
+                              handleNavigation(item.href);
+                            }}
                             className={cn(
                               "flex items-center space-x-3 rounded-lg px-3 py-3 text-sm font-medium",
                               isActive
                                 ? "bg-blue-100 text-blue-700 dark:bg-transparent dark:border dark:border-border dark:text-blue-300"
                                 : "text-gray-700 dark:text-gray-300"
                             )}
-                            style={{ transition: 'none' }}
                           >
                             <Icon className={cn(
                               "h-5 w-5 shrink-0",
@@ -280,6 +286,10 @@ export default function MobileStudentLayout({ children }: MobileStudentLayoutPro
               <Link
                 key={item.href}
                 to={item.href}
+                onClick={(event) => {
+                  event.preventDefault();
+                  navigate(item.href);
+                }}
                 className={cn(
                   "flex flex-col items-center justify-center py-2 px-1 text-xs",
                   isActive

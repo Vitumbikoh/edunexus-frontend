@@ -17,6 +17,10 @@ export const DashboardContent = () => {
   const { user, token } = useAuth();
   const [profile, setProfile] = useState<any>(null);
   const [profileLoading, setProfileLoading] = useState(true);
+  const [isMobilePhone, setIsMobilePhone] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return window.matchMedia('(max-width: 767px)').matches;
+  });
   
   const isAdmin = user?.role === 'admin';
   const isTeacher = user?.role === 'teacher';
@@ -26,8 +30,16 @@ export const DashboardContent = () => {
   const isDarkMode = typeof document !== 'undefined' && document.documentElement.classList.contains('dark');
   const adminColors = getAdminDashboardPalette(isDarkMode);
 
-  // Use mobile-first dashboard for students
-  if (isStudent) {
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 767px)');
+    const handler = (event: MediaQueryListEvent) => setIsMobilePhone(event.matches);
+    setIsMobilePhone(mq.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
+
+  // Use mobile student dashboard on phones only.
+  if (isStudent && isMobilePhone) {
     return <MobileStudentDashboardContent />;
   }
 

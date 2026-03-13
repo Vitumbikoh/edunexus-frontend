@@ -100,48 +100,35 @@ export const MobileStudentDashboardContent = () => {
 
   return (
     <div className="space-y-6 pb-6 md:pb-6">
-      {/* Mobile-Optimized Welcome Header */}
-      <div className="bg-gradient-to-br from-blue-500 via-blue-600 to-purple-600 rounded-2xl p-6 text-white shadow-lg">
-        <div className="space-y-4">
-          {/* Greeting */}
-          <div className="space-y-1">
-            <p className="text-blue-100 text-sm font-medium">Good morning!</p>
-            <h1 className="text-2xl font-bold leading-tight">
+      <Card>
+        <CardContent className="pt-6">
+          <div className="space-y-3">
+            <h1 className="text-xl font-bold text-foreground">
               Welcome back, {getDisplayName()}
             </h1>
-          </div>
-          
-          {/* Date and Time Row */}
-          <div className="flex items-center justify-between text-blue-100">
-            <div className="flex items-center space-x-2">
-              <CalendarDays className="h-4 w-4" />
-              <span className="text-sm font-medium">{getCurrentDate()}</span>
+            <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+              <span className="inline-flex items-center gap-2">
+                <CalendarDays className="h-4 w-4" />
+                {getCurrentDate()}
+              </span>
+              <span className="inline-flex items-center gap-2">
+                <Clock className="h-4 w-4" />
+                {getCurrentTime()}
+              </span>
             </div>
-            <div className="flex items-center space-x-2">
-              <Clock className="h-4 w-4" />
-              <span className="text-sm font-medium">{getCurrentTime()}</span>
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge variant="secondary" className="text-xs">
+                <User className="h-3 w-3 mr-1" />
+                Student
+              </Badge>
+              <Badge variant="outline" className="text-xs">
+                <Smartphone className="h-3 w-3 mr-1" />
+                Mobile Optimized
+              </Badge>
             </div>
           </div>
-
-          {/* Student Badge */}
-          <div className="flex items-center space-x-2">
-            <Badge 
-              variant="secondary" 
-              className="bg-white bg-opacity-20 text-white border-white border-opacity-20 backdrop-blur-sm"
-            >
-              <User className="h-3 w-3 mr-1" />
-              Student
-            </Badge>
-            <Badge 
-              variant="secondary" 
-              className="bg-white bg-opacity-20 text-white border-white border-opacity-20 backdrop-blur-sm"
-            >
-              <Smartphone className="h-3 w-3 mr-1" />
-              Mobile Optimized
-            </Badge>
-          </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
       
       {/* Mobile Dashboard Cards */}
       <MobileStudentDashboardCards />

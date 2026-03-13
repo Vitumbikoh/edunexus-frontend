@@ -171,19 +171,19 @@ const MobileStudentDashboardCards: React.FC<MobileStudentDashboardCardsProps> = 
 
   const getStatusColor = (status: PerformanceData['status']) => {
     switch (status) {
-      case 'excellent': return 'text-green-600 bg-green-100';
-      case 'good': return 'text-blue-600 bg-blue-100';
-      case 'average': return 'text-yellow-600 bg-yellow-100';
-      case 'needs-improvement': return 'text-red-600 bg-red-100';
-      default: return 'text-gray-600 bg-gray-100';
+      case 'excellent': return 'text-green-700 border border-green-300 bg-transparent';
+      case 'good': return 'text-blue-700 border border-blue-300 bg-transparent';
+      case 'average': return 'text-yellow-700 border border-yellow-300 bg-transparent';
+      case 'needs-improvement': return 'text-red-700 border border-red-300 bg-transparent';
+      default: return 'text-gray-700 border border-gray-300 bg-transparent';
     }
   };
 
   const getPriorityColor = (priority: UpcomingItem['priority']) => {
     switch (priority) {
-      case 'high': return 'bg-red-100 text-red-700 border-red-200';
-      case 'medium': return 'bg-yellow-100 text-yellow-700 border-yellow-200';
-      case 'low': return 'bg-green-100 text-green-700 border-green-200';
+      case 'high': return 'bg-transparent text-red-700 border border-red-300';
+      case 'medium': return 'bg-transparent text-yellow-700 border border-yellow-300';
+      case 'low': return 'bg-transparent text-green-700 border border-green-300';
     }
   };
 
@@ -226,14 +226,14 @@ const MobileStudentDashboardCards: React.FC<MobileStudentDashboardCardsProps> = 
         {quickStats.map((stat, index) => {
           const Icon = stat.icon;
           return (
-            <Card key={index} className="border-0 shadow-md">
+            <Card key={index}>
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
-                  <div className={cn("p-2 rounded-lg bg-opacity-10", 
-                    stat.color === 'text-blue-600' ? 'bg-blue-500' :
-                    stat.color === 'text-green-600' ? 'bg-green-500' :
-                    stat.color === 'text-emerald-600' ? 'bg-emerald-500' :
-                    'bg-purple-500'
+                  <div className={cn("p-2 rounded-lg border", 
+                    stat.color === 'text-blue-600' ? 'border-blue-300' :
+                    stat.color === 'text-green-600' ? 'border-green-300' :
+                    stat.color === 'text-emerald-600' ? 'border-emerald-300' :
+                    'border-purple-300'
                   )}>
                     <Icon className={cn("h-5 w-5", stat.color)} />
                   </div>
@@ -269,7 +269,7 @@ const MobileStudentDashboardCards: React.FC<MobileStudentDashboardCardsProps> = 
       </div>
 
       {/* Performance Overview */}
-      <Card className="border-0 shadow-md">
+      <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-lg flex items-center justify-between">
             <div className="flex items-center space-x-2">
@@ -319,7 +319,7 @@ const MobileStudentDashboardCards: React.FC<MobileStudentDashboardCardsProps> = 
       </Card>
 
       {/* Upcoming Items */}
-      <Card className="border-0 shadow-md">
+      <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-lg flex items-center justify-between">
             <div className="flex items-center space-x-2">
@@ -342,7 +342,7 @@ const MobileStudentDashboardCards: React.FC<MobileStudentDashboardCardsProps> = 
             upcomingItems.map((item) => {
               const TypeIcon = getTypeIcon(item.type);
               return (
-                <div key={item.id} className="flex items-center space-x-3 p-3 rounded-lg bg-gray-50 dark:bg-card">
+                <div key={item.id} className="flex items-center space-x-3 p-3 rounded-lg border bg-card">
                   <div className={cn("p-2 rounded-lg", getPriorityColor(item.priority))}>
                     <TypeIcon className="h-4 w-4" />
                   </div>
@@ -375,7 +375,7 @@ const MobileStudentDashboardCards: React.FC<MobileStudentDashboardCardsProps> = 
       </Card>
 
       {/* Quick Actions */}
-      <Card className="border-0 shadow-md">
+      <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-lg flex items-center space-x-2">
             <Star className="h-5 w-5 text-yellow-600" />

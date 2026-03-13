@@ -2,42 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Comprehensive fix to disable transitions on navigation elements to prevent shaking */
-* {
-  -webkit-transform: translateZ(0);
-  transform: translateZ(0);
-}
-
-nav,
-nav *,
-.mobile-student-nav,
-.mobile-student-nav *,
-nav a,
-.mobile-nav a,
-[role="menuitem"],
-button[role="menuitem"],
-a[href*="schedule"],
-a[href*="materials"],
-.mobile-student-layout,
-.mobile-student-layout * {
-  transition: none !important;
-  animation: none !important;
-  -webkit-transition: none !important;
-  -moz-transition: none !important;
-  -ms-transition: none !important;
-  -o-transition: none !important;
-  will-change: auto !important;
-  transform: none !important;
-}
-
-/* Disable any hover effects that might cause shaking */
-a:hover,
-button:hover,
-.mobile-student-nav a:hover {
-  transform: none !important;
-  transition: none !important;
-}
-
 @layer base {
   :root {
     --background: 210 22% 96%;
