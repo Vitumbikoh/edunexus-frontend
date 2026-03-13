@@ -203,26 +203,21 @@ export const SystemPreloader: React.FC<{
     return null;
   }
 
-  const hasDesktopLayout = typeof window !== 'undefined'
-    ? window.matchMedia('(min-width: 1280px)').matches
-    : true;
-
-  const contentInsetTop = sidebar ? 64 : 0;
   const contentInsetLeft = sidebar
-    ? (hasDesktopLayout ? (sidebar.isOpen ? 256 : 80) : 0)
+    ? (sidebar.isOpen ? 224 : 64)
     : 0;
 
   return (
     <div
-      className="fixed z-[120] flex items-center justify-center bg-background/95 backdrop-blur-sm"
+      className="pointer-events-none fixed z-[120] flex items-center justify-center bg-background/95 backdrop-blur-sm"
       style={{
-        top: contentInsetTop,
+        top: 0,
         left: contentInsetLeft,
         right: 0,
         bottom: 0,
       }}
     >
-      <div className="w-[min(92vw,24rem)] rounded-xl border bg-card/95 p-6 shadow-lg">
+      <div className="pointer-events-auto w-[min(92vw,24rem)] rounded-xl border bg-card/95 p-6 shadow-lg">
         <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full border border-primary/30 bg-primary/10">
           <Loader2 className="h-7 w-7 animate-spin text-primary" />
         </div>

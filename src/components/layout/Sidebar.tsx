@@ -554,7 +554,7 @@ export default function Sidebar() {
               />
             </div>
             {isOpen && (
-              <span className="ml-3 font-semibold text-white dark:text-foreground">edunexus Portal</span>
+              <span className="ml-3 font-semibold text-white dark:text-foreground">EduNexus</span>
             )}
           </div>
           <Button
