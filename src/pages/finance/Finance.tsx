@@ -786,7 +786,7 @@ export default function Finance() {
       </div>
 
       {apiError && (
-        <div className="p-4 mb-4 text-sm text-red-700 bg-red-100 rounded-lg">
+        <div className="p-4 mb-4 text-sm text-red-700 bg-transparent border border-red-300 rounded-lg">
           {apiError}
         </div>
       )}
@@ -1126,7 +1126,7 @@ export default function Finance() {
                                     }
                                     className={`capitalize ${
                                       s.status === 'paid'
-                                        ? 'bg-green-100 text-green-800 border-green-200'
+                                        ? 'bg-transparent text-green-700 border-green-300'
                                         : s.status === 'unpaid'
                                           ? 'text-red-600'
                                           : ''

@@ -855,7 +855,7 @@ export const FinanceDashboardCards = () => {
 
   if (error) {
     return (
-      <Card className="border-red-200 bg-red-50 dark:bg-red-900/20">
+      <Card className="border-red-200 bg-red-50 dark:bg-transparent dark:border-border">
         <CardContent className="p-6 text-center">
           <div className="flex flex-col items-center space-y-4">
             <AlertTriangle className="h-12 w-12 text-red-500" />
@@ -1093,7 +1093,7 @@ export const FinanceDashboardCards = () => {
             {financeData?.recentTransactions?.slice(0, 5).map((transaction: any, index: number) => (
               <div key={index} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-card rounded-lg">
                 <div className="flex items-center space-x-3">
-                  <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-full">
+                  <div className="p-2 bg-green-100 dark:bg-transparent dark:border dark:border-border rounded-full">
                     <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
                   </div>
                   <div>

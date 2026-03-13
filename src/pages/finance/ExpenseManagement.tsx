@@ -402,11 +402,11 @@ export default function ExpenseManagement() {
   // Helper functions
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'Approved': case 'Paid': return 'bg-green-100 text-green-800 border-green-200';
+      case 'Approved': case 'Paid': return 'bg-transparent text-green-700 border-green-300';
       case 'Pending': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'Department Approved': case 'Finance Review': case 'Principal Approved': return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 'Department Approved': case 'Finance Review': case 'Principal Approved': return 'bg-transparent text-blue-700 border-blue-300';
       case 'Board Review': return 'bg-purple-100 text-purple-800 border-purple-200';
-      case 'Rejected': return 'bg-red-100 text-red-800 border-red-200';
+      case 'Rejected': return 'bg-transparent text-red-700 border-red-300';
       default: return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
@@ -1094,8 +1094,8 @@ function ExpenseForm({ onClose, onSuccess }: { onClose: () => void; onSuccess?: 
                       <SelectItem key={priority} value={priority}>
                         <div className="flex items-center gap-2">
                           <div className={`w-2 h-2 rounded-full ${
-                            priority === 'High' ? 'bg-red-500' :
-                            priority === 'Medium' ? 'bg-yellow-500' : 'bg-green-500'
+                            priority === 'High' ? 'border border-red-500 bg-transparent' :
+                            priority === 'Medium' ? 'bg-yellow-500' : 'border border-green-500 bg-transparent'
                           }`} />
                           {priority}
                         </div>
@@ -1321,7 +1321,7 @@ function ExpenseAnalytics({ expenses, analyticsData }: { expenses: Expense[], an
             </div>
             <div className="mt-2 w-full bg-gray-200 rounded-full h-2">
               <div 
-                className="bg-blue-500 h-2 rounded-full" 
+                className="h-2 rounded-full border border-blue-500 bg-transparent" 
                 style={{ width: `${Math.min(budgetUtilization, 100)}%` }}
               />
             </div>
@@ -1412,8 +1412,8 @@ function ExpenseAnalytics({ expenses, analyticsData }: { expenses: Expense[], an
                 <div key={item.status} className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
                     <div className={`w-3 h-3 rounded-full ${
-                      item.status === 'Approved' || item.status === 'Paid' ? 'bg-green-500' :
-                      item.status === 'Rejected' ? 'bg-red-500' :
+                      item.status === 'Approved' || item.status === 'Paid' ? 'border border-green-500 bg-transparent' :
+                      item.status === 'Rejected' ? 'border border-red-500 bg-transparent' :
                       'bg-yellow-500'
                     }`} />
                     <span className="text-sm font-medium">{item.status}</span>
@@ -1447,7 +1447,7 @@ function ExpenseAnalytics({ expenses, analyticsData }: { expenses: Expense[], an
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
                     <div 
-                      className="bg-blue-500 h-2 rounded-full" 
+                      className="h-2 rounded-full border border-blue-500 bg-transparent" 
                       style={{ 
                         width: `${(dept.total / Math.max(...departmentSpending.map(d => d.total))) * 100}%` 
                       }}
@@ -1492,7 +1492,7 @@ function ExpenseAnalytics({ expenses, analyticsData }: { expenses: Expense[], an
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div className="p-4 bg-blue-50 rounded-lg">
+            <div className="p-4 bg-transparent border border-blue-300 rounded-lg">
               <TrendingUp className="h-6 w-6 text-blue-600 mb-2" />
               <h4 className="font-semibold text-blue-900">Budget Alert</h4>
               <p className="text-sm text-blue-700">
@@ -1500,7 +1500,7 @@ function ExpenseAnalytics({ expenses, analyticsData }: { expenses: Expense[], an
               </p>
             </div>
             
-            <div className="p-4 bg-green-50 rounded-lg">
+            <div className="p-4 bg-transparent border border-green-300 rounded-lg">
               <CheckCircle className="h-6 w-6 text-green-600 mb-2" />
               <h4 className="font-semibold text-green-900">Efficiency</h4>
               <p className="text-sm text-green-700">
@@ -1632,7 +1632,7 @@ function ExpenseApprovals({
                             <span className="text-xs font-medium">{step.label}</span>
                           </div>
                           {index < getApprovalSteps(expense.status || 'Pending', expense.approvalLevel || 0).length - 1 && (
-                            <div className={`flex-1 h-0.5 ${step.completed ? 'bg-green-600' : 'bg-gray-300'}`} />
+                            <div className={step.completed ? 'flex-1 border-t-2 border-green-600' : 'flex-1 border-t border-gray-300'} />
                           )}
                         </React.Fragment>
                       ))}
@@ -1903,14 +1903,14 @@ function ExpenseDetailsDialog({
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  <div className="p-3 bg-blue-50 rounded">
+                  <div className="p-3 bg-transparent border border-blue-300 rounded">
                     <div className="flex justify-between items-start mb-2">
                       <span className="font-medium text-sm">Dr. Smith</span>
                       <span className="text-xs text-muted-foreground">2024-01-16</span>
                     </div>
                     <p className="text-sm">Equipment is urgently needed for upcoming chemistry practicals. Please expedite approval.</p>
                   </div>
-                  <div className="p-3 bg-green-50 rounded">
+                  <div className="p-3 bg-transparent border border-green-300 rounded">
                     <div className="flex justify-between items-start mb-2">
                       <span className="font-medium text-sm">Jane Doe (Finance)</span>
                       <span className="text-xs text-muted-foreground">2024-01-17</span>
@@ -2026,7 +2026,7 @@ function ExpenseDetailsDialog({
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
                     <div 
-                      className="bg-blue-500 h-2 rounded-full" 
+                      className="h-2 rounded-full border border-blue-500 bg-transparent" 
                       style={{ width: `${((32500 + expense.amount) / 50000) * 100}%` }}
                     />
                   </div>

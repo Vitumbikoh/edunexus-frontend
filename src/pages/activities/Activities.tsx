@@ -247,7 +247,7 @@ export default function Activities() {
                 >
                   <Avatar className="h-12 w-12 ring-2 ring-gray-200 dark:ring-gray-700">
                     <AvatarImage src={activity.user.avatar} alt={activity.user.name} />
-                    <AvatarFallback className="bg-gradient-to-br from-blue-100 to-blue-200 dark:from-blue-900 dark:to-blue-800 text-blue-700 dark:text-blue-300 font-semibold">
+                    <AvatarFallback className="bg-gradient-to-br from-blue-100 to-blue-200 dark:from-transparent dark:to-transparent dark:bg-transparent dark:border dark:border-border text-blue-700 dark:text-blue-300 font-semibold">
                       {getInitials(activity.user.name)}
                     </AvatarFallback>
                   </Avatar>

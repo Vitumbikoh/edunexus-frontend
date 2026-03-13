@@ -159,14 +159,14 @@ export default function RecentActivitiesCard() {
                 key={activity.id}
                 className={`group flex items-start space-x-4 p-3 rounded-lg border border-gray-200 dark:border-border hover:border-blue-300 dark:hover:border-blue-600 cursor-pointer transition-all duration-200 hover:shadow-md ${
                   unreadIds.has(activity.id) 
-                    ? 'bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800' 
+                    ? 'bg-blue-50 dark:bg-transparent border-blue-200 dark:border-border' 
                     : 'bg-white dark:bg-card/80 hover:bg-gray-50 dark:hover:bg-card/90'
                 }`}
                 onClick={() => openActivity(activity.id)}
               >
                 <Avatar className="h-8 w-8 ring-2 ring-gray-200 dark:ring-gray-700">
                   <AvatarImage src={activity.user.avatar} alt={activity.user.name} />
-                  <AvatarFallback className="bg-gradient-to-br from-blue-100 to-blue-200 dark:from-blue-900 dark:to-blue-800 text-blue-700 dark:text-blue-300 font-semibold text-xs">
+                  <AvatarFallback className="bg-gradient-to-br from-blue-100 to-blue-200 dark:from-transparent dark:to-transparent dark:bg-transparent dark:border dark:border-border text-blue-700 dark:text-blue-300 font-semibold text-xs">
                     {getInitials(activity.user.name)}
                   </AvatarFallback>
                 </Avatar>

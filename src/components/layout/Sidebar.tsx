@@ -44,6 +44,7 @@ import {
 } from "@/components/ui/tooltip";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { termService } from "@/services/termService";
+import { messageService } from "@/services/messageService";
 
 type SubNavItem = {
   label: string;
@@ -324,7 +325,7 @@ const SIDEBAR_LIGHT_CLS = "bg-sidebarbrand dark:bg-background";
 
 export default function Sidebar() {
   const { isOpen, toggle } = useSidebar();
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [openDropdowns, setOpenDropdowns] = useState<string[]>([]);
@@ -343,6 +344,19 @@ export default function Sidebar() {
   const activeTerm = terms.find(
     (t) => t.isActive || t.isCurrent || t.current
   );
+
+  const { data: unreadMessages = 0 } = useQuery({
+    queryKey: ["sidebar-unread-messages", user?.id],
+    queryFn: async () => {
+      const authToken = token || localStorage.getItem("access_token") || "";
+      if (!authToken) return 0;
+      const result = await messageService.getInbox(authToken);
+      return result.unreadCount || 0;
+    },
+    enabled: !!user,
+    staleTime: 15 * 1000,
+    refetchInterval: 30 * 1000,
+  });
 
   if (!user) return null;
 
@@ -498,13 +512,16 @@ export default function Sidebar() {
               to={item.href!}
               aria-label={item.label}
               className={cn(
-                "flex items-center justify-center rounded-md px-2 py-2.5 transition-colors",
+                "relative flex items-center justify-center rounded-md px-2 py-2.5 transition-colors",
                 active
                   ? "bg-white/15 text-white dark:bg-accent dark:text-accent-foreground"
                   : "text-white/80 hover:bg-white/10 hover:text-white dark:text-muted-foreground dark:hover:bg-accent dark:hover:text-accent-foreground"
               )}
             >
               <Icon className="h-5 w-5 flex-shrink-0" />
+              {item.href === "/messages" && unreadMessages > 0 && (
+                <span className="absolute right-1.5 top-1.5 h-2.5 w-2.5 rounded-full bg-red-500" />
+              )}
             </Link>
           </TooltipTrigger>
           <TooltipContent side="right"><p>{item.label}</p></TooltipContent>
@@ -525,6 +542,11 @@ export default function Sidebar() {
       >
         <Icon className="h-[18px] w-[18px] flex-shrink-0" />
         <span>{item.label}</span>
+        {item.href === "/messages" && unreadMessages > 0 && (
+          <span className="ml-auto inline-flex min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 py-0 text-[10px] font-semibold text-white leading-4">
+            {unreadMessages > 99 ? "99+" : unreadMessages}
+          </span>
+        )}
       </Link>
     );
   };
@@ -635,7 +657,7 @@ export default function Sidebar() {
                         .join(" · ")}
                     </span>
                     {(activeTerm.isActive || activeTerm.isCurrent || activeTerm.current) && (
-                      <span className="inline-flex items-center rounded-full bg-emerald-500/20 px-1.5 py-0 text-[10px] font-semibold text-emerald-300 dark:text-emerald-400 dark:bg-emerald-500/10 leading-4">
+                      <span className="inline-flex items-center rounded-full bg-emerald-500/20 px-1.5 py-0 text-[10px] font-semibold text-emerald-300 dark:text-emerald-400 dark:bg-transparent dark:border dark:border-border leading-4">
                         Active
                       </span>
                     )}

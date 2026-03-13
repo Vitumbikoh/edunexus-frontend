@@ -991,9 +991,9 @@ export default function AcademicAndPeriodsSection() {
 
       {/* Sequential Flow Information */}
       {selectedAcademicCalendar.id && (
-        <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg dark:bg-blue-900/20 dark:border-blue-800">
-          <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-2">📚 Academic Term Flow</h4>
-          <p className="text-sm text-blue-800 dark:text-blue-200">
+        <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg dark:bg-transparent dark:border-border">
+          <h4 className="font-medium text-blue-900 dark:text-blue-300 mb-2">📚 Academic Term Flow</h4>
+          <p className="text-sm text-blue-800 dark:text-foreground">
             Terms must be completed sequentially. When a term is completed, its holiday (if defined) will be automatically activated. 
             When the holiday is completed, the next term will be automatically activated.
           </p>

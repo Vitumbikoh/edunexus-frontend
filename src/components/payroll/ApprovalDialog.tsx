@@ -44,10 +44,10 @@ export default function ApprovalDialog({ run, open, onOpenChange, onApprovalActi
 
   const statusColors = {
     DRAFT: 'bg-gray-100 text-gray-800',
-    PREPARED: 'bg-blue-100 text-blue-800',
+    PREPARED: 'bg-transparent border border-blue-300 text-blue-700',
     SUBMITTED: 'bg-yellow-100 text-yellow-800',
-    APPROVED: 'bg-green-100 text-green-800',
-    REJECTED: 'bg-red-100 text-red-800',
+    APPROVED: 'bg-transparent border border-green-300 text-green-700',
+    REJECTED: 'bg-transparent border border-red-300 text-red-700',
     FINALIZED: 'bg-purple-100 text-purple-800',
   };
 
@@ -220,8 +220,9 @@ export default function ApprovalDialog({ run, open, onOpenChange, onApprovalActi
               {action && (
                 <Button
                   onClick={handleSubmit}
+                  variant="outline"
                   disabled={loading || (action === 'reject' && !comments.trim())}
-                  className={action === 'approve' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'}
+                  className={action === 'approve' ? 'text-green-700 border-green-300 hover:text-green-800' : 'text-red-700 border-red-300 hover:text-red-800'}
                 >
                   {loading ? 'Processing...' : (action === 'approve' ? 'Approve Run' : 'Reject Run')}
                 </Button>

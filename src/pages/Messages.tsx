@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   Card,
@@ -21,53 +21,11 @@ import {
   MessageCircle,
   Clock,
   User,
+  Reply,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-
-interface Message {
-  id: string;
-  from: string;
-  to: string;
-  subject: string;
-  content: string;
-  date: string;
-  read: boolean;
-}
-
-// Sample data – replace with real API calls
-const sampleInbox: Message[] = [
-  {
-    id: "1",
-    from: "Admin",
-    to: "You",
-    subject: "Welcome to edunexus",
-    content: "Welcome! We are excited to have you on board. Please explore the system and reach out if you need any help.",
-    date: "2026-03-06T08:00:00Z",
-    read: false,
-  },
-  {
-    id: "2",
-    from: "Finance Department",
-    to: "You",
-    subject: "Fee Structure Update",
-    content: "Please note that the fee structure for the upcoming term has been updated. Kindly review the changes in the Finance section.",
-    date: "2026-03-05T14:30:00Z",
-    read: true,
-  },
-];
-
-const sampleSent: Message[] = [
-  {
-    id: "3",
-    from: "You",
-    to: "Admin",
-    subject: "Re: Welcome to edunexus",
-    content: "Thank you! Looking forward to the new term.",
-    date: "2026-03-06T09:15:00Z",
-    read: true,
-  },
-];
+import { MessageItem, messageService, RecipientOption } from "@/services/messageService";
 
 function formatDate(iso: string) {
   const d = new Date(iso);
@@ -81,40 +39,136 @@ function formatDate(iso: string) {
 }
 
 export default function Messages() {
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const { toast } = useToast();
+  const [activeTab, setActiveTab] = useState<"inbox" | "sent">("inbox");
   const [search, setSearch] = useState("");
-  const [selected, setSelected] = useState<Message | null>(null);
+  const [selected, setSelected] = useState<MessageItem | null>(null);
+  const [inbox, setInbox] = useState<MessageItem[]>([]);
+  const [sent, setSent] = useState<MessageItem[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [loading, setLoading] = useState(false);
   const [composeTo, setComposeTo] = useState("");
   const [composeSubject, setComposeSubject] = useState("");
   const [composeBody, setComposeBody] = useState("");
+  const [recipientSuggestions, setRecipientSuggestions] = useState<RecipientOption[]>([]);
   const [sending, setSending] = useState(false);
+  const selectedFromInbox = !!selected && inbox.some((m) => m.id === selected.id);
 
-  const filteredInbox = sampleInbox.filter(
-    (m) =>
-      m.from.toLowerCase().includes(search.toLowerCase()) ||
-      m.subject.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredInbox = useMemo(() => inbox, [inbox]);
+  const filteredSent = useMemo(() => sent, [sent]);
 
-  const filteredSent = sampleSent.filter(
-    (m) =>
-      m.to.toLowerCase().includes(search.toLowerCase()) ||
-      m.subject.toLowerCase().includes(search.toLowerCase())
-  );
+  useEffect(() => {
+    if (!token) return;
+
+    const run = async () => {
+      setLoading(true);
+      try {
+        const [inboxResponse, sentResponse] = await Promise.all([
+          messageService.getInbox(token, search),
+          messageService.getSent(token, search),
+        ]);
+        setInbox(inboxResponse.messages || []);
+        setSent(sentResponse.messages || []);
+        setUnreadCount(inboxResponse.unreadCount || 0);
+
+        setSelected((current) => {
+          if (!current) return null;
+          const merged = [...(inboxResponse.messages || []), ...(sentResponse.messages || [])];
+          return merged.find((m) => m.id === current.id) || null;
+        });
+      } catch (error: any) {
+        toast({
+          title: "Failed to load messages",
+          description: error.message || "Could not fetch messages.",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    run();
+  }, [token, search, toast]);
+
+  useEffect(() => {
+    if (!token || !composeTo.trim()) {
+      setRecipientSuggestions([]);
+      return;
+    }
+
+    const timeout = setTimeout(async () => {
+      try {
+        const recipients = await messageService.searchRecipients(token, composeTo);
+        setRecipientSuggestions(recipients);
+      } catch {
+        setRecipientSuggestions([]);
+      }
+    }, 250);
+
+    return () => clearTimeout(timeout);
+  }, [token, composeTo]);
+
+  const selectMessage = async (msg: MessageItem) => {
+    setSelected(msg);
+
+    if (!token || activeTab !== "inbox" || msg.read) return;
+
+    try {
+      await messageService.markAsRead(token, msg.id);
+      setInbox((prev) => prev.map((m) => (m.id === msg.id ? { ...m, read: true } : m)));
+      setUnreadCount((count) => Math.max(0, count - 1));
+      setSelected((prev) => (prev?.id === msg.id ? { ...prev, read: true } : prev));
+    } catch {
+      // Keep UX smooth even if mark-read fails silently.
+    }
+  };
 
   const handleSend = async () => {
+    if (!token) {
+      toast({ title: "Not authenticated", description: "Please log in and try again.", variant: "destructive" });
+      return;
+    }
     if (!composeTo.trim() || !composeSubject.trim() || !composeBody.trim()) {
       toast({ title: "Missing fields", description: "Please fill in all fields.", variant: "destructive" });
       return;
     }
+
     setSending(true);
-    // TODO: integrate with real messaging API
-    await new Promise((r) => setTimeout(r, 800));
-    setSending(false);
-    setComposeTo("");
-    setComposeSubject("");
-    setComposeBody("");
-    toast({ title: "Message sent", description: "Your message has been sent successfully." });
+
+    try {
+      await messageService.sendMessage(token, {
+        to: composeTo.trim(),
+        subject: composeSubject.trim(),
+        content: composeBody.trim(),
+      });
+
+      const sentResponse = await messageService.getSent(token, search);
+      setSent(sentResponse.messages || []);
+      setComposeTo("");
+      setComposeSubject("");
+      setComposeBody("");
+      setRecipientSuggestions([]);
+      setActiveTab("sent");
+
+      toast({ title: "Message sent", description: "Your message has been sent successfully." });
+    } catch (error: any) {
+      toast({ title: "Send failed", description: error.message || "Unable to send message.", variant: "destructive" });
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const handleReply = () => {
+    if (!selected) return;
+    setComposeTo(selected.from);
+    setComposeSubject((prev) => {
+      const base = selected.subject || "";
+      if (prev.trim()) return prev;
+      return /^re:/i.test(base) ? base : `Re: ${base}`;
+    });
+    const composeCard = document.getElementById("compose-card");
+    composeCard?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
   return (
@@ -141,14 +195,14 @@ export default function Messages() {
             />
           </div>
 
-          <Tabs defaultValue="inbox">
+          <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "inbox" | "sent")}>
             <TabsList className="w-full">
               <TabsTrigger value="inbox" className="flex-1">
                 <Inbox className="h-4 w-4 mr-2" />
                 Inbox
-                {sampleInbox.filter((m) => !m.read).length > 0 && (
+                {unreadCount > 0 && (
                   <Badge variant="destructive" className="ml-2 text-[10px] px-1.5 py-0">
-                    {sampleInbox.filter((m) => !m.read).length}
+                    {unreadCount}
                   </Badge>
                 )}
               </TabsTrigger>
@@ -160,14 +214,16 @@ export default function Messages() {
 
             <TabsContent value="inbox" className="mt-2">
               <ScrollArea className="h-[400px]">
-                {filteredInbox.length === 0 ? (
+                {loading ? (
+                  <p className="text-center text-muted-foreground py-8 text-sm">Loading messages...</p>
+                ) : filteredInbox.length === 0 ? (
                   <p className="text-center text-muted-foreground py-8 text-sm">No messages found.</p>
                 ) : (
                   <div className="space-y-1">
                     {filteredInbox.map((msg) => (
                       <button
                         key={msg.id}
-                        onClick={() => setSelected(msg)}
+                        onClick={() => selectMessage(msg)}
                         className={cn(
                           "w-full text-left rounded-lg border p-3 transition-colors hover:bg-accent",
                           selected?.id === msg.id && "bg-accent",
@@ -198,14 +254,16 @@ export default function Messages() {
 
             <TabsContent value="sent" className="mt-2">
               <ScrollArea className="h-[400px]">
-                {filteredSent.length === 0 ? (
+                {loading ? (
+                  <p className="text-center text-muted-foreground py-8 text-sm">Loading messages...</p>
+                ) : filteredSent.length === 0 ? (
                   <p className="text-center text-muted-foreground py-8 text-sm">No sent messages.</p>
                 ) : (
                   <div className="space-y-1">
                     {filteredSent.map((msg) => (
                       <button
                         key={msg.id}
-                        onClick={() => setSelected(msg)}
+                        onClick={() => selectMessage(msg)}
                         className={cn(
                           "w-full text-left rounded-lg border p-3 transition-colors hover:bg-accent",
                           selected?.id === msg.id && "bg-accent"
@@ -244,9 +302,17 @@ export default function Messages() {
                       <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{formatDate(selected.date)}</span>
                     </CardDescription>
                   </div>
-                  <Button variant="outline" size="sm" onClick={() => setSelected(null)}>
-                    Close
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    {selectedFromInbox && (
+                      <Button variant="outline" size="sm" onClick={handleReply} className="gap-1">
+                        <Reply className="h-4 w-4" />
+                        Reply
+                      </Button>
+                    )}
+                    <Button variant="outline" size="sm" onClick={() => setSelected(null)}>
+                      Close
+                    </Button>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent>
@@ -263,7 +329,7 @@ export default function Messages() {
           )}
 
           {/* Compose */}
-          <Card>
+          <Card id="compose-card">
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
                 <Mail className="h-4 w-4" />
@@ -276,6 +342,23 @@ export default function Messages() {
                 value={composeTo}
                 onChange={(e) => setComposeTo(e.target.value)}
               />
+              {recipientSuggestions.length > 0 && (
+                <div className="border rounded-md p-2 text-xs space-y-1">
+                  {recipientSuggestions.map((recipient) => (
+                    <button
+                      key={recipient.id}
+                      type="button"
+                      className="w-full text-left px-2 py-1 rounded hover:bg-accent"
+                      onClick={() => {
+                        setComposeTo(recipient.email || recipient.username || recipient.label);
+                        setRecipientSuggestions([]);
+                      }}
+                    >
+                      {recipient.label}
+                    </button>
+                  ))}
+                </div>
+              )}
               <Input
                 placeholder="Subject"
                 value={composeSubject}

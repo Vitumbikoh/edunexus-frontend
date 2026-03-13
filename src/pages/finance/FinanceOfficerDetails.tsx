@@ -83,7 +83,7 @@ export default function FinanceOfficerDetails() {
             Back to Finance Officers
           </Button>
         </div>
-        <div className="text-center p-8 rounded-lg bg-red-50 border border-red-200 text-red-700">
+        <div className="text-center p-8 rounded-lg bg-transparent border border-red-300 text-red-700">
           {error || 'Finance officer not found'}
         </div>
       </div>

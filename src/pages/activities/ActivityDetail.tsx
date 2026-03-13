@@ -135,7 +135,7 @@ const ActivityDetail: React.FC = () => {
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen text-center space-y-4">
-        <div className="p-4 bg-red-100 dark:bg-red-900/30 rounded-full">
+        <div className="p-4 bg-red-100 dark:bg-transparent dark:border dark:border-border rounded-full">
           <AlertTriangle className="h-8 w-8 text-red-600 dark:text-red-400" />
         </div>
         <div>
@@ -232,7 +232,7 @@ const ActivityDetail: React.FC = () => {
             <div className="flex items-center space-x-4 p-4 bg-white dark:bg-card/80 rounded-lg border border-gray-200 dark:border-border">
               <Avatar className="h-12 w-12 ring-2 ring-gray-200 dark:ring-gray-700">
                 <AvatarImage src="" alt={activity.performedBy.name || activity.performedBy.username || activity.performedBy.email} />
-                <AvatarFallback className="bg-gradient-to-br from-blue-100 to-blue-200 dark:from-blue-900 dark:to-blue-800 text-blue-700 dark:text-blue-300 font-semibold">
+                <AvatarFallback className="bg-gradient-to-br from-blue-100 to-blue-200 dark:from-transparent dark:to-transparent dark:bg-transparent dark:border dark:border-border text-blue-700 dark:text-blue-300 font-semibold">
                   {getInitials(activity.performedBy.name || activity.performedBy.username || activity.performedBy.email || 'System')}
                 </AvatarFallback>
               </Avatar>
@@ -345,7 +345,7 @@ const ActivityDetail: React.FC = () => {
                 <FileText className="h-5 w-5" />
                 Description
               </h3>
-              <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+              <div className="p-4 bg-blue-50 dark:bg-transparent rounded-lg border border-blue-200 dark:border-border">
                 <p className="text-gray-700 dark:text-gray-300">{activity.metadata.description}</p>
               </div>
             </div>
@@ -358,7 +358,7 @@ const ActivityDetail: React.FC = () => {
                 <AlertTriangle className="h-5 w-5" />
                 Error Message
               </h3>
-              <div className="p-4 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
+              <div className="p-4 bg-red-50 dark:bg-transparent rounded-lg border border-red-200 dark:border-border">
                 <p className="text-red-800 dark:text-red-300 whitespace-pre-wrap">{activity.metadata.errorMessage}</p>
               </div>
             </div>
@@ -402,7 +402,7 @@ const ActivityDetail: React.FC = () => {
                 <AlertTriangle className="h-5 w-5" />
                 Stack Trace
               </h3>
-              <div className="p-4 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800 max-h-96 overflow-y-auto">
+              <div className="p-4 bg-red-50 dark:bg-transparent rounded-lg border border-red-200 dark:border-border max-h-96 overflow-y-auto">
                 <pre className="text-xs text-red-800 dark:text-red-300 whitespace-pre-wrap">{activity.metadata.stackTrace}</pre>
               </div>
             </div>

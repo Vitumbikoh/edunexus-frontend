@@ -782,7 +782,7 @@ export default function PaymentForm() {
       </div>
 
       {apiError && (
-        <div className="p-4 mb-4 text-sm text-red-700 bg-red-100 rounded-lg">
+        <div className="p-4 mb-4 text-sm text-red-700 bg-transparent border border-red-300 rounded-lg">
           {apiError}
         </div>
       )}
@@ -974,7 +974,7 @@ export default function PaymentForm() {
               {allocateNow && (
                 <div className="space-y-3">
                   {outstandingTermsData.size > 0 && (
-                    <div className="text-sm text-blue-600 bg-blue-50 border border-blue-200 rounded-md p-3">
+                    <div className="text-sm text-blue-600 bg-transparent border border-blue-300 rounded-md p-3">
                       ℹ️ System automatically loaded {outstandingTermsData.size} term(s) with outstanding balances. Amounts are pre-filled with outstanding amounts.
                     </div>
                   )}
@@ -1055,7 +1055,7 @@ export default function PaymentForm() {
                     </p>
                   </div>
 
-                  <div className={`rounded-md border p-3 text-sm ${allocationOverrun ? 'border-red-300 bg-red-50' : 'border-muted bg-muted/20'}`}>
+                  <div className={`rounded-md border p-3 text-sm ${allocationOverrun ? 'border-red-300 bg-transparent' : 'border-muted bg-muted/20'}`}>
                     <div className="flex flex-wrap gap-4">
                       <div><span className="text-muted-foreground">Payment:</span> MK {Number(amountValue || 0).toLocaleString()}</div>
                       <div><span className="text-muted-foreground">Allocated:</span> MK {Number(allocationTotal || 0).toLocaleString()}</div>

@@ -142,9 +142,9 @@ export default function PayComponents() {
   };
 
   const typeColors = {
-    BASIC: 'bg-blue-100 text-blue-800',
-    ALLOWANCE: 'bg-green-100 text-green-800',
-    DEDUCTION: 'bg-red-100 text-red-800',
+    BASIC: 'bg-transparent border border-blue-300 text-blue-700',
+    ALLOWANCE: 'bg-transparent border border-green-300 text-green-700',
+    DEDUCTION: 'bg-transparent border border-red-300 text-red-700',
     EMPLOYER_CONTRIBUTION: 'bg-purple-100 text-purple-800',
   };
 

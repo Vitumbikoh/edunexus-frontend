@@ -179,10 +179,10 @@ export default function FinanceApprovals() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'Approved': return 'bg-green-100 text-green-800';
-      case 'Rejected': return 'bg-red-100 text-red-800';
+      case 'Approved': return 'bg-transparent border border-green-300 text-green-700';
+      case 'Rejected': return 'bg-transparent border border-red-300 text-red-700';
       case 'Pending': return 'bg-yellow-100 text-yellow-800';
-      case 'Department Approved': case 'Finance Review': case 'Principal Approved': return 'bg-blue-100 text-blue-800';
+      case 'Department Approved': case 'Finance Review': case 'Principal Approved': return 'bg-transparent border border-blue-300 text-blue-700';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
@@ -422,7 +422,7 @@ export default function FinanceApprovals() {
                               <span className="text-xs font-medium">{step.label}</span>
                             </div>
                             {index < getApprovalSteps(expense.status || 'Pending', expense.approvalLevel || 0).length - 1 && (
-                              <div className={`flex-1 h-0.5 ${step.completed ? 'bg-green-600' : 'bg-gray-300'}`} />
+                              <div className={step.completed ? 'flex-1 border-t-2 border-green-600' : 'flex-1 border-t border-gray-300'} />
                             )}
                           </React.Fragment>
                         ))}
@@ -462,7 +462,7 @@ export default function FinanceApprovals() {
                           </Button>
                         </>
                       ) : String(user?.role).toUpperCase() === 'ADMIN' ? (
-                        <div className="text-sm text-muted-foreground px-3 py-2 bg-green-50 rounded text-green-700">
+                        <div className="text-sm text-muted-foreground px-3 py-2 bg-transparent border border-green-300 rounded text-green-700">
                           ✓ Expense {expense.status?.toLowerCase() || 'processed'}
                         </div>
                       ) : (

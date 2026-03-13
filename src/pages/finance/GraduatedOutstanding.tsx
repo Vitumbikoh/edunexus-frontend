@@ -391,7 +391,7 @@ export default function GraduatedOutstanding() {
                           </TableCell>
                           <TableCell>
                             {term.outstanding === 0 ? (
-                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-transparent border border-green-300 text-green-700">
                                 Paid
                               </span>
                             ) : term.totalPaid > 0 ? (
@@ -399,7 +399,7 @@ export default function GraduatedOutstanding() {
                                 Partial
                               </span>
                             ) : (
-                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-transparent border border-red-300 text-red-700">
                                 Unpaid
                               </span>
                             )}

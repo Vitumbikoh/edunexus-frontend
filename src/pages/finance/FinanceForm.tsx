@@ -269,7 +269,7 @@ export default function FinanceForm() {
       </div>
 
       {apiError && (
-        <div className="p-4 mb-4 text-sm text-red-700 bg-red-100 rounded-lg">
+        <div className="p-4 mb-4 text-sm text-red-700 bg-transparent border border-red-300 rounded-lg">
           {apiError}
         </div>
       )}

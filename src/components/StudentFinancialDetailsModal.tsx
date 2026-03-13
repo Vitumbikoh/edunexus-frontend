@@ -594,7 +594,7 @@ export function StudentFinancialDetailsModal({
                                   transaction.notes && transaction.notes.includes('[HISTORICAL TERM');
                                 
                                 return (
-                                  <TableRow key={transaction.id} className={isHistoricalCredit ? 'bg-blue-50 dark:bg-blue-950/20' : ''}>
+                                  <TableRow key={transaction.id} className={isHistoricalCredit ? 'bg-blue-50 dark:bg-transparent dark:border-y dark:border-border' : ''}>
                                     <TableCell>{formatDate(transaction.paymentDate)}</TableCell>
                                     <TableCell className="font-semibold">
                                       {formatCurrency(transaction.amount, getDefaultCurrency())}
@@ -645,8 +645,8 @@ export function StudentFinancialDetailsModal({
                     <CardContent>
                       {details.historicalData.length > 0 ? (
                         <>
-                          <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-md">
-                            <p className="text-sm text-blue-800 dark:text-blue-200">
+                          <div className="mb-4 p-3 bg-blue-50 dark:bg-transparent border border-blue-200 dark:border-border rounded-md">
+                            <p className="text-sm text-blue-800 dark:text-blue-300">
                               <strong>Note:</strong> Historical records are created when terms are formally closed or when credit balances are applied to past term fees.
                               Check the Transaction History tab for detailed payment information.
                             </p>
