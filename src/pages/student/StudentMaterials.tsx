@@ -257,6 +257,10 @@ export default function StudentMaterials() {
   };
 
   if (loading) {
+    const isMobilePhone = typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches;
+    if (isMobilePhone) {
+      return <div className="py-8 text-center text-muted-foreground">Loading materials...</div>;
+    }
     return <PagePreloader text="Loading materials..." />;
   }
 

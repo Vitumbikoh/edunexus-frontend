@@ -342,7 +342,7 @@ export default function Transactions() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'Completed': return 'bg-transparent text-green-700 border-green-300';
-      case 'Pending': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'Pending': return 'bg-transparent text-yellow-700 border-yellow-300';
       case 'Processed': return 'bg-transparent text-blue-700 border-blue-300';
       default: return 'bg-gray-100 text-gray-800 border-gray-200';
     }
@@ -449,7 +449,7 @@ export default function Transactions() {
           </div>
 
           {calendarWarning && (
-            <div className="mb-3 p-2 rounded bg-yellow-50 border border-yellow-200 text-yellow-800 text-sm">
+            <div className="mb-3 p-2 rounded bg-transparent border border-yellow-300 text-yellow-700 text-sm">
               {calendarWarning}
             </div>
           )}

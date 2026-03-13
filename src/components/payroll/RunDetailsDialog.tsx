@@ -106,7 +106,7 @@ export default function RunDetailsDialog({ run, open, onOpenChange, onRunUpdated
   const statusColors = {
     DRAFT: 'bg-gray-100 text-gray-800',
     PREPARED: 'bg-transparent border border-blue-300 text-blue-700',
-    SUBMITTED: 'bg-yellow-100 text-yellow-800',
+    SUBMITTED: 'bg-transparent border border-yellow-300 text-yellow-700',
     APPROVED: 'bg-transparent border border-green-300 text-green-700',
     REJECTED: 'bg-transparent border border-red-300 text-red-700',
     FINALIZED: 'bg-purple-100 text-purple-800',

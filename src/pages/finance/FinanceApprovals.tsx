@@ -181,7 +181,7 @@ export default function FinanceApprovals() {
     switch (status) {
       case 'Approved': return 'bg-transparent border border-green-300 text-green-700';
       case 'Rejected': return 'bg-transparent border border-red-300 text-red-700';
-      case 'Pending': return 'bg-yellow-100 text-yellow-800';
+      case 'Pending': return 'bg-transparent border border-yellow-300 text-yellow-700';
       case 'Department Approved': case 'Finance Review': case 'Principal Approved': return 'bg-transparent border border-blue-300 text-blue-700';
       default: return 'bg-gray-100 text-gray-800';
     }

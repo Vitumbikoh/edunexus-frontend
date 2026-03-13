@@ -327,7 +327,7 @@ export default function GradingFormat() {
   const getGradeBadgeColor = (grade: string) => {
     if (grade.includes('A')) return 'bg-transparent border border-green-300 text-green-700';
     if (grade.includes('B')) return 'bg-transparent border border-blue-300 text-blue-700';
-    if (grade.includes('C')) return 'bg-yellow-100 text-yellow-800';
+    if (grade.includes('C')) return 'bg-transparent border border-yellow-300 text-yellow-700';
     if (grade.includes('D')) return 'bg-orange-100 text-orange-800';
     if (grade.includes('F')) return 'bg-transparent border border-red-300 text-red-700';
     return 'bg-gray-100 text-gray-800';

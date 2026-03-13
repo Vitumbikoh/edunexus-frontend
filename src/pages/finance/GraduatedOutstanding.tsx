@@ -395,7 +395,7 @@ export default function GraduatedOutstanding() {
                                 Paid
                               </span>
                             ) : term.totalPaid > 0 ? (
-                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-transparent border border-yellow-300 text-yellow-700">
                                 Partial
                               </span>
                             ) : (
@@ -485,8 +485,8 @@ export default function GraduatedOutstanding() {
                 disabled={processingPayment}
               />
             </div>
-            <div className="bg-yellow-50 border border-yellow-200 rounded-md p-3">
-              <p className="text-sm text-yellow-800">
+            <div className="bg-transparent border border-yellow-300 rounded-md p-3">
+              <p className="text-sm text-yellow-700">
                 <strong>Note:</strong> This payment will only be applied to historical outstanding balances. Graduated students are not charged current term fees.
               </p>
             </div>

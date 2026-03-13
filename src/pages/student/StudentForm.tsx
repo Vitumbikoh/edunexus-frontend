@@ -288,6 +288,10 @@ export default function StudentForm() {
   };
 
   if (isLoadingStudent) {
+    const isMobilePhone = typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches;
+    if (isMobilePhone) {
+      return <div className="py-8 text-center text-muted-foreground">Loading student details...</div>;
+    }
     return <PagePreloader text="Loading student details..." />;
   }
 

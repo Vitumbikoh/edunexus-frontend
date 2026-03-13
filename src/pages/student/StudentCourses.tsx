@@ -318,6 +318,10 @@ export default function StudentCourses() {
   };
 
   if (loading) {
+    const isMobilePhone = typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches;
+    if (isMobilePhone) {
+      return <div className="py-8 text-center text-muted-foreground">Loading courses...</div>;
+    }
     return <PagePreloader text="Loading courses..." />;
   }
 

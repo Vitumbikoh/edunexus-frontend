@@ -959,7 +959,7 @@ export default function PaymentForm() {
 
             {/* Validation warning placed below the main inputs */}
             {validationWarning && (
-              <div className="p-3 mt-2 text-sm text-yellow-700 bg-yellow-100 rounded-lg flex items-start gap-2">
+              <div className="p-3 mt-2 text-sm text-yellow-700 bg-transparent border border-yellow-300 rounded-lg flex items-start gap-2">
                 <AlertTriangle className="h-5 w-5 flex-shrink-0 mt-0.5" />
                 <div>{validationWarning}</div>
               </div>

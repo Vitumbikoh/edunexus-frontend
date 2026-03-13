@@ -403,7 +403,7 @@ export default function ExpenseManagement() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'Approved': case 'Paid': return 'bg-transparent text-green-700 border-green-300';
-      case 'Pending': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'Pending': return 'bg-transparent text-yellow-700 border-yellow-300';
       case 'Department Approved': case 'Finance Review': case 'Principal Approved': return 'bg-transparent text-blue-700 border-blue-300';
       case 'Board Review': return 'bg-purple-100 text-purple-800 border-purple-200';
       case 'Rejected': return 'bg-transparent text-red-700 border-red-300';
@@ -716,7 +716,7 @@ export default function ExpenseManagement() {
                               <div className="font-medium text-sm flex items-center gap-1 flex-wrap">
                                 {expense.title}
                                 {expense.isBillingInvoice && (
-                                  <span className="text-xs bg-amber-100 text-amber-800 border border-amber-300 rounded px-1 py-0.5 font-semibold whitespace-nowrap">Invoice</span>
+                                  <span className="text-xs bg-transparent text-amber-800 border border-amber-300 rounded px-1 py-0.5 font-semibold whitespace-nowrap">Invoice</span>
                                 )}
                               </div>
                               <div className="text-xs text-muted-foreground mt-0.5">{expense.category}</div>
@@ -1095,7 +1095,7 @@ function ExpenseForm({ onClose, onSuccess }: { onClose: () => void; onSuccess?: 
                         <div className="flex items-center gap-2">
                           <div className={`w-2 h-2 rounded-full ${
                             priority === 'High' ? 'border border-red-500 bg-transparent' :
-                            priority === 'Medium' ? 'bg-yellow-500' : 'border border-green-500 bg-transparent'
+                            priority === 'Medium' ? 'border border-yellow-500 bg-transparent' : 'border border-green-500 bg-transparent'
                           }`} />
                           {priority}
                         </div>
@@ -1414,7 +1414,7 @@ function ExpenseAnalytics({ expenses, analyticsData }: { expenses: Expense[], an
                     <div className={`w-3 h-3 rounded-full ${
                       item.status === 'Approved' || item.status === 'Paid' ? 'border border-green-500 bg-transparent' :
                       item.status === 'Rejected' ? 'border border-red-500 bg-transparent' :
-                      'bg-yellow-500'
+                      'border border-yellow-500 bg-transparent'
                     }`} />
                     <span className="text-sm font-medium">{item.status}</span>
                   </div>
@@ -1509,7 +1509,7 @@ function ExpenseAnalytics({ expenses, analyticsData }: { expenses: Expense[], an
               </p>
             </div>
             
-            <div className="p-4 bg-yellow-50 rounded-lg">
+            <div className="p-4 bg-transparent border border-yellow-300 rounded-lg">
               <AlertTriangle className="h-6 w-6 text-yellow-600 mb-2" />
               <h4 className="font-semibold text-yellow-900">Attention Needed</h4>
               <p className="text-sm text-yellow-700">
@@ -1597,7 +1597,7 @@ function ExpenseApprovals({
                       <div className="flex items-center gap-2 flex-wrap">
                         <h3 className="font-semibold text-lg">{expense.title || 'Untitled Expense'}</h3>
                         {expense.isBillingInvoice && (
-                          <Badge className="bg-amber-100 text-amber-800 border border-amber-300 text-xs font-semibold">
+                          <Badge className="bg-transparent text-amber-800 border border-amber-300 text-xs font-semibold">
                             📄 edunexus Invoice
                           </Badge>
                         )}

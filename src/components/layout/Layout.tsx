@@ -17,11 +17,11 @@ export default function Layout({ children }: LayoutProps) {
   const { user } = useAuth();
   const [isMobile, setIsMobile] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false;
-    return window.matchMedia('(max-width: 1279px)').matches; // include larger tablets
+    return window.matchMedia('(max-width: 767px)').matches;
   });
 
   useEffect(() => {
-    const mq = window.matchMedia('(max-width: 1279px)');
+    const mq = window.matchMedia('(max-width: 767px)');
     const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
     // Set initial on mount
     setIsMobile(mq.matches);
@@ -29,7 +29,7 @@ export default function Layout({ children }: LayoutProps) {
     return () => mq.removeEventListener('change', handler);
   }, []);
 
-  // Students: use mobile layout on small screens, desktop layout otherwise
+  // Students: keep the current mobile layout on phones only.
   if (user?.role === 'student' && isMobile) {
     return (
       <MobileStudentLayout>
