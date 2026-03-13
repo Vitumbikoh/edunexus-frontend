@@ -1,9 +1,9 @@
 // vite.config.ts
-import { defineConfig } from "file:///E:/Projects/Web%20Apps/Javascript/schomas/schomas-frontend/node_modules/vite/dist/node/index.js";
-import react from "file:///E:/Projects/Web%20Apps/Javascript/schomas/schomas-frontend/node_modules/@vitejs/plugin-react-swc/index.mjs";
+import { defineConfig } from "file:///E:/Projects/Web%20Apps/Javascript/edunexus/edunexus-frontend/node_modules/vite/dist/node/index.js";
+import react from "file:///E:/Projects/Web%20Apps/Javascript/edunexus/edunexus-frontend/node_modules/@vitejs/plugin-react-swc/index.mjs";
 import path from "path";
-import { componentTagger } from "file:///E:/Projects/Web%20Apps/Javascript/schomas/schomas-frontend/node_modules/lovable-tagger/dist/index.js";
-var __vite_injected_original_dirname = "E:\\Projects\\Web Apps\\Javascript\\schomas\\schomas-frontend";
+import { componentTagger } from "file:///E:/Projects/Web%20Apps/Javascript/edunexus/edunexus-frontend/node_modules/lovable-tagger/dist/index.js";
+var __vite_injected_original_dirname = "E:\\Projects\\Web Apps\\Javascript\\edunexus\\edunexus-frontend";
 var vite_config_default = defineConfig(({ mode }) => ({
   server: {
     host: "::",

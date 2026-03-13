@@ -1,7 +1,7 @@
 # Enhanced Schedule Module - Frontend Implementation
 
 ## Overview
-This document covers the frontend implementation of the professional Schedule Module for the Schomas School Management System. The implementation provides role-based interfaces, mobile-responsive design, and professional UI/UX features.
+This document covers the frontend implementation of the professional Schedule Module for the edunexus School Management System. The implementation provides role-based interfaces, mobile-responsive design, and professional UI/UX features.
 
 ## 🎯 Frontend Components Created
 

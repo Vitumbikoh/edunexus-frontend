@@ -549,12 +549,12 @@ export default function Sidebar() {
             <div className="rounded-lg w-8 h-8 flex items-center justify-center flex-shrink-0">
               <img
                 src="/polymilesicon.png"
-                alt="Schomas"
+                alt="edunexus"
                 className="w-8 h-8 rounded-lg object-contain"
               />
             </div>
             {isOpen && (
-              <span className="ml-3 font-semibold text-white dark:text-foreground">Schomas Portal</span>
+              <span className="ml-3 font-semibold text-white dark:text-foreground">edunexus Portal</span>
             )}
           </div>
           <Button

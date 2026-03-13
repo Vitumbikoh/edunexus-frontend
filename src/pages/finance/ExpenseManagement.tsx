@@ -104,7 +104,7 @@ interface Expense {
   approvedBy?: string;
   rejectionReason?: string;
   notes?: string;
-  /** True when this expense was auto-created from a Schomas billing invoice */
+  /** True when this expense was auto-created from a edunexus billing invoice */
   isBillingInvoice?: boolean;
   /** The BillingInvoice id this expense was created from */
   billingInvoiceId?: string | null;
@@ -1598,7 +1598,7 @@ function ExpenseApprovals({
                         <h3 className="font-semibold text-lg">{expense.title || 'Untitled Expense'}</h3>
                         {expense.isBillingInvoice && (
                           <Badge className="bg-amber-100 text-amber-800 border border-amber-300 text-xs font-semibold">
-                            📄 Schomas Invoice
+                            📄 edunexus Invoice
                           </Badge>
                         )}
                       </div>

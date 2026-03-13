@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Schomas frontend has been redesigned to provide a mobile-first experience specifically targeted at students using smartphones. This implementation prioritizes touch interactions, optimized layouts, and smartphone-specific UI patterns.
+The edunexus frontend has been redesigned to provide a mobile-first experience specifically targeted at students using smartphones. This implementation prioritizes touch interactions, optimized layouts, and smartphone-specific UI patterns.
 
 ## Key Features
 
@@ -186,4 +186,4 @@ if (isStudent) {
 - **Feature Parity**: All desktop features available in mobile-optimized format
 - **Fallback**: Non-student users continue using desktop layout
 
-This mobile-first approach ensures that students have an optimal experience when accessing Schomas on their smartphones, which is their primary device for educational activities.
+This mobile-first approach ensures that students have an optimal experience when accessing edunexus on their smartphones, which is their primary device for educational activities.

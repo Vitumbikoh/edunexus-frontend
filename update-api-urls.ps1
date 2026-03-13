@@ -1,5 +1,5 @@
 # PowerShell script to replace hardcoded API URLs with centralized import
-# Run this from schomas-frontend directory: .\update-api-urls.ps1
+# Run this from edunexus-frontend directory: .\update-api-urls.ps1
 
 $srcDir = Join-Path $PSScriptRoot "src"
 $files = Get-ChildItem -Path $srcDir -Include *.ts,*.tsx,*.js,*.jsx -Recurse -File | 

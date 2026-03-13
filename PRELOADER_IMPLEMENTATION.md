@@ -1,7 +1,7 @@
 # Uniform Preloader Implementation
 
 ## Overview
-This document outlines the implementation of a uniform preloader system across the Schomas frontend application to maintain consistency in loading states.
+This document outlines the implementation of a uniform preloader system across the edunexus frontend application to maintain consistency in loading states.
 
 ## Components Created
 

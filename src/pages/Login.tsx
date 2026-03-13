@@ -225,7 +225,7 @@ export default function Login() {
           </CardContent>
           <CardFooter className="flex flex-col">
             <div className="text-sm text-muted-foreground text-center">
-              © {currentYear} Schomas School Management Portal. All rights reserved.
+              © {currentYear} EduNexus School Management Portal. All rights reserved.
             </div>
           </CardFooter>
         </Card>
@@ -238,9 +238,9 @@ export default function Login() {
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1 text-center">
           <div className="mx-auto mb-4 w-16 h-16 flex items-center justify-center">
-            <img src="/polymilesicon.png" alt="Schomas Portal Logo" className="w-16 h-16 object-contain" />
+            <img src="/polymilesicon.png" alt="EduNexus Portal Logo" className="w-16 h-16 object-contain" />
           </div>
-          <CardTitle className="text-2xl font-bold">Schomas Portal</CardTitle>
+          <CardTitle className="text-2xl font-bold">EduNexus Portal</CardTitle>
           <CardDescription>
             Enter your credentials to access your account
           </CardDescription>
@@ -295,7 +295,7 @@ export default function Login() {
         </CardContent>
         <CardFooter className="flex flex-col">
           <div className="text-sm text-muted-foreground text-center">
-            © {currentYear} Schomas School Management Portal. All rights reserved.
+            © {currentYear} EduNexus School Management Portal. All rights reserved.
           </div>
         </CardFooter>
       </Card>

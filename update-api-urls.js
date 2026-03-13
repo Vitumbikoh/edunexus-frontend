@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Script to replace all hardcoded API base URLs with centralized import
- * Run this script from the schomas-frontend directory
+ * Run this script from the edunexus-frontend directory
  */
 
 const fs = require('fs');

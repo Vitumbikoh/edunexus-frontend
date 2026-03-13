@@ -64,11 +64,11 @@ const getSchoolInfo = (apiSchoolInfo?: SchoolInfo) => {
   
   // Fallback to environment variables
   return {
-    name: (import.meta.env.VITE_SCHOOL_NAME as string) || 'Schomas School',
+    name: (import.meta.env.VITE_SCHOOL_NAME as string) || 'edunexus School',
     address: (import.meta.env.VITE_SCHOOL_ADDRESS as string) || '123 Academy Lane, City, Country',
     phone: (import.meta.env.VITE_SCHOOL_PHONE as string) || '+1 (555) 123-4567',
-    email: (import.meta.env.VITE_SCHOOL_EMAIL as string) || 'info@schomas.com',
-    website: (import.meta.env.VITE_SCHOOL_WEBSITE as string) || 'www.schomas.com',
+    email: (import.meta.env.VITE_SCHOOL_EMAIL as string) || 'info@edunexus.com',
+    website: (import.meta.env.VITE_SCHOOL_WEBSITE as string) || 'www.edunexus.com',
     logo: null,
   };
 };
