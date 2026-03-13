@@ -97,7 +97,7 @@ export const PullToRefresh: React.FC<PullToRefreshProps> = ({
       {showIndicator && (
         <div
           className={cn(
-            "absolute top-0 left-0 right-0 flex items-center justify-center bg-white dark:bg-gray-800 transition-transform duration-200 z-40 px-4",
+            "absolute top-0 left-0 right-0 flex items-center justify-center bg-white dark:bg-card transition-transform duration-200 z-40 px-4",
             isPulling || isRefreshing ? 'transform translate-y-0' : 'transform -translate-y-full'
           )}
           style={{

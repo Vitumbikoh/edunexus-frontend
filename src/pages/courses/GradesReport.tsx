@@ -321,7 +321,7 @@ const GradesReport: React.FC = () => {
                         <td className="px-3 py-2">{g.termName}</td>
                         <td className="px-3 py-2">{g.score ?? '-'}</td>
                         <td className="px-3 py-2">{g.grade ?? '-'}</td>
-                        <td className="px-3 py-2">{g.aggregated ? <span className="text-xs px-2 py-0.5 rounded bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">Yes</span>: ''}</td>
+                        <td className="px-3 py-2">{g.aggregated ? <span className="text-xs px-2 py-0.5 rounded bg-blue-100 text-blue-700 dark:bg-transparent dark:border dark:border-border dark:text-blue-300">Yes</span>: ''}</td>
                       </tr>
                     ))}
                   </tbody>

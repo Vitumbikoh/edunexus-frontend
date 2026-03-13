@@ -353,7 +353,7 @@ export default function FinanceReports() {
   );
 
   const categoryData = useMemo(() => {
-    const palette = ['#22c55e', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#84cc16'];
+    const palette = ['#7AA45D', '#1B88CE', '#F5A623', '#DC2626', '#6B7280', '#6B7280', '#6B7280'];
     const byType = data?.totals.totalByType || [];
     return byType.map((t, i) => ({ name: t.type?.toString()?.toUpperCase() || 'OTHER', value: t.amount, color: palette[i % palette.length] }));
   }, [data]);
@@ -801,8 +801,8 @@ export default function FinanceReports() {
                         <YAxis />
                         <Tooltip formatter={(value: number) => [`${currencySymbol}${Number(value || 0).toLocaleString()}`, '']} />
                         <Legend />
-                        {includeRevenue && <Line type="monotone" dataKey="revenue" stroke="#22c55e" name="Revenue" />}
-                        {includeExpenses && <Line type="monotone" dataKey="expenses" stroke="#ef4444" name="Expenses" />}
+                        {includeRevenue && <Line type="monotone" dataKey="revenue" stroke="#7AA45D" name="Revenue" />}
+                        {includeExpenses && <Line type="monotone" dataKey="expenses" stroke="#DC2626" name="Expenses" />}
                       </LineChart>
                     );
                   case 'area':
@@ -813,8 +813,8 @@ export default function FinanceReports() {
                         <YAxis />
                         <Tooltip formatter={(value: number) => [`${currencySymbol}${Number(value || 0).toLocaleString()}`, '']} />
                         <Legend />
-                        {includeRevenue && <Bar dataKey="revenue" fill="#86efac" name="Revenue" />}
-                        {includeExpenses && <Bar dataKey="expenses" fill="#fecaca" name="Expenses" />}
+                        {includeRevenue && <Bar dataKey="revenue" fill="#7AA45D" name="Revenue" />}
+                        {includeExpenses && <Bar dataKey="expenses" fill="#DC2626" name="Expenses" />}
                       </BarChart>
                     );
                   case 'pie':
@@ -844,8 +844,8 @@ export default function FinanceReports() {
                         <YAxis />
                         <Tooltip formatter={(value: number) => [formatCurrency(Number(value || 0), currency), '']} />
                         <Legend />
-                        {includeRevenue && <Bar dataKey="revenue" fill="#22c55e" name="Revenue" />}
-                        {includeExpenses && <Bar dataKey="expenses" fill="#ef4444" name="Expenses" />}
+                        {includeRevenue && <Bar dataKey="revenue" fill="#7AA45D" name="Revenue" />}
+                        {includeExpenses && <Bar dataKey="expenses" fill="#DC2626" name="Expenses" />}
                       </BarChart>
                     );
                 }
@@ -869,7 +869,7 @@ export default function FinanceReports() {
                   labelLine={false}
                   label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
                   outerRadius={80}
-                  fill="#8884d8"
+                  fill="#6B7280"
                   dataKey="value"
                 >
                   {categoryData.map((entry, index) => (
@@ -896,7 +896,7 @@ export default function FinanceReports() {
               <XAxis dataKey="month" />
               <YAxis />
               <Tooltip formatter={(value: number) => [formatCurrency(Number(value || 0), currency), 'Profit']} />
-              <Line type="monotone" dataKey="profit" stroke="#3b82f6" strokeWidth={2} />
+              <Line type="monotone" dataKey="profit" stroke="#1B88CE" strokeWidth={2} />
             </LineChart>
           </ResponsiveContainer>
         </CardContent>

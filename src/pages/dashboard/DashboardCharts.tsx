@@ -30,6 +30,11 @@ import { API_CONFIG } from '@/config/api';
 import { academicCalendarService } from '@/services/academicCalendarService';
 import { Preloader } from '@/components/ui/preloader';
 import { formatCurrency, getDefaultCurrency } from '@/lib/currency';
+import { getAdminDashboardPalette } from './adminPalette';
+
+const ADMIN_DASHBOARD_COLORS = getAdminDashboardPalette(
+  typeof document !== 'undefined' && document.documentElement.classList.contains('dark')
+);
 
 // Dynamic data fetching for charts
 const useChartData = (endpoint: string, defaultData: any[] = []) => {
@@ -112,9 +117,16 @@ export const financeData = [
   { month: 'Jun', income: 67000, expenses: 48000 },
 ];
 
-const COLORS = ['#0088FE', '#FFBB28', '#00C49F', '#FF8042', '#8884D8', '#82ca9d'];
-const PIE_COLORS = ['#10B981', '#F97316'];
-const ASSIGNMENT_COLORS = ['#f97316', '#3b82f6', '#10b981'];
+const COLORS = [
+  ADMIN_DASHBOARD_COLORS.blue,
+  ADMIN_DASHBOARD_COLORS.green,
+  ADMIN_DASHBOARD_COLORS.lightGrey,
+  ADMIN_DASHBOARD_COLORS.mediumGrey,
+  ADMIN_DASHBOARD_COLORS.greyBlue,
+  ADMIN_DASHBOARD_COLORS.greyGreen,
+];
+const PIE_COLORS = [ADMIN_DASHBOARD_COLORS.green, ADMIN_DASHBOARD_COLORS.blue];
+const ASSIGNMENT_COLORS = [ADMIN_DASHBOARD_COLORS.greyBlue, ADMIN_DASHBOARD_COLORS.blue, ADMIN_DASHBOARD_COLORS.green];
 
 // Dynamic Attendance Chart Component
 export const AttendanceChart = () => {
@@ -134,7 +146,7 @@ export const AttendanceChart = () => {
         <XAxis dataKey="name" />
         <YAxis />
         <Tooltip />
-        <Bar dataKey="value" fill="#8884d8" />
+        <Bar dataKey="value" fill="#6B7280" />
       </BarChart>
     </ResponsiveContainer>
   );
@@ -159,7 +171,7 @@ export const PerformanceChart = () => {
         <XAxis dataKey="name" />
         <YAxis />
         <Tooltip />
-        <Bar dataKey="average" fill="#82ca9d" />
+        <Bar dataKey="average" fill="#7AA45D" />
       </BarChart>
     </ResponsiveContainer>
   );
@@ -188,8 +200,8 @@ export const FinanceTrendChart = () => {
         <XAxis dataKey="month" />
         <YAxis />
         <Tooltip />
-        <Area type="monotone" dataKey="income" stackId="1" stroke="#8884d8" fill="#8884d8" />
-        <Area type="monotone" dataKey="expenses" stackId="1" stroke="#82ca9d" fill="#82ca9d" />
+        <Area type="monotone" dataKey="income" stackId="1" stroke="#6B7280" fill="#6B7280" />
+        <Area type="monotone" dataKey="expenses" stackId="1" stroke="#7AA45D" fill="#7AA45D" />
       </AreaChart>
     </ResponsiveContainer>
   );
@@ -335,24 +347,24 @@ export const AttendanceOverview = ({ termId }: { termId?: string }) => {
         <defs>
           {/* Attendance-based gradients */}
           <linearGradient id="excellentAttendance" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#059669" stopOpacity={1} />
-            <stop offset="50%" stopColor="#10b981" stopOpacity={0.95} />
-            <stop offset="100%" stopColor="#34d399" stopOpacity={0.85} />
+            <stop offset="0%" stopColor={ADMIN_DASHBOARD_COLORS.green} stopOpacity={1} />
+            <stop offset="50%" stopColor={ADMIN_DASHBOARD_COLORS.green} stopOpacity={0.9} />
+            <stop offset="100%" stopColor={ADMIN_DASHBOARD_COLORS.greyGreen} stopOpacity={0.8} />
           </linearGradient>
           <linearGradient id="goodAttendance" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#0284c7" stopOpacity={1} />
-            <stop offset="50%" stopColor="#0ea5e9" stopOpacity={0.95} />
-            <stop offset="100%" stopColor="#38bdf8" stopOpacity={0.85} />
+            <stop offset="0%" stopColor={ADMIN_DASHBOARD_COLORS.blue} stopOpacity={1} />
+            <stop offset="50%" stopColor={ADMIN_DASHBOARD_COLORS.blue} stopOpacity={0.9} />
+            <stop offset="100%" stopColor={ADMIN_DASHBOARD_COLORS.greyBlue} stopOpacity={0.8} />
           </linearGradient>
           <linearGradient id="improvementAttendance" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#d97706" stopOpacity={1} />
-            <stop offset="50%" stopColor="#f59e0b" stopOpacity={0.95} />
-            <stop offset="100%" stopColor="#fbbf24" stopOpacity={0.85} />
+            <stop offset="0%" stopColor={ADMIN_DASHBOARD_COLORS.greyBlue} stopOpacity={1} />
+            <stop offset="50%" stopColor={ADMIN_DASHBOARD_COLORS.mediumGrey} stopOpacity={0.9} />
+            <stop offset="100%" stopColor={ADMIN_DASHBOARD_COLORS.lightGrey} stopOpacity={0.8} />
           </linearGradient>
           <linearGradient id="poorAttendance" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#dc2626" stopOpacity={1} />
-            <stop offset="50%" stopColor="#ef4444" stopOpacity={0.95} />
-            <stop offset="100%" stopColor="#f87171" stopOpacity={0.85} />
+            <stop offset="0%" stopColor={ADMIN_DASHBOARD_COLORS.red} stopOpacity={1} />
+            <stop offset="50%" stopColor={ADMIN_DASHBOARD_COLORS.red} stopOpacity={0.9} />
+            <stop offset="100%" stopColor={ADMIN_DASHBOARD_COLORS.lightGrey} stopOpacity={0.8} />
           </linearGradient>
           
           {/* Professional shadow filter */}
@@ -363,7 +375,7 @@ export const AttendanceOverview = ({ termId }: { termId?: string }) => {
         
         <CartesianGrid 
           strokeDasharray="3 3" 
-          stroke="#e5e7eb" 
+          stroke="#B0B4B3" 
           strokeOpacity={0.4}
           vertical={false}
         />
@@ -371,8 +383,8 @@ export const AttendanceOverview = ({ termId }: { termId?: string }) => {
         <XAxis
           dataKey="name"
           tick={{ fontSize: 11, fontWeight: 500, fill: '#6b7280' }}
-          axisLine={{ stroke: '#d1d5db', strokeWidth: 1 }}
-          tickLine={{ stroke: '#d1d5db' }}
+          axisLine={{ stroke: '#B0B4B3', strokeWidth: 1 }}
+          tickLine={{ stroke: '#B0B4B3' }}
           angle={-45}
           textAnchor="end"
           height={60}
@@ -380,13 +392,13 @@ export const AttendanceOverview = ({ termId }: { termId?: string }) => {
         <YAxis
           domain={[0, 100]}
           tick={{ fontSize: 11, fontWeight: 500, fill: '#6b7280' }}
-          axisLine={{ stroke: '#d1d5db', strokeWidth: 1 }}
-          tickLine={{ stroke: '#d1d5db' }}
+          axisLine={{ stroke: '#B0B4B3', strokeWidth: 1 }}
+          tickLine={{ stroke: '#B0B4B3' }}
           label={{ 
             value: 'Attendance Rate (%)', 
             angle: -90, 
             position: 'insideLeft',
-            style: { textAnchor: 'middle', fontSize: '12px', fontWeight: '600', fill: '#4b5563' }
+            style: { textAnchor: 'middle', fontSize: '12px', fontWeight: '600', fill: '#6B7280' }
           }}
         />
         <Tooltip
@@ -403,11 +415,11 @@ export const AttendanceOverview = ({ termId }: { termId?: string }) => {
             padding: '12px 16px'
           }}
           itemStyle={{ 
-            color: '#374151',
+            color: '#6B7280',
             fontWeight: '600'
           }}
           labelStyle={{ 
-            color: '#1f2937',
+            color: '#111827',
             fontWeight: '700',
             marginBottom: '6px'
           }}
@@ -415,7 +427,7 @@ export const AttendanceOverview = ({ termId }: { termId?: string }) => {
         <Bar
           dataKey="attendanceRate"
           radius={[8, 8, 0, 0]}
-          stroke="#ffffff"
+          stroke="#FFFFFF"
           strokeWidth={1}
           style={{ filter: "url(#attendanceBarShadow)" }}
           className="transition-all duration-300 hover:opacity-80"
@@ -442,7 +454,7 @@ export const AttendanceOverview = ({ termId }: { termId?: string }) => {
             style={{ 
               fontSize: '11px', 
               fontWeight: '600',
-              fill: '#374151'
+              fill: '#6B7280'
             }}
           />
         </Bar>
@@ -450,19 +462,19 @@ export const AttendanceOverview = ({ termId }: { termId?: string }) => {
         {/* Attendance threshold lines - updated for professional styling */}
         <ReferenceLine 
           y={90} 
-          stroke="#059669" 
+          stroke={ADMIN_DASHBOARD_COLORS.green} 
           strokeDasharray="4 4" 
           strokeOpacity={0.6}
         />
         <ReferenceLine 
           y={80} 
-          stroke="#0284c7" 
+          stroke={ADMIN_DASHBOARD_COLORS.blue} 
           strokeDasharray="4 4" 
           strokeOpacity={0.6}
         />
         <ReferenceLine 
           y={70} 
-          stroke="#d97706" 
+          stroke={ADMIN_DASHBOARD_COLORS.greyBlue} 
           strokeDasharray="4 4" 
           strokeOpacity={0.6}
         />
@@ -612,20 +624,20 @@ export const ClassPerformanceChart = ({ termId }: { termId?: string }) => {
         <defs>
           {/* Performance-based gradients */}
           <linearGradient id="excellentGradient" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#059669" stopOpacity={1} />
-            <stop offset="100%" stopColor="#10b981" stopOpacity={0.8} />
+            <stop offset="0%" stopColor={ADMIN_DASHBOARD_COLORS.green} stopOpacity={1} />
+            <stop offset="100%" stopColor={ADMIN_DASHBOARD_COLORS.greyGreen} stopOpacity={0.8} />
           </linearGradient>
           <linearGradient id="goodGradient" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#0ea5e9" stopOpacity={1} />
-            <stop offset="100%" stopColor="#38bdf8" stopOpacity={0.8} />
+            <stop offset="0%" stopColor={ADMIN_DASHBOARD_COLORS.blue} stopOpacity={1} />
+            <stop offset="100%" stopColor={ADMIN_DASHBOARD_COLORS.greyBlue} stopOpacity={0.8} />
           </linearGradient>
           <linearGradient id="averageGradient" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#f59e0b" stopOpacity={1} />
-            <stop offset="100%" stopColor="#fbbf24" stopOpacity={0.8} />
+            <stop offset="0%" stopColor={ADMIN_DASHBOARD_COLORS.greyBlue} stopOpacity={1} />
+            <stop offset="100%" stopColor={ADMIN_DASHBOARD_COLORS.mediumGrey} stopOpacity={0.8} />
           </linearGradient>
           <linearGradient id="improvementGradient" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#dc2626" stopOpacity={1} />
-            <stop offset="100%" stopColor="#ef4444" stopOpacity={0.8} />
+            <stop offset="0%" stopColor={ADMIN_DASHBOARD_COLORS.red} stopOpacity={1} />
+            <stop offset="100%" stopColor={ADMIN_DASHBOARD_COLORS.lightGrey} stopOpacity={0.8} />
           </linearGradient>
           
           {/* Shadow filter */}
@@ -653,7 +665,7 @@ export const ClassPerformanceChart = ({ termId }: { termId?: string }) => {
             value: 'Performance (%)', 
             angle: -90, 
             position: 'insideLeft',
-            style: { textAnchor: 'middle', fontSize: '12px', fontWeight: '600', fill: '#4b5563' }
+            style: { textAnchor: 'middle', fontSize: '12px', fontWeight: '600', fill: '#6B7280' }
           }}
         />
         <ChartTooltip 
@@ -682,7 +694,7 @@ export const ClassPerformanceChart = ({ termId }: { termId?: string }) => {
           dataKey="averageScore" 
           name="Average Score (%)" 
           radius={[6, 6, 0, 0]}
-          stroke="#ffffff"
+          stroke="#FFFFFF"
           strokeWidth={1}
           style={{ filter: "url(#barShadow)" }}
           className="transition-all duration-200 hover:opacity-80"
@@ -698,19 +710,19 @@ export const ClassPerformanceChart = ({ termId }: { termId?: string }) => {
         {/* Performance threshold lines */}
         <ReferenceLine 
           y={85} 
-          stroke="#059669" 
+          stroke={ADMIN_DASHBOARD_COLORS.green} 
           strokeDasharray="4 4" 
           strokeOpacity={0.6}
         />
         <ReferenceLine 
           y={75} 
-          stroke="#0ea5e9" 
+          stroke={ADMIN_DASHBOARD_COLORS.blue} 
           strokeDasharray="4 4" 
           strokeOpacity={0.6}
         />
         <ReferenceLine 
           y={65} 
-          stroke="#f59e0b" 
+          stroke={ADMIN_DASHBOARD_COLORS.greyBlue} 
           strokeDasharray="4 4" 
           strokeOpacity={0.6}
         />
@@ -917,14 +929,12 @@ export const FeeCollectionChart = ({ termId }: { termId?: string }) => {
   
   // Professional color palette for fee types
   const feeColors = [
-    '#3b82f6', // Blue
-    '#10b981', // Green
-    '#f59e0b', // Amber
-    '#8b5cf6', // Purple
-    '#ec4899', // Pink
-    '#06b6d4', // Cyan
-    '#f97316', // Orange
-    '#14b8a6', // Teal
+    ADMIN_DASHBOARD_COLORS.blue,
+    ADMIN_DASHBOARD_COLORS.green,
+    ADMIN_DASHBOARD_COLORS.greyBlue,
+    ADMIN_DASHBOARD_COLORS.greyGreen,
+    ADMIN_DASHBOARD_COLORS.mediumGrey,
+    ADMIN_DASHBOARD_COLORS.lightGrey,
   ];
 
   return (
@@ -961,7 +971,7 @@ export const FeeCollectionChart = ({ termId }: { termId?: string }) => {
           innerRadius={50}
           paddingAngle={2}
           strokeWidth={2}
-          stroke="#ffffff"
+          stroke="#FFFFFF"
           style={{ filter: "url(#dropshadow)" }}
         >
           {feeData.map((entry, index) => (
@@ -989,11 +999,11 @@ export const FeeCollectionChart = ({ termId }: { termId?: string }) => {
             padding: '10px 14px'
           }}
           itemStyle={{ 
-            color: '#374151',
+            color: '#6B7280',
             fontWeight: '600'
           }}
           labelStyle={{ 
-            color: '#1f2937',
+            color: '#111827',
             fontWeight: '700',
             marginBottom: '4px'
           }}
@@ -1013,7 +1023,7 @@ export const FeeCollectionChart = ({ termId }: { termId?: string }) => {
         />
         
         {/* Center text showing total */}
-        <text x="50%" y="50%" textAnchor="middle" dominantBaseline="middle" className="text-base font-bold fill-gray-700">
+        <text x="50%" y="50%" textAnchor="middle" dominantBaseline="middle" className="text-base font-bold" fill={ADMIN_DASHBOARD_COLORS.greyBlue}>
           <tspan x="50%" dy="-8" className="text-xs">Total</tspan>
           <tspan x="50%" dy="20" className="text-sm font-semibold">{formatCurrency(total, getDefaultCurrency())}</tspan>
         </text>
@@ -1025,7 +1035,7 @@ export const FeeCollectionChart = ({ termId }: { termId?: string }) => {
 export const FinanceOverviewChart = () => (
   <ChartContainer
     config={{
-      income: { theme: { light: "#1f2937", dark: "#1f2937" } },
+      income: { theme: { light: "#111827", dark: "#111827" } },
       expenses: { theme: { light: "#6b7280", dark: "#6b7280" } },
     }}
   >
@@ -1045,8 +1055,8 @@ export const FinanceOverviewChart = () => (
       <ChartTooltip 
         content={<ChartTooltipContent />}
         contentStyle={{
-          backgroundColor: '#ffffff',
-          border: '1px solid #e5e7eb',
+          backgroundColor: '#FFFFFF',
+          border: '1px solid #B0B4B3',
           borderRadius: '8px',
           boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
           fontSize: '14px'
@@ -1055,11 +1065,11 @@ export const FinanceOverviewChart = () => (
       <Line 
         type="monotone" 
         dataKey="income" 
-        stroke="#1f2937" 
+        stroke="#111827" 
         strokeWidth={3} 
         name="Income"
-        dot={{ fill: '#1f2937', strokeWidth: 2, r: 4 }}
-        activeDot={{ r: 6, stroke: '#1f2937', strokeWidth: 2, fill: '#ffffff' }}
+        dot={{ fill: '#111827', strokeWidth: 2, r: 4 }}
+        activeDot={{ r: 6, stroke: '#111827', strokeWidth: 2, fill: '#FFFFFF' }}
       />
       <Line 
         type="monotone" 
@@ -1068,7 +1078,7 @@ export const FinanceOverviewChart = () => (
         strokeWidth={3} 
         name="Expenses"
         dot={{ fill: '#6b7280', strokeWidth: 2, r: 4 }}
-        activeDot={{ r: 6, stroke: '#6b7280', strokeWidth: 2, fill: '#ffffff' }}
+        activeDot={{ r: 6, stroke: '#6b7280', strokeWidth: 2, fill: '#FFFFFF' }}
       />
     </LineChart>
   </ChartContainer>
@@ -1079,6 +1089,7 @@ export const ClassStudentsRatioChart = ({ termId }: { termId?: string }) => {
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
   const { token } = useAuth();
+  const isDarkMode = typeof document !== 'undefined' && document.documentElement.classList.contains('dark');
 
   const fetchClassData = async () => {
     try {
@@ -1184,10 +1195,10 @@ export const ClassStudentsRatioChart = ({ termId }: { termId?: string }) => {
         <defs>
           {/* Professional gradient for class enrollment */}
           <linearGradient id="enrollmentGradient" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#4338ca" stopOpacity={1} />
-            <stop offset="30%" stopColor="#6366f1" stopOpacity={0.95} />
-            <stop offset="70%" stopColor="#8b5cf6" stopOpacity={0.9} />
-            <stop offset="100%" stopColor="#a855f7" stopOpacity={0.85} />
+            <stop offset="0%" stopColor={ADMIN_DASHBOARD_COLORS.blue} stopOpacity={1} />
+            <stop offset="35%" stopColor={ADMIN_DASHBOARD_COLORS.greyBlue} stopOpacity={0.92} />
+            <stop offset="70%" stopColor={ADMIN_DASHBOARD_COLORS.mediumGrey} stopOpacity={0.88} />
+            <stop offset="100%" stopColor={ADMIN_DASHBOARD_COLORS.lightGrey} stopOpacity={0.82} />
           </linearGradient>
           
           {/* Premium shadow filter */}
@@ -1207,14 +1218,14 @@ export const ClassStudentsRatioChart = ({ termId }: { termId?: string }) => {
 
         <CartesianGrid 
           strokeDasharray="3 3" 
-          stroke="#e5e7eb" 
+          stroke="#B0B4B3" 
           strokeOpacity={0.3}
           vertical={false}
         />
         <XAxis
           dataKey="className"
-          axisLine={{ stroke: '#d1d5db', strokeWidth: 1 }}
-          tickLine={{ stroke: '#d1d5db' }}
+          axisLine={{ stroke: '#B0B4B3', strokeWidth: 1 }}
+          tickLine={{ stroke: '#B0B4B3' }}
           tick={{ fontSize: 11, fill: '#6b7280', fontWeight: 500 }}
           angle={-35}
           textAnchor="end"
@@ -1222,15 +1233,15 @@ export const ClassStudentsRatioChart = ({ termId }: { termId?: string }) => {
           interval={0}
         />
         <YAxis
-          axisLine={{ stroke: '#d1d5db', strokeWidth: 1 }}
-          tickLine={{ stroke: '#d1d5db' }}
+          axisLine={{ stroke: '#B0B4B3', strokeWidth: 1 }}
+          tickLine={{ stroke: '#B0B4B3' }}
           tick={{ fontSize: 11, fill: '#6b7280', fontWeight: 500 }}
           domain={[0, 'dataMax + 2']}
           label={{ 
             value: 'Student Count', 
             angle: -90, 
             position: 'insideLeft',
-            style: { textAnchor: 'middle', fontSize: '12px', fontWeight: '600', fill: '#4b5563' }
+            style: { textAnchor: 'middle', fontSize: '12px', fontWeight: '600', fill: '#6B7280' }
           }}
         />
         <Tooltip
@@ -1241,8 +1252,8 @@ export const ClassStudentsRatioChart = ({ termId }: { termId?: string }) => {
           ]}
           labelFormatter={(label) => `Class: ${label}`}
           contentStyle={{
-            backgroundColor: 'rgba(255, 255, 255, 0.98)',
-            border: 'none',
+            backgroundColor: isDarkMode ? 'rgba(17, 24, 39, 0.96)' : 'rgba(255, 255, 255, 0.98)',
+            border: `1px solid ${isDarkMode ? '#6B7280' : '#B0B4B3'}`,
             borderRadius: '12px',
             boxShadow: '0 10px 25px rgba(0, 0, 0, 0.15)',
             fontSize: '13px',
@@ -1251,11 +1262,11 @@ export const ClassStudentsRatioChart = ({ termId }: { termId?: string }) => {
             padding: '12px 16px'
           }}
           itemStyle={{ 
-            color: '#374151',
+            color: isDarkMode ? '#FFFFFF' : '#6B7280',
             fontWeight: '600'
           }}
           labelStyle={{ 
-            color: '#1f2937',
+            color: isDarkMode ? '#FFFFFF' : '#111827',
             fontWeight: '700',
             marginBottom: '6px'
           }}
@@ -1265,7 +1276,7 @@ export const ClassStudentsRatioChart = ({ termId }: { termId?: string }) => {
           fill="url(#enrollmentGradient)"
           name="Students"
           radius={[8, 8, 0, 0]}
-          stroke="#ffffff"
+          stroke="#FFFFFF"
           strokeWidth={1}
           style={{ filter: "url(#enrollmentShadow)" }}
           className="transition-all duration-300 hover:opacity-80"
@@ -1287,7 +1298,7 @@ export const ClassStudentsRatioChart = ({ termId }: { termId?: string }) => {
           position="top" 
           style={{ 
             fontSize: 10, 
-            fill: '#374151',
+            fill: '#6B7280',
             fontWeight: '600'
           }} 
         />
@@ -1295,7 +1306,7 @@ export const ClassStudentsRatioChart = ({ termId }: { termId?: string }) => {
         {/* Average enrollment line */}
         <ReferenceLine 
           y={Math.round(total / prepared.length)} 
-          stroke="#6366f1" 
+          stroke={ADMIN_DASHBOARD_COLORS.blue} 
           strokeDasharray="5 5" 
           strokeOpacity={0.7}
           strokeWidth={2}
@@ -1304,7 +1315,7 @@ export const ClassStudentsRatioChart = ({ termId }: { termId?: string }) => {
         {/* Class size thresholds */}
         <ReferenceLine 
           y={35} 
-          stroke="#f59e0b" 
+          stroke={ADMIN_DASHBOARD_COLORS.greyBlue} 
           strokeDasharray="3 3" 
           strokeOpacity={0.5}
         />
@@ -1316,7 +1327,7 @@ export const ClassStudentsRatioChart = ({ termId }: { termId?: string }) => {
           wrapperStyle={{
             fontSize: '12px',
             fontWeight: '500',
-            color: '#374151'
+            color: isDarkMode ? '#FFFFFF' : '#6B7280'
           }}
         />
       </BarChart>
@@ -1325,8 +1336,8 @@ export const ClassStudentsRatioChart = ({ termId }: { termId?: string }) => {
 };export const StudentPerformanceChart = ({ data }: { data: any[] }) => (
   <ChartContainer
     config={{
-      score: { theme: { light: "#7c3aed", dark: "#7c3aed" } },
-      average: { theme: { light: "#94a3b8", dark: "#94a3b8" } },
+      score: { theme: { light: "#6B7280", dark: "#6B7280" } },
+      average: { theme: { light: "#6B7280", dark: "#6B7280" } },
     }}
   >
     <BarChart
@@ -1351,7 +1362,7 @@ export const AssignmentStatusChart = ({ data }: { data: any[] }) => (
         cy="50%"
         innerRadius={60}
         outerRadius={80}
-        fill="#8884d8"
+        fill="#6B7280"
         paddingAngle={5}
         dataKey="value"
         label={({name, percent}) => `${name} ${(percent * 100).toFixed(0)}%`}
@@ -1473,15 +1484,15 @@ export const StudentAttendanceTrendChart = () => {
         />
         <Tooltip 
           formatter={(value: number) => [`${value}%`, 'Attendance Rate']}
-          labelStyle={{ color: '#374151' }}
+          labelStyle={{ color: '#6B7280' }}
         />
         <Line 
           type="monotone" 
           dataKey="attendanceRate" 
-          stroke="#10b981" 
+          stroke="#7AA45D" 
           strokeWidth={3}
-          dot={{ fill: '#10b981', strokeWidth: 2, r: 4 }}
-          activeDot={{ r: 6, stroke: '#10b981', strokeWidth: 2 }}
+          dot={{ fill: '#7AA45D', strokeWidth: 2, r: 4 }}
+          activeDot={{ r: 6, stroke: '#7AA45D', strokeWidth: 2 }}
         />
       </LineChart>
     </ResponsiveContainer>
@@ -1607,7 +1618,7 @@ export const StudentGradeTrendChart = ({
   }
 
   const subjects = gradeData.length > 0 ? Object.keys(gradeData[0]).filter(key => key !== 'month') : [];
-  const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
+  const colors = ['#1B88CE', '#7AA45D', '#F5A623', '#DC2626', '#6B7280', '#6B7280'];
 
   return (
     <ResponsiveContainer width="100%" height="100%">
@@ -1625,7 +1636,7 @@ export const StudentGradeTrendChart = ({
         />
         <Tooltip 
           formatter={(value: number, name: string) => [`${value}%`, name]}
-          labelStyle={{ color: '#374151' }}
+          labelStyle={{ color: '#6B7280' }}
         />
         <Legend />
         {subjects.map((subject, index) => (

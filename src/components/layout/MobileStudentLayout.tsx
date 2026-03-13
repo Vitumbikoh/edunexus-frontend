@@ -109,9 +109,9 @@ export default function MobileStudentLayout({ children }: MobileStudentLayoutPro
   if (!user) return null;
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 mobile-student-layout">
+    <div className="min-h-screen bg-gray-50 dark:bg-card mobile-student-layout">
       {/* Mobile Header */}
-      <header className="sticky top-0 z-50 w-full border-b bg-white dark:bg-gray-800 shadow-sm">
+      <header className="sticky top-0 z-50 w-full border-b bg-white dark:bg-card shadow-sm">
         <div className="flex h-16 items-center justify-between px-4">
           {/* Menu Button & Title */}
           <div className="flex items-center space-x-3">
@@ -172,7 +172,7 @@ export default function MobileStudentLayout({ children }: MobileStudentLayoutPro
                             className={cn(
                               "flex items-center space-x-3 rounded-lg px-3 py-3 text-sm font-medium",
                               isActive
-                                ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
+                                ? "bg-blue-100 text-blue-700 dark:bg-transparent dark:border dark:border-border dark:text-blue-300"
                                 : "text-gray-700 dark:text-gray-300"
                             )}
                             style={{ transition: 'none' }}
@@ -270,7 +270,7 @@ export default function MobileStudentLayout({ children }: MobileStudentLayoutPro
       </main>
 
       {/* Bottom Navigation for Quick Access */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 xl:hidden">
+      <div className="fixed bottom-0 left-0 right-0 z-40 bg-white dark:bg-card border-t border-gray-200 dark:border-border xl:hidden">
         <div className="grid grid-cols-4 gap-2 py-3">
           {studentNavItems.slice(0, 4).map((item) => {
             const Icon = item.icon;

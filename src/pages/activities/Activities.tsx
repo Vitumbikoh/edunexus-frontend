@@ -114,12 +114,12 @@ export default function Activities() {
 
   const getRoleBadgeColor = (role: string) => {
     const lowerRole = role.toLowerCase();
-    if (lowerRole === 'admin') return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300';
-    if (lowerRole === 'teacher') return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300';
-    if (lowerRole === 'student') return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300';
-    if (lowerRole === 'parent') return 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300';
-    if (lowerRole === 'finance') return 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300';
-    return 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-300';
+    if (lowerRole === 'admin') return 'bg-red-100 text-red-700 dark:bg-transparent dark:border dark:border-border dark:text-red-300';
+    if (lowerRole === 'teacher') return 'bg-blue-100 text-blue-700 dark:bg-transparent dark:border dark:border-border dark:text-blue-300';
+    if (lowerRole === 'student') return 'bg-green-100 text-green-700 dark:bg-transparent dark:border dark:border-border dark:text-green-300';
+    if (lowerRole === 'parent') return 'bg-purple-100 text-purple-700 dark:bg-transparent dark:border dark:border-border dark:text-purple-300';
+    if (lowerRole === 'finance') return 'bg-orange-100 text-orange-700 dark:bg-transparent dark:border dark:border-border dark:text-orange-300';
+    return 'bg-gray-100 text-gray-700 dark:bg-transparent dark:border dark:border-border dark:text-foreground';
   };
 
   // Filter activities based on search and filters
@@ -138,7 +138,7 @@ export default function Activities() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="bg-gradient-to-r from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 rounded-lg p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
+      <div className="bg-gradient-to-r from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 rounded-lg p-6 border border-gray-200 dark:border-border shadow-sm">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <div className="space-y-2">
             <div className="flex items-center gap-3">
@@ -242,7 +242,7 @@ export default function Activities() {
               {filteredActivities.map((activity) => (
                 <div
                   key={activity.id}
-                  className="group flex items-start space-x-4 p-4 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600 cursor-pointer transition-all duration-200 hover:shadow-md bg-white dark:bg-gray-800/50 hover:bg-gray-50 dark:hover:bg-gray-800"
+                  className="group flex items-start space-x-4 p-4 rounded-lg border border-gray-200 dark:border-border hover:border-blue-300 dark:hover:border-blue-600 cursor-pointer transition-all duration-200 hover:shadow-md bg-white dark:bg-card/80 hover:bg-gray-50 dark:hover:bg-card/90"
                   onClick={() => openActivity(activity.id)}
                 >
                   <Avatar className="h-12 w-12 ring-2 ring-gray-200 dark:ring-gray-700">
@@ -301,7 +301,7 @@ export default function Activities() {
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center py-12 text-center">
-              <div className="p-4 bg-gray-100 dark:bg-gray-800 rounded-full mb-4">
+              <div className="p-4 bg-gray-100 dark:bg-card rounded-full mb-4">
                 <Activity className="h-8 w-8 text-gray-400" />
               </div>
               <p className="text-gray-500 dark:text-gray-400 font-medium">No activities found</p>

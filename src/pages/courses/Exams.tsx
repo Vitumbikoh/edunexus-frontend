@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { termService } from '@/services/termService';
+import { COLORS } from '@/lib/colors';
 
 // Import the custom hook
 import { useExamManagement } from '@/hooks/useExamManagement';
@@ -24,6 +25,7 @@ interface Teacher {
 export default function Exams() {
   const navigate = useNavigate();
   const { token } = useAuth();
+  const isDarkMode = typeof document !== 'undefined' && document.documentElement.classList.contains('dark');
   
   // Use the custom hook for all exam management logic
   const {
@@ -83,11 +85,11 @@ export default function Exams() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'upcoming':
-        return <Badge variant="secondary" className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">Upcoming</Badge>;
+        return <Badge variant="secondary" className="bg-blue-100 text-blue-800 dark:bg-transparent dark:border dark:border-border dark:text-foreground">Upcoming</Badge>;
       case 'administered':
-        return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">Administered</Badge>;
+        return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 dark:bg-transparent dark:border dark:border-border dark:text-foreground">Administered</Badge>;
       case 'graded':
-        return <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Graded</Badge>;
+        return <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-transparent dark:border dark:border-border dark:text-green-300">Graded</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
@@ -117,8 +119,8 @@ export default function Exams() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Exam Management</h1>
-          <p className="text-muted-foreground">Manage and monitor all examinations</p>
+          <h1 className="text-3xl font-bold tracking-tight" style={{ color: isDarkMode ? COLORS.white : COLORS.black }}>Exam Management</h1>
+          <p style={{ color: isDarkMode ? COLORS.neutral : COLORS.grey }}>Manage and monitor all examinations</p>
         </div>
         <Button
           variant="outline"
@@ -142,43 +144,43 @@ export default function Exams() {
 
       {/* Statistics Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900 border-blue-200 dark:border-blue-800">
+        <Card style={{ backgroundColor: isDarkMode ? COLORS.black : COLORS.white, borderColor: COLORS.neutral }}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-blue-700 dark:text-blue-300">Total Exams</CardTitle>
-            <FileText className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+            <CardTitle className="text-sm font-medium" style={{ color: COLORS.grey }}>Total Exams</CardTitle>
+            <FileText className="h-4 w-4" style={{ color: COLORS.primary }} />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-900 dark:text-blue-100">{totalExams}</div>
+            <div className="text-2xl font-bold" style={{ color: isDarkMode ? COLORS.white : COLORS.black }}>{totalExams}</div>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-yellow-50 to-yellow-100 dark:from-yellow-950 dark:to-yellow-900 border-yellow-200 dark:border-yellow-800">
+        <Card style={{ backgroundColor: isDarkMode ? COLORS.black : COLORS.white, borderColor: COLORS.neutral }}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-yellow-700 dark:text-yellow-300">Administered</CardTitle>
-            <Clock className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
+            <CardTitle className="text-sm font-medium" style={{ color: COLORS.grey }}>Administered</CardTitle>
+            <Clock className="h-4 w-4" style={{ color: COLORS.accent }} />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-yellow-900 dark:text-yellow-100">{administeredExams}</div>
+            <div className="text-2xl font-bold" style={{ color: isDarkMode ? COLORS.white : COLORS.black }}>{administeredExams}</div>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950 dark:to-green-900 border-green-200 dark:border-green-800">
+        <Card style={{ backgroundColor: isDarkMode ? COLORS.black : COLORS.white, borderColor: COLORS.neutral }}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-green-700 dark:text-green-300">Graded Exams</CardTitle>
-            <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+            <CardTitle className="text-sm font-medium" style={{ color: COLORS.grey }}>Graded Exams</CardTitle>
+            <CheckCircle className="h-4 w-4" style={{ color: COLORS.secondary }} />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-900 dark:text-green-100">{gradedExams}</div>
+            <div className="text-2xl font-bold" style={{ color: isDarkMode ? COLORS.white : COLORS.black }}>{gradedExams}</div>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950 dark:to-purple-900 border-purple-200 dark:border-purple-800">
+        <Card style={{ backgroundColor: isDarkMode ? COLORS.black : COLORS.white, borderColor: COLORS.neutral }}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-purple-700 dark:text-purple-300">Upcoming</CardTitle>
-            <BookOpen className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+            <CardTitle className="text-sm font-medium" style={{ color: COLORS.grey }}>Upcoming</CardTitle>
+            <BookOpen className="h-4 w-4" style={{ color: COLORS.primary }} />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-purple-900 dark:text-purple-100">{upcomingExams}</div>
+            <div className="text-2xl font-bold" style={{ color: isDarkMode ? COLORS.white : COLORS.black }}>{upcomingExams}</div>
           </CardContent>
         </Card>
       </div>

@@ -342,7 +342,7 @@ const MobileStudentDashboardCards: React.FC<MobileStudentDashboardCardsProps> = 
             upcomingItems.map((item) => {
               const TypeIcon = getTypeIcon(item.type);
               return (
-                <div key={item.id} className="flex items-center space-x-3 p-3 rounded-lg bg-gray-50 dark:bg-gray-800">
+                <div key={item.id} className="flex items-center space-x-3 p-3 rounded-lg bg-gray-50 dark:bg-card">
                   <div className={cn("p-2 rounded-lg", getPriorityColor(item.priority))}>
                     <TypeIcon className="h-4 w-4" />
                   </div>

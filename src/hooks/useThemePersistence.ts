@@ -28,11 +28,11 @@ export const useThemePersistence = () => {
     // Update meta theme-color for mobile browsers
     const themeColorMeta = document.querySelector('meta[name="theme-color"]');
     if (themeColorMeta) {
-      themeColorMeta.setAttribute('content', actualTheme === 'dark' ? '#1f2937' : '#ffffff');
+      themeColorMeta.setAttribute('content', actualTheme === 'dark' ? '#111827' : '#FFFFFF');
     } else {
       const meta = document.createElement('meta');
       meta.name = 'theme-color';
-      meta.content = actualTheme === 'dark' ? '#1f2937' : '#ffffff';
+      meta.content = actualTheme === 'dark' ? '#111827' : '#FFFFFF';
       document.head.appendChild(meta);
     }
   }, [actualTheme]);

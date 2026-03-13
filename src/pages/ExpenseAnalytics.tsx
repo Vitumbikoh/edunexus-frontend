@@ -102,7 +102,7 @@ export default function ExpenseAnalytics() {
   const categoryChartData = Object.entries(categoryBreakdown).map(([category, amount]: [string, any]) => ({
     name: category,
     value: amount,
-    color: ['#10B981', '#3B82F6', '#F97316', '#8B5CF6', '#EF4444', '#06B6D4'][Object.keys(categoryBreakdown).indexOf(category) % 6]
+    color: ['#7AA45D', '#1B88CE', '#F5A623', '#6B7280', '#DC2626', '#6B7280'][Object.keys(categoryBreakdown).indexOf(category) % 6]
   }));
 
   return (
@@ -193,8 +193,8 @@ export default function ExpenseAnalytics() {
                   <Area
                     type="monotone"
                     dataKey="amount"
-                    stroke="#3B82F6"
-                    fill="#3B82F6"
+                    stroke="#1B88CE"
+                    fill="#1B88CE"
                     fillOpacity={0.6}
                   />
                 </AreaChart>
@@ -261,7 +261,7 @@ export default function ExpenseAnalytics() {
               </thead>
               <tbody>
                 {monthlyChartData.map((item, index) => (
-                  <tr key={index} className="border-b hover:bg-gray-50 dark:hover:bg-gray-800">
+                  <tr key={index} className="border-b hover:bg-gray-50 dark:hover:bg-card/90">
                     <td className="py-3 px-4 font-medium">{item.displayName.split('\n')[0]}</td>
                     <td className="py-3 px-4 text-right font-mono">{formatCurrency(item.amount, getDefaultCurrency())}</td>
                     <td className="py-3 px-4 text-right">{item.count}</td>

@@ -145,22 +145,22 @@ const TeacherPerformanceCard: React.FC = () => {
                   // No need to refetch just to apply threshold; local filter already applied
                   setPage(1);
                 }}
-                className="w-16 h-8 text-xs border rounded px-1 bg-white dark:bg-gray-900"
+                className="w-16 h-8 text-xs border rounded px-1 bg-white dark:bg-card"
                 title="Pass % threshold"
               />
               <Button size="icon" variant="ghost" onClick={()=> { setPage(1); }} className="h-8 w-8" title="Apply Filters">
                 <Filter className="h-4 w-4" />
               </Button>
             </div>
-            <div className="p-2 bg-orange-100 dark:bg-orange-900/30 rounded-full">
-              <UserCog className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+            <div className="p-2 rounded-full" style={{ backgroundColor: `${ADMIN_DASHBOARD_COLORS.blue}22` }}>
+              <UserCog className="h-5 w-5" style={{ color: ADMIN_DASHBOARD_COLORS.blue }} />
             </div>
           </div>
         </div>
       </CardHeader>
       <CardContent className="pt-0 pb-4 flex-1 flex flex-col overflow-hidden">
         {loading && (
-          <div className="flex-1 flex items-center justify-center"><Loader2 className="h-5 w-5 animate-spin text-orange-500" /></div>
+          <div className="flex-1 flex items-center justify-center"><Loader2 className="h-5 w-5 animate-spin" style={{ color: ADMIN_DASHBOARD_COLORS.blue }} /></div>
         )}
         {error && !loading && (
           <div className="flex-1 flex flex-col items-center justify-center text-sm text-muted-foreground space-y-2">
@@ -172,9 +172,9 @@ const TeacherPerformanceCard: React.FC = () => {
         {!loading && !error && (
           <div className="flex flex-col h-full">
             {top ? (
-              <div className="flex justify-between items-center p-2 mb-3 rounded-lg bg-background/50 border border-orange-100 dark:border-orange-900/30">
+              <div className="flex justify-between items-center p-2 mb-3 rounded-lg bg-background/50 border" style={{ borderColor: `${ADMIN_DASHBOARD_COLORS.lightGrey}66` }}>
                 <div className="flex items-center space-x-2">
-                  <div className="h-6 w-6 bg-gradient-to-br from-orange-400 to-orange-600 rounded-full flex items-center justify-center">
+                  <div className="h-6 w-6 rounded-full flex items-center justify-center" style={{ background: `linear-gradient(135deg, ${ADMIN_DASHBOARD_COLORS.blue}, ${ADMIN_DASHBOARD_COLORS.greyBlue})` }}>
                     <Star className="h-3 w-3 text-white" />
                   </div>
                   <div>
@@ -182,7 +182,7 @@ const TeacherPerformanceCard: React.FC = () => {
                     <p className="text-xs text-gray-600 dark:text-gray-400">{top.firstName} {top.lastName}</p>
                   </div>
                 </div>
-                <Badge variant="default" className="bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300 text-xs">
+                <Badge variant="default" className="text-xs" style={{ backgroundColor: `${ADMIN_DASHBOARD_COLORS.green}26`, color: ADMIN_DASHBOARD_COLORS.green }}>
                   {top.avgGrade}%
                 </Badge>
               </div>
@@ -196,7 +196,7 @@ const TeacherPerformanceCard: React.FC = () => {
                   value={termId || ''}
                   onChange={(e)=> setTermId(e.target.value || undefined)}
                   onBlur={()=> fetchData()}
-                  className="h-7 text-xs border rounded px-1 bg-white dark:bg-gray-900"
+                  className="h-7 text-xs border rounded px-1 bg-white dark:bg-card"
                 >
                   <option value="">Current Term</option>
                   {/* Additional term options can be dynamically loaded later */}
@@ -206,10 +206,10 @@ const TeacherPerformanceCard: React.FC = () => {
             </div>
             <div className="flex-1 overflow-auto pr-1 space-y-2">
               {paginated.map((t:any) => (
-                <div key={t.teacherId} className="p-2 border rounded-md bg-white/60 dark:bg-gray-900/40 border-orange-100 dark:border-orange-900/30">
+                <div key={t.teacherId} className="p-2 border rounded-md bg-white/60 dark:bg-card/80" style={{ borderColor: `${ADMIN_DASHBOARD_COLORS.lightGrey}66` }}>
                   <div className="flex justify-between text-sm">
                     <span className="font-medium text-gray-800 dark:text-gray-200">{t.firstName} {t.lastName}</span>
-                    <span className="text-xs text-orange-700 dark:text-orange-300">Avg {t.avgGrade}%</span>
+                    <span className="text-xs" style={{ color: ADMIN_DASHBOARD_COLORS.blue }}>Avg {t.avgGrade}%</span>
                   </div>
                   <div className="mt-1 grid grid-cols-3 gap-2 text-[10px] text-gray-600 dark:text-gray-400">
                     <div><span className="font-semibold text-gray-700 dark:text-gray-300">Pass</span> {t.passRate}%</div>
@@ -217,7 +217,7 @@ const TeacherPerformanceCard: React.FC = () => {
                     <div><span className="font-semibold text-gray-700 dark:text-gray-300">Grades</span> {t.gradeCount}</div>
                   </div>
                   <div className="w-full h-1 bg-gray-200 dark:bg-gray-700 rounded mt-2">
-                    <div className="h-1 rounded bg-gradient-to-r from-orange-400 to-orange-600" style={{ width: `${Math.min(t.avgGrade,100)}%` }} />
+                    <div className="h-1 rounded" style={{ background: `linear-gradient(90deg, ${ADMIN_DASHBOARD_COLORS.blue}, ${ADMIN_DASHBOARD_COLORS.green})`, width: `${Math.min(t.avgGrade,100)}%` }} />
                   </div>
                 </div>
               ))}
@@ -238,7 +238,8 @@ const TeacherPerformanceCard: React.FC = () => {
             </div>
             <Button 
               variant="outline" 
-              className="w-full mt-2 border-orange-200 hover:bg-orange-50 dark:border-orange-800 dark:hover:bg-orange-900/20"
+              className="w-full mt-2"
+              style={{ borderColor: `${ADMIN_DASHBOARD_COLORS.lightGrey}88` }}
               onClick={() => navigate('/admin/staff-management')}
             >
               Manage Staff
@@ -260,6 +261,7 @@ import {
   StudentGradeTrendChart,
   
 } from "./DashboardCharts";
+import { getAdminDashboardPalette } from "./adminPalette";
 import { useToast } from "@/components/ui/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -267,7 +269,12 @@ import { Progress } from "@radix-ui/react-progress";
 import { ExamResultService } from "@/services/examResultService";
 import { systemHealthService, SystemHealthData } from "@/services/systemHealthService";
 
+const ADMIN_DASHBOARD_COLORS = getAdminDashboardPalette(
+  typeof document !== 'undefined' && document.documentElement.classList.contains('dark')
+);
+
 export const AdminDashboardCards = () => {
+  const isDarkMode = typeof document !== 'undefined' && document.documentElement.classList.contains('dark');
   const navigate = useNavigate();
   const { token } = useAuth();
   const [termId, setTermId] = useState<string | undefined>(
@@ -448,8 +455,8 @@ export const AdminDashboardCards = () => {
                   )}
                 </CardDescription>
               </div>
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
-                <TrendingUp className="h-4 w-4 text-primary" />
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ backgroundColor: `${ADMIN_DASHBOARD_COLORS.blue}1f` }}>
+                <TrendingUp className="h-4 w-4" style={{ color: ADMIN_DASHBOARD_COLORS.blue }} />
               </div>
             </div>
           </CardHeader>
@@ -474,8 +481,8 @@ export const AdminDashboardCards = () => {
                   )}
                 </CardDescription>
               </div>
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
-                <Users2 className="h-4 w-4 text-primary" />
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ backgroundColor: `${ADMIN_DASHBOARD_COLORS.blue}1f` }}>
+                <Users2 className="h-4 w-4" style={{ color: ADMIN_DASHBOARD_COLORS.blue }} />
               </div>
             </div>
           </CardHeader>
@@ -505,8 +512,8 @@ export const AdminDashboardCards = () => {
                   )}
                 </CardDescription>
               </div>
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
-                <GraduationCap className="h-4 w-4 text-primary" />
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ backgroundColor: `${ADMIN_DASHBOARD_COLORS.green}24` }}>
+                <GraduationCap className="h-4 w-4" style={{ color: ADMIN_DASHBOARD_COLORS.green }} />
               </div>
             </div>
           </CardHeader>
@@ -515,22 +522,22 @@ export const AdminDashboardCards = () => {
               {/* Academic Statistics */}
               <div className="grid grid-cols-3 gap-3 text-center">
                 <div className="space-y-1">
-                  <div className="text-xl font-bold text-gray-900 dark:text-gray-100">
+                  <div className="text-xl font-bold" style={{ color: isDarkMode ? '#FFFFFF' : ADMIN_DASHBOARD_COLORS.black }}>
                     {academicStats.loading ? "..." : academicStats.totalStudents.toLocaleString()}
                   </div>
-                  <div className="text-xs text-gray-600 dark:text-gray-400">Total Students</div>
+                  <div className="text-xs" style={{ color: ADMIN_DASHBOARD_COLORS.grey }}>Total Students</div>
                 </div>
                 <div className="space-y-1">
-                  <div className="text-xl font-bold text-gray-900 dark:text-gray-100">
+                  <div className="text-xl font-bold" style={{ color: isDarkMode ? '#FFFFFF' : ADMIN_DASHBOARD_COLORS.black }}>
                     {academicStats.loading ? "..." : academicStats.totalCourses}
                   </div>
-                  <div className="text-xs text-gray-600 dark:text-gray-400">Total Courses</div>
+                  <div className="text-xs" style={{ color: ADMIN_DASHBOARD_COLORS.grey }}>Total Courses</div>
                 </div>
                 <div className="space-y-1">
-                  <div className="text-xl font-bold text-green-600 dark:text-green-400">
+                  <div className="text-xl font-bold" style={{ color: ADMIN_DASHBOARD_COLORS.green }}>
                     {academicStats.loading ? "..." : academicStats.overallAverage ? `${academicStats.overallAverage}%` : "N/A"}
                   </div>
-                  <div className="text-xs text-gray-600 dark:text-gray-400">Avg Performance</div>
+                  <div className="text-xs" style={{ color: ADMIN_DASHBOARD_COLORS.grey }}>Avg Performance</div>
                 </div>
               </div>
 
@@ -556,8 +563,8 @@ export const AdminDashboardCards = () => {
                   )}
                 </CardDescription>
               </div>
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
-                <Users2 className="h-4 w-4 text-primary" />
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ backgroundColor: `${ADMIN_DASHBOARD_COLORS.greyBlue}24` }}>
+                <Users2 className="h-4 w-4" style={{ color: ADMIN_DASHBOARD_COLORS.greyBlue }} />
               </div>
             </div>
           </CardHeader>
@@ -597,8 +604,8 @@ export const AdminDashboardCards = () => {
                 >
                   <RefreshCcw className={`h-4 w-4 ${systemHealthLoading ? 'animate-spin' : ''}`} />
                 </Button>
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
-                  <CheckCircle className="h-4 w-4 text-primary" />
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ backgroundColor: `${ADMIN_DASHBOARD_COLORS.green}24` }}>
+                  <CheckCircle className="h-4 w-4" style={{ color: ADMIN_DASHBOARD_COLORS.green }} />
                 </div>
               </div>
             </div>
@@ -609,7 +616,7 @@ export const AdminDashboardCards = () => {
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Uptime</span>
-                    <Badge variant="default" className="bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300">
+                    <Badge variant="default" style={{ backgroundColor: `${ADMIN_DASHBOARD_COLORS.green}26`, color: ADMIN_DASHBOARD_COLORS.green }}>
                       {systemHealth.uptime}
                     </Badge>
                   </div>
@@ -624,18 +631,26 @@ export const AdminDashboardCards = () => {
                     <div className="flex items-center space-x-2">
                       <div className={`h-2 w-2 rounded-full ${
                         systemHealth.serverStatus === 'operational' || systemHealth.serverStatus === 'healthy' 
-                          ? 'bg-emerald-500 animate-pulse' 
+                          ? 'animate-pulse' 
                           : systemHealth.serverStatus === 'warning' 
-                          ? 'bg-yellow-500 animate-pulse' 
-                          : 'bg-red-500 animate-pulse'
-                      }`}></div>
-                      <span className={`text-sm font-medium capitalize ${
-                        systemHealth.serverStatus === 'operational' || systemHealth.serverStatus === 'healthy' 
-                          ? 'text-emerald-600 dark:text-emerald-400' 
-                          : systemHealth.serverStatus === 'warning' 
-                          ? 'text-yellow-600 dark:text-yellow-400' 
-                          : 'text-red-600 dark:text-red-400'
-                      }`}>
+                          ? 'animate-pulse' 
+                          : 'animate-pulse'
+                      }`} style={{
+                        backgroundColor:
+                          systemHealth.serverStatus === 'operational' || systemHealth.serverStatus === 'healthy'
+                            ? ADMIN_DASHBOARD_COLORS.green
+                            : systemHealth.serverStatus === 'warning'
+                            ? ADMIN_DASHBOARD_COLORS.accent
+                            : ADMIN_DASHBOARD_COLORS.red,
+                      }}></div>
+                      <span className="text-sm font-medium capitalize" style={{
+                        color:
+                          systemHealth.serverStatus === 'operational' || systemHealth.serverStatus === 'healthy'
+                            ? ADMIN_DASHBOARD_COLORS.green
+                            : systemHealth.serverStatus === 'warning'
+                            ? ADMIN_DASHBOARD_COLORS.accent
+                            : ADMIN_DASHBOARD_COLORS.red,
+                      }}>
                         {systemHealth.serverStatus}
                       </span>
                     </div>
@@ -654,14 +669,16 @@ export const AdminDashboardCards = () => {
                 </div>
                 <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                   <div 
-                    className={`h-2 rounded-full transition-all duration-300 ${
-                      systemHealth.databasePerformance >= 95 
-                        ? 'bg-emerald-500' 
-                        : systemHealth.databasePerformance >= 80 
-                        ? 'bg-yellow-500' 
-                        : 'bg-red-500'
-                    }`} 
-                    style={{ width: `${systemHealth.databasePerformance}%` }}
+                    className="h-2 rounded-full transition-all duration-300"
+                    style={{
+                      backgroundColor:
+                        systemHealth.databasePerformance >= 95
+                          ? ADMIN_DASHBOARD_COLORS.green
+                          : systemHealth.databasePerformance >= 80
+                          ? ADMIN_DASHBOARD_COLORS.accent
+                          : ADMIN_DASHBOARD_COLORS.red,
+                      width: `${systemHealth.databasePerformance}%`,
+                    }}
                   ></div>
                 </div>
               </div>
@@ -673,14 +690,16 @@ export const AdminDashboardCards = () => {
                 </div>
                 <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                   <div 
-                    className={`h-2 rounded-full transition-all duration-300 ${
-                      systemHealth.storageUsage <= 70 
-                        ? 'bg-blue-500' 
-                        : systemHealth.storageUsage <= 85 
-                        ? 'bg-yellow-500' 
-                        : 'bg-red-500'
-                    }`} 
-                    style={{ width: `${systemHealth.storageUsage}%` }}
+                    className="h-2 rounded-full transition-all duration-300"
+                    style={{
+                      backgroundColor:
+                        systemHealth.storageUsage <= 70
+                          ? ADMIN_DASHBOARD_COLORS.blue
+                          : systemHealth.storageUsage <= 85
+                          ? ADMIN_DASHBOARD_COLORS.accent
+                          : ADMIN_DASHBOARD_COLORS.red,
+                      width: `${systemHealth.storageUsage}%`,
+                    }}
                   ></div>
                 </div>
               </div>
@@ -772,7 +791,7 @@ export const FinanceDashboardCards = () => {
           const chartData = paymentMethodsResult.map((item: any, index: number) => ({
             name: item.method || item.paymentMethod,
             value: parseFloat(item.percentage),
-            color: ['#10B981', '#3B82F6', '#F97316', '#8B5CF6', '#EF4444'][index % 5]
+            color: ['#7AA45D', '#1B88CE', '#F5A623', '#6B7280', '#DC2626'][index % 5]
           }));
           setPaymentMethodsData(chartData);
         }
@@ -882,7 +901,7 @@ export const FinanceDashboardCards = () => {
 
   // Use fallback data if analytics haven't loaded yet
   const displayPaymentMethodsData = paymentMethodsData.length > 0 ? paymentMethodsData : [
-    { name: 'Loading...', value: 100, color: '#9CA3AF' }
+    { name: 'Loading...', value: 100, color: '#6B7280' }
   ];
 
   return (
@@ -911,8 +930,8 @@ export const FinanceDashboardCards = () => {
                   <XAxis dataKey="month" />
                   <YAxis />
                   <Tooltip formatter={(value) => [`${formatCurrency(Number(value), getDefaultCurrency())}`, '']} />
-                  <Area type="monotone" dataKey="revenue" stackId="1" stroke="#3B82F6" fill="#3B82F6" fillOpacity={0.6} />
-                  <Area type="monotone" dataKey="target" stackId="2" stroke="#10B981" fill="#10B981" fillOpacity={0.3} />
+                  <Area type="monotone" dataKey="revenue" stackId="1" stroke="#1B88CE" fill="#1B88CE" fillOpacity={0.6} />
+                  <Area type="monotone" dataKey="target" stackId="2" stroke="#7AA45D" fill="#7AA45D" fillOpacity={0.3} />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
@@ -1034,11 +1053,11 @@ export const FinanceDashboardCards = () => {
                     />
                     <Tooltip 
                       formatter={(value: any) => [`${formatCurrency(Number(value), getDefaultCurrency())}`, 'Outstanding Fees']}
-                      labelStyle={{ color: '#000' }}
+                      labelStyle={{ color: '#111827' }}
                     />
                     <Bar 
                       dataKey="amount" 
-                      fill="#F97316" 
+                      fill="#F5A623" 
                       radius={[4, 4, 0, 0]}
                     />
                   </BarChart>
@@ -1072,7 +1091,7 @@ export const FinanceDashboardCards = () => {
         <CardContent>
           <div className="space-y-3">
             {financeData?.recentTransactions?.slice(0, 5).map((transaction: any, index: number) => (
-              <div key={index} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+              <div key={index} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-card rounded-lg">
                 <div className="flex items-center space-x-3">
                   <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-full">
                     <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
@@ -1490,7 +1509,7 @@ export const TeacherDashboardCards = () => {
         {[...Array(2)].map((_, index) => (
           <div
             key={index}
-            className="h-64 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse"
+            className="h-64 bg-gray-100 dark:bg-card rounded-lg animate-pulse"
           />
         ))}
       </div>
@@ -1531,7 +1550,7 @@ export const TeacherDashboardCards = () => {
               >
                 <XAxis 
                   dataKey="class" 
-                  tick={{ fontSize: 12, fill: '#374151' }}
+                  tick={{ fontSize: 12, fill: '#6B7280' }}
                   axisLine={false}
                   tickLine={false}
                   angle={-45}
@@ -1550,7 +1569,7 @@ export const TeacherDashboardCards = () => {
                   content={({ active, payload, label }) => {
                     if (active && payload && payload.length) {
                       return (
-                        <div className="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
+                        <div className="bg-white dark:bg-card p-3 rounded-lg shadow-lg border border-gray-200 dark:border-border">
                           <p className="text-sm font-medium text-gray-900 dark:text-white">{label}</p>
                           <p className="text-sm text-blue-600">Performance: {payload[0]?.value}%</p>
                         </div>
@@ -1562,15 +1581,15 @@ export const TeacherDashboardCards = () => {
                 <Area
                   type="monotone"
                   dataKey="performance"
-                  stroke="#3B82F6"
+                  stroke="#1B88CE"
                   strokeWidth={2}
                   fill="url(#performanceGradient)"
                   name="Performance"
                 />
                 <defs>
                   <linearGradient id="performanceGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.8}/>
-                    <stop offset="95%" stopColor="#3B82F6" stopOpacity={0.1}/>
+                    <stop offset="5%" stopColor="#1B88CE" stopOpacity={0.8}/>
+                    <stop offset="95%" stopColor="#1B88CE" stopOpacity={0.1}/>
                   </linearGradient>
                 </defs>
               </AreaChart>
@@ -1820,7 +1839,7 @@ export const TeacherDashboardCards = () => {
               >
                 <XAxis 
                   dataKey="class" 
-                  tick={{ fontSize: 12, fill: '#374151' }}
+                  tick={{ fontSize: 12, fill: '#6B7280' }}
                   axisLine={false}
                   tickLine={false}
                   angle={-45}
@@ -1840,7 +1859,7 @@ export const TeacherDashboardCards = () => {
                     if (active && payload && payload.length) {
                       const data = payload[0].payload;
                       return (
-                        <div className="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
+                        <div className="bg-white dark:bg-card p-3 rounded-lg shadow-lg border border-gray-200 dark:border-border">
                           <p className="text-sm font-medium text-gray-900 dark:text-white">{label}</p>
                           <p className="text-sm text-green-600">
                             {data.present}/{data.total} students ({data.rate}%)
@@ -1859,8 +1878,8 @@ export const TeacherDashboardCards = () => {
                 />
                 <defs>
                   <linearGradient id="attendanceGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#10B981" stopOpacity={0.8}/>
-                    <stop offset="95%" stopColor="#10B981" stopOpacity={0.4}/>
+                    <stop offset="5%" stopColor="#7AA45D" stopOpacity={0.8}/>
+                    <stop offset="95%" stopColor="#7AA45D" stopOpacity={0.4}/>
                   </linearGradient>
                 </defs>
               </BarChart>

@@ -251,14 +251,14 @@ export default function TeacherScheduleView() {
   const getColorForCourse = (courseCode: string) => {
     // Generate consistent colors based on course code
     const colors = [
-      'bg-blue-100 text-blue-800 border-blue-200',
-      'bg-green-100 text-green-800 border-green-200',
-      'bg-purple-100 text-purple-800 border-purple-200',
-      'bg-orange-100 text-orange-800 border-orange-200',
-      'bg-pink-100 text-pink-800 border-pink-200',
-      'bg-indigo-100 text-indigo-800 border-indigo-200',
-      'bg-teal-100 text-teal-800 border-teal-200',
-      'bg-yellow-100 text-yellow-800 border-yellow-200'
+      'bg-blue-100 text-blue-800 border-blue-200 dark:bg-transparent dark:text-foreground dark:border-border',
+      'bg-green-100 text-green-800 border-green-200 dark:bg-transparent dark:text-foreground dark:border-border',
+      'bg-purple-100 text-purple-800 border-purple-200 dark:bg-transparent dark:text-foreground dark:border-border',
+      'bg-orange-100 text-orange-800 border-orange-200 dark:bg-transparent dark:text-foreground dark:border-border',
+      'bg-pink-100 text-pink-800 border-pink-200 dark:bg-transparent dark:text-foreground dark:border-border',
+      'bg-indigo-100 text-indigo-800 border-indigo-200 dark:bg-transparent dark:text-foreground dark:border-border',
+      'bg-teal-100 text-teal-800 border-teal-200 dark:bg-transparent dark:text-foreground dark:border-border',
+      'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-transparent dark:text-foreground dark:border-border'
     ];
     
     const hash = courseCode.split('').reduce((acc, char) => {
@@ -348,8 +348,8 @@ export default function TeacherScheduleView() {
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-blue-100 rounded-lg">
-                  <Calendar className="h-5 w-5 text-blue-600" />
+                <div className="p-2 bg-blue-100 dark:bg-transparent border dark:border-border rounded-lg">
+                  <Calendar className="h-5 w-5 text-blue-600 dark:text-gray-200" />
                 </div>
                 <div>
                   <div className="text-2xl font-bold">{scheduleData.schedules.length}</div>
@@ -362,8 +362,8 @@ export default function TeacherScheduleView() {
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-green-100 rounded-lg">
-                  <Users className="h-5 w-5 text-green-600" />
+                <div className="p-2 bg-green-100 dark:bg-transparent border dark:border-border rounded-lg">
+                  <Users className="h-5 w-5 text-green-600 dark:text-gray-200" />
                 </div>
                 <div>
                   <div className="text-2xl font-bold">{getUniqueClasses().length}</div>
@@ -376,8 +376,8 @@ export default function TeacherScheduleView() {
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-purple-100 rounded-lg">
-                  <BookOpen className="h-5 w-5 text-purple-600" />
+                <div className="p-2 bg-purple-100 dark:bg-transparent border dark:border-border rounded-lg">
+                  <BookOpen className="h-5 w-5 text-purple-600 dark:text-gray-200" />
                 </div>
                 <div>
                   <div className="text-2xl font-bold">

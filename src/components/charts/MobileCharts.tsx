@@ -37,7 +37,7 @@ interface MobileGradeTrendChartProps {
 const MobileTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
     return (
-      <div className="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
+      <div className="bg-white dark:bg-card p-3 rounded-lg shadow-lg border border-gray-200 dark:border-border">
         <p className="text-sm font-medium text-gray-900 dark:text-white">{label}</p>
         {payload.map((entry: any, index: number) => (
           <p key={index} className="text-sm" style={{ color: entry.color }}>
@@ -52,7 +52,7 @@ const MobileTooltip = ({ active, payload, label }: any) => {
 
 // Mobile-optimized performance chart
 export const StudentPerformanceChart: React.FC<MobilePerformanceChartProps> = ({ data }) => {
-  const colors = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6'];
+  const colors = ['#1B88CE', '#7AA45D', '#F5A623', '#DC2626', '#6B7280'];
 
   return (
     <ResponsiveContainer width="100%" height="100%">
@@ -83,14 +83,14 @@ export const StudentPerformanceChart: React.FC<MobilePerformanceChartProps> = ({
         <Tooltip content={<MobileTooltip />} />
         <Bar 
           dataKey="score" 
-          fill="#3B82F6" 
+          fill="#1B88CE" 
           radius={[4, 4, 0, 0]}
           name="Your Score"
         />
         {data[0]?.average !== undefined && (
           <Bar 
             dataKey="average" 
-            fill="#10B981" 
+            fill="#7AA45D" 
             radius={[4, 4, 0, 0]}
             name="Class Average"
             opacity={0.6}
@@ -142,10 +142,10 @@ export const StudentGradeTrendChart: React.FC<MobileGradeTrendChartProps> = ({
         <Line 
           type="monotone" 
           dataKey="score" 
-          stroke="#3B82F6" 
+          stroke="#1B88CE" 
           strokeWidth={3}
-          dot={{ r: 4, fill: '#3B82F6' }}
-          activeDot={{ r: 6, fill: '#1D4ED8' }}
+          dot={{ r: 4, fill: '#1B88CE' }}
+          activeDot={{ r: 6, fill: '#1B88CE' }}
           name="Grade"
         />
       </LineChart>
@@ -155,7 +155,7 @@ export const StudentGradeTrendChart: React.FC<MobileGradeTrendChartProps> = ({
 
 // Mobile-optimized subject breakdown pie chart
 export const SubjectBreakdownChart: React.FC<{ data: Array<{ name: string; value: number; }> }> = ({ data }) => {
-  const colors = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#14B8A6'];
+  const colors = ['#1B88CE', '#7AA45D', '#F5A623', '#DC2626', '#6B7280', '#6B7280', '#6B7280'];
 
   return (
     <ResponsiveContainer width="100%" height="100%">
@@ -178,7 +178,7 @@ export const SubjectBreakdownChart: React.FC<{ data: Array<{ name: string; value
             if (active && payload && payload.length) {
               const data = payload[0].payload;
               return (
-                <div className="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
+                <div className="bg-white dark:bg-card p-3 rounded-lg shadow-lg border border-gray-200 dark:border-border">
                   <p className="text-sm font-medium text-gray-900 dark:text-white">{data.name}</p>
                   <p className="text-sm text-blue-600">{data.value}%</p>
                 </div>
@@ -223,15 +223,15 @@ export const AttendanceChart: React.FC<{ data: Array<{ month: string; attendance
         <Area
           type="monotone"
           dataKey="attendance"
-          stroke="#10B981"
+          stroke="#7AA45D"
           strokeWidth={2}
           fill="url(#attendanceGradient)"
           name="Attendance"
         />
         <defs>
           <linearGradient id="attendanceGradient" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="5%" stopColor="#10B981" stopOpacity={0.3} />
-            <stop offset="95%" stopColor="#10B981" stopOpacity={0.1} />
+            <stop offset="5%" stopColor="#7AA45D" stopOpacity={0.3} />
+            <stop offset="95%" stopColor="#7AA45D" stopOpacity={0.1} />
           </linearGradient>
         </defs>
       </AreaChart>

@@ -1,5 +1,20 @@
 
 import type { Config } from "tailwindcss";
+import { COLORS } from "./src/lib/colors";
+
+const paletteScale = (hex: string) => ({
+	50: hex,
+	100: hex,
+	200: hex,
+	300: hex,
+	400: hex,
+	500: hex,
+	600: hex,
+	700: hex,
+	800: hex,
+	900: hex,
+	950: hex,
+});
 
 export default {
 	darkMode: ["class"],
@@ -65,12 +80,33 @@ export default {
 				},
 				// School management system theme colors
 				sms: {
-					primary: '#2563eb',
-					secondary: '#0891b2',
-					accent: '#0ea5e9',
-					light: '#f1f5f9',
-					dark: '#1e293b'
-				}
+					primary: COLORS.primary,
+					secondary: COLORS.secondary,
+					accent: COLORS.accent,
+					light: COLORS.background,
+					dark: COLORS.black,
+				},
+				blue: paletteScale(COLORS.primary),
+				indigo: paletteScale(COLORS.primary),
+				cyan: paletteScale(COLORS.primary),
+				sky: paletteScale(COLORS.primary),
+				green: paletteScale(COLORS.secondary),
+				emerald: paletteScale(COLORS.secondary),
+				teal: paletteScale(COLORS.secondary),
+				yellow: paletteScale(COLORS.accent),
+				orange: paletteScale(COLORS.accent),
+				amber: paletteScale(COLORS.accent),
+				red: paletteScale(COLORS.danger),
+				rose: paletteScale(COLORS.danger),
+				pink: paletteScale(COLORS.danger),
+				gray: paletteScale(COLORS.grey),
+				slate: paletteScale(COLORS.grey),
+				zinc: paletteScale(COLORS.grey),
+				neutral: paletteScale(COLORS.neutral),
+				stone: paletteScale(COLORS.neutral),
+				white: COLORS.white,
+				black: COLORS.black,
+				sidebarbrand: COLORS.sidebarBackground,
 			},
 			borderRadius: {
 				lg: 'var(--radius)',

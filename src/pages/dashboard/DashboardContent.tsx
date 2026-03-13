@@ -10,6 +10,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import RecentActivitiesCard from '@/components/dashboard/RecentActivitiesCard';
 import { QuickActions } from './DashboardQuickActions';
 import { API_CONFIG } from '@/config/api';
+import { getAdminDashboardPalette } from './adminPalette';
 
 
 export const DashboardContent = () => {
@@ -22,6 +23,8 @@ export const DashboardContent = () => {
   const isStudent = user?.role === 'student';
   const isParent = user?.role === 'parent';
   const isFinance = user?.role === 'finance';
+  const isDarkMode = typeof document !== 'undefined' && document.documentElement.classList.contains('dark');
+  const adminColors = getAdminDashboardPalette(isDarkMode);
 
   // Use mobile-first dashboard for students
   if (isStudent) {
@@ -130,11 +133,16 @@ export const DashboardContent = () => {
   return (
     <div className="space-y-4">
       {/* Enhanced Header Section */}
-      <div className="bg-gradient-to-r from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 rounded-lg px-4 py-3 border border-gray-200 dark:border-gray-700 shadow-sm">
+      <div
+        className="rounded-lg px-4 py-3 border shadow-sm bg-card"
+        style={isAdmin ? { borderColor: `${adminColors.neutral}66` } : undefined}
+      >
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-2">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <h1 className="text-xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-gray-100 dark:to-gray-300 bg-clip-text text-transparent">
+              <h1
+                className="text-xl font-bold text-foreground"
+              >
                 Dashboard
               </h1>
               {user?.role && (
@@ -144,19 +152,31 @@ export const DashboardContent = () => {
                 </Badge>
               )}
             </div>
-            <p className="text-sm text-gray-600 dark:text-gray-300">
-              Welcome back, <span className="font-semibold text-gray-900 dark:text-gray-100">
+            <p
+              className={isAdmin ? "text-sm" : "text-sm text-gray-600 dark:text-gray-300"}
+              style={isAdmin ? { color: isDarkMode ? '#FFFFFF' : adminColors.black } : undefined}
+            >
+              Welcome back, <span
+                className={isAdmin ? "font-semibold" : "font-semibold text-gray-900 dark:text-gray-100"}
+                style={isAdmin ? { color: adminColors.green } : undefined}
+              >
                 {getDisplayName()}
               </span>
             </p>
           </div>
           
           <div className="flex flex-col sm:flex-row gap-2 lg:text-right">
-            <div className="flex items-center gap-2 text-gray-600 dark:text-gray-300 text-sm">
+            <div
+              className={isAdmin ? "flex items-center gap-2 text-sm" : "flex items-center gap-2 text-gray-600 dark:text-gray-300 text-sm"}
+              style={isAdmin ? { color: isDarkMode ? adminColors.neutral : adminColors.grey } : undefined}
+            >
               <CalendarDays className="h-4 w-4" />
               <span className="font-medium">{getCurrentDate()}</span>
             </div>
-            <div className="flex items-center gap-2 text-gray-600 dark:text-gray-300 text-sm">
+            <div
+              className={isAdmin ? "flex items-center gap-2 text-sm" : "flex items-center gap-2 text-gray-600 dark:text-gray-300 text-sm"}
+              style={isAdmin ? { color: isDarkMode ? adminColors.neutral : adminColors.grey } : undefined}
+            >
               <Clock className="h-4 w-4" />
               <span className="font-medium">{getCurrentTime()}</span>
             </div>

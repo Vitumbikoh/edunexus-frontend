@@ -36,7 +36,7 @@ interface ReportChartsProps {
   error: string | null;
 }
 
-const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884D8", "#82CA9D"];
+const COLORS = ["#1B88CE", "#7AA45D", "#F5A623", "#6B7280", "#6B7280", "#7AA45D"];
 
 export const ReportCharts: React.FC<ReportChartsProps> = ({
   reportData,
@@ -106,7 +106,7 @@ export const ReportCharts: React.FC<ReportChartsProps> = ({
                         `${displayName} ${(percent * 100).toFixed(0)}%`
                       }
                       outerRadius={80}
-                      fill="#8884d8"
+                      fill="#6B7280"
                       dataKey="count"
                     >
                       {reportData.studentsByGrade.map((entry, index) => (
@@ -152,7 +152,7 @@ export const ReportCharts: React.FC<ReportChartsProps> = ({
                     <Line
                       type="monotone"
                       dataKey="count"
-                      stroke="#8884d8"
+                      stroke="#6B7280"
                       strokeWidth={2}
                       dot={{ r: 4 }}
                     />
@@ -191,7 +191,7 @@ export const ReportCharts: React.FC<ReportChartsProps> = ({
                     <XAxis dataKey="month" />
                     <YAxis />
                     <Tooltip formatter={(value: any) => [`$${value.toLocaleString()}`, "Revenue"]} />
-                    <Bar dataKey="amount" fill="#82ca9d" />
+                    <Bar dataKey="amount" fill="#7AA45D" />
                   </BarChart>
                 </ResponsiveContainer>
               ) : (
@@ -227,7 +227,7 @@ export const ReportCharts: React.FC<ReportChartsProps> = ({
                     <XAxis type="number" />
                     <YAxis dataKey="courseName" type="category" width={100} />
                     <Tooltip formatter={(value: any) => [value, "Enrollments"]} />
-                    <Bar dataKey="enrollments" fill="#ffc658" />
+                    <Bar dataKey="enrollments" fill="#F5A623" />
                   </BarChart>
                 </ResponsiveContainer>
               ) : (

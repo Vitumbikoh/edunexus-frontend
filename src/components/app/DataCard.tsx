@@ -7,10 +7,10 @@ type CardTone = "default" | "info" | "success" | "warning" | "danger";
 
 const toneClassMap: Record<CardTone, string> = {
   default: "border-border bg-card",
-  info: "border-blue-200 bg-blue-50/80 dark:border-blue-900 dark:bg-blue-950/30",
-  success: "border-emerald-200 bg-emerald-50/80 dark:border-emerald-900 dark:bg-emerald-950/30",
-  warning: "border-amber-200 bg-amber-50/80 dark:border-amber-900 dark:bg-amber-950/30",
-  danger: "border-rose-200 bg-rose-50/80 dark:border-rose-900 dark:bg-rose-950/30",
+  info: "border-border bg-card",
+  success: "border-border bg-card",
+  warning: "border-border bg-card",
+  danger: "border-border bg-card",
 };
 
 export interface DataCardProps extends React.HTMLAttributes<HTMLDivElement> {

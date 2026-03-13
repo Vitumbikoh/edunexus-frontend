@@ -139,7 +139,7 @@ export default function RecentActivitiesCard() {
             <CardTitle className="text-xl font-semibold text-gray-900 dark:text-gray-100">Recent Activities</CardTitle>
             <p className="text-gray-600 dark:text-gray-400 text-sm mt-1">Latest system activities and updates</p>
           </div>
-          <div className="p-2 bg-gray-100 dark:bg-gray-800/30 rounded-full">
+          <div className="p-2 bg-gray-100 dark:bg-card/70 rounded-full">
             <Clock className="h-5 w-5 text-gray-600 dark:text-gray-400" />
           </div>
         </div>
@@ -157,10 +157,10 @@ export default function RecentActivitiesCard() {
             {activities.slice(0,4).map((activity) => (
               <div
                 key={activity.id}
-                className={`group flex items-start space-x-4 p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600 cursor-pointer transition-all duration-200 hover:shadow-md ${
+                className={`group flex items-start space-x-4 p-3 rounded-lg border border-gray-200 dark:border-border hover:border-blue-300 dark:hover:border-blue-600 cursor-pointer transition-all duration-200 hover:shadow-md ${
                   unreadIds.has(activity.id) 
                     ? 'bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800' 
-                    : 'bg-white dark:bg-gray-800/50 hover:bg-gray-50 dark:hover:bg-gray-800'
+                    : 'bg-white dark:bg-card/80 hover:bg-gray-50 dark:hover:bg-card/90'
                 }`}
                 onClick={() => openActivity(activity.id)}
               >
@@ -197,7 +197,7 @@ export default function RecentActivitiesCard() {
                         minute: '2-digit'
                       })}
                     </p>
-                    <span className="text-xs px-3 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-full font-medium">
+                    <span className="text-xs px-3 py-1 bg-gray-100 dark:bg-transparent dark:border dark:border-border text-gray-700 dark:text-foreground rounded-full font-medium">
                       {activity.type}
                     </span>
                   </div>
@@ -208,11 +208,11 @@ export default function RecentActivitiesCard() {
               </div>
             ))}
             {activities.length > 4 && (
-              <div className="pt-3 border-t border-gray-200 dark:border-gray-700">
+              <div className="pt-3 border-t border-gray-200 dark:border-border">
                 <Button
                   variant="outline"
                   size="sm"
-                  className="w-full bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300"
+                  className="w-full bg-white dark:bg-transparent border-gray-300 dark:border-border hover:bg-gray-50 dark:hover:bg-transparent text-gray-700 dark:text-foreground"
                   onClick={() => navigate('/activities')}
                 >
                   View All Activities
@@ -223,7 +223,7 @@ export default function RecentActivitiesCard() {
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center py-8 text-center">
-            <div className="p-3 bg-gray-100 dark:bg-gray-800 rounded-full mb-3">
+            <div className="p-3 bg-gray-100 dark:bg-transparent dark:border dark:border-border rounded-full mb-3">
               <Clock className="h-6 w-6 text-gray-400" />
             </div>
             <p className="text-gray-500 dark:text-gray-400 font-medium">No recent activities found</p>

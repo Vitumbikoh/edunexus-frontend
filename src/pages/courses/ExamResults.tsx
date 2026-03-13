@@ -569,19 +569,19 @@ const ExamResults = () => {
     switch (grade) {
       case "A+":
       case "A":
-        return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300";
+        return "bg-green-100 text-green-800 dark:bg-transparent dark:border dark:border-border dark:text-green-300";
       case "B+":
       case "B":
-        return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300";
+        return "bg-blue-100 text-blue-800 dark:bg-transparent dark:border dark:border-border dark:text-blue-300";
       case "C+":
       case "C":
-        return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300";
+        return "bg-yellow-100 text-yellow-800 dark:bg-transparent dark:border dark:border-border dark:text-yellow-300";
       case "D":
-        return "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300";
+        return "bg-orange-100 text-orange-800 dark:bg-transparent dark:border dark:border-border dark:text-orange-300";
       case "F":
-        return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300";
+        return "bg-red-100 text-red-800 dark:bg-transparent dark:border dark:border-border dark:text-red-300";
       default:
-        return "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300";
+        return "bg-gray-100 text-gray-800 dark:bg-transparent dark:border dark:border-border dark:text-foreground";
     }
   };
 
@@ -657,21 +657,21 @@ const ExamResults = () => {
               font-family: 'Times New Roman', Georgia, serif; 
               background: white;
               padding: 20px;
-              color: #2c3e50;
+              color: #111827;
               line-height: 1.5;
             }
             .report-card {
               max-width: 800px;
               margin: 0 auto;
               background: white;
-              border: 2px solid #2c3e50;
+              border: 2px solid #111827;
             }
             
             /* Header Section */
             .header {
               text-align: center;
               padding: 30px;
-              border-bottom: 2px solid #2c3e50;
+              border-bottom: 2px solid #111827;
             }
             .school-header {
               display: flex;
@@ -687,7 +687,7 @@ const ExamResults = () => {
               display: flex;
               align-items: center;
               justify-content: center;
-              border: 2px solid #ccc;
+              border: 2px solid #B0B4B3;
             }
             .school-logo img {
               width: 70px;
@@ -701,18 +701,18 @@ const ExamResults = () => {
             .school-name {
               font-size: 28px;
               font-weight: bold;
-              color: #2c3e50;
+              color: #111827;
               margin-bottom: 5px;
             }
             .school-motto {
               font-size: 16px;
               font-style: italic;
-              color: #666;
+              color: #6B7280;
             }
             .report-title {
               font-size: 24px;
               font-weight: bold;
-              color: #2c3e50;
+              color: #111827;
               margin-bottom: 20px;
             }
             
@@ -721,9 +721,9 @@ const ExamResults = () => {
               display: grid;
               grid-template-columns: repeat(4, 1fr);
               gap: 20px;
-              background: #f8f9fa;
+              background: #F4F6F8;
               padding: 20px;
-              border: 1px solid #ddd;
+              border: 1px solid #B0B4B3;
               margin-bottom: 20px;
             }
             .period-item {
@@ -732,24 +732,24 @@ const ExamResults = () => {
             .period-label {
               font-size: 12px;
               font-weight: bold;
-              color: #666;
+              color: #6B7280;
               margin-bottom: 5px;
             }
             .period-value {
               font-size: 14px;
               font-weight: bold;
-              color: #2c3e50;
+              color: #111827;
             }
             
             /* Student Details Section */
             .student-section {
               padding: 20px 30px;
-              border-bottom: 1px solid #eee;
+              border-bottom: 1px solid #B0B4B3;
             }
             .section-title {
               font-size: 18px;
               font-weight: bold;
-              color: #2c3e50;
+              color: #111827;
               margin-bottom: 15px;
               display: flex;
               align-items: center;
@@ -759,10 +759,10 @@ const ExamResults = () => {
               display: grid;
               grid-template-columns: 1fr 1fr;
               gap: 20px;
-              background: #f8f9fa;
+              background: #F4F6F8;
               padding: 15px;
               border-radius: 8px;
-              border: 1px solid #ddd;
+              border: 1px solid #B0B4B3;
             }
             .student-item {
               display: flex;
@@ -770,18 +770,18 @@ const ExamResults = () => {
             }
             .student-label {
               font-weight: bold;
-              color: #666;
+              color: #6B7280;
               min-width: 100px;
             }
             .student-value {
-              color: #2c3e50;
+              color: #111827;
               font-weight: 500;
             }
             
             /* Performance Summary */
             .performance-section {
               padding: 20px 30px;
-              border-bottom: 1px solid #eee;
+              border-bottom: 1px solid #B0B4B3;
             }
             .summary-grid {
               display: grid;
@@ -792,13 +792,13 @@ const ExamResults = () => {
               text-align: center;
               padding: 15px;
               border-radius: 8px;
-              border: 2px solid #ddd;
+              border: 2px solid #B0B4B3;
             }
-            .gpa-card { border-color: #3498db; background: #f0f8ff; }
-            .score-card { border-color: #27ae60; background: #f0fff0; }
-            .courses-card { border-color: #9b59b6; background: #f8f0ff; }
-            .marks-card { border-color: #f39c12; background: #fff8f0; }
-            .performance-card { border-color: #e74c3c; background: #fff0f0; }
+            .gpa-card { border-color: #1B88CE; background: #F4F6F8; }
+            .score-card { border-color: #7AA45D; background: #F4F6F8; }
+            .courses-card { border-color: #6B7280; background: #F4F6F8; }
+            .marks-card { border-color: #F5A623; background: #F4F6F8; }
+            .performance-card { border-color: #DC2626; background: #F4F6F8; }
             
             .summary-value {
               font-size: 20px;
@@ -807,7 +807,7 @@ const ExamResults = () => {
             }
             .summary-label {
               font-size: 11px;
-              color: #666;
+              color: #6B7280;
               font-weight: 600;
             }
             
@@ -819,28 +819,28 @@ const ExamResults = () => {
               width: 100%;
               border-collapse: collapse;
               margin-top: 15px;
-              border: 1px solid #ddd;
+              border: 1px solid #B0B4B3;
             }
             .results-table th {
-              background: #f5f5f5;
+              background: #F4F6F8;
               padding: 12px 8px;
               text-align: center;
               font-weight: bold;
               font-size: 12px;
-              color: #333;
-              border: 1px solid #ddd;
+              color: #111827;
+              border: 1px solid #B0B4B3;
             }
             .results-table td {
               padding: 10px 8px;
-              border: 1px solid #ddd;
+              border: 1px solid #B0B4B3;
               text-align: center;
               font-size: 14px;
             }
             .results-table tr:nth-child(even) {
-              background: #f9f9f9;
+              background: #F4F6F8;
             }
             .course-name { text-align: left; font-weight: 500; }
-            .course-code { font-family: monospace; color: #666; }
+            .course-code { font-family: monospace; color: #6B7280; }
             .percentage { font-weight: bold; }
             
             .grade-badge {
@@ -850,11 +850,11 @@ const ExamResults = () => {
               font-size: 12px;
               color: white;
             }
-            .grade-a { background: #27ae60; }
-            .grade-b { background: #3498db; }
-            .grade-c { background: #f39c12; }
-            .grade-d { background: #e67e22; }
-            .grade-f { background: #e74c3c; }
+            .grade-a { background: #7AA45D; }
+            .grade-b { background: #1B88CE; }
+            .grade-c { background: #F5A623; }
+            .grade-d { background: #F5A623; }
+            .grade-f { background: #DC2626; }
             
             .status-badge {
               padding: 3px 8px;
@@ -863,17 +863,17 @@ const ExamResults = () => {
               font-weight: bold;
               color: white;
             }
-            .status-pass { background: #27ae60; }
-            .status-fail { background: #e74c3c; }
+            .status-pass { background: #7AA45D; }
+            .status-fail { background: #DC2626; }
             
             /* Footer */
             .footer {
               padding: 25px 30px;
               text-align: center;
-              background: #f8f9fa;
-              border-top: 2px solid #2c3e50;
+              background: #F4F6F8;
+              border-top: 2px solid #111827;
               font-size: 12px;
-              color: #666;
+              color: #6B7280;
               line-height: 1.6;
             }
             .footer-content {
@@ -882,14 +882,14 @@ const ExamResults = () => {
             .school-about {
               font-weight: bold;
               margin: 10px 0;
-              color: #2c3e50;
+              color: #111827;
             }
             .school-contact {
               display: flex;
               justify-content: center;
               gap: 20px;
               font-size: 11px;
-              color: #666;
+              color: #6B7280;
             }
             
             @media print {
@@ -904,7 +904,7 @@ const ExamResults = () => {
             <div class="header">
               <div class="school-header">
                 <div class="school-logo">
-                  ${logoBase64 ? `<img src="${logoBase64}" alt="${schoolName} Logo">` : '<div style="color: #666; font-size: 24px;">🎓</div>'}
+                  ${logoBase64 ? `<img src="${logoBase64}" alt="${schoolName} Logo">` : '<div style="color: #6B7280; font-size: 24px;">🎓</div>'}
                 </div>
                 <div class="school-info">
                   <div class="school-name">${schoolName}</div>
@@ -954,23 +954,23 @@ const ExamResults = () => {
               <div class="section-title">📊 Academic Performance Summary</div>
               <div class="summary-grid">
                 <div class="summary-card gpa-card">
-                  <div class="summary-value" style="color: #3498db;">${(transformedStudentResults.summary?.overallGPA || 0).toFixed(2)}</div>
+                  <div class="summary-value" style="color: #1B88CE;">${(transformedStudentResults.summary?.overallGPA || 0).toFixed(2)}</div>
                   <div class="summary-label">Overall GPA</div>
                 </div>
                 <div class="summary-card score-card">
-                  <div class="summary-value" style="color: #27ae60;">${Math.round(transformedStudentResults.summary?.averageScore || 0)}%</div>
+                  <div class="summary-value" style="color: #7AA45D;">${Math.round(transformedStudentResults.summary?.averageScore || 0)}%</div>
                   <div class="summary-label">Average Score</div>
                 </div>
                 <div class="summary-card courses-card">
-                  <div class="summary-value" style="color: #9b59b6;">${transformedStudentResults.summary?.totalResults || 0}</div>
+                  <div class="summary-value" style="color: #6B7280;">${transformedStudentResults.summary?.totalResults || 0}</div>
                   <div class="summary-label">Total Courses</div>
                 </div>
                 <div class="summary-card marks-card">
-                  <div class="summary-value" style="color: #f39c12;">${transformedStudentResults.summary?.totalMarks || 0}/${transformedStudentResults.summary?.totalPossible || 0}</div>
+                  <div class="summary-value" style="color: #F5A623;">${transformedStudentResults.summary?.totalMarks || 0}/${transformedStudentResults.summary?.totalPossible || 0}</div>
                   <div class="summary-label">Marks Obtained</div>
                 </div>
                 <div class="summary-card performance-card">
-                  <div class="summary-value" style="color: #e74c3c; font-size: 16px;">${transformedStudentResults.summary?.remarks || "No Assessment"}</div>
+                  <div class="summary-value" style="color: #DC2626; font-size: 16px;">${transformedStudentResults.summary?.remarks || "No Assessment"}</div>
                   <div class="summary-label">Performance Level</div>
                 </div>
               </div>

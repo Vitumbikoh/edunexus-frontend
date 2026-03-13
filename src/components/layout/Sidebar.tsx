@@ -320,7 +320,7 @@ const financeNavItems: NavItem[] = [
 ];
 
 // Light-mode sidebar background (dark mode falls back to theme bg)
-const SIDEBAR_LIGHT_CLS = "bg-[hsl(222,60%,22%)] dark:bg-background";
+const SIDEBAR_LIGHT_CLS = "bg-sidebarbrand dark:bg-background";
 
 export default function Sidebar() {
   const { isOpen, toggle } = useSidebar();

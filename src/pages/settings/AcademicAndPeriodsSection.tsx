@@ -749,7 +749,7 @@ export default function AcademicAndPeriodsSection() {
   return (
     <div className="space-y-6">
       {/* Active Academic Calendar */}
-      <div className="space-y-4 border p-4 rounded-lg bg-gradient-to-r from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 border-gray-200 dark:border-gray-700 shadow-sm">
+      <div className="space-y-4 border p-4 rounded-lg bg-gradient-to-r from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 border-gray-200 dark:border-border shadow-sm">
         <div className="flex items-center gap-2">
           <div className="h-2 w-2 rounded-full bg-gradient-to-r from-blue-500 to-purple-500"></div>
           <h3 className="text-lg font-semibold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-gray-100 dark:to-gray-300 bg-clip-text text-transparent">

@@ -90,8 +90,8 @@ export default function ParentChildrenPerformance() {
                 <div className="h-64">
                   <ChartContainer
                     config={{
-                      score: { theme: { light: "#7c3aed", dark: "#7c3aed" } },
-                      average: { theme: { light: "#94a3b8", dark: "#94a3b8" } },
+                      score: { theme: { light: "#1B88CE", dark: "#1B88CE" } },
+                      average: { theme: { light: "#6B7280", dark: "#6B7280" } },
                     }}
                   >
                     <ResponsiveContainer width="100%" height="100%">

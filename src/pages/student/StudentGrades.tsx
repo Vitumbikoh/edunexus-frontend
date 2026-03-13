@@ -741,21 +741,21 @@ export default function StudentGrades() {
               font-family: 'Times New Roman', Georgia, serif; 
               background: white;
               padding: 20px;
-              color: #2c3e50;
+              color: #111827;
               line-height: 1.5;
             }
             .report-card {
               max-width: 800px;
               margin: 0 auto;
               background: white;
-              border: 2px solid #2c3e50;
+              border: 2px solid #111827;
             }
             
             /* Header Section */
             .header {
               text-align: center;
               padding: 40px; /* increased padding to push divider lower */
-              border-bottom: 2px solid #2c3e50;
+              border-bottom: 2px solid #111827;
             }
             .school-header {
               display: flex;
@@ -771,7 +771,7 @@ export default function StudentGrades() {
               display: flex;
               align-items: center;
               justify-content: center;
-              border: 2px solid #ccc;
+              border: 2px solid #B0B4B3;
             }
             .school-logo img {
               width: 70px;
@@ -785,19 +785,19 @@ export default function StudentGrades() {
             .school-name {
               font-size: 28px;
               font-weight: bold;
-              color: #2c3e50;
+              color: #111827;
               margin-bottom: 8px; /* more space under name */
             }
             .school-motto {
               font-size: 16px;
               font-style: italic;
-              color: #666;
+              color: #6B7280;
               margin-bottom: 6px;
             }
             .report-title {
               font-size: 24px;
               font-weight: bold;
-              color: #2c3e50;
+              color: #111827;
               margin-bottom: 20px;
             }
             
@@ -806,9 +806,9 @@ export default function StudentGrades() {
               display: grid;
               grid-template-columns: repeat(4, 1fr);
               gap: 20px;
-              background: #f8f9fa;
+              background: #F4F6F8;
               padding: 20px;
-              border: 1px solid #ddd;
+              border: 1px solid #B0B4B3;
               margin-bottom: 20px;
             }
             .period-item {
@@ -817,24 +817,24 @@ export default function StudentGrades() {
             .period-label {
               font-size: 12px;
               font-weight: bold;
-              color: #666;
+              color: #6B7280;
               margin-bottom: 5px;
             }
             .period-value {
               font-size: 14px;
               font-weight: bold;
-              color: #2c3e50;
+              color: #111827;
             }
             
             /* Student Details Section */
             .student-section {
               padding: 20px 30px;
-              border-bottom: 1px solid #eee;
+              border-bottom: 1px solid #B0B4B3;
             }
             .section-title {
               font-size: 18px;
               font-weight: bold;
-              color: #2c3e50;
+              color: #111827;
               margin-bottom: 15px;
               display: flex;
               align-items: center;
@@ -844,10 +844,10 @@ export default function StudentGrades() {
               display: grid;
               grid-template-columns: 1fr 1fr;
               gap: 20px;
-              background: #f8f9fa;
+              background: #F4F6F8;
               padding: 15px;
               border-radius: 8px;
-              border: 1px solid #ddd;
+              border: 1px solid #B0B4B3;
             }
             .student-item {
               display: flex;
@@ -855,18 +855,18 @@ export default function StudentGrades() {
             }
             .student-label {
               font-weight: bold;
-              color: #666;
+              color: #6B7280;
               min-width: 100px;
             }
             .student-value {
-              color: #2c3e50;
+              color: #111827;
               font-weight: 500;
             }
             
             /* Performance Summary */
             .performance-section {
               padding: 20px 30px;
-              border-bottom: 1px solid #eee;
+              border-bottom: 1px solid #B0B4B3;
             }
             .summary-grid {
               display: grid;
@@ -877,13 +877,13 @@ export default function StudentGrades() {
               text-align: center;
               padding: 15px;
               border-radius: 8px;
-              border: 2px solid #ddd;
+              border: 2px solid #B0B4B3;
             }
-            .gpa-card { border-color: #3498db; background: #f0f8ff; }
-            .score-card { border-color: #27ae60; background: #f0fff0; }
-            .courses-card { border-color: #9b59b6; background: #f8f0ff; }
-            .marks-card { border-color: #f39c12; background: #fff8f0; }
-            .performance-card { border-color: #e74c3c; background: #fff0f0; }
+            .gpa-card { border-color: #1B88CE; background: #F4F6F8; }
+            .score-card { border-color: #7AA45D; background: #F4F6F8; }
+            .courses-card { border-color: #6B7280; background: #F4F6F8; }
+            .marks-card { border-color: #F5A623; background: #F4F6F8; }
+            .performance-card { border-color: #DC2626; background: #F4F6F8; }
             
             .summary-value {
               font-size: 20px;
@@ -892,7 +892,7 @@ export default function StudentGrades() {
             }
             .summary-label {
               font-size: 11px;
-              color: #666;
+              color: #6B7280;
               font-weight: 600;
             }
             
@@ -904,28 +904,28 @@ export default function StudentGrades() {
               width: 100%;
               border-collapse: collapse;
               margin-top: 15px;
-              border: 1px solid #ddd;
+              border: 1px solid #B0B4B3;
             }
             .results-table th {
-              background: #f5f5f5;
+              background: #F4F6F8;
               padding: 12px 8px;
               text-align: center;
               font-weight: bold;
               font-size: 12px;
-              color: #333;
-              border: 1px solid #ddd;
+              color: #111827;
+              border: 1px solid #B0B4B3;
             }
             .results-table td {
               padding: 10px 8px;
-              border: 1px solid #ddd;
+              border: 1px solid #B0B4B3;
               text-align: center;
               font-size: 14px;
             }
             .results-table tr:nth-child(even) {
-              background: #f9f9f9;
+              background: #F4F6F8;
             }
             .course-name { text-align: left; font-weight: 500; }
-            .course-code { font-family: monospace; color: #666; }
+            .course-code { font-family: monospace; color: #6B7280; }
             .percentage { font-weight: bold; }
             
             .grade-badge {
@@ -935,11 +935,11 @@ export default function StudentGrades() {
               font-size: 12px;
               color: white;
             }
-            .grade-a { background: #27ae60; }
-            .grade-b { background: #3498db; }
-            .grade-c { background: #f39c12; }
-            .grade-d { background: #e67e22; }
-            .grade-f { background: #e74c3c; }
+            .grade-a { background: #7AA45D; }
+            .grade-b { background: #1B88CE; }
+            .grade-c { background: #F5A623; }
+            .grade-d { background: #F5A623; }
+            .grade-f { background: #DC2626; }
             
             .status-badge {
               padding: 3px 8px;
@@ -948,18 +948,18 @@ export default function StudentGrades() {
               font-weight: bold;
               color: white;
             }
-            .status-pass { background: #27ae60; }
-            .status-fail { background: #e74c3c; }
+            .status-pass { background: #7AA45D; }
+            .status-fail { background: #DC2626; }
             
             /* Footer */
             .footer {
               padding: 32px 30px; /* increased padding so divider appears lower */
               margin-top: 18px;   /* push footer (and its blue divider) further down */
               text-align: center;
-              background: #f8f9fa;
-              border-top: 2px solid #2c3e50;
+              background: #F4F6F8;
+              border-top: 2px solid #111827;
               font-size: 12px;
-              color: #666;
+              color: #6B7280;
               line-height: 1.6;
             }
             .footer-content {
@@ -968,12 +968,12 @@ export default function StudentGrades() {
             .school-about {
               font-weight: bold;
               margin: 10px 0;
-              color: #2c3e50;
+              color: #111827;
             }
             .school-contact {
               text-align: left;
               font-size: 11px;
-              color: #666;
+              color: #6B7280;
               margin-top: 8px;
               line-height: 1.6; /* increase line spacing for contact lines */
             }
@@ -991,7 +991,7 @@ export default function StudentGrades() {
             <div class="header">
               <div class="school-header">
                 <div class="school-logo">
-                  ${logoBase64 ? `<img src="${logoBase64}" alt="${schoolName} Logo">` : '<div style="color: #666; font-size: 24px;">🎓</div>'}
+                  ${logoBase64 ? `<img src="${logoBase64}" alt="${schoolName} Logo">` : '<div style="color: #6B7280; font-size: 24px;">🎓</div>'}
                 </div>
                 <div class="school-info">
                   <div class="school-name">${schoolName}</div>
@@ -1041,23 +1041,23 @@ export default function StudentGrades() {
               <div class="section-title">📊 Academic Performance Summary</div>
               <div class="summary-grid">
                 <div class="summary-card gpa-card">
-                  <div class="summary-value" style="color: #3498db;">${transformedResults.summary.overallGPA.toFixed(2)}</div>
+                  <div class="summary-value" style="color: #1B88CE;">${transformedResults.summary.overallGPA.toFixed(2)}</div>
                   <div class="summary-label">Overall GPA</div>
                 </div>
                 <div class="summary-card score-card">
-                  <div class="summary-value" style="color: #27ae60;">${Math.round(transformedResults.summary.averageScore)}%</div>
+                  <div class="summary-value" style="color: #7AA45D;">${Math.round(transformedResults.summary.averageScore)}%</div>
                   <div class="summary-label">Average Score</div>
                 </div>
                 <div class="summary-card courses-card">
-                  <div class="summary-value" style="color: #9b59b6;">${transformedResults.summary.totalCourses}</div>
+                  <div class="summary-value" style="color: #6B7280;">${transformedResults.summary.totalCourses}</div>
                   <div class="summary-label">Total Courses</div>
                 </div>
                 <div class="summary-card marks-card">
-                  <div class="summary-value" style="color: #f39c12;">${transformedResults.summary.totalMarks}/${transformedResults.summary.totalPossible}</div>
+                  <div class="summary-value" style="color: #F5A623;">${transformedResults.summary.totalMarks}/${transformedResults.summary.totalPossible}</div>
                   <div class="summary-label">Marks Obtained</div>
                 </div>
                 <div class="summary-card performance-card">
-                  <div class="summary-value" style="color: #e74c3c; font-size: 16px;">${transformedResults.summary.performance}</div>
+                  <div class="summary-value" style="color: #DC2626; font-size: 16px;">${transformedResults.summary.performance}</div>
                   <div class="summary-label">Performance Level</div>
                 </div>
               </div>
