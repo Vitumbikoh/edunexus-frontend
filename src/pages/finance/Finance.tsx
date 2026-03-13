@@ -874,7 +874,7 @@ export default function Finance() {
                 <DollarSign className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent className="px-4 pb-3 pt-1">
-                <div className="text-xl font-bold">{formatCurrency(termFeesApplied, getDefaultCurrency())}</div>
+                <div className="text-lg font-semibold leading-tight">{formatCurrency(termFeesApplied, getDefaultCurrency())}</div>
                 <p className="text-xs text-muted-foreground">
                   Applied to selected term fees
                 </p>
@@ -890,7 +890,7 @@ export default function Finance() {
                 <Receipt className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent className="px-4 pb-3 pt-1">
-                <div className="text-xl font-bold">{formatCurrency(effectiveExpected, getDefaultCurrency())}</div>
+                <div className="text-lg font-semibold leading-tight">{formatCurrency(effectiveExpected, getDefaultCurrency())}</div>
                 <div className="mt-2 space-y-1">
                   <Progress value={paidPercentage} className="h-2" />
                   <p className="text-xs text-muted-foreground">{paidPercentage}% of total fees</p>
@@ -905,7 +905,7 @@ export default function Finance() {
                 <CreditCard className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent className="px-4 pb-3 pt-1">
-                <div className="text-xl font-bold">{formatCurrency(pendingRemaining, getDefaultCurrency())}</div>
+                <div className="text-lg font-semibold leading-tight">{formatCurrency(pendingRemaining, getDefaultCurrency())}</div>
                 <p className="text-xs text-muted-foreground">Remaining balance</p>
               </CardContent>
             </Card>
@@ -916,7 +916,7 @@ export default function Finance() {
                 <ArrowUpRight className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent className="px-4 pb-3 pt-1">
-                <div className="text-xl font-bold">{formatCurrency(overdueAmount, getDefaultCurrency())}</div>
+                <div className="text-lg font-semibold leading-tight">{formatCurrency(overdueAmount, getDefaultCurrency())}</div>
                 <p className="text-xs text-muted-foreground">Outstanding Across All Terms</p>
               </CardContent>
             </Card>
@@ -927,7 +927,7 @@ export default function Finance() {
                 <TrendingUp className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent className="px-4 pb-3 pt-1">
-                <div className="text-xl font-bold">{formatCurrency(creditBalanceForTerm, getDefaultCurrency())}</div>
+                <div className="text-lg font-semibold leading-tight">{formatCurrency(creditBalanceForTerm, getDefaultCurrency())}</div>
                 <p className="text-xs text-muted-foreground">Credits / Unallocated from payments</p>
                 {(allocatedToPreviousTerms > 0 || allocatedToFutureTerms > 0) && (
                   <p className="text-[10px] text-muted-foreground mt-1">
@@ -944,7 +944,7 @@ export default function Finance() {
                 <DollarSign className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent className="px-4 pb-3 pt-1">
-                <div className="text-xl font-bold">{formatCurrency(termActualRevenue, getDefaultCurrency())}</div>
+                <div className="text-lg font-semibold leading-tight">{formatCurrency(termActualRevenue, getDefaultCurrency())}</div>
                 <p className="text-xs text-muted-foreground">Cash collected in selected term</p>
                 {termActualRevenue === 0 && (
                   <p className="text-xs text-muted-foreground">MK 0.00 — No payments recorded this term</p>

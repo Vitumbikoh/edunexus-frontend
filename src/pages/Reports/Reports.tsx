@@ -88,6 +88,11 @@ export default function Reports() {
   const { toast } = useToast();
 
   const [reportData, setReportData] = useState<ReportDataAPI | null>(null);
+  const [kpiOverrides, setKpiOverrides] = useState<{
+    totalEnrollments?: number;
+    totalFeePayments?: number;
+    totalRevenue?: number;
+  }>({});
   const [detailedReportData, setDetailedReportData] = useState<DetailedReportData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -255,12 +260,81 @@ export default function Reports() {
         paymentTermId: filters.paymentTermId || undefined,
         paymentClassId: filters.paymentClassId || undefined,
       });
-      const res = await fetch(`${API_BASE_URL}/admin/reports${query}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
+      const effectiveEnrollmentAcademicCalendarId = filters.enrollmentAcademicCalendarId || filters.comprehensiveAcademicCalendarId;
+      const effectivePaymentAcademicCalendarId = filters.paymentAcademicCalendarId || filters.comprehensiveAcademicCalendarId;
+      const effectivePaymentTermId = filters.paymentTermId || filters.comprehensiveTermId;
+
+      const enrollmentsQuery = buildQuery({
+        classId: filters.enrollmentClassId || undefined,
+        courseId: filters.enrollmentCourseId || undefined,
+        teacherId: filters.enrollmentTeacherId || undefined,
+        academicCalendarId: effectiveEnrollmentAcademicCalendarId || undefined,
       });
-      if (!res.ok) throw new Error('Failed to fetch report data');
-      const data = await res.json();
+
+      const paymentsQuery = buildQuery({
+        page: '1',
+        limit: '5000',
+        termId: effectivePaymentTermId || undefined,
+        academicCalendarId: effectivePaymentAcademicCalendarId || undefined,
+        studentId: filters.paymentStudentId || undefined,
+        classId: filters.paymentClassId || undefined,
+      });
+
+      const [summaryRes, enrollmentsRes, txRes, termTotalsRes] = await Promise.all([
+        fetch(`${API_BASE_URL}/admin/reports${query}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        fetch(`${API_BASE_URL}/admin/reports/enrollments${enrollmentsQuery}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        fetch(`${API_BASE_URL}/finance/transactions${paymentsQuery ? `?${paymentsQuery.slice(1)}` : ''}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        effectivePaymentTermId
+          ? fetch(`${API_BASE_URL}/finance/v2/term-totals?termId=${encodeURIComponent(effectivePaymentTermId)}`, {
+              headers: { Authorization: `Bearer ${token}` },
+            })
+          : Promise.resolve(null as Response | null),
+      ]);
+
+      if (!summaryRes.ok) throw new Error('Failed to fetch report data');
+
+      const data = await summaryRes.json();
       setReportData(data);
+
+      let totalEnrollments = data?.totalEnrollments;
+      if (enrollmentsRes.ok) {
+        const enrollmentsData = await enrollmentsRes.json().catch(() => []);
+        const enrollments = Array.isArray(enrollmentsData)
+          ? enrollmentsData
+          : (enrollmentsData?.enrollments || enrollmentsData?.items || []);
+        totalEnrollments = enrollments.length;
+      }
+
+      let totalFeePayments = data?.totalFeePayments;
+      let txRevenue = 0;
+      if (txRes.ok) {
+        const txData = await txRes.json().catch(() => ({}));
+        const txItems = Array.isArray(txData)
+          ? txData
+          : (txData?.transactions || txData?.items || txData?.payments || []);
+        totalFeePayments = txItems.length;
+        txRevenue = txItems.reduce((sum: number, item: any) => sum + Number(item?.amount || 0), 0);
+      }
+
+      let totalRevenue = data?.totalRevenue;
+      if (termTotalsRes && termTotalsRes.ok) {
+        const totalsData = await termTotalsRes.json().catch(() => null);
+        totalRevenue = Number(totalsData?.actualRevenue ?? totalsData?.totalCollected ?? txRevenue ?? 0);
+      } else if (txRevenue > 0) {
+        totalRevenue = txRevenue;
+      }
+
+      setKpiOverrides({
+        totalEnrollments,
+        totalFeePayments,
+        totalRevenue,
+      });
     } catch (e) {
       console.error(e);
       setError(e instanceof Error ? e.message : 'Failed to load reports');
@@ -613,7 +687,7 @@ export default function Reports() {
             <TrendingUp className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-foreground">{reportData.totalEnrollments}</div>
+            <div className="text-2xl font-bold text-foreground">{kpiOverrides.totalEnrollments ?? reportData.totalEnrollments}</div>
             <p className="text-xs text-muted-foreground mt-1">Active enrollments</p>
           </CardContent>
         </Card>
@@ -624,7 +698,7 @@ export default function Reports() {
             <FileSpreadsheet className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-foreground">{reportData.totalFeePayments}</div>
+            <div className="text-2xl font-bold text-foreground">{kpiOverrides.totalFeePayments ?? reportData.totalFeePayments}</div>
             <p className="text-xs text-muted-foreground mt-1">Fee payments</p>
           </CardContent>
         </Card>
@@ -636,7 +710,7 @@ export default function Reports() {
           </CardHeader>
           <CardContent className="pb-2">
             <div className="text-2xl font-bold text-foreground break-words">
-              {formatCurrency(reportData.totalRevenue || 0, getDefaultCurrency())}
+              {formatCurrency(kpiOverrides.totalRevenue ?? reportData.totalRevenue ?? 0, getDefaultCurrency())}
             </div>
             <p className="text-xs text-muted-foreground mt-1">Total collected</p>
           </CardContent>
