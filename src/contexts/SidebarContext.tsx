@@ -10,7 +10,13 @@ type SidebarContextType = {
 const SidebarContext = createContext<SidebarContextType | undefined>(undefined);
 
 export function SidebarProvider({ children }: { children: ReactNode }) {
-  const [isOpen, setIsOpen] = useState(true);
+  const [isOpen, setIsOpen] = useState(() => {
+    if (typeof window === 'undefined') {
+      return true;
+    }
+
+    return window.matchMedia('(min-width: 768px)').matches;
+  });
 
   const toggle = () => setIsOpen(prev => !prev);
   const close = () => setIsOpen(false);

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link, useNavigate, useLocation } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { useSidebar } from "@/contexts/SidebarContext";
 import { useAuth, UserRole } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
@@ -46,6 +46,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { termService } from "@/services/termService";
 import { messageService } from "@/services/messageService";
 import { useSchoolPackage } from "@/hooks/useSchoolPackage";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 type SubNavItem = {
   label: string;
@@ -325,9 +326,8 @@ const financeNavItems: NavItem[] = [
 const SIDEBAR_LIGHT_CLS = "bg-sidebarbrand dark:bg-background";
 
 export default function Sidebar() {
-  const { isOpen, toggle } = useSidebar();
+  const { isOpen, toggle, close } = useSidebar();
   const { user, token } = useAuth();
-  const navigate = useNavigate();
   const location = useLocation();
   const [openDropdowns, setOpenDropdowns] = useState<string[]>([]);
   const {
@@ -335,6 +335,14 @@ export default function Sidebar() {
     canAccessLibrary,
     isLoading: packageLoading,
   } = useSchoolPackage();
+  const isMobile = useIsMobile();
+  const isExpanded = isMobile ? true : isOpen;
+
+  const handleNavigation = () => {
+    if (isMobile) {
+      close();
+    }
+  };
 
   // Fetch active term for the bottom pinned section
   const { data: terms = [] } = useQuery({
@@ -411,7 +419,7 @@ export default function Sidebar() {
       const filteredSubs = item.subItems.filter((s) => s.roles.includes(user.role));
       if (filteredSubs.length === 0) return null;
 
-      if (!isOpen) {
+      if (!isExpanded) {
         // Minimized — popover
         return (
           <Popover key={item.label}>
@@ -441,6 +449,7 @@ export default function Sidebar() {
                     <Link
                       key={sub.href}
                       to={sub.href}
+                      onClick={handleNavigation}
                       className="flex items-center gap-2 rounded-md px-2 py-2 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
                     >
                       {SubIcon && <SubIcon className="h-4 w-4 flex-shrink-0" />}
@@ -500,6 +509,7 @@ export default function Sidebar() {
                   <Link
                     key={sub.href}
                     to={sub.href}
+                    onClick={handleNavigation}
                     className={cn(
                       "flex items-center gap-2 rounded-md px-2 py-2 text-[13px] transition-colors",
                       subActive
@@ -524,13 +534,14 @@ export default function Sidebar() {
     }
 
     // Simple link
-    if (!isOpen) {
+    if (!isExpanded) {
       return (
         <Tooltip key={item.label}>
           <TooltipTrigger asChild>
             <Link
               to={item.href!}
               aria-label={item.label}
+              onClick={handleNavigation}
               className={cn(
                 "relative flex items-center justify-center rounded-md px-2 py-2.5 transition-colors",
                 active
@@ -553,6 +564,7 @@ export default function Sidebar() {
       <Link
         key={item.label}
         to={item.href!}
+        onClick={handleNavigation}
         className={cn(
           "flex items-center gap-3 rounded-md px-3 py-2.5 text-[14px] font-medium transition-colors",
           active
@@ -573,11 +585,26 @@ export default function Sidebar() {
 
   return (
     <TooltipProvider>
+      {isMobile && isOpen ? (
+        <button
+          type="button"
+          aria-label="Close sidebar overlay"
+          className="fixed inset-0 z-40 bg-black/45"
+          onClick={close}
+        />
+      ) : null}
+
       <div
         className={cn(
-          "h-screen flex flex-col fixed left-0 top-0 z-40 transition-all duration-300 border-r border-white/10 dark:border-border shadow-xl",
+          "h-screen flex flex-col fixed left-0 top-0 border-r border-white/10 dark:border-border shadow-xl",
+          "transition-all duration-300",
           SIDEBAR_LIGHT_CLS,
-          isOpen ? "w-56" : "w-16"
+          isMobile
+            ? cn(
+                "z-50 w-72 max-w-[85vw]",
+                isOpen ? "translate-x-0" : "-translate-x-full"
+              )
+            : cn("z-40", isOpen ? "w-56" : "w-16")
         )}
       >
         {/* ── Header ──────────────────────────────────────── */}
@@ -587,7 +614,7 @@ export default function Sidebar() {
             SIDEBAR_LIGHT_CLS
           )}
         >
-          <div className={cn("flex items-center", isOpen ? "justify-start" : "justify-center w-full")}>
+          <div className={cn("flex items-center", isExpanded ? "justify-start" : "justify-center w-full")}>
             <div className="rounded-lg w-8 h-8 flex items-center justify-center flex-shrink-0">
               <img
                 src="/polymilesicon.png"
@@ -595,7 +622,7 @@ export default function Sidebar() {
                 className="w-8 h-8 rounded-lg object-contain"
               />
             </div>
-            {isOpen && (
+            {isExpanded && (
               <span className="ml-3 font-semibold text-white dark:text-foreground">EduNexus</span>
             )}
           </div>
@@ -607,7 +634,7 @@ export default function Sidebar() {
           >
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          {!isOpen && (
+          {!isMobile && !isOpen && (
             <button
               onClick={toggle}
               className="absolute -right-3 top-16 z-50 flex h-6 w-6 items-center justify-center rounded-full border border-white/20 dark:border-border bg-[hsl(222,60%,18%)] dark:bg-background text-white/60 dark:text-muted-foreground hover:text-white dark:hover:text-foreground shadow"
@@ -623,14 +650,14 @@ export default function Sidebar() {
             {filteredNavItems.map((item) => (
               <div key={item.label}>
                 {/* Section heading */}
-                {item.sectionTitle && isOpen && (
+                {item.sectionTitle && isExpanded && (
                   <div className="mt-4 mb-1 px-2">
                     <p className="text-xs font-semibold uppercase tracking-widest text-white/50 dark:text-muted-foreground">
                       {item.sectionTitle}
                     </p>
                   </div>
                 )}
-                {item.sectionTitle && !isOpen && (
+                {item.sectionTitle && !isExpanded && (
                   <div className="my-2 mx-2 border-t border-white/10 dark:border-border" />
                 )}
                 {renderNavItem(item)}
@@ -646,16 +673,17 @@ export default function Sidebar() {
             SIDEBAR_LIGHT_CLS
           )}
         >
-          {isOpen && (
+          {isExpanded && (
             <p className="mb-1.5 px-2 text-xs font-semibold uppercase tracking-widest text-white/50 dark:text-muted-foreground">
               Academic
             </p>
           )}
 
           {/* Academic Calendar link */}
-          {isOpen ? (
+          {isExpanded ? (
             <Link
               to="/setups/academic-calendar"
+              onClick={handleNavigation}
               className={cn(
                 "flex items-center gap-3 rounded-md px-3 py-2.5 text-[14px] font-medium transition-colors",
                 isItemActive("/setups/academic-calendar")
@@ -692,6 +720,7 @@ export default function Sidebar() {
               <TooltipTrigger asChild>
                 <Link
                   to="/setups/academic-calendar"
+                  onClick={handleNavigation}
                   className={cn(
                     "flex items-center justify-center rounded-md px-2 py-2.5 transition-colors",
                     isItemActive("/setups/academic-calendar")

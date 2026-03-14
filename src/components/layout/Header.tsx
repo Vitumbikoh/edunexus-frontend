@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Menu, Bell, Clock, AlertCircle, School, FileText } from 'lucide-react';
 import { useSidebar } from '@/contexts/SidebarContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -17,12 +17,14 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useToast } from "@/components/ui/use-toast";
 import { useNotifications, useNotificationStats, useMarkNotificationAsRead } from '@/hooks/useNotifications';
 import { Badge } from "@/components/ui/badge";
+import { useIsMobile } from '@/hooks/use-mobile';
 
 export default function Header() {
   const { toggle, isOpen } = useSidebar();
   const { user, logout, token } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   
   const enableNotifications = Boolean(token && user);
   const { data: notifications = [], isLoading } = useNotifications(enableNotifications);
@@ -97,17 +99,19 @@ export default function Header() {
   if (!user) return null;
 
   return (
-    <header className="h-16 flex items-center justify-between px-4 border-b border-border bg-background">
-      <div className="flex items-center">
-        {!isOpen && (
+    <header className="h-16 flex items-center justify-between gap-2 px-3 sm:px-4 border-b border-border bg-background">
+      <div className="flex min-w-0 items-center">
+        {(isMobile || !isOpen) && (
           <Button variant="ghost" size="icon" onClick={toggle} className="mr-4">
             <Menu className="h-5 w-5" />
           </Button>
         )}
-        <h1 className="text-xl font-bold text-foreground">School Management Portal</h1>
+        <h1 className="max-w-[40vw] truncate text-base font-bold text-foreground sm:max-w-none sm:text-xl">
+          {isMobile ? 'EduNexus' : 'School Management Portal'}
+        </h1>
       </div>
       
-      <div className="flex items-center space-x-4">
+      <div className="flex items-center space-x-2 sm:space-x-4">
         {/* Theme Toggle */}
         <ThemeToggle />
         
@@ -123,7 +127,7 @@ export default function Header() {
                 )}
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-80 max-w-sm" align="end" forceMount>
+            <DropdownMenuContent className="w-[min(20rem,calc(100vw-1rem))] sm:w-80" align="end" forceMount>
               <DropdownMenuLabel>
                 Notifications ({stats?.unread || 0} unread)
               </DropdownMenuLabel>
