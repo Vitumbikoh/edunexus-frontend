@@ -11,6 +11,7 @@ import { SystemPreloaderProvider } from "@/contexts/SystemPreloaderContext";
 import { LoadingState } from "@/components/app";
 import Layout from "@/components/layout/Layout";
 import RoleBasedDashboard from "@/components/auth/RoleBasedDashboard";
+import { useSchoolPackage } from "@/hooks/useSchoolPackage";
 
 // Pages
 import Login from "./pages/Login";
@@ -247,6 +248,10 @@ const ScheduleRoute = ({ children }: { children: React.ReactNode }) => {
 // Finance route component - accessible by finance and admin roles
 const FinanceRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading, isAuthenticated } = useAuth();
+  const {
+    canAccessFinance,
+    isLoading: packageLoading,
+  } = useSchoolPackage();
 
   // Immediately redirect if not authenticated
   if (!loading && !isAuthenticated) {
@@ -258,7 +263,42 @@ const FinanceRoute = ({ children }: { children: React.ReactNode }) => {
     return <Navigate to="/dashboard" replace />;
   }
 
-  if (loading) {
+  // Package-level guard: finance module is available only in silver/golden packages.
+  if (!loading && !packageLoading && user && user.role !== 'super_admin' && !canAccessFinance) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  if (loading || packageLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-lg">Verifying permissions...</div>
+      </div>
+    );
+  }
+
+  return <>{children}</>;
+};
+
+const LibraryRoute = ({ children }: { children: React.ReactNode }) => {
+  const { user, loading, isAuthenticated } = useAuth();
+  const {
+    canAccessLibrary,
+    isLoading: packageLoading,
+  } = useSchoolPackage();
+
+  if (!loading && !isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (!loading && user && user.role !== 'admin' && user.role !== 'super_admin') {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  if (!loading && !packageLoading && user && user.role !== 'super_admin' && !canAccessLibrary) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  if (loading || packageLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-lg">Verifying permissions...</div>
@@ -421,9 +461,11 @@ const AppRoutes = () => {
           path="/library/catalog"
           element={
             <ProtectedRoute>
-              <Layout>
-                <LibraryCatalog />
-              </Layout>
+              <LibraryRoute>
+                <Layout>
+                  <LibraryCatalog />
+                </Layout>
+              </LibraryRoute>
             </ProtectedRoute>
           }
         />
@@ -431,9 +473,11 @@ const AppRoutes = () => {
           path="/library/borrowings"
           element={
             <ProtectedRoute>
-              <Layout>
-                <Borrowings />
-              </Layout>
+              <LibraryRoute>
+                <Layout>
+                  <Borrowings />
+                </Layout>
+              </LibraryRoute>
             </ProtectedRoute>
           }
         />
@@ -441,9 +485,11 @@ const AppRoutes = () => {
           path="/library/returnings"
           element={
             <ProtectedRoute>
-              <Layout>
-                <Returnings />
-              </Layout>
+              <LibraryRoute>
+                <Layout>
+                  <Returnings />
+                </Layout>
+              </LibraryRoute>
             </ProtectedRoute>
           }
         />
@@ -642,9 +688,11 @@ const AppRoutes = () => {
         path="/finance"
         element={
           <ProtectedRoute>
-            <Layout>
-              <Finance />
-            </Layout>
+            <FinanceRoute>
+              <Layout>
+                <Finance />
+              </Layout>
+            </FinanceRoute>
           </ProtectedRoute>
         }
       />
@@ -718,9 +766,11 @@ const AppRoutes = () => {
         path="/finance/record"
         element={
           <ProtectedRoute>
-            <Layout>
-              <PaymentForm />
-            </Layout>
+            <FinanceRoute>
+              <Layout>
+                <PaymentForm />
+              </Layout>
+            </FinanceRoute>
           </ProtectedRoute>
         }
       />

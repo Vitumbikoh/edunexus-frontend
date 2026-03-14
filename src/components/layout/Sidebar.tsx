@@ -45,6 +45,7 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { termService } from "@/services/termService";
 import { messageService } from "@/services/messageService";
+import { useSchoolPackage } from "@/hooks/useSchoolPackage";
 
 type SubNavItem = {
   label: string;
@@ -116,20 +117,10 @@ const adminNavItems: NavItem[] = [
   },
   // ── Management ─────────────────────────────────────────────
   {
-    label: "Library",
-    icon: Library,
-    roles: ["admin"],
-    sectionTitle: "Management",
-    subItems: [
-      { label: "Catalog",    href: "/library/catalog",    roles: ["admin"] },
-      { label: "Borrowings", href: "/library/borrowings", roles: ["admin"] },
-      { label: "Returnings", href: "/library/returnings", roles: ["admin"] },
-    ],
-  },
-  {
     label: "Finance",
     icon: DollarSign,
     roles: ["admin"],
+    sectionTitle: "Management",
     subItems: [
       { label: "View Financial Records",  href: "/finance",                       roles: ["admin"] },
       { label: "Financial Reports",       href: "/finance/reports",               roles: ["admin"] },
@@ -137,6 +128,16 @@ const adminNavItems: NavItem[] = [
       { label: "Pay Components",          href: "/payroll/components",            roles: ["admin"] },
       { label: "Graduated Outstanding",   href: "/finance/graduated-outstanding", roles: ["admin"] },
       { label: "View Financial Officers", href: "/finance/officers/view",         roles: ["admin"] },
+    ],
+  },
+  {
+    label: "Library",
+    icon: Library,
+    roles: ["admin"],
+    subItems: [
+      { label: "Catalog",    href: "/library/catalog",    roles: ["admin"] },
+      { label: "Borrowings", href: "/library/borrowings", roles: ["admin"] },
+      { label: "Returnings", href: "/library/returnings", roles: ["admin"] },
     ],
   },
   {
@@ -329,6 +330,11 @@ export default function Sidebar() {
   const navigate = useNavigate();
   const location = useLocation();
   const [openDropdowns, setOpenDropdowns] = useState<string[]>([]);
+  const {
+    canAccessFinance,
+    canAccessLibrary,
+    isLoading: packageLoading,
+  } = useSchoolPackage();
 
   // Fetch active term for the bottom pinned section
   const { data: terms = [] } = useQuery({
@@ -366,9 +372,23 @@ export default function Sidebar() {
   else if (user.role === "parent")   navItems = parentNavItems;
   else if (user.role === "finance")  navItems = financeNavItems;
 
-  const filteredNavItems = navItems.filter((item) =>
-    item.roles.includes(user.role)
-  );
+  const filteredNavItems = navItems
+    .filter((item) => item.roles.includes(user.role))
+    .filter((item) => {
+      // Avoid hiding links during initial package fetch to reduce UI flicker.
+      if (packageLoading || user.role === 'super_admin') return true;
+
+      if (user.role === 'admin') {
+        if (item.label === 'Finance' && !canAccessFinance) return false;
+        if (item.label === 'Library' && !canAccessLibrary) return false;
+      }
+
+      if (user.role === 'finance' && !canAccessFinance) {
+        return false;
+      }
+
+      return true;
+    });
 
   const toggleDropdown = (label: string) => {
     setOpenDropdowns((prev) =>
