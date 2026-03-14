@@ -21,7 +21,6 @@ const DEFAULT_SUBTEXT = 'Please wait while we fetch your information';
 const SystemPreloaderContext = createContext<SystemPreloaderContextType | undefined>(undefined);
 
 export const SystemPreloaderProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [pendingRequests, setPendingRequests] = useState(0);
   const [isVisible, setIsVisible] = useState(false);
   const [text, setText] = useState(DEFAULT_TEXT);
   const [subtext, setSubtext] = useState(DEFAULT_SUBTEXT);
@@ -89,27 +88,7 @@ export const SystemPreloaderProvider: React.FC<{ children: React.ReactNode }> = 
   };
 
   useEffect(() => {
-    if (pendingRequests > 0) {
-      showPreloader();
-    } else {
-      hidePreloader();
-    }
-  }, [pendingRequests]);
-
-  useEffect(() => {
-    const originalFetch = window.fetch;
-
-    window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
-      setPendingRequests((count) => count + 1);
-      try {
-        return await originalFetch.call(window, input, init);
-      } finally {
-        setPendingRequests((count) => Math.max(0, count - 1));
-      }
-    };
-
     return () => {
-      window.fetch = originalFetch;
       clearTimers();
     };
   }, []);

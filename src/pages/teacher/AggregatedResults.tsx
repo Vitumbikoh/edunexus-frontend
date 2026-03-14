@@ -129,7 +129,7 @@ export default function AggregatedResults(){
                         <TableCell>{r.student?.firstName} {r.student?.lastName}</TableCell>
                         <TableCell>
                           {r.finalPercentage ? (
-                            <Badge variant="secondary" className={`${r.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' : ''}`}>
+                            <Badge variant="outline" className={`${r.status === 'PENDING' ? 'bg-transparent border-yellow-300 text-yellow-700 dark:text-yellow-300 dark:border-yellow-500/40' : ''}`}>
                               {parseFloat(r.finalPercentage).toFixed(1)}%
                             </Badge>
                           ) : '-'}
@@ -137,11 +137,11 @@ export default function AggregatedResults(){
                         <TableCell>
                           {r.finalGradeCode ? (
                             <Badge variant="outline" className={`${
-                              r.finalGradeCode === 'A' ? 'bg-green-100 text-green-800' :
-                              r.finalGradeCode === 'B' ? 'bg-blue-100 text-blue-800' :
-                              r.finalGradeCode === 'C' ? 'bg-orange-100 text-orange-800' :
-                              r.finalGradeCode === 'D' ? 'bg-yellow-100 text-yellow-800' :
-                              'bg-red-100 text-red-800'
+                              r.finalGradeCode === 'A' ? 'bg-transparent border-green-300 text-green-700 dark:text-green-300 dark:border-green-500/40' :
+                              r.finalGradeCode === 'B' ? 'bg-transparent border-blue-300 text-blue-700 dark:text-blue-300 dark:border-blue-500/40' :
+                              r.finalGradeCode === 'C' ? 'bg-transparent border-orange-300 text-orange-700 dark:text-orange-300 dark:border-orange-500/40' :
+                              r.finalGradeCode === 'D' ? 'bg-transparent border-yellow-300 text-yellow-700 dark:text-yellow-300 dark:border-yellow-500/40' :
+                              'bg-transparent border-red-300 text-red-700 dark:text-red-300 dark:border-red-500/40'
                             }`}>
                               {r.finalGradeCode}
                             </Badge>

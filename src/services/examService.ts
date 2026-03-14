@@ -142,8 +142,21 @@ export const examService = {
           normalizedTerm = { id: normalizedTermId } as any;
         }
 
+        const normalizedSubject = e.subject || e.course?.name || e.courseName || e.subjectName || e.course?.code || 'N/A';
+        const normalizedCourse = e.course || (
+          e.courseId || e.courseName || e.courseCode || e.subject
+            ? {
+                id: e.courseId || '',
+                name: e.courseName || e.subject || normalizedSubject,
+                code: e.courseCode || e.course?.code,
+              }
+            : undefined
+        );
+
         return {
           ...e,
+          subject: normalizedSubject,
+          course: normalizedCourse,
           termId: normalizedTermId,
           term: normalizedTerm || e.term,
         } as Exam;

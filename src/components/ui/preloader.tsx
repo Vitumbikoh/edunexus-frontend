@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils';
 import { Skeleton } from './skeleton';
 import { useOptionalSystemPreloader } from '@/contexts/SystemPreloaderContext';
 import { useOptionalSidebar } from '@/contexts/SidebarContext';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface PreloaderProps {
   /**
@@ -198,13 +199,18 @@ export const SystemPreloader: React.FC<{
   visible = true,
 }) => {
   const sidebar = useOptionalSidebar();
+  const isMobile = useIsMobile();
 
   if (!visible) {
     return null;
   }
 
+  if (isMobile) {
+    return null;
+  }
+
   const contentInsetLeft = sidebar
-    ? (sidebar.isOpen ? 224 : 64)
+    ? (isMobile ? 0 : (sidebar.isOpen ? 224 : 64))
     : 0;
 
   return (
@@ -217,13 +223,13 @@ export const SystemPreloader: React.FC<{
         bottom: 0,
       }}
     >
-      <div className="pointer-events-auto w-[min(92vw,24rem)] rounded-xl border bg-card/95 p-6 shadow-lg">
-        <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full border border-primary/30 bg-primary/10">
-          <Loader2 className="h-7 w-7 animate-spin text-primary" />
+      <div className="pointer-events-auto w-[min(92vw,24rem)] rounded-xl border bg-card/95 p-5 sm:p-6 shadow-lg">
+        <div className="mx-auto mb-4 sm:mb-5 flex h-12 w-12 sm:h-14 sm:w-14 items-center justify-center rounded-full border border-primary/30 bg-primary/10">
+          <Loader2 className="h-6 w-6 sm:h-7 sm:w-7 animate-spin text-primary" />
         </div>
 
         <div className="text-center">
-          <h3 className="text-base font-semibold text-foreground">{text}</h3>
+          <h3 className="text-sm sm:text-base font-semibold text-foreground">{text}</h3>
           <p className="mt-1 text-sm text-muted-foreground">{subtext}</p>
         </div>
 

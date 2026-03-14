@@ -176,7 +176,12 @@ export default function TeacherStudentDetails() {
               <div>
                 <label className="text-sm font-medium text-muted-foreground">Status</label>
                 <p>
-                  <Badge variant={student.isActive ? 'default' : 'destructive'} className={student.isActive ? 'text-green-700 bg-green-100' : 'text-red-700 bg-red-100'}>
+                  <Badge
+                    variant="outline"
+                    className={student.isActive
+                      ? 'bg-transparent border-green-300 text-green-700 dark:text-green-300 dark:border-green-500/40'
+                      : 'bg-transparent border-red-300 text-red-700 dark:text-red-300 dark:border-red-500/40'}
+                  >
                     {student.isActive ? 'Active' : 'Inactive'}
                   </Badge>
                 </p>

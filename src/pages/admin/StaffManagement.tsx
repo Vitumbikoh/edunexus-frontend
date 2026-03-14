@@ -294,30 +294,30 @@ const StaffManagement: React.FC = () => {
   const getRoleColor = (role: string) => {
     switch (role) {
       case 'super_admin':
-        return 'bg-purple-100 text-purple-800';
+        return 'bg-transparent border border-purple-300 text-purple-700 dark:text-purple-300 dark:border-purple-500/40';
       case 'admin':
-        return 'bg-blue-100 text-blue-800';
+        return 'bg-transparent border border-blue-300 text-blue-700 dark:text-blue-300 dark:border-blue-500/40';
       case 'teacher':
-        return 'bg-green-100 text-green-800';
+        return 'bg-transparent border border-green-300 text-green-700 dark:text-green-300 dark:border-green-500/40';
       case 'finance':
-        return 'bg-yellow-100 text-yellow-800';
+        return 'bg-transparent border border-yellow-300 text-yellow-700 dark:text-yellow-300 dark:border-yellow-500/40';
       case 'librarian':
-        return 'bg-indigo-100 text-indigo-800';
+        return 'bg-transparent border border-indigo-300 text-indigo-700 dark:text-indigo-300 dark:border-indigo-500/40';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-transparent border border-gray-300 text-gray-700 dark:text-gray-300';
     }
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'active':
-        return 'bg-green-100 text-green-800';
+        return 'bg-transparent border border-green-300 text-green-700 dark:text-green-300 dark:border-green-500/40';
       case 'inactive':
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-transparent border border-gray-300 text-gray-700 dark:text-gray-300';
       case 'suspended':
-        return 'bg-red-100 text-red-800';
+        return 'bg-transparent border border-red-300 text-red-700 dark:text-red-300 dark:border-red-500/40';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-transparent border border-gray-300 text-gray-700 dark:text-gray-300';
     }
   };
 
@@ -686,13 +686,13 @@ const StaffManagement: React.FC = () => {
                       </Button>
                     </div>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
-                      <div className="bg-green-50 p-2 rounded text-green-800">✓ Dashboard Access</div>
-                      <div className="bg-green-50 p-2 rounded text-green-800">✓ View Reports</div>
+                      <div className="p-2 rounded border border-green-300/60 text-green-700 dark:text-green-300 bg-transparent">✓ Dashboard Access</div>
+                      <div className="p-2 rounded border border-green-300/60 text-green-700 dark:text-green-300 bg-transparent">✓ View Reports</div>
                       {role !== 'librarian' && (
-                        <div className="bg-green-50 p-2 rounded text-green-800">✓ Manage Students</div>
+                        <div className="p-2 rounded border border-green-300/60 text-green-700 dark:text-green-300 bg-transparent">✓ Manage Students</div>
                       )}
                       {(role === 'admin' || role === 'super_admin') && (
-                        <div className="bg-green-50 p-2 rounded text-green-800">✓ Manage Staff</div>
+                        <div className="p-2 rounded border border-green-300/60 text-green-700 dark:text-green-300 bg-transparent">✓ Manage Staff</div>
                       )}
                     </div>
                   </div>

@@ -85,14 +85,18 @@ export default function Exams() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'upcoming':
-        return <Badge variant="secondary" className="bg-blue-100 text-blue-800 dark:bg-transparent dark:border dark:border-border dark:text-foreground">Upcoming</Badge>;
+        return <Badge variant="outline" className="bg-transparent border-blue-300 text-blue-700 dark:text-blue-300 dark:border-blue-500/40">Upcoming</Badge>;
       case 'administered':
-        return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 dark:bg-transparent dark:border dark:border-border dark:text-foreground">Administered</Badge>;
+        return <Badge variant="outline" className="bg-transparent border-yellow-300 text-yellow-700 dark:text-yellow-300 dark:border-yellow-500/40">Administered</Badge>;
       case 'graded':
-        return <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-transparent dark:border dark:border-border dark:text-green-300">Graded</Badge>;
+        return <Badge variant="outline" className="bg-transparent border-green-300 text-green-700 dark:text-green-300 dark:border-green-500/40">Graded</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
+  };
+
+  const getExamSubject = (exam: any) => {
+    return exam.subject || exam.course?.name || exam.courseName || exam.subjectName || exam.course?.code || 'N/A';
   };
 
   // Navigate to exam details
@@ -341,7 +345,7 @@ export default function Exams() {
                   exams.map((exam) => (
                     <TableRow key={exam.id} className="hover:bg-muted/50">
                       <TableCell className="font-medium">{exam.title}</TableCell>
-                      <TableCell>{exam.subject}</TableCell>
+                      <TableCell>{getExamSubject(exam)}</TableCell>
                       <TableCell>
                         <Badge variant="outline" className="font-normal">
                           {exam.class?.name || 'Unknown Class'}

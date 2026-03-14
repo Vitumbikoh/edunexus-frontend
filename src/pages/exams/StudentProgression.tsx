@@ -628,7 +628,7 @@ export default function StudentProgression() {
                                 <TableCell>
                                   <div className="flex items-center gap-2">
                                     <span className="font-medium">{classData.promote}</span>
-                                    <Badge variant="secondary" className="text-xs bg-green-100 text-green-800 border-green-200">
+                                    <Badge variant="outline" className="text-xs bg-transparent text-green-700 border-green-300 dark:text-green-300">
                                       {classData.total > 0 ? Math.round((classData.promote / classData.total) * 100) : 0}%
                                     </Badge>
                                   </div>
@@ -637,7 +637,7 @@ export default function StudentProgression() {
                                   <div className="flex items-center gap-2">
                                     <span className="font-medium">{classData.graduate}</span>
                                     {classData.graduate > 0 && (
-                                      <Badge variant="outline" className="text-xs border-green-200 text-green-800">
+                                      <Badge variant="outline" className="text-xs bg-transparent border-green-300 text-green-700 dark:text-green-300">
                                         {Math.round((classData.graduate / classData.total) * 100)}%
                                       </Badge>
                                     )}
@@ -647,7 +647,7 @@ export default function StudentProgression() {
                                   <div className="flex items-center gap-2">
                                     <span className="font-medium">{classData.retain}</span>
                                     {classData.retain > 0 && (
-                                      <Badge variant="destructive" className="text-xs">
+                                      <Badge variant="outline" className="text-xs bg-transparent border-amber-300 text-amber-700 dark:text-amber-300">
                                         {Math.round((classData.retain / classData.total) * 100)}%
                                       </Badge>
                                     )}

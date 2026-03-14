@@ -76,18 +76,18 @@ interface ProfessionalReportCardProps {
 }
 
 const GradeColorMap: Record<string, string> = {
-  'A+': 'bg-emerald-100 text-emerald-800 border-emerald-200',
-  'A': 'bg-emerald-100 text-emerald-700 border-emerald-200',
-  'A-': 'bg-green-100 text-green-700 border-green-200',
-  'B+': 'bg-blue-100 text-blue-700 border-blue-200',
-  'B': 'bg-blue-100 text-blue-600 border-blue-200',
-  'B-': 'bg-indigo-100 text-indigo-600 border-indigo-200',
-  'C+': 'bg-yellow-100 text-yellow-700 border-yellow-200',
-  'C': 'bg-yellow-100 text-yellow-600 border-yellow-200',
-  'C-': 'bg-orange-100 text-orange-600 border-orange-200',
-  'D+': 'bg-red-100 text-red-600 border-red-200',
-  'D': 'bg-red-100 text-red-700 border-red-200',
-  'F': 'bg-red-100 text-red-800 border-red-200',
+  'A+': 'bg-transparent text-emerald-700 border-emerald-300 dark:text-emerald-300 dark:border-emerald-500/40',
+  'A': 'bg-transparent text-emerald-700 border-emerald-300 dark:text-emerald-300 dark:border-emerald-500/40',
+  'A-': 'bg-transparent text-green-700 border-green-300 dark:text-green-300 dark:border-green-500/40',
+  'B+': 'bg-transparent text-blue-700 border-blue-300 dark:text-blue-300 dark:border-blue-500/40',
+  'B': 'bg-transparent text-blue-700 border-blue-300 dark:text-blue-300 dark:border-blue-500/40',
+  'B-': 'bg-transparent text-indigo-700 border-indigo-300 dark:text-indigo-300 dark:border-indigo-500/40',
+  'C+': 'bg-transparent text-yellow-700 border-yellow-300 dark:text-yellow-300 dark:border-yellow-500/40',
+  'C': 'bg-transparent text-yellow-700 border-yellow-300 dark:text-yellow-300 dark:border-yellow-500/40',
+  'C-': 'bg-transparent text-orange-700 border-orange-300 dark:text-orange-300 dark:border-orange-500/40',
+  'D+': 'bg-transparent text-red-700 border-red-300 dark:text-red-300 dark:border-red-500/40',
+  'D': 'bg-transparent text-red-700 border-red-300 dark:text-red-300 dark:border-red-500/40',
+  'F': 'bg-transparent text-red-700 border-red-300 dark:text-red-300 dark:border-red-500/40',
 };
 
 const getPerformanceColor = (gpa: number) => {
@@ -364,7 +364,7 @@ const ProfessionalReportCard: React.FC<ProfessionalReportCardProps> = ({
                       <td className="p-4 text-center">
                         <Badge className={cn(
                           "font-medium",
-                          GradeColorMap[course.grade] || "bg-gray-100 text-gray-800"
+                          GradeColorMap[course.grade] || "bg-transparent text-gray-700 border-gray-300 dark:text-gray-300"
                         )}>
                           {course.grade}
                         </Badge>
@@ -375,7 +375,12 @@ const ProfessionalReportCard: React.FC<ProfessionalReportCardProps> = ({
                         </span>
                       </td>
                       <td className="p-4 text-center">
-                        <Badge variant={course.status === 'Pass' ? "default" : "destructive"}>
+                        <Badge
+                          variant="outline"
+                          className={course.status === 'Pass'
+                            ? 'bg-transparent border-green-300 text-green-700 dark:text-green-300 dark:border-green-500/40'
+                            : 'bg-transparent border-red-300 text-red-700 dark:text-red-300 dark:border-red-500/40'}
+                        >
                           {course.status}
                         </Badge>
                       </td>
