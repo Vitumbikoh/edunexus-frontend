@@ -36,7 +36,7 @@ export const getServerBaseUrl = (): string => {
 export const API_CONFIG = {
   BASE_URL: API_BASE_URL,
   SERVER_URL: getServerBaseUrl(),
-  APP_NAME: import.meta.env.VITE_APP_NAME || 'School Management Portal',
+  APP_NAME: import.meta.env.VITE_APP_NAME || 'EduNexus Portal',
   APP_VERSION: import.meta.env.VITE_APP_VERSION || '1.0.0',
   ENDPOINTS: {
   // Legacy dashboard endpoints (kept temporarily for backward compatibility)
