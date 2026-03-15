@@ -19,6 +19,25 @@ import {
   Bar,
 } from 'recharts';
 
+const toNumber = (value: unknown): number => {
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : 0;
+  }
+
+  if (typeof value === 'string') {
+    const cleaned = value.replace(/[^\d.-]/g, '');
+    const parsed = Number.parseFloat(cleaned);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+
+  return 0;
+};
+
+const toCount = (value: unknown): number => {
+  const parsed = Math.trunc(toNumber(value));
+  return parsed > 0 ? parsed : 0;
+};
+
 export default function ExpenseAnalytics() {
   const { token } = useAuth();
   const [analyticsData, setAnalyticsData] = useState<any>(null);
@@ -87,21 +106,46 @@ export default function ExpenseAnalytics() {
   }
 
   const summary = analyticsData.summary || {};
+  const totals = analyticsData.totals || {};
+  const performance = analyticsData.performance || {};
   const monthlyTrend = analyticsData.monthlyTrend || {};
   const categoryBreakdown = analyticsData.categoryBreakdown || {};
+
+  const totalExpenses = toCount(totals.totalExpenses);
+  const totalAmount = toNumber(totals.totalAmount);
+  const approvedAmount = toNumber(totals.approvedAmount);
+
+  const budgetUtilizationValue =
+    toNumber(summary.budgetUtilization) ||
+    toNumber(performance.budgetUtilization) ||
+    (totalAmount > 0 ? (approvedAmount / totalAmount) * 100 : 0);
+
+  const avgExpenseValue =
+    toNumber(summary.avgExpense) ||
+    toNumber(performance.avgExpense) ||
+    (totalExpenses > 0 ? totalAmount / totalExpenses : 0);
+
+  const approvalRateValue =
+    toNumber(summary.approvalRate) ||
+    toNumber(performance.approvalRate);
+
+  const avgApprovalTimeValue =
+    toNumber(summary.avgApprovalTime) ||
+    toNumber(performance.avgApprovalTime);
+  const normalizedAvgApprovalTimeValue = Math.max(0, avgApprovalTimeValue);
 
   // Prepare chart data for monthly trends
   const monthlyChartData = Object.entries(monthlyTrend).map(([month, data]: [string, any]) => ({
     month,
-    amount: data.amount || 0,
-    count: data.count || 0,
+    amount: toNumber(data?.amount),
+    count: toCount(data?.count),
     displayName: data.displayName || month
   }));
 
   // Prepare chart data for category breakdown
   const categoryChartData = Object.entries(categoryBreakdown).map(([category, amount]: [string, any]) => ({
     name: category,
-    value: amount,
+    value: toNumber(amount),
     color: ['#7AA45D', '#1B88CE', '#F5A623', '#6B7280', '#DC2626', '#6B7280'][Object.keys(categoryBreakdown).indexOf(category) % 6]
   }));
 
@@ -120,26 +164,26 @@ export default function ExpenseAnalytics() {
 
       {/* Key Metrics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-transparent dark:to-transparent dark:bg-transparent border-blue-200 dark:border-border">
+        <Card>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-blue-600 dark:text-blue-400">Budget Utilization</p>
-                <p className="text-3xl font-bold text-blue-700 dark:text-blue-300">{summary.budgetUtilization || '0%'}</p>
+                <p className="text-sm font-medium text-muted-foreground">Budget Utilization</p>
+                <p className="text-3xl font-bold">{budgetUtilizationValue.toFixed(1)}%</p>
               </div>
-              <DollarSign className="h-8 w-8 text-blue-500" />
+              <DollarSign className="h-8 w-8 text-blue-600" />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-green-50 to-green-100 dark:from-transparent dark:to-transparent dark:bg-transparent border-green-200 dark:border-border">
+        <Card>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-green-600 dark:text-green-400">Average Expense</p>
-                <p className="text-3xl font-bold text-green-700 dark:text-green-300">{summary.avgExpense ? formatCurrency(summary.avgExpense, getDefaultCurrency()) : formatCurrency(0, getDefaultCurrency())}</p>
+                <p className="text-sm font-medium text-muted-foreground">Average Expense</p>
+                <p className="text-3xl font-bold">{formatCurrency(avgExpenseValue, getDefaultCurrency())}</p>
               </div>
-              <TrendingUp className="h-8 w-8 text-green-500" />
+              <TrendingUp className="h-8 w-8 text-green-600" />
             </div>
           </CardContent>
         </Card>
@@ -149,21 +193,21 @@ export default function ExpenseAnalytics() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-purple-600 dark:text-purple-400">Approval Rate</p>
-                <p className="text-3xl font-bold text-purple-700 dark:text-purple-300">{summary.approvalRate || '0%'}</p>
+                <p className="text-3xl font-bold text-purple-700 dark:text-purple-300">{approvalRateValue.toFixed(1)}%</p>
               </div>
               <CheckCircle className="h-8 w-8 text-purple-500" />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-transparent dark:to-transparent dark:bg-transparent border-orange-200 dark:border-border">
+        <Card>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-orange-600 dark:text-orange-400">Avg. Approval Time</p>
-                <p className="text-3xl font-bold text-orange-700 dark:text-orange-300">{summary.avgApprovalTime || '0 days'}</p>
+                <p className="text-sm font-medium text-muted-foreground">Avg. Approval Time</p>
+                <p className="text-3xl font-bold">{normalizedAvgApprovalTimeValue.toFixed(1)} days</p>
               </div>
-              <Clock className="h-8 w-8 text-orange-500" />
+              <Clock className="h-8 w-8 text-yellow-600" />
             </div>
           </CardContent>
         </Card>
@@ -266,7 +310,7 @@ export default function ExpenseAnalytics() {
                     <td className="py-3 px-4 text-right font-mono">{formatCurrency(item.amount, getDefaultCurrency())}</td>
                     <td className="py-3 px-4 text-right">{item.count}</td>
                     <td className="py-3 px-4 text-right font-mono">
-                      {item.count > 0 ? formatCurrency(item.amount / item.count, getDefaultCurrency()) : formatCurrency(0, getDefaultCurrency())}
+                      {item.count > 0 ? formatCurrency(toNumber(item.amount) / toCount(item.count), getDefaultCurrency()) : formatCurrency(0, getDefaultCurrency())}
                     </td>
                   </tr>
                 ))}

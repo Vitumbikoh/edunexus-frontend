@@ -123,6 +123,20 @@ interface ExpenseFilters {
   limit?: number;
 }
 
+const parseAmountValue = (value: unknown): number => {
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : 0;
+  }
+
+  if (typeof value === 'string') {
+    const cleaned = value.replace(/[^\d.-]/g, '');
+    const parsed = Number.parseFloat(cleaned);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+
+  return 0;
+};
+
 export default function ExpenseManagement() {
   const { token, user } = useAuth();
   const { toast } = useToast();
@@ -439,10 +453,10 @@ export default function ExpenseManagement() {
 
   // Calculate summary statistics from current expense list
   const summaryStats = useMemo(() => {
-    const total = filteredExpenses.reduce((sum, expense) => sum + Number(expense.amount), 0);
-    const approved = filteredExpenses.filter(exp => exp.status === 'Approved' || exp.status === 'Paid').reduce((sum, expense) => sum + Number(expense.amount), 0);
-    const pending = filteredExpenses.filter(exp => ['Pending', 'Department Approved', 'Finance Review', 'Principal Approved', 'Board Review'].includes(exp.status)).reduce((sum, expense) => sum + Number(expense.amount), 0);
-    const rejected = filteredExpenses.filter(exp => exp.status === 'Rejected').reduce((sum, expense) => sum + Number(expense.amount), 0);
+    const total = filteredExpenses.reduce((sum, expense) => sum + parseAmountValue(expense.amount), 0);
+    const approved = filteredExpenses.filter(exp => exp.status === 'Approved' || exp.status === 'Paid').reduce((sum, expense) => sum + parseAmountValue(expense.amount), 0);
+    const pending = filteredExpenses.filter(exp => ['Pending', 'Department Approved', 'Finance Review', 'Principal Approved', 'Board Review'].includes(exp.status)).reduce((sum, expense) => sum + parseAmountValue(expense.amount), 0);
+    const rejected = filteredExpenses.filter(exp => exp.status === 'Rejected').reduce((sum, expense) => sum + parseAmountValue(expense.amount), 0);
     
     return { total, approved, pending, rejected };
   }, [filteredExpenses]);
@@ -1231,7 +1245,7 @@ function ExpenseAnalytics({ expenses, analyticsData }: { expenses: Expense[], an
     try {
       const breakdown = EXPENSE_CATEGORIES.map(category => {
         const categoryExpenses = expenses.filter(exp => exp && exp.category === category);
-        const total = categoryExpenses.reduce((sum, exp) => sum + (Number(exp.amount) || 0), 0);
+        const total = categoryExpenses.reduce((sum, exp) => sum + parseAmountValue(exp.amount), 0);
         const count = categoryExpenses.length;
         return { category, total, count };
       }).filter(item => item.count > 0);
@@ -1253,8 +1267,8 @@ function ExpenseAnalytics({ expenses, analyticsData }: { expenses: Expense[], an
       .slice(-6) // Get last 6 months
       .map(([monthKey, data]: [string, MonthlyTrendData]) => ({
         month: monthKey.split(' ')[0], // Extract month name (e.g., "Jan" from "Jan 2024")
-        amount: data.amount || 0,
-        count: data.count || 0,
+        amount: parseAmountValue(data.amount),
+        count: Math.max(0, Math.trunc(parseAmountValue(data.count))),
       }));
   }, [analyticsData]);
 
@@ -1263,7 +1277,7 @@ function ExpenseAnalytics({ expenses, analyticsData }: { expenses: Expense[], an
     try {
       const distribution = APPROVAL_STATUSES.map(status => {
         const statusExpenses = expenses.filter(exp => exp && exp.status === status);
-        const total = statusExpenses.reduce((sum, exp) => sum + (Number(exp.amount) || 0), 0);
+        const total = statusExpenses.reduce((sum, exp) => sum + parseAmountValue(exp.amount), 0);
         const count = statusExpenses.length;
         return { status, total, count };
       }).filter(item => item.count > 0);
@@ -1280,7 +1294,7 @@ function ExpenseAnalytics({ expenses, analyticsData }: { expenses: Expense[], an
       const departments = [...new Set(expenses.filter(exp => exp && exp.department).map(exp => exp.department))];
       return departments.map(dept => {
         const deptExpenses = expenses.filter(exp => exp && exp.department === dept);
-        const total = deptExpenses.reduce((sum, exp) => sum + (Number(exp.amount) || 0), 0);
+        const total = deptExpenses.reduce((sum, exp) => sum + parseAmountValue(exp.amount), 0);
         const count = deptExpenses.length;
         return { department: dept, total, count };
       }).sort((a, b) => b.total - a.total);
@@ -1303,7 +1317,7 @@ function ExpenseAnalytics({ expenses, analyticsData }: { expenses: Expense[], an
   }
 
   const totalBudget = 100000; // Mock annual budget
-  const totalSpent = expenses.reduce((sum, exp) => sum + (Number(exp.amount) || 0), 0);
+  const totalSpent = expenses.reduce((sum, exp) => sum + parseAmountValue(exp.amount), 0);
   const budgetUtilization = totalSpent > 0 ? (totalSpent / totalBudget) * 100 : 0;
 
   return (
@@ -1492,27 +1506,27 @@ function ExpenseAnalytics({ expenses, analyticsData }: { expenses: Expense[], an
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div className="p-4 bg-transparent border border-blue-300 rounded-lg">
-              <TrendingUp className="h-6 w-6 text-blue-600 mb-2" />
-              <h4 className="font-semibold text-blue-900">Budget Alert</h4>
-              <p className="text-sm text-blue-700">
+            <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg dark:bg-blue-950/30 dark:border-blue-800">
+              <TrendingUp className="h-6 w-6 text-blue-700 dark:text-blue-300 mb-2" />
+              <h4 className="font-semibold text-blue-900 dark:text-blue-100">Budget Alert</h4>
+              <p className="text-sm text-blue-800 dark:text-blue-200">
                 You've used {budgetUtilization.toFixed(1)}% of your annual budget. Consider reviewing upcoming expenses.
               </p>
             </div>
             
-            <div className="p-4 bg-transparent border border-green-300 rounded-lg">
-              <CheckCircle className="h-6 w-6 text-green-600 mb-2" />
-              <h4 className="font-semibold text-green-900">Efficiency</h4>
-              <p className="text-sm text-green-700">
+            <div className="p-4 bg-green-50 border border-green-200 rounded-lg dark:bg-green-950/30 dark:border-green-800">
+              <CheckCircle className="h-6 w-6 text-green-700 dark:text-green-300 mb-2" />
+              <h4 className="font-semibold text-green-900 dark:text-green-100">Efficiency</h4>
+              <p className="text-sm text-green-800 dark:text-green-200">
                 {expenses.filter(e => e.status === 'Approved' || e.status === 'Paid').length} expenses approved this month. 
                 Great approval efficiency!
               </p>
             </div>
             
-            <div className="p-4 bg-transparent border border-yellow-300 rounded-lg">
-              <AlertTriangle className="h-6 w-6 text-yellow-600 mb-2" />
-              <h4 className="font-semibold text-yellow-900">Attention Needed</h4>
-              <p className="text-sm text-yellow-700">
+            <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg dark:bg-yellow-950/25 dark:border-yellow-800">
+              <AlertTriangle className="h-6 w-6 text-yellow-700 dark:text-yellow-300 mb-2" />
+              <h4 className="font-semibold text-yellow-900 dark:text-yellow-100">Attention Needed</h4>
+              <p className="text-sm text-yellow-800 dark:text-yellow-200">
                 {expenses.filter(e => e.priority === 'High' && e.status === 'Pending').length} high-priority 
                 expenses await approval.
               </p>

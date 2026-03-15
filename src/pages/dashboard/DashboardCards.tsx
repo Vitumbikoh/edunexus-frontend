@@ -13,6 +13,7 @@ import { formatCurrency, getCurrencySymbol, getDefaultCurrency } from "@/lib/cur
 import { useNavigate } from "react-router-dom";
 import { API_CONFIG } from "@/config/api";
 import { useAuth } from "@/contexts/AuthContext";
+import { academicCalendarService } from '@/services/academicCalendarService';
 import {
   ResponsiveContainer,
   AreaChart,
@@ -721,9 +722,24 @@ export const FinanceDashboardCards = () => {
   const [paymentMethodsData, setPaymentMethodsData] = useState<any[]>([]);
   const [outstandingFeesBreakdown, setOutstandingFeesBreakdown] = useState<any[]>([]);
   const [revenueTrendsData, setRevenueTrendsData] = useState<any[]>([]);
+  const [activeCalendarId, setActiveCalendarId] = useState<string | null>(null);
   const [analyticsLoading, setAnalyticsLoading] = useState(true);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const toNumber = (value: unknown): number => {
+    if (typeof value === 'number') {
+      return Number.isFinite(value) ? value : 0;
+    }
+
+    if (typeof value === 'string') {
+      const cleaned = value.replace(/[^\d.-]/g, '');
+      const parsed = Number.parseFloat(cleaned);
+      return Number.isFinite(parsed) ? parsed : 0;
+    }
+
+    return 0;
+  };
 
   useEffect(() => {
     const fetchFinanceData = async () => {
@@ -734,7 +750,12 @@ export const FinanceDashboardCards = () => {
         let calParam = '';
         try {
           const cal = await academicCalendarService.getActiveAcademicCalendar(token!);
-          if (cal?.id) calParam = `?academicCalendarId=${encodeURIComponent(cal.id)}`;
+          if (cal?.id) {
+            setActiveCalendarId(cal.id);
+            calParam = `?academicCalendarId=${encodeURIComponent(cal.id)}`;
+          } else {
+            setActiveCalendarId(null);
+          }
         } catch {}
         
         const response = await fetch(`${API_CONFIG.BASE_URL}/finance/dashboard-data${calParam}`, {
@@ -774,6 +795,7 @@ export const FinanceDashboardCards = () => {
     const fetchAnalyticsData = async () => {
       try {
         setAnalyticsLoading(true);
+        const calParam = activeCalendarId ? `?academicCalendarId=${encodeURIComponent(activeCalendarId)}` : '';
         
         // Fetch payment methods distribution
         const paymentMethodsResponse = await fetch(`${API_CONFIG.BASE_URL}/finance/payment-methods-distribution${calParam}`, {
@@ -786,13 +808,30 @@ export const FinanceDashboardCards = () => {
         if (paymentMethodsResponse.ok) {
           const paymentMethodsResult = await paymentMethodsResponse.json();
           console.log('Payment methods data:', paymentMethodsResult);
-          
-          // Transform backend data to chart format
-          const chartData = paymentMethodsResult.map((item: any, index: number) => ({
-            name: item.method || item.paymentMethod,
-            value: parseFloat(item.percentage),
-            color: ['#7AA45D', '#1B88CE', '#F5A623', '#6B7280', '#DC2626'][index % 5]
-          }));
+
+          const rawPaymentMethods = Array.isArray(paymentMethodsResult)
+            ? paymentMethodsResult
+            : Array.isArray(paymentMethodsResult?.data)
+              ? paymentMethodsResult.data
+              : Array.isArray(paymentMethodsResult?.items)
+                ? paymentMethodsResult.items
+                : [];
+
+          const totalCount = rawPaymentMethods.reduce((sum: number, item: any) => sum + toNumber(item?.count), 0);
+          const chartData = rawPaymentMethods
+            .map((item: any, index: number) => {
+              const count = toNumber(item?.count);
+              const providedPercentage = toNumber(item?.percentage);
+              const computedPercentage = totalCount > 0 ? (count / totalCount) * 100 : 0;
+
+              return {
+                name: item?.method || item?.paymentMethod || item?.name || 'Other',
+                value: providedPercentage > 0 ? providedPercentage : computedPercentage,
+                color: ['#7AA45D', '#1B88CE', '#F5A623', '#6B7280', '#DC2626'][index % 5]
+              };
+            })
+            .filter((item: any) => item.value > 0);
+
           setPaymentMethodsData(chartData);
         }
 
@@ -807,7 +846,24 @@ export const FinanceDashboardCards = () => {
         if (outstandingFeesResponse.ok) {
           const outstandingFeesResult = await outstandingFeesResponse.json();
           console.log('Outstanding fees breakdown:', outstandingFeesResult);
-          setOutstandingFeesBreakdown(outstandingFeesResult);
+
+          const rawOutstanding = Array.isArray(outstandingFeesResult)
+            ? outstandingFeesResult
+            : Array.isArray(outstandingFeesResult?.data)
+              ? outstandingFeesResult.data
+              : Array.isArray(outstandingFeesResult?.items)
+                ? outstandingFeesResult.items
+                : [];
+
+          const normalizedOutstanding = rawOutstanding
+            .map((item: any) => ({
+              range: item?.range || item?.class || item?.name || 'Unknown',
+              amount: toNumber(item?.amount ?? item?.outstandingFees ?? item?.total),
+              percentage: toNumber(item?.percentage),
+            }))
+            .filter((item: any) => item.amount > 0);
+
+          setOutstandingFeesBreakdown(normalizedOutstanding);
         }
 
         // Fetch revenue trends
@@ -821,7 +877,22 @@ export const FinanceDashboardCards = () => {
         if (revenueTrendsResponse.ok) {
           const revenueTrendsResult = await revenueTrendsResponse.json();
           console.log('Revenue trends:', revenueTrendsResult);
-          setRevenueTrendsData(revenueTrendsResult);
+
+          const rawRevenue = Array.isArray(revenueTrendsResult)
+            ? revenueTrendsResult
+            : Array.isArray(revenueTrendsResult?.data)
+              ? revenueTrendsResult.data
+              : Array.isArray(revenueTrendsResult?.items)
+                ? revenueTrendsResult.items
+                : [];
+
+          const normalizedRevenue = rawRevenue.map((item: any) => ({
+            month: item?.month || item?.label || 'N/A',
+            revenue: toNumber(item?.revenue ?? item?.total ?? item?.amount),
+            target: toNumber(item?.target ?? item?.expected ?? item?.revenue ?? item?.total ?? item?.amount),
+          }));
+
+          setRevenueTrendsData(normalizedRevenue);
         }
 
       } catch (err) {
@@ -834,7 +905,7 @@ export const FinanceDashboardCards = () => {
     if (token) {
       fetchAnalyticsData();
     }
-  }, [token]);
+  }, [token, activeCalendarId]);
 
   if (loading) {
     return (
@@ -899,10 +970,7 @@ export const FinanceDashboardCards = () => {
     { month: 'Jun', revenue: 67000, target: 65000 },
   ];
 
-  // Use fallback data if analytics haven't loaded yet
-  const displayPaymentMethodsData = paymentMethodsData.length > 0 ? paymentMethodsData : [
-    { name: 'Loading...', value: 100, color: '#6B7280' }
-  ];
+  const displayPaymentMethodsData = paymentMethodsData;
 
   return (
     <div className="space-y-6">
@@ -954,21 +1022,30 @@ export const FinanceDashboardCards = () => {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-center py-8">
-              <div className="mb-4">
-                <TrendingUp className="h-12 w-12 mx-auto text-indigo-500 mb-4" />
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
-                  Expense Insights
-                </h3>
-                <p className="text-gray-600 dark:text-gray-400 mb-4">
-                  View detailed expense analytics, budget utilization, and spending trends
-                </p>
+            <div className="space-y-4 py-2">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="rounded-lg border p-3">
+                  <p className="text-xs text-muted-foreground">Monthly Revenue</p>
+                  <p className="text-lg font-semibold">{formatCurrency(financeData?.monthlyRevenue || 0, getDefaultCurrency())}</p>
+                </div>
+                <div className="rounded-lg border p-3">
+                  <p className="text-xs text-muted-foreground">Outstanding Fees</p>
+                  <p className="text-lg font-semibold">{formatCurrency(financeData?.outstandingFees || 0, getDefaultCurrency())}</p>
+                </div>
+                <div className="rounded-lg border p-3">
+                  <p className="text-xs text-muted-foreground">Payments Today</p>
+                  <p className="text-lg font-semibold">{toNumber(financeData?.paymentsToday).toLocaleString()}</p>
+                </div>
+                <div className="rounded-lg border p-3">
+                  <p className="text-xs text-muted-foreground">Collection Rate</p>
+                  <p className="text-lg font-semibold">{toNumber(financeData?.collectionRate).toFixed(1)}%</p>
+                </div>
               </div>
               <Button
                 onClick={() => navigate('/expense-analytics')}
-                className="bg-indigo-600 hover:bg-indigo-700"
+                variant="outline"
               >
-                View Analytics
+                View Full Analytics
                 <ChevronRight className="ml-2 h-4 w-4" />
               </Button>
             </div>
@@ -994,23 +1071,34 @@ export const FinanceDashboardCards = () => {
           </CardHeader>
           <CardContent>
             <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={displayPaymentMethodsData}
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={80}
-                    dataKey="value"
-                    label={({ name, value }) => analyticsLoading ? 'Loading...' : `${name}: ${value}%`}
-                  >
-                    {displayPaymentMethodsData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
+              {analyticsLoading ? (
+                <div className="flex items-center justify-center h-full">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 ml-2">Loading payment methods...</p>
+                </div>
+              ) : displayPaymentMethodsData.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={displayPaymentMethodsData}
+                      cx="50%"
+                      cy="50%"
+                      outerRadius={80}
+                      dataKey="value"
+                      label={({ name, value }) => `${name}: ${Number(value).toFixed(1)}%`}
+                    >
+                      {displayPaymentMethodsData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip formatter={(value: any) => [`${Number(value).toFixed(1)}%`, 'Share']} />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex items-center justify-center h-full">
+                  <p className="text-sm text-gray-600 dark:text-gray-400">No payment methods data available</p>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
