@@ -290,17 +290,14 @@ export function StudentFinancialDetailsModal({
   }, [studentId, open, academicCalendarId]);
 
   const getStatusBadge = (status: string, outstanding: number = 0) => {
-    const variant = status === 'paid' 
-      ? 'default' 
-      : status === 'unpaid' && outstanding > 0
-        ? 'destructive'
-        : 'outline';
-    
+    // Use outline variant and colored text (no filled background) for better readability
+    const variant = 'outline';
+
     const className = status === 'paid'
-      ? 'bg-green-100 text-green-800 border-green-200'
+      ? 'bg-transparent text-green-800 border-green-200'
       : status === 'unpaid' && outstanding > 0
-        ? 'bg-red-100 text-red-800 border-red-200'
-        : 'bg-yellow-100 text-yellow-800 border-yellow-200';
+        ? 'bg-transparent text-red-800 border-red-200'
+        : 'bg-transparent text-yellow-800 border-yellow-200';
 
     return (
       <Badge variant={variant} className={`capitalize ${className}`}>

@@ -724,7 +724,7 @@ export default function FinanceReports() {
               {/* Carry-Forward Balance */}
               <div>
                 <h4 className="text-lg font-semibold mb-3">Brought Forward</h4>
-                <Card className="border-orange-200 bg-orange-50 dark:bg-card">
+                <Card className="border-orange-200 bg-transparent dark:bg-card">
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between">
                       <div>
@@ -738,7 +738,13 @@ export default function FinanceReports() {
                       </div>
                       <div className="text-right">
                         <div className="text-sm text-muted-foreground">Status</div>
-                        <Badge variant={termBasedData.carryForwardBalance >= 0 ? "default" : "destructive"}>
+                        <Badge
+                          variant="outline"
+                          className={termBasedData.carryForwardBalance >= 0
+                            ? 'bg-transparent text-green-800 border-green-200'
+                            : 'bg-transparent text-red-800 border-red-200'
+                          }
+                        >
                           {termBasedData.carryForwardBalance >= 0 ? "Surplus" : "Deficit"}
                         </Badge>
                       </div>

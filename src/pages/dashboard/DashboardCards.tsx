@@ -291,6 +291,24 @@ export const AdminDashboardCards = () => {
     storageUsage: 0
   });
   const [systemHealthLoading, setSystemHealthLoading] = useState<boolean>(false);
+  // Feature flag: hide system health on admin dashboard without removing code
+  const showSystemHealth = false;
+  const [adminRevenueTrendsData, setAdminRevenueTrendsData] = useState<any[]>([]);
+  const [adminRevenueTrendsLoading, setAdminRevenueTrendsLoading] = useState<boolean>(false);
+
+  const toSafeNumber = (value: unknown): number => {
+    if (typeof value === 'number') {
+      return Number.isFinite(value) ? value : 0;
+    }
+
+    if (typeof value === 'string') {
+      const cleaned = value.replace(/[^\d.-]/g, '');
+      const parsed = Number.parseFloat(cleaned);
+      return Number.isFinite(parsed) ? parsed : 0;
+    }
+
+    return 0;
+  };
 
   // Academic Performance state
   const [academicStats, setAcademicStats] = useState({
@@ -424,9 +442,67 @@ export const AdminDashboardCards = () => {
     }
   }, [token]);
 
+  const fetchAdminRevenueTrends = useCallback(async () => {
+    if (!token) return;
+
+    try {
+      setAdminRevenueTrendsLoading(true);
+
+      const params = new URLSearchParams();
+
+      try {
+        const cal = await academicCalendarService.getActiveAcademicCalendar(token);
+        if (cal?.id) {
+          params.append('academicCalendarId', cal.id);
+        }
+      } catch {
+        if (termId) {
+          params.append('termId', termId);
+        }
+      }
+
+      const query = params.toString();
+      const endpoint = `${API_CONFIG.BASE_URL}/finance/revenue-trends${query ? `?${query}` : ''}`;
+      const response = await fetch(endpoint, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        setAdminRevenueTrendsData([]);
+        return;
+      }
+
+      const result = await response.json();
+      const rawRevenue = Array.isArray(result)
+        ? result
+        : Array.isArray(result?.data)
+          ? result.data
+          : Array.isArray(result?.items)
+            ? result.items
+            : [];
+
+      const normalizedRevenue = rawRevenue.map((item: any) => ({
+        month: item?.month || item?.label || 'N/A',
+        revenue: toSafeNumber(item?.revenue ?? item?.total ?? item?.amount),
+        target: toSafeNumber(item?.target ?? item?.expected ?? item?.revenue ?? item?.total ?? item?.amount),
+      }));
+
+      setAdminRevenueTrendsData(normalizedRevenue);
+    } catch (error) {
+      console.error('Failed to fetch admin revenue trends:', error);
+      setAdminRevenueTrendsData([]);
+    } finally {
+      setAdminRevenueTrendsLoading(false);
+    }
+  }, [token, termId]);
+
   useEffect(() => {
     fetchAcademicStats();
     fetchSystemHealth();
+    fetchAdminRevenueTrends();
     
     // Set up periodic refresh for system health (every 30 seconds)
     const healthInterval = setInterval(() => {
@@ -436,12 +512,57 @@ export const AdminDashboardCards = () => {
     return () => {
       clearInterval(healthInterval);
     };
-  }, [fetchAcademicStats, fetchSystemHealth]);
+  }, [fetchAcademicStats, fetchSystemHealth, fetchAdminRevenueTrends]);
+
+  const adminRevenueChartData = adminRevenueTrendsData.length > 0 ? adminRevenueTrendsData : [
+    { month: 'Jan', revenue: 45000, target: 50000 },
+    { month: 'Feb', revenue: 52000, target: 55000 },
+    { month: 'Mar', revenue: 48000, target: 50000 },
+    { month: 'Apr', revenue: 61000, target: 60000 },
+    { month: 'May', revenue: 55000, target: 58000 },
+    { month: 'Jun', revenue: 67000, target: 65000 },
+  ];
 
   return (
     <div className="space-y-8">
       {/* Primary Analytics Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card className="h-96 flex flex-col">
+          <CardHeader className="pb-2 flex-shrink-0">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-xl font-semibold">Revenue Trends</CardTitle>
+                <CardDescription>
+                  Monthly revenue vs targets
+                </CardDescription>
+              </div>
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ backgroundColor: `${ADMIN_DASHBOARD_COLORS.blue}1f` }}>
+                <TrendingUp className="h-4 w-4" style={{ color: ADMIN_DASHBOARD_COLORS.blue }} />
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="h-64">
+              {adminRevenueTrendsLoading ? (
+                <div className="flex items-center justify-center h-full">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 ml-2">Loading revenue trends...</p>
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={adminRevenueChartData}>
+                    <XAxis dataKey="month" />
+                    <YAxis />
+                    <Tooltip formatter={(value) => [`${formatCurrency(Number(value), getDefaultCurrency())}`, '']} />
+                    <Area type="monotone" dataKey="revenue" stackId="1" stroke="#1B88CE" fill="#1B88CE" fillOpacity={0.6} />
+                    <Area type="monotone" dataKey="target" stackId="2" stroke="#7AA45D" fill="#7AA45D" fillOpacity={0.3} />
+                  </AreaChart>
+                </ResponsiveContainer>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
         <Card className="h-96 flex flex-col">
           <CardHeader className="pb-2 flex-shrink-0">
             <div className="flex items-center justify-between">
@@ -467,7 +588,10 @@ export const AdminDashboardCards = () => {
             </div>
           </CardContent>
         </Card>
+      </div>
 
+      {/* Secondary Analytics Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card className="h-96 flex flex-col">
           <CardHeader className="pb-2 flex-shrink-0">
             <div className="flex items-center justify-between">
@@ -495,10 +619,38 @@ export const AdminDashboardCards = () => {
             </div>
           </CardContent>
         </Card>
+
+        <Card className="h-96 flex flex-col">
+          <CardHeader className="pb-2 flex-shrink-0">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-xl font-semibold">Attendance Insights</CardTitle>
+                <CardDescription>
+                  Class attendance overview{" "}
+                  {loadingAY && (
+                    <span className="text-xs text-muted-foreground">
+                      (loading year...)
+                    </span>
+                  )}
+                </CardDescription>
+              </div>
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ backgroundColor: `${ADMIN_DASHBOARD_COLORS.greyBlue}24` }}>
+                <Users2 className="h-4 w-4" style={{ color: ADMIN_DASHBOARD_COLORS.greyBlue }} />
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="pt-0 pb-4 flex-1 flex flex-col justify-center">
+            <div className="flex-1 flex items-center justify-center">
+              <AttendanceOverview termId={termId} />
+            </div>
+          </CardContent>
+        </Card>
+
       </div>
 
-      {/* Academic Performance Row */}
+      {/* Attendance and Teacher Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
         <Card className="h-96 flex flex-col">
           <CardHeader className="pb-2 flex-shrink-0">
             <div className="flex items-center justify-between">
@@ -550,36 +702,8 @@ export const AdminDashboardCards = () => {
           </CardContent>
         </Card>
 
-        <Card className="h-96 flex flex-col">
-          <CardHeader className="pb-2 flex-shrink-0">
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="text-xl font-semibold">Attendance Insights</CardTitle>
-                <CardDescription>
-                  Class attendance overview{" "}
-                  {loadingAY && (
-                    <span className="text-xs text-muted-foreground">
-                      (loading year...)
-                    </span>
-                  )}
-                </CardDescription>
-              </div>
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ backgroundColor: `${ADMIN_DASHBOARD_COLORS.greyBlue}24` }}>
-                <Users2 className="h-4 w-4" style={{ color: ADMIN_DASHBOARD_COLORS.greyBlue }} />
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="pt-0 pb-4 flex-1 flex flex-col justify-center">
-            <div className="flex-1 flex items-center justify-center">
-              <AttendanceOverview termId={termId} />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* New Additional Cards Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* System Health Monitoring Card */}
+        {/* System Health Monitoring Card (hidden via feature flag) */}
+        {showSystemHealth && (
         <Card className="h-96 flex flex-col">
           <CardHeader className="pb-2 flex-shrink-0">
             <div className="flex items-center justify-between">
@@ -706,10 +830,11 @@ export const AdminDashboardCards = () => {
               </div>
             </div>
           </CardContent>
-        </Card>
+          </Card>
+          )}
 
-  {/* Teacher Performance Card (dynamic) */}
-  <TeacherPerformanceCard />
+        {/* Teacher Performance Card (dynamic) */}
+        <TeacherPerformanceCard />
       </div>
     </div>
   );
@@ -974,7 +1099,7 @@ export const FinanceDashboardCards = () => {
 
   return (
     <div className="space-y-6">
-      {/* Revenue Trends and Expense Analytics - Side by Side */}
+      {/* Revenue Trends and Outstanding Fees by Class - Side by Side (swapped) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Revenue Trend Chart */}
         <Card>
@@ -1006,48 +1131,58 @@ export const FinanceDashboardCards = () => {
           </CardContent>
         </Card>
 
-        {/* Expense Analytics */}
+        {/* Outstanding Fees by Class (moved here) */}
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="text-xl font-semibold">Expense Analytics</CardTitle>
+                <CardTitle className="text-xl font-semibold">Outstanding Fees by Class</CardTitle>
                 <CardDescription>
-                  Key expense metrics and trends
+                  Outstanding fees breakdown by class
                 </CardDescription>
               </div>
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
-                <TrendingUp className="h-4 w-4 text-primary" />
+                <DollarSign className="h-4 w-4 text-primary" />
               </div>
             </div>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4 py-2">
-              <div className="grid grid-cols-2 gap-3">
-                <div className="rounded-lg border p-3">
-                  <p className="text-xs text-muted-foreground">Monthly Revenue</p>
-                  <p className="text-lg font-semibold">{formatCurrency(financeData?.monthlyRevenue || 0, getDefaultCurrency())}</p>
+            <div className="h-64">
+              {analyticsLoading ? (
+                <div className="flex items-center justify-center h-full">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600"></div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 ml-2">Loading breakdown...</p>
                 </div>
-                <div className="rounded-lg border p-3">
-                  <p className="text-xs text-muted-foreground">Outstanding Fees</p>
-                  <p className="text-lg font-semibold">{formatCurrency(financeData?.outstandingFees || 0, getDefaultCurrency())}</p>
+              ) : outstandingFeesBreakdown.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={outstandingFeesBreakdown}>
+                    <XAxis 
+                      dataKey="range" 
+                      tick={{ fontSize: 12 }}
+                      angle={-45}
+                      textAnchor="end"
+                      height={60}
+                    />
+                    <YAxis 
+                      tick={{ fontSize: 12 }}
+                      tickFormatter={(value) => `${getCurrencySymbol(getDefaultCurrency())}${Number(value).toLocaleString()}`}
+                    />
+                    <Tooltip 
+                      formatter={(value: any) => [`${formatCurrency(Number(value), getDefaultCurrency())}`, 'Outstanding Fees']}
+                      labelStyle={{ color: '#111827' }}
+                    />
+                    <Bar 
+                      dataKey="amount" 
+                      fill="#F5A623" 
+                      radius={[4, 4, 0, 0]}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex items-center justify-center h-full">
+                  <p className="text-sm text-gray-600 dark:text-gray-400">No outstanding fees data available</p>
                 </div>
-                <div className="rounded-lg border p-3">
-                  <p className="text-xs text-muted-foreground">Payments Today</p>
-                  <p className="text-lg font-semibold">{toNumber(financeData?.paymentsToday).toLocaleString()}</p>
-                </div>
-                <div className="rounded-lg border p-3">
-                  <p className="text-xs text-muted-foreground">Collection Rate</p>
-                  <p className="text-lg font-semibold">{toNumber(financeData?.collectionRate).toFixed(1)}%</p>
-                </div>
-              </div>
-              <Button
-                onClick={() => navigate('/expense-analytics')}
-                variant="outline"
-              >
-                View Full Analytics
-                <ChevronRight className="ml-2 h-4 w-4" />
-              </Button>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -1103,58 +1238,48 @@ export const FinanceDashboardCards = () => {
           </CardContent>
         </Card>
 
-        {/* Outstanding Fees Breakdown */}
+        {/* Expense Analytics (moved here) */}
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="text-xl font-semibold">Outstanding Fees by Class</CardTitle>
+                <CardTitle className="text-xl font-semibold">Expense Analytics</CardTitle>
                 <CardDescription>
-                  Outstanding fees breakdown by class
+                  Key expense metrics and trends
                 </CardDescription>
               </div>
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
-                <DollarSign className="h-4 w-4 text-primary" />
+                <TrendingUp className="h-4 w-4 text-primary" />
               </div>
             </div>
           </CardHeader>
           <CardContent>
-            <div className="h-64">
-              {analyticsLoading ? (
-                <div className="flex items-center justify-center h-full">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600"></div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 ml-2">Loading breakdown...</p>
+            <div className="space-y-4 py-2">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="rounded-lg border p-3">
+                  <p className="text-xs text-muted-foreground">Monthly Revenue</p>
+                  <p className="text-lg font-semibold">{formatCurrency(financeData?.monthlyRevenue || 0, getDefaultCurrency())}</p>
                 </div>
-              ) : outstandingFeesBreakdown.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={outstandingFeesBreakdown}>
-                    <XAxis 
-                      dataKey="range" 
-                      tick={{ fontSize: 12 }}
-                      angle={-45}
-                      textAnchor="end"
-                      height={60}
-                    />
-                    <YAxis 
-                      tick={{ fontSize: 12 }}
-                      tickFormatter={(value) => `${getCurrencySymbol(getDefaultCurrency())}${Number(value).toLocaleString()}`}
-                    />
-                    <Tooltip 
-                      formatter={(value: any) => [`${formatCurrency(Number(value), getDefaultCurrency())}`, 'Outstanding Fees']}
-                      labelStyle={{ color: '#111827' }}
-                    />
-                    <Bar 
-                      dataKey="amount" 
-                      fill="#F5A623" 
-                      radius={[4, 4, 0, 0]}
-                    />
-                  </BarChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="flex items-center justify-center h-full">
-                  <p className="text-sm text-gray-600 dark:text-gray-400">No outstanding fees data available</p>
+                <div className="rounded-lg border p-3">
+                  <p className="text-xs text-muted-foreground">Outstanding Fees</p>
+                  <p className="text-lg font-semibold">{formatCurrency(financeData?.outstandingFees || 0, getDefaultCurrency())}</p>
                 </div>
-              )}
+                <div className="rounded-lg border p-3">
+                  <p className="text-xs text-muted-foreground">Payments Today</p>
+                  <p className="text-lg font-semibold">{toNumber(financeData?.paymentsToday).toLocaleString()}</p>
+                </div>
+                <div className="rounded-lg border p-3">
+                  <p className="text-xs text-muted-foreground">Collection Rate</p>
+                  <p className="text-lg font-semibold">{toNumber(financeData?.collectionRate).toFixed(1)}%</p>
+                </div>
+              </div>
+              <Button
+                onClick={() => navigate('/expense-analytics')}
+                variant="outline"
+              >
+                View Full Analytics
+                <ChevronRight className="ml-2 h-4 w-4" />
+              </Button>
             </div>
           </CardContent>
         </Card>
