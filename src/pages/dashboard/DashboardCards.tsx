@@ -34,20 +34,20 @@ const teacherPerfCache: Record<string, any> = {};
 // New Teacher Performance Card with filtering & pagination
 const TeacherPerformanceCard: React.FC = () => {
   const navigate = useNavigate();
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
   const [data, setData] = React.useState<any | null>(null);
   const [expanded, setExpanded] = React.useState(false);
-  const [termId, setTermId] = React.useState<string | undefined>();
+  const [monthsWindow, setMonthsWindow] = React.useState<number>(6);
   const [passThreshold, setPassThreshold] = React.useState<number>(50);
   const [page, setPage] = React.useState(1);
   const pageSize = 5;
   const [allTeachers, setAllTeachers] = React.useState<any[]>([]);
   // Keep raw list for local filtering so UI reacts instantly without always re-fetching
   const [rawTeachers, setRawTeachers] = React.useState<any[]>([]);
-  // Cache only by scope (term) so threshold changes can be applied client-side
-  const cacheKey = `${termId||'current'}`;
+  // Cache by school + rolling month window so values never bleed across schools
+  const cacheKey = `${user?.schoolId || 'unknown-school'}:months-${monthsWindow}`;
 
   // Local filter utility: prefer passRate, fallback to avgGrade
   const applyFilter = React.useCallback((list: any[], threshold: number) => {
@@ -78,16 +78,11 @@ const TeacherPerformanceCard: React.FC = () => {
         return;
       }
       const params = new URLSearchParams();
-      if (termId) params.append('termId', termId);
+      params.append('months', String(monthsWindow));
       // Server may support threshold too; keep sending it, but UI filters locally regardless
       params.append('passThreshold', passThreshold.toString());
       // get more than first page for local pagination
       params.append('limit', '100');
-      // include academicCalendarId if available (merge into same query set)
-      try {
-        const cal = await academicCalendarService.getActiveAcademicCalendar(token!);
-        if (cal?.id) params.append('academicCalendarId', cal.id);
-      } catch {}
       const url = `${API_CONFIG.BASE_URL}/analytics/teacher-performance?${params.toString()}`;
       const res = await fetch(url, {
         headers: { Authorization: `Bearer ${token}` }
@@ -103,7 +98,7 @@ const TeacherPerformanceCard: React.FC = () => {
     } catch (e:any) {
       setError(e.message);
     } finally { setLoading(false); }
-  }, [token, termId, passThreshold, cacheKey, applyFilter]);
+  }, [token, monthsWindow, passThreshold, cacheKey, applyFilter]);
 
   React.useEffect(()=> { fetchData(); }, [fetchData]);
 
@@ -194,15 +189,14 @@ const TeacherPerformanceCard: React.FC = () => {
               <span>Showing {paginated.length} / {teachers.length} teachers</span>
               <div className="flex items-center space-x-2">
                 <select
-                  value={termId || ''}
-                  onChange={(e)=> setTermId(e.target.value || undefined)}
-                  onBlur={()=> fetchData()}
+                  value={monthsWindow}
+                  onChange={(e)=> setMonthsWindow(Number(e.target.value))}
                   className="h-7 text-xs border rounded px-1 bg-white dark:bg-card"
                 >
-                  <option value="">Current Term</option>
-                  {/* Additional term options can be dynamically loaded later */}
+                  <option value={6}>Last 6 months</option>
+                  <option value={12}>Last 12 months</option>
                 </select>
-                {data?.metadata?.termId && <span className="truncate">Term scope</span>}
+                <span className="truncate">School scope</span>
               </div>
             </div>
             <div className="flex-1 overflow-auto pr-1 space-y-2">
@@ -295,6 +289,7 @@ export const AdminDashboardCards = () => {
   const showSystemHealth = false;
   const [adminRevenueTrendsData, setAdminRevenueTrendsData] = useState<any[]>([]);
   const [adminRevenueTrendsLoading, setAdminRevenueTrendsLoading] = useState<boolean>(false);
+  const [adminRevenueMonths, setAdminRevenueMonths] = useState<number>(6);
 
   const toSafeNumber = (value: unknown): number => {
     if (typeof value === 'number') {
@@ -449,17 +444,7 @@ export const AdminDashboardCards = () => {
       setAdminRevenueTrendsLoading(true);
 
       const params = new URLSearchParams();
-
-      try {
-        const cal = await academicCalendarService.getActiveAcademicCalendar(token);
-        if (cal?.id) {
-          params.append('academicCalendarId', cal.id);
-        }
-      } catch {
-        if (termId) {
-          params.append('termId', termId);
-        }
-      }
+      params.append('months', String(adminRevenueMonths));
 
       const query = params.toString();
       const endpoint = `${API_CONFIG.BASE_URL}/finance/revenue-trends${query ? `?${query}` : ''}`;
@@ -497,7 +482,7 @@ export const AdminDashboardCards = () => {
     } finally {
       setAdminRevenueTrendsLoading(false);
     }
-  }, [token, termId]);
+  }, [token, adminRevenueMonths]);
 
   useEffect(() => {
     fetchAcademicStats();
@@ -514,14 +499,7 @@ export const AdminDashboardCards = () => {
     };
   }, [fetchAcademicStats, fetchSystemHealth, fetchAdminRevenueTrends]);
 
-  const adminRevenueChartData = adminRevenueTrendsData.length > 0 ? adminRevenueTrendsData : [
-    { month: 'Jan', revenue: 45000, target: 50000 },
-    { month: 'Feb', revenue: 52000, target: 55000 },
-    { month: 'Mar', revenue: 48000, target: 50000 },
-    { month: 'Apr', revenue: 61000, target: 60000 },
-    { month: 'May', revenue: 55000, target: 58000 },
-    { month: 'Jun', revenue: 67000, target: 65000 },
-  ];
+  const adminRevenueChartData = adminRevenueTrendsData;
 
   return (
     <div className="space-y-8">
@@ -533,11 +511,22 @@ export const AdminDashboardCards = () => {
               <div>
                 <CardTitle className="text-xl font-semibold">Revenue Trends</CardTitle>
                 <CardDescription>
-                  Monthly revenue vs targets
+                  Monthly revenue vs targets (school-specific)
                 </CardDescription>
               </div>
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ backgroundColor: `${ADMIN_DASHBOARD_COLORS.blue}1f` }}>
-                <TrendingUp className="h-4 w-4" style={{ color: ADMIN_DASHBOARD_COLORS.blue }} />
+              <div className="flex items-center space-x-2">
+                <select
+                  value={adminRevenueMonths}
+                  onChange={(e) => setAdminRevenueMonths(Number(e.target.value))}
+                  className="h-8 text-xs border rounded px-2 bg-white dark:bg-card"
+                  title="Revenue trends window"
+                >
+                  <option value={6}>Last 6 months</option>
+                  <option value={12}>Last 12 months</option>
+                </select>
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ backgroundColor: `${ADMIN_DASHBOARD_COLORS.blue}1f` }}>
+                  <TrendingUp className="h-4 w-4" style={{ color: ADMIN_DASHBOARD_COLORS.blue }} />
+                </div>
               </div>
             </div>
           </CardHeader>
@@ -548,16 +537,34 @@ export const AdminDashboardCards = () => {
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
                   <p className="text-sm text-gray-600 dark:text-gray-400 ml-2">Loading revenue trends...</p>
                 </div>
-              ) : (
+              ) : adminRevenueChartData.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={adminRevenueChartData}>
                     <XAxis dataKey="month" />
                     <YAxis />
                     <Tooltip formatter={(value) => [`${formatCurrency(Number(value), getDefaultCurrency())}`, '']} />
-                    <Area type="monotone" dataKey="revenue" stackId="1" stroke="#1B88CE" fill="#1B88CE" fillOpacity={0.6} />
-                    <Area type="monotone" dataKey="target" stackId="2" stroke="#7AA45D" fill="#7AA45D" fillOpacity={0.3} />
+                    <Area
+                      type="monotone"
+                      dataKey="revenue"
+                      stackId="1"
+                      stroke={ADMIN_DASHBOARD_COLORS.blue}
+                      fill={ADMIN_DASHBOARD_COLORS.blue}
+                      fillOpacity={0.6}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="target"
+                      stackId="2"
+                      stroke={ADMIN_DASHBOARD_COLORS.green}
+                      fill={ADMIN_DASHBOARD_COLORS.green}
+                      fillOpacity={0.3}
+                    />
                   </AreaChart>
                 </ResponsiveContainer>
+              ) : (
+                <div className="flex items-center justify-center h-full">
+                  <p className="text-sm text-gray-600 dark:text-gray-400">No revenue trends data available</p>
+                </div>
               )}
             </div>
           </CardContent>
@@ -847,6 +854,7 @@ export const FinanceDashboardCards = () => {
   const [paymentMethodsData, setPaymentMethodsData] = useState<any[]>([]);
   const [outstandingFeesBreakdown, setOutstandingFeesBreakdown] = useState<any[]>([]);
   const [revenueTrendsData, setRevenueTrendsData] = useState<any[]>([]);
+  const [revenueMonths, setRevenueMonths] = useState<number>(6);
   const [activeCalendarId, setActiveCalendarId] = useState<string | null>(null);
   const [analyticsLoading, setAnalyticsLoading] = useState(true);
   const [loading, setLoading] = useState(true);
@@ -992,7 +1000,7 @@ export const FinanceDashboardCards = () => {
         }
 
         // Fetch revenue trends
-        const revenueTrendsResponse = await fetch(`${API_CONFIG.BASE_URL}/finance/revenue-trends${calParam}`, {
+        const revenueTrendsResponse = await fetch(`${API_CONFIG.BASE_URL}/finance/revenue-trends?months=${revenueMonths}`, {
           headers: { 
             Authorization: `Bearer ${token}`,
             'Content-Type': 'application/json'
@@ -1030,7 +1038,7 @@ export const FinanceDashboardCards = () => {
     if (token) {
       fetchAnalyticsData();
     }
-  }, [token, activeCalendarId]);
+  }, [token, activeCalendarId, revenueMonths]);
 
   if (loading) {
     return (
@@ -1085,15 +1093,7 @@ export const FinanceDashboardCards = () => {
     );
   }
 
-  // Use real revenue trends data or fallback
-  const revenueChartData = revenueTrendsData.length > 0 ? revenueTrendsData : [
-    { month: 'Jan', revenue: 45000, target: 50000 },
-    { month: 'Feb', revenue: 52000, target: 55000 },
-    { month: 'Mar', revenue: 48000, target: 50000 },
-    { month: 'Apr', revenue: financeData?.monthlyRevenue || 61000, target: 60000 },
-    { month: 'May', revenue: 55000, target: 58000 },
-    { month: 'Jun', revenue: 67000, target: 65000 },
-  ];
+  const revenueChartData = revenueTrendsData;
 
   const displayPaymentMethodsData = paymentMethodsData;
 
@@ -1108,25 +1108,61 @@ export const FinanceDashboardCards = () => {
               <div>
                 <CardTitle className="text-xl font-semibold">Revenue Trends</CardTitle>
                 <CardDescription>
-                  Monthly revenue vs targets
+                  Monthly revenue vs targets (school-specific)
                 </CardDescription>
               </div>
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
-                <TrendingUp className="h-4 w-4 text-primary" />
+              <div className="flex items-center space-x-2">
+                <select
+                  value={revenueMonths}
+                  onChange={(e) => setRevenueMonths(Number(e.target.value))}
+                  className="h-8 text-xs border rounded px-2 bg-white dark:bg-card"
+                  title="Revenue trends window"
+                >
+                  <option value={6}>Last 6 months</option>
+                  <option value={12}>Last 12 months</option>
+                </select>
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
+                  <TrendingUp className="h-4 w-4 text-primary" />
+                </div>
               </div>
             </div>
           </CardHeader>
           <CardContent>
             <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={revenueChartData}>
-                  <XAxis dataKey="month" />
-                  <YAxis />
-                  <Tooltip formatter={(value) => [`${formatCurrency(Number(value), getDefaultCurrency())}`, '']} />
-                  <Area type="monotone" dataKey="revenue" stackId="1" stroke="#1B88CE" fill="#1B88CE" fillOpacity={0.6} />
-                  <Area type="monotone" dataKey="target" stackId="2" stroke="#7AA45D" fill="#7AA45D" fillOpacity={0.3} />
-                </AreaChart>
-              </ResponsiveContainer>
+              {analyticsLoading ? (
+                <div className="flex items-center justify-center h-full">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 ml-2">Loading revenue trends...</p>
+                </div>
+              ) : revenueChartData.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={revenueChartData}>
+                    <XAxis dataKey="month" />
+                    <YAxis />
+                    <Tooltip formatter={(value) => [`${formatCurrency(Number(value), getDefaultCurrency())}`, '']} />
+                    <Area
+                      type="monotone"
+                      dataKey="revenue"
+                      stackId="1"
+                      stroke={ADMIN_DASHBOARD_COLORS.blue}
+                      fill={ADMIN_DASHBOARD_COLORS.blue}
+                      fillOpacity={0.6}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="target"
+                      stackId="2"
+                      stroke={ADMIN_DASHBOARD_COLORS.green}
+                      fill={ADMIN_DASHBOARD_COLORS.green}
+                      fillOpacity={0.3}
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex items-center justify-center h-full">
+                  <p className="text-sm text-gray-600 dark:text-gray-400">No revenue trends data available</p>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>

@@ -346,12 +346,13 @@ export default function Sidebar() {
 
   // Fetch active term for the bottom pinned section
   const { data: terms = [] } = useQuery({
-    queryKey: ["sidebar-terms"],
+    queryKey: ["sidebar-terms", user?.id, token],
     queryFn: async () => {
-      const token = (user as any)?.token ?? localStorage.getItem("token") ?? "";
-      return termService.getTerms(token);
+      const authToken = token || localStorage.getItem("access_token") || (user as any)?.token || "";
+      if (!authToken) return [];
+      return termService.getTerms(authToken);
     },
-    enabled: !!user,
+    enabled: !!user && !!(token || localStorage.getItem("access_token") || (user as any)?.token),
     staleTime: 5 * 60 * 1000,
   });
 
