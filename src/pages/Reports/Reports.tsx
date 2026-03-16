@@ -14,6 +14,11 @@ import { ReportCards } from "./ReportCards";
 import { formatCurrency, getDefaultCurrency } from '@/lib/currency';
 import LibraryReportCard from '@/components/reports/LibraryReportCard';
 
+const isGraduatedClass = (cls?: { name?: string; numericalName?: number }) => {
+  const className = (cls?.name || '').trim().toLowerCase();
+  return cls?.numericalName === 999 || className === 'graduated' || className.includes('graduated');
+};
+
 interface ReportDataAPI {
   totalStudents: number;
   totalTeachers: number;
@@ -115,6 +120,7 @@ export default function Reports() {
     attendanceDateTo: "",
     studentGender: "",
     studentClassId: "",
+    studentJoinedTermId: "",
     teacherGender: "",
     teacherClassId: "",
     courseClassId: "",
@@ -172,7 +178,11 @@ export default function Reports() {
       ]);
 
       const safeName = (p: any) => p?.name || [p?.firstName, p?.lastName].filter(Boolean).join(' ') || p?.email || p?.code || p?.id;
-      setClasses((cls || []).map((c: any) => ({ id: c.id, name: c.name || String(c.numericalName) || c.id })));
+      setClasses(
+        (cls || [])
+          .filter((c: any) => !isGraduatedClass(c))
+          .map((c: any) => ({ id: c.id, name: c.name || String(c.numericalName) || c.id }))
+      );
       setAcademicCalendars(acads as AcademicCalendar[]);
       setTeachers((trs || []).map((t: any) => ({ id: t.id, name: safeName(t) })));
       setStudents((stds || []).map((s: any) => ({ id: s.id, name: safeName(s) })));
@@ -247,6 +257,7 @@ export default function Reports() {
       const query = buildQuery({
         studentGender: filters.studentGender || undefined,
         studentClassId: filters.studentClassId || undefined,
+        studentJoinedTermId: filters.studentJoinedTermId || undefined,
         teacherGender: filters.teacherGender || undefined,
         teacherClassId: filters.teacherClassId || undefined,
         courseClassId: filters.courseClassId || undefined,
@@ -347,7 +358,11 @@ export default function Reports() {
     if (!token) return;
     try {
       const base = API_BASE_URL;
-      const studentsQuery = buildQuery({ gender: filters.studentGender || undefined, classId: filters.studentClassId || undefined });
+      const studentsQuery = buildQuery({
+        gender: filters.studentGender || undefined,
+        classId: filters.studentClassId || undefined,
+        joinedTermId: filters.studentJoinedTermId || undefined,
+      });
       const teachersQuery = buildQuery({ gender: filters.teacherGender || undefined, classId: filters.teacherClassId || undefined });
       const coursesQuery = buildQuery({ classId: filters.courseClassId || undefined, teacherId: filters.courseTeacherId || undefined });
       const effectiveEnrollmentAcademicCalendarId = filters.enrollmentAcademicCalendarId || filters.comprehensiveAcademicCalendarId;

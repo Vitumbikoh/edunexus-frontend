@@ -59,6 +59,11 @@ export const ReportCards: React.FC<ReportCardsProps> = ({
   onGenerateReport,
   generatingCategory,
 }) => {
+  const nonGraduatedClasses = classes.filter((c) => {
+    const className = (c?.name || '').trim().toLowerCase();
+    return className !== 'graduated' && !className.includes('graduated');
+  });
+
   return (
     <>
       {/* Enrollment Report Card (Previously Missing) */}
@@ -90,7 +95,7 @@ export const ReportCards: React.FC<ReportCardsProps> = ({
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="">All classes</SelectItem>
-                    {classes.map(c => (
+                    {nonGraduatedClasses.map(c => (
                       <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
                     ))}
                   </SelectContent>
@@ -190,7 +195,7 @@ export const ReportCards: React.FC<ReportCardsProps> = ({
               <FileText className="h-4 w-4" />
               Filter Options
             </h4>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               <div className="space-y-1">
                 <Label className="text-foreground">Gender</Label>
                 <Select value={filters.studentGender} onValueChange={(v) => setFilters(prev => ({ ...prev, studentGender: v }))}>
@@ -213,8 +218,22 @@ export const ReportCards: React.FC<ReportCardsProps> = ({
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="">All classes</SelectItem>
-                    {classes.map(c => (
+                    {nonGraduatedClasses.map(c => (
                       <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-foreground">Joined Term</Label>
+                <Select value={filters.studentJoinedTermId} onValueChange={(v) => setFilters(prev => ({ ...prev, studentJoinedTermId: v }))}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="All joined terms" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">All joined terms</SelectItem>
+                    {terms.map(t => (
+                      <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -459,7 +478,7 @@ export const ReportCards: React.FC<ReportCardsProps> = ({
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="">All classes</SelectItem>
-                    {classes.map(c => (
+                    {nonGraduatedClasses.map(c => (
                       <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
                     ))}
                   </SelectContent>
@@ -647,7 +666,7 @@ export const ReportCards: React.FC<ReportCardsProps> = ({
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="">All classes</SelectItem>
-                    {classes.map(c => (
+                    {nonGraduatedClasses.map(c => (
                       <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
                     ))}
                   </SelectContent>
@@ -741,7 +760,7 @@ export const ReportCards: React.FC<ReportCardsProps> = ({
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="">All classes</SelectItem>
-                    {classes.map(c => (
+                    {nonGraduatedClasses.map(c => (
                       <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
                     ))}
                   </SelectContent>

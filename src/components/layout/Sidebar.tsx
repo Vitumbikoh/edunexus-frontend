@@ -109,6 +109,7 @@ const adminNavItems: NavItem[] = [
       { label: "View Exams",         href: "/courses/exams",            roles: ["admin"] },
       { label: "View Exam Results",  href: "/courses/exam-results",     roles: ["admin"] },
       { label: "View Grades Report", href: "/courses/grades-report",    roles: ["admin"] },
+      { label: "Exam Rewards",       href: "/exams/rewards",            roles: ["admin"] },
       { label: "Student Progression",href: "/exams/student-progression",roles: ["admin"] },
     ],
   },
