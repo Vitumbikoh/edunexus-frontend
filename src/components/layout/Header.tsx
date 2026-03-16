@@ -45,10 +45,8 @@ export default function Header() {
         });
       }
     }
-    // Navigate to expenses page for billing invoice notifications
-    if (notification.metadata?.isBillingInvoice) {
-      navigate('/finance/expenses');
-    }
+    // Open notifications page and keep selected item highlighted.
+    navigate(`/notifications?selected=${encodeURIComponent(notification.id)}`);
   };
 
   const getNotificationIcon = (type: string, metadata?: Record<string, any>) => {

@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getNotifications, markNotificationAsRead, markAllNotificationsAsRead, type Notification } from '@/lib/notifications';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Clock, FileText, Bell, AlertCircle, School } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 
 const getIcon = (type: string, metadata?: Record<string, any>) => {
   if (metadata?.isBillingInvoice) return <FileText className="h-4 w-4 text-amber-500" />;
@@ -19,7 +20,10 @@ export default function Notifications() {
   const [page, setPage] = useState(1);
   const limit = 20;
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
+  const selectedNotificationId = searchParams.get('selected');
 
   const { data: resp, isLoading } = useQuery({
     queryKey: ['notifications', page],
@@ -81,6 +85,33 @@ export default function Notifications() {
     return `${Math.floor(diff / 1440)} days ago`;
   };
 
+  const handleViewInvoice = async (notification: Notification) => {
+    if (!notification.read) {
+      try {
+        await markOne.mutateAsync(notification.id);
+      } catch (error) {
+        console.error('Failed to mark billing notification as read:', error);
+      }
+    }
+
+    const invoiceNumber = notification.metadata?.invoiceNumber;
+    if (invoiceNumber) {
+      navigate(`/finance/expenses?search=${encodeURIComponent(String(invoiceNumber))}`);
+      return;
+    }
+
+    navigate('/finance/expenses');
+  };
+
+  useEffect(() => {
+    if (!selectedNotificationId) return;
+
+    const element = document.getElementById(`notification-${selectedNotificationId}`);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [selectedNotificationId, notifications]);
+
   return (
     <div className="p-6">
       <div className="flex items-center justify-between mb-4">
@@ -98,7 +129,11 @@ export default function Notifications() {
       ) : (
         <div className="space-y-3">
           {notifications.map(n => (
-            <div key={n.id} className={`p-4 border rounded-md ${!n.read ? 'bg-accent/30' : ''}`}>
+            <div
+              id={`notification-${n.id}`}
+              key={n.id}
+              className={`p-4 border rounded-md ${!n.read ? 'bg-accent/30' : ''} ${selectedNotificationId === n.id ? 'ring-2 ring-amber-400 border-amber-400 bg-amber-50/40' : ''}`}
+            >
               <div className="flex items-start gap-3">
                 <div className="mt-0.5">{getIcon(n.type, n.metadata)}</div>
                 <div className="flex-1">
@@ -115,7 +150,9 @@ export default function Notifications() {
                       <Button size="sm" onClick={() => markOne.mutate(n.id)}>Mark as read</Button>
                     )}
                     {n.metadata?.isBillingInvoice && (
-                      <Button size="sm" variant="ghost">View invoice</Button>
+                      <Button size="sm" variant="ghost" onClick={() => void handleViewInvoice(n)}>
+                        View invoice
+                      </Button>
                     )}
                   </div>
                 </div>

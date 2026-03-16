@@ -25,10 +25,6 @@ import {
   Library,
   BarChart3,
   Bell,
-  Shield,
-  Palette,
-  School,
-  UserCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -166,15 +162,9 @@ const adminNavItems: NavItem[] = [
   {
     label: "Settings",
     icon: Settings,
+    href: "/settings",
     roles: ["admin"],
     sectionTitle: "System",
-    subItems: [
-      { label: "Account",       href: "/settings?tab=account",       roles: ["admin"], icon: UserCircle,    description: "Profile & personal info" },
-      { label: "Security",      href: "/settings?tab=security",      roles: ["admin"], icon: Shield,        description: "Password & access" },
-      { label: "Notifications", href: "/settings?tab=notifications", roles: ["admin"], icon: Bell,          description: "Alert preferences" },
-      { label: "Appearance",    href: "/settings?tab=appearance",    roles: ["admin"], icon: Palette,       description: "Theme & display" },
-      { label: "School",        href: "/settings?tab=school",        roles: ["admin"], icon: School,        description: "School profile" },
-    ],
   },
 ];
 
@@ -218,14 +208,9 @@ const teacherNavItems: NavItem[] = [
   {
     label: "Settings",
     icon: Settings,
+    href: "/settings",
     roles: ["teacher"],
     sectionTitle: "System",
-    subItems: [
-      { label: "Account",       href: "/settings?tab=account",       roles: ["teacher"], icon: UserCircle },
-      { label: "Security",      href: "/settings?tab=security",      roles: ["teacher"], icon: Shield },
-      { label: "Notifications", href: "/settings?tab=notifications", roles: ["teacher"], icon: Bell },
-      { label: "Appearance",    href: "/settings?tab=appearance",    roles: ["teacher"], icon: Palette },
-    ],
   },
 ];
 
@@ -249,14 +234,9 @@ const studentNavItems: NavItem[] = [
   {
     label: "Settings",
     icon: Settings,
+    href: "/settings",
     roles: ["student"],
     sectionTitle: "System",
-    subItems: [
-      { label: "Account",       href: "/settings?tab=account",       roles: ["student"], icon: UserCircle },
-      { label: "Security",      href: "/settings?tab=security",      roles: ["student"], icon: Shield },
-      { label: "Notifications", href: "/settings?tab=notifications", roles: ["student"], icon: Bell },
-      { label: "Appearance",    href: "/settings?tab=appearance",    roles: ["student"], icon: Palette },
-    ],
   },
 ];
 
@@ -279,14 +259,9 @@ const parentNavItems: NavItem[] = [
   {
     label: "Settings",
     icon: Settings,
+    href: "/settings",
     roles: ["parent"],
     sectionTitle: "System",
-    subItems: [
-      { label: "Account",       href: "/settings?tab=account",       roles: ["parent"], icon: UserCircle },
-      { label: "Security",      href: "/settings?tab=security",      roles: ["parent"], icon: Shield },
-      { label: "Notifications", href: "/settings?tab=notifications", roles: ["parent"], icon: Bell },
-      { label: "Appearance",    href: "/settings?tab=appearance",    roles: ["parent"], icon: Palette },
-    ],
   },
 ];
 
@@ -311,14 +286,9 @@ const financeNavItems: NavItem[] = [
   {
     label: "Settings",
     icon: Settings,
+    href: "/settings",
     roles: ["finance"],
     sectionTitle: "System",
-    subItems: [
-      { label: "Account",       href: "/settings?tab=account",       roles: ["finance"], icon: UserCircle },
-      { label: "Security",      href: "/settings?tab=security",      roles: ["finance"], icon: Shield },
-      { label: "Notifications", href: "/settings?tab=notifications", roles: ["finance"], icon: Bell },
-      { label: "Appearance",    href: "/settings?tab=appearance",    roles: ["finance"], icon: Palette },
-    ],
   },
 ];
 

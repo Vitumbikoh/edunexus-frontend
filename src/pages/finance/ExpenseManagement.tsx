@@ -19,6 +19,7 @@ import { formatCurrency, getDefaultCurrency } from '@/lib/currency';
 import { expenseService } from '@/services/expenseService';
 import { academicCalendarService } from '@/services/academicCalendarService';
 import type { User } from '@/contexts/AuthContext';
+import { useSearchParams } from 'react-router-dom';
 
 // Expense categories matching backend enum
 const EXPENSE_CATEGORIES = [
@@ -140,6 +141,7 @@ const parseAmountValue = (value: unknown): number => {
 export default function ExpenseManagement() {
   const { token, user } = useAuth();
   const { toast } = useToast();
+  const [urlSearchParams] = useSearchParams();
   
   // State for filters and search
   const [searchTerm, setSearchTerm] = useState('');
@@ -165,6 +167,15 @@ export default function ExpenseManagement() {
   const [pageSize] = useState(20);
   const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null);
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
+
+  useEffect(() => {
+    const searchFromUrl = urlSearchParams.get('search');
+    if (!searchFromUrl) return;
+
+    setSearchInput(searchFromUrl);
+    setSearchTerm(searchFromUrl);
+    setCurrentPage(0);
+  }, [urlSearchParams]);
 
   // Check user permissions - only ADMIN can manage certain actions (delete). Approvals moved to FinanceApprovals page.
   const isAdmin = user?.role === 'admin';
