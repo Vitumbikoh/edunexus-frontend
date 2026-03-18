@@ -211,7 +211,7 @@ export default function Header() {
               <Link to="/profile">Profile</Link>
             </DropdownMenuItem>
             <DropdownMenuItem>
-              <Link to="/settings">Settings</Link>
+              <Link to="/settings/system">Settings</Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={logout}>

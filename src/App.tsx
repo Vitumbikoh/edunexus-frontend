@@ -27,6 +27,7 @@ import Finance from "./pages/finance/Finance";
 import PaymentForm from "./pages/finance/PaymentForm";
 import GraduatedOutstanding from "./pages/finance/GraduatedOutstanding";
 import Settings from "./pages/settings/Settings";
+import PasswordSettings from "./pages/settings/PasswordSettings";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 import Notifications from "./pages/Notifications";
@@ -1017,11 +1018,29 @@ const AppRoutes = () => {
 
       <Route
         path="/settings"
+        element={<Navigate to="/settings/system" replace />}
+      />
+
+      <Route
+        path="/settings/system"
         element={
           <ProtectedRoute>
             <Layout>
               <Settings />
             </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/settings/password"
+        element={
+          <ProtectedRoute>
+            <AdminRoute>
+              <Layout>
+                <PasswordSettings />
+              </Layout>
+            </AdminRoute>
           </ProtectedRoute>
         }
       />

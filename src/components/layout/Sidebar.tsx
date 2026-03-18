@@ -163,9 +163,12 @@ const adminNavItems: NavItem[] = [
   {
     label: "Settings",
     icon: Settings,
-    href: "/settings",
     roles: ["admin"],
     sectionTitle: "System",
+    subItems: [
+      { label: "System Settings", href: "/settings/system", roles: ["admin"] },
+      { label: "Password Settings", href: "/settings/password", roles: ["admin"] },
+    ],
   },
 ];
 
