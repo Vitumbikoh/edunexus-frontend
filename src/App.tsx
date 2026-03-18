@@ -15,6 +15,7 @@ import { useSchoolPackage } from "@/hooks/useSchoolPackage";
 
 // Pages
 import Login from "./pages/Login";
+import ForgotPassword from "./pages/ForgotPassword";
 import Dashboard from "./pages/dashboard/Dashboard";
 import StudentForm from "./pages/student/StudentForm";
 import TeacherForm from "./pages/teacher/TeacherForm";
@@ -326,6 +327,7 @@ const AppRoutes = () => {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
 
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
 
