@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -60,6 +61,13 @@ interface ProgressionApiResponse {
   term?: string;
   currentTerm?: string;
   progressionMode?: string;
+  executionScope?: 'whole_school' | 'class';
+  executionClassId?: string;
+  executionClassName?: string;
+  selectedClass?: {
+    id: string;
+    name: string;
+  };
   passThreshold?: number;
   executed?: boolean;
   statistics?: ProgressionStatistics;
@@ -87,6 +95,14 @@ interface SchoolSettings {
   passThreshold: number;
   progressionMode: 'automatic' | 'exam_based';
 }
+
+interface SchoolClass {
+  id: string;
+  name: string;
+  numericalName?: number;
+}
+
+type ProgressionExecutionScope = 'whole_school' | 'class';
 
 export default function StudentProgression() {
   const { user, token } = useAuth();
@@ -116,6 +132,9 @@ export default function StudentProgression() {
   });
   const [executionResult, setExecutionResult] = useState<any>(null);
   const [executionHistory, setExecutionHistory] = useState<any[]>([]);
+  const [executionScope, setExecutionScope] = useState<ProgressionExecutionScope>('whole_school');
+  const [selectedClassId, setSelectedClassId] = useState<string>('all');
+  const [schoolClasses, setSchoolClasses] = useState<SchoolClass[]>([]);
 
   const fetchProgressionHistory = async () => {
     try {
@@ -133,6 +152,33 @@ export default function StudentProgression() {
     } catch (error) {
       console.error('Error fetching progression history:', error);
       setExecutionHistory([]);
+    }
+  };
+
+  const fetchSchoolClasses = async () => {
+    try {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/classes`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch classes');
+      }
+
+      const data = await response.json();
+      const classes = Array.isArray(data) ? data : [];
+      const sorted = [...classes].sort((a: SchoolClass, b: SchoolClass) => {
+        const aNum = a.numericalName ?? Number.MAX_SAFE_INTEGER;
+        const bNum = b.numericalName ?? Number.MAX_SAFE_INTEGER;
+        return aNum - bNum;
+      });
+      setSchoolClasses(sorted);
+    } catch (error) {
+      console.error('Error fetching classes:', error);
+      setSchoolClasses([]);
     }
   };
 
@@ -235,9 +281,19 @@ export default function StudentProgression() {
 
   // Fetch progression preview
   const fetchProgressionPreview = async () => {
+    if (executionScope === 'class' && selectedClassId === 'all') {
+      return;
+    }
+
     try {
       setLoading(true);
-      const response = await fetch(`${API_CONFIG.BASE_URL}/settings/student-promotion/preview`, {
+      const query = new URLSearchParams();
+      query.set('executionScope', executionScope);
+      if (executionScope === 'class' && selectedClassId !== 'all') {
+        query.set('classId', selectedClassId);
+      }
+
+      const response = await fetch(`${API_CONFIG.BASE_URL}/settings/student-promotion/preview?${query.toString()}`, {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
@@ -272,6 +328,15 @@ export default function StudentProgression() {
 
   // Execute student progression
   const executeProgression = async () => {
+    if (executionScope === 'class' && selectedClassId === 'all') {
+      toast({
+        variant: "destructive",
+        title: "Class Required",
+        description: "Select a class before running class-based progression.",
+      });
+      return;
+    }
+
     try {
       setLoading(true);
       const response = await fetch(`${API_CONFIG.BASE_URL}/settings/student-promotion/execute`, {
@@ -280,6 +345,10 @@ export default function StudentProgression() {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
+        body: JSON.stringify({
+          executionScope,
+          ...(executionScope === 'class' ? { classId: selectedClassId } : {}),
+        }),
       });
 
       if (!response.ok) {
@@ -307,7 +376,7 @@ export default function StudentProgression() {
 
       toast({
         title: "Success",
-        description: `Student progression completed successfully for ${result.progressionPeriod} (${result.term}). ${result.promoted || 0} students promoted, ${result.graduated || 0} students graduated.`,
+        description: `Student progression completed successfully (${result.executionScope === 'class' ? `Class: ${result.executionClassName || 'Selected class'}` : 'Whole school'}) for ${result.progressionPeriod} (${result.term}). ${result.promoted || 0} students promoted, ${result.graduated || 0} students graduated.`,
       });
 
       // Refresh notifications / counts so the bell icon reflects the new notification
@@ -379,10 +448,22 @@ export default function StudentProgression() {
 
   // Load data on component mount
   useEffect(() => {
-    fetchProgressionPreview();
     fetchSchoolSettings();
     fetchProgressionHistory();
+    fetchSchoolClasses();
   }, []);
+
+  useEffect(() => {
+    if (executionScope === 'class' && selectedClassId === 'all') {
+      return;
+    }
+    fetchProgressionPreview();
+  }, [executionScope, selectedClassId]);
+
+  const selectedClass = schoolClasses.find((cls) => cls.id === selectedClassId);
+  const scopeLabel = executionScope === 'class'
+    ? `Class-Based${selectedClass ? ` (${selectedClass.name})` : ''}`
+    : 'Whole School';
 
   if (!user || user.role !== 'admin') {
     return null;
@@ -391,25 +472,80 @@ export default function StudentProgression() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col gap-4 lg:flex-row lg:justify-between lg:items-end">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Student Progression</h1>
           <p className="text-muted-foreground">
             Manage student promotions and academic progression settings
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="space-y-3 w-full lg:w-auto">
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="space-y-1 min-w-[220px]">
+              <Label>Execution Scope</Label>
+              <Select
+                value={executionScope}
+                onValueChange={(value: ProgressionExecutionScope) => {
+                  setExecutionScope(value);
+                  if (value === 'whole_school') {
+                    setSelectedClassId('all');
+                  } else if (schoolClasses.length > 0) {
+                    setSelectedClassId(schoolClasses[0].id);
+                  }
+                }}
+                disabled={loading || progressionData?.executed}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Choose execution scope" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="whole_school">Whole School</SelectItem>
+                  <SelectItem value="class">Class-Based</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {executionScope === 'class' && (
+              <div className="space-y-1 min-w-[220px]">
+                <Label>Select Class</Label>
+                <Select
+                  value={selectedClassId}
+                  onValueChange={setSelectedClassId}
+                  disabled={loading || progressionData?.executed}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choose class" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Select class</SelectItem>
+                    {schoolClasses.map((cls) => (
+                      <SelectItem key={cls.id} value={cls.id}>
+                        {cls.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </div>
+
+          <div className="flex flex-wrap gap-2">
           <Button 
             onClick={fetchProgressionPreview} 
             variant="outline" 
-            disabled={loading}
+            disabled={loading || (executionScope === 'class' && selectedClassId === 'all')}
           >
             <Eye className="mr-2 h-4 w-4" />
             Refresh Statistics
           </Button>
           <Button 
             onClick={executeProgression} 
-            disabled={loading || !progressionData?.isProgressionPeriod || progressionData?.executed}
+            disabled={
+              loading ||
+              !progressionData?.isProgressionPeriod ||
+              progressionData?.executed ||
+              (executionScope === 'class' && selectedClassId === 'all')
+            }
           >
             <Play className="mr-2 h-4 w-4" />
             {progressionData?.executed ? 'Progression Already Executed' : 'Execute Progression'}
@@ -441,6 +577,7 @@ export default function StudentProgression() {
               </AlertDialogContent>
             </AlertDialog>
           )}
+          </div>
         </div>
       </div>
 
@@ -470,6 +607,13 @@ export default function StudentProgression() {
               </CardTitle>
               <p className="text-sm text-muted-foreground">
                 Overview of student progression statistics for the current academic year.
+                <span className="block mt-1 font-medium">
+                  Execution Scope: {progressionData?.executed
+                    ? progressionData.executionScope === 'class'
+                      ? `Class-Based${progressionData.executionClassName ? ` (${progressionData.executionClassName})` : ''}`
+                      : 'Whole School'
+                    : scopeLabel}
+                </span>
                 {progressionData?.progressionMode === 'exam_based' && progressionData?.passThreshold && (
                   <span className="block mt-1 font-medium">
                     Pass Threshold: {progressionData.passThreshold}% (Students below this threshold will be retained)
@@ -513,6 +657,14 @@ export default function StudentProgression() {
                             Term: <strong>{progressionData.term}</strong>
                           </span>
                         )}
+                        <span className="block">
+                          Scope:{' '}
+                          <strong>
+                            {progressionData?.executionScope === 'class'
+                              ? `Class-Based${progressionData?.executionClassName ? ` (${progressionData.executionClassName})` : ''}`
+                              : 'Whole School'}
+                          </strong>
+                        </span>
                       </span>
                     ) : (
                       <span>
@@ -815,7 +967,10 @@ export default function StudentProgression() {
                     <AlertDescription>
                       Promoted: {executionHistory[0].promoted || 0} students, 
                       Graduated: {executionHistory[0].graduated || 0} students,
-                      Errors: {executionHistory[0].errors || 0}
+                      Errors: {executionHistory[0].errors || 0},
+                      Scope: {executionHistory[0].executionScope === 'class'
+                        ? ` Class-Based${executionHistory[0].executionClassName ? ` (${executionHistory[0].executionClassName})` : ''}`
+                        : ' Whole School'}
                     </AlertDescription>
                   </Alert>
 
@@ -826,6 +981,9 @@ export default function StudentProgression() {
                         <div>
                           <div className="font-medium">{new Date(h.date).toLocaleString()}</div>
                           <div className="text-sm text-muted-foreground">{h.progressionPeriod}{h.term ? ` — ${h.term}` : ''}</div>
+                          <div className="text-xs text-muted-foreground mt-1">
+                            Scope: {h.executionScope === 'class' ? `Class-Based${h.executionClassName ? ` (${h.executionClassName})` : ''}` : 'Whole School'}
+                          </div>
                           {h.note && <div className="text-xs text-muted-foreground mt-1">{h.note}</div>}
                         </div>
                         <div className="text-right">
