@@ -23,6 +23,7 @@ import {
   MessageSquare,
   CreditCard,
   Library,
+  Building2,
   BarChart3,
   Bell,
 } from "lucide-react";
@@ -136,6 +137,15 @@ const adminNavItems: NavItem[] = [
       { label: "Catalog",    href: "/library/catalog",    roles: ["admin"] },
       { label: "Borrowings", href: "/library/borrowings", roles: ["admin"] },
       { label: "Returnings", href: "/library/returnings", roles: ["admin"] },
+    ],
+  },
+  {
+    label: "Hostel",
+    icon: Building2,
+    roles: ["admin"],
+    subItems: [
+      { label: "Manage Hostels", href: "/hostel/manage", roles: ["admin"] },
+      { label: "Allocate Rooms", href: "/hostel/allocate", roles: ["admin"] },
     ],
   },
   {
@@ -307,6 +317,7 @@ export default function Sidebar() {
   const {
     canAccessFinance,
     canAccessLibrary,
+    canAccessHostel,
     isLoading: packageLoading,
   } = useSchoolPackage();
   const isMobile = useIsMobile();
@@ -364,6 +375,7 @@ export default function Sidebar() {
       if (user.role === 'admin') {
         if (item.label === 'Finance' && !canAccessFinance) return false;
         if (item.label === 'Library' && !canAccessLibrary) return false;
+        if (item.label === 'Hostel' && !canAccessHostel) return false;
       }
 
       if (user.role === 'finance' && !canAccessFinance) {

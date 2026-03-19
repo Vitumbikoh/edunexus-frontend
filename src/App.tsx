@@ -96,6 +96,7 @@ import ActivityDetail from "./pages/activities/ActivityDetail";
 import LibraryCatalog from "./pages/library/LibraryCatalog";
 import Borrowings from "./pages/library/Borrowings";
 import Returnings from "./pages/library/Returnings";
+import HostelManagement from "./pages/hostel/HostelManagement";
 
 // Admin specific pages
 import StaffManagement from "./pages/admin/StaffManagement";
@@ -312,6 +313,36 @@ const LibraryRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
+const HostelRoute = ({ children }: { children: React.ReactNode }) => {
+  const { user, loading, isAuthenticated } = useAuth();
+  const {
+    canAccessHostel,
+    isLoading: packageLoading,
+  } = useSchoolPackage();
+
+  if (!loading && !isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (!loading && user && user.role !== 'admin' && user.role !== 'super_admin') {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  if (!loading && !packageLoading && user && user.role !== 'super_admin' && !canAccessHostel) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  if (loading || packageLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-lg">Verifying permissions...</div>
+      </div>
+    );
+  }
+
+  return <>{children}</>;
+};
+
 const RouteLoader = () => (
   <div className="p-4">
     <LoadingState text="Loading page..." />
@@ -494,6 +525,32 @@ const AppRoutes = () => {
                   <Returnings />
                 </Layout>
               </LibraryRoute>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/hostel/manage"
+          element={
+            <ProtectedRoute>
+              <HostelRoute>
+                <Layout>
+                  <HostelManagement view="manage" />
+                </Layout>
+              </HostelRoute>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/hostel/allocate"
+          element={
+            <ProtectedRoute>
+              <HostelRoute>
+                <Layout>
+                  <HostelManagement view="allocate" />
+                </Layout>
+              </HostelRoute>
             </ProtectedRoute>
           }
         />

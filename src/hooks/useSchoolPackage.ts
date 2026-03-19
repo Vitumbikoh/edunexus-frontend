@@ -25,10 +25,16 @@ export function useSchoolPackage() {
     return assignedPackage === 'golden';
   }, [assignedPackage, user?.role]);
 
+  const canAccessHostel = useMemo(() => {
+    if (user?.role === 'super_admin') return true;
+    return assignedPackage === 'golden';
+  }, [assignedPackage, user?.role]);
+
   return {
     ...query,
     assignedPackage,
     canAccessFinance,
     canAccessLibrary,
+    canAccessHostel,
   };
 }
