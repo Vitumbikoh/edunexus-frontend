@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { SidebarProvider } from "@/contexts/SidebarContext";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
@@ -103,9 +103,25 @@ import StaffManagement from "./pages/admin/StaffManagement";
 import GradingFormat from "./pages/admin/GradingFormat";
 import WeightingScheme from "./pages/admin/WeightingScheme";
 
+const principalAllowedPaths = [
+  '/dashboard',
+  '/reports',
+  '/reports/academic',
+  '/activities',
+  '/notifications',
+  '/messages',
+  '/profile',
+];
+
+const isPrincipalRouteAllowed = (pathname: string) => {
+  if (pathname.startsWith('/activities/')) return true;
+  return principalAllowedPaths.includes(pathname);
+};
+
 // Protected route component - immediately redirects if not authenticated
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { isAuthenticated, loading } = useAuth();
+  const { isAuthenticated, loading, user } = useAuth();
+  const location = useLocation();
 
   // Immediately redirect if not authenticated (no loading screen)
   if (!loading && !isAuthenticated) {
@@ -119,6 +135,10 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
         <div className="text-lg">Verifying authentication...</div>
       </div>
     );
+  }
+
+  if (user?.role === 'principal' && !isPrincipalRouteAllowed(location.pathname)) {
+    return <Navigate to="/dashboard" replace />;
   }
 
   return <>{children}</>;
@@ -210,6 +230,29 @@ const AdminRoute = ({ children }: { children: React.ReactNode }) => {
 
   // Immediately redirect if authenticated but wrong role
   if (!loading && user && user.role !== "admin" && user.role !== "super_admin") {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-lg">Verifying permissions...</div>
+      </div>
+    );
+  }
+
+  return <>{children}</>;
+};
+
+// Admin or principal route component - read-only oversight for principals
+const AdminOrPrincipalRoute = ({ children }: { children: React.ReactNode }) => {
+  const { user, loading, isAuthenticated } = useAuth();
+
+  if (!loading && !isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (!loading && user && user.role !== "admin" && user.role !== "super_admin" && user.role !== "principal") {
     return <Navigate to="/dashboard" replace />;
   }
 
@@ -980,16 +1023,16 @@ const AppRoutes = () => {
         }
       />
 
-      {/* Reports Route - Admin only */}
+      {/* Reports Route - Admin + Principal (read-only for principal) */}
       <Route
         path="/reports"
         element={
           <ProtectedRoute>
-            <AdminRoute>
+            <AdminOrPrincipalRoute>
               <Layout>
                 <Reports />
               </Layout>
-            </AdminRoute>
+            </AdminOrPrincipalRoute>
           </ProtectedRoute>
         }
       />
@@ -998,11 +1041,11 @@ const AppRoutes = () => {
         path="/reports/academic"
         element={
           <ProtectedRoute>
-            <AdminRoute>
+            <AdminOrPrincipalRoute>
               <Layout>
                 <Reports />
               </Layout>
-            </AdminRoute>
+            </AdminOrPrincipalRoute>
           </ProtectedRoute>
         }
       />
@@ -1011,11 +1054,11 @@ const AppRoutes = () => {
         path="/activities"
         element={
           <ProtectedRoute>
-            <AdminRoute>
+            <AdminOrPrincipalRoute>
               <Layout>
                 <Activities />
               </Layout>
-            </AdminRoute>
+            </AdminOrPrincipalRoute>
           </ProtectedRoute>
         }
       />
@@ -1024,11 +1067,11 @@ const AppRoutes = () => {
         path="/activities/:id"
         element={
           <ProtectedRoute>
-            <AdminRoute>
+            <AdminOrPrincipalRoute>
               <Layout>
                 <ActivityDetail />
               </Layout>
-            </AdminRoute>
+            </AdminOrPrincipalRoute>
           </ProtectedRoute>
         }
       />

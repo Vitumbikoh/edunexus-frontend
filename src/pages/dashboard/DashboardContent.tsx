@@ -11,6 +11,7 @@ import RecentActivitiesCard from '@/components/dashboard/RecentActivitiesCard';
 import { QuickActions } from './DashboardQuickActions';
 import { API_CONFIG } from '@/config/api';
 import { getAdminDashboardPalette } from './adminPalette';
+import PrincipalDashboardContent from './PrincipalDashboardContent';
 
 
 export const DashboardContent = () => {
@@ -27,6 +28,7 @@ export const DashboardContent = () => {
   const isStudent = user?.role === 'student';
   const isParent = user?.role === 'parent';
   const isFinance = user?.role === 'finance';
+  const isPrincipal = user?.role === 'principal';
   const isDarkMode = typeof document !== 'undefined' && document.documentElement.classList.contains('dark');
   const adminColors = getAdminDashboardPalette(isDarkMode);
 
@@ -37,11 +39,6 @@ export const DashboardContent = () => {
     mq.addEventListener('change', handler);
     return () => mq.removeEventListener('change', handler);
   }, []);
-
-  // Use mobile student dashboard on phones only.
-  if (isStudent && isMobilePhone) {
-    return <MobileStudentDashboardContent />;
-  }
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -123,6 +120,7 @@ export const DashboardContent = () => {
   const getRoleDisplayName = (role: string) => {
     const roleMap: Record<string, string> = {
       'admin': 'Administrator',
+      'principal': 'Principal',
       'teacher': 'Teacher',
       'student': 'Student',
       'parent': 'Parent',
@@ -134,6 +132,7 @@ export const DashboardContent = () => {
   const getRoleBadgeVariant = (role: string) => {
     const variantMap: Record<string, string> = {
       'admin': 'destructive',
+      'principal': 'default',
       'teacher': 'default',
       'student': 'secondary',
       'parent': 'outline',
@@ -141,6 +140,15 @@ export const DashboardContent = () => {
     };
     return variantMap[role] || 'outline';
   };
+
+  // Use mobile student dashboard on phones only.
+  if (isStudent && isMobilePhone) {
+    return <MobileStudentDashboardContent />;
+  }
+
+  if (isPrincipal) {
+    return <PrincipalDashboardContent />;
+  }
 
   return (
     <div className="space-y-4">

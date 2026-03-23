@@ -5,6 +5,7 @@ import { useAuth, UserRole } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 import {
+  Activity,
   User,
   Home,
   Users,
@@ -306,6 +307,36 @@ const financeNavItems: NavItem[] = [
   },
 ];
 
+// ─────────────────────────────────────────────────────────────────────────────
+// PRINCIPAL NAV (READ-ONLY)
+// ─────────────────────────────────────────────────────────────────────────────
+const principalNavItems: NavItem[] = [
+  {
+    label: "Dashboard",
+    icon: Home,
+    href: "/dashboard",
+    roles: ["principal"],
+    sectionTitle: "Executive Overview",
+  },
+  { label: "Reports", icon: BarChart3, href: "/reports", roles: ["principal"] },
+  { label: "Activities", icon: Activity, href: "/activities", roles: ["principal"] },
+  {
+    label: "Notices",
+    icon: Bell,
+    href: "/notifications",
+    roles: ["principal"],
+    sectionTitle: "Communications",
+  },
+  { label: "Messages", icon: MessageSquare, href: "/messages", roles: ["principal"] },
+  {
+    label: "Profile",
+    icon: User,
+    href: "/profile",
+    roles: ["principal"],
+    sectionTitle: "System",
+  },
+];
+
 // Light-mode sidebar background (dark mode falls back to theme bg)
 const SIDEBAR_LIGHT_CLS = "bg-sidebarbrand dark:bg-background";
 
@@ -365,6 +396,7 @@ export default function Sidebar() {
   else if (user.role === "student")  navItems = studentNavItems;
   else if (user.role === "parent")   navItems = parentNavItems;
   else if (user.role === "finance")  navItems = financeNavItems;
+  else if (user.role === "principal") navItems = principalNavItems;
 
   const filteredNavItems = navItems
     .filter((item) => item.roles.includes(user.role))

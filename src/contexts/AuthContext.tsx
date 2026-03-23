@@ -2,7 +2,7 @@ import React, { createContext, useState, useContext, ReactNode, useEffect, useRe
 import { authApi } from '@/services/authService';
 
 // Define user roles based on your backend enum
-export type UserRole = 'super_admin' | 'admin' | 'teacher' | 'student' | 'parent' | 'finance';
+export type UserRole = 'super_admin' | 'admin' | 'principal' | 'teacher' | 'student' | 'parent' | 'finance';
 
 // Define student type for parent's children
 export type ChildStudent = {
@@ -122,11 +122,25 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 // Function to normalize role from backend to UserRole type
 const normalizeRole = (role: string): UserRole => {
   const roleStr = role.toLowerCase();
-  if (['super_admin', 'admin', 'teacher', 'student', 'parent', 'finance'].includes(roleStr)) {
+  if (['super_admin', 'admin', 'principal', 'teacher', 'student', 'parent', 'finance'].includes(roleStr)) {
     return roleStr as UserRole;
   }
   // Default fallback
   return 'student' as UserRole;
+};
+
+const getJwtExpiryMs = (jwtToken: string): number | null => {
+  try {
+    const parts = jwtToken.split('.');
+    if (parts.length < 2) return null;
+    const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+    const padded = base64 + '='.repeat((4 - (base64.length % 4)) % 4);
+    const payload = JSON.parse(atob(padded));
+    if (!payload?.exp) return null;
+    return Number(payload.exp) * 1000;
+  } catch {
+    return null;
+  }
 };
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -387,6 +401,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       clearIdleTimer();
     };
   }, [user, handleUserActivity, scheduleIdleLogout, clearIdleTimer]);
+
+  useEffect(() => {
+    if (!user) return;
+
+    const interval = setInterval(async () => {
+      const currentToken = localStorage.getItem('access_token');
+      if (!currentToken) return;
+
+      const expiryMs = getJwtExpiryMs(currentToken);
+      if (!expiryMs) return;
+
+      const now = Date.now();
+      const msUntilExpiry = expiryMs - now;
+
+      // Refresh shortly before expiry to avoid abrupt 401-triggered logout.
+      if (msUntilExpiry <= 90 * 1000) {
+        const refreshed = await tryRefreshSession();
+        if (!refreshed && msUntilExpiry <= 0) {
+          await performLogout();
+          if (window.location.pathname !== '/login') {
+            window.location.replace('/login');
+          }
+        }
+      }
+    }, 30 * 1000);
+
+    return () => clearInterval(interval);
+  }, [user, performLogout, tryRefreshSession]);
 
   const login = async (username: string, password: string): Promise<LoginResponse> => {
     try {

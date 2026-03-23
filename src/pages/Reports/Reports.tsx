@@ -615,13 +615,13 @@ export default function Reports() {
   };
 
   useEffect(() => {
-    if (token && user?.role === 'admin') {
+    if (token && (user?.role === 'admin' || user?.role === 'principal')) {
       loadFilterOptions();
       fetchReportData();
     }
   }, [token, user, fetchReportData, loadFilterOptions]);
 
-  if (!user || user.role !== "admin") {
+  if (!user || (user.role !== "admin" && user.role !== "principal")) {
     return (
       <div className="flex items-center justify-center h-96">
         <div className="text-center p-8 rounded-lg bg-red-50 border border-red-200 text-red-700 font-semibold">
