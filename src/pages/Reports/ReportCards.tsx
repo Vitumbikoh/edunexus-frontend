@@ -574,7 +574,7 @@ export const ReportCards: React.FC<ReportCardsProps> = ({
                     <SelectValue placeholder="All actions" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All actions</SelectItem>
+                    <SelectItem value="all">All actions</SelectItem>
                     <SelectItem value="CREATE">CREATE</SelectItem>
                     <SelectItem value="UPDATE">UPDATE</SelectItem>
                     <SelectItem value="DELETE">DELETE</SelectItem>
@@ -584,20 +584,51 @@ export const ReportCards: React.FC<ReportCardsProps> = ({
               <div className="space-y-1">
                 <Label className="text-foreground">Date Range</Label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <input
-                    type="date"
-                    value={filters.auditDateFrom}
-                    onChange={(e) => setFilters((prev: any) => ({ ...prev, auditDateFrom: e.target.value }))}
-                    className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-                    placeholder="From date"
-                  />
-                  <input
-                    type="date"
-                    value={filters.auditDateTo}
-                    onChange={(e) => setFilters((prev: any) => ({ ...prev, auditDateTo: e.target.value }))}
-                    className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-                    placeholder="To date"
-                  />
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">From</Label>
+                    <input
+                      type="date"
+                      value={filters.auditDateFrom}
+                      onChange={(e) => setFilters((prev: any) => ({ ...prev, auditDateFrom: e.target.value }))}
+                      className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">To</Label>
+                    <input
+                      type="date"
+                      value={filters.auditDateTo}
+                      onChange={(e) => setFilters((prev: any) => ({ ...prev, auditDateTo: e.target.value }))}
+                      className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-2 pt-1">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 px-2 text-xs"
+                    onClick={() => {
+                      const today = new Date();
+                      const yyyy = today.getFullYear();
+                      const mm = String(today.getMonth() + 1).padStart(2, '0');
+                      const dd = String(today.getDate()).padStart(2, '0');
+                      const date = `${yyyy}-${mm}-${dd}`;
+                      setFilters((prev: any) => ({ ...prev, auditDateFrom: date, auditDateTo: date }));
+                    }}
+                  >
+                    Today
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 px-2 text-xs"
+                    onClick={() => setFilters((prev: any) => ({ ...prev, auditDateFrom: '', auditDateTo: '' }))}
+                  >
+                    Clear Dates
+                  </Button>
                 </div>
               </div>
             </div>

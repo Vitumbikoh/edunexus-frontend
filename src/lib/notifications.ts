@@ -49,3 +49,21 @@ export async function markNotificationAsRead(id: string) {
 export async function markAllNotificationsAsRead() {
   return await api.patch('/notifications/read-all', {});
 }
+
+export function isVisibleToPrincipal(notification: Notification): boolean {
+  const targetRoles = Array.isArray(notification?.metadata?.targetRoles)
+    ? notification.metadata?.targetRoles
+    : [];
+  const normalizedTargets = targetRoles.map((role: any) => String(role || '').toUpperCase());
+
+  // Hide operational/admin-only credentials and billing invoices from principal view.
+  if (notification.type === 'credentials') return false;
+  if (notification.metadata?.isBillingInvoice) return false;
+
+  // Respect explicit audience hints when provided.
+  if (normalizedTargets.length > 0 && !normalizedTargets.includes('PRINCIPAL')) {
+    return false;
+  }
+
+  return true;
+}

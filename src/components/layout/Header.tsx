@@ -18,6 +18,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { useNotifications, useNotificationStats, useMarkNotificationAsRead } from '@/hooks/useNotifications';
 import { Badge } from "@/components/ui/badge";
 import { useIsMobile } from '@/hooks/use-mobile';
+import { isVisibleToPrincipal } from '@/lib/notifications';
 
 export default function Header() {
   const { toggle, isOpen } = useSidebar();
@@ -30,6 +31,9 @@ export default function Header() {
   const { data: notifications = [], isLoading } = useNotifications(enableNotifications);
   const { data: stats } = useNotificationStats(enableNotifications);
   const markAsReadMutation = useMarkNotificationAsRead();
+  const visibleNotifications = user?.role === 'principal'
+    ? notifications.filter(isVisibleToPrincipal)
+    : notifications;
 
   const handleNotificationClick = async (notification: any) => {
     // Mark as read when clicked
@@ -134,12 +138,12 @@ export default function Header() {
                 <DropdownMenuItem>
                   <span className="text-sm text-muted-foreground">Loading...</span>
                 </DropdownMenuItem>
-              ) : notifications.length === 0 ? (
+              ) : visibleNotifications.length === 0 ? (
                 <DropdownMenuItem>
                   <span className="text-sm text-muted-foreground">No notifications</span>
                 </DropdownMenuItem>
               ) : (
-                notifications.slice(0, 5).map((notification) => (
+                visibleNotifications.slice(0, 5).map((notification) => (
                   <DropdownMenuItem
                     key={notification.id}
                     className={`flex flex-col items-start py-3 hover:bg-accent cursor-pointer transition-all relative ${!notification.read ? 'bg-accent/40' : ''}`}
@@ -175,7 +179,7 @@ export default function Header() {
                   </DropdownMenuItem>
                 ))
               )}
-              {notifications.length > 5 && (
+              {visibleNotifications.length > 5 && (
                 <>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem

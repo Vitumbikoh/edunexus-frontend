@@ -231,12 +231,12 @@ export default function Activities() {
               {filteredActivities.map((activity) => (
                 <div
                   key={activity.id}
-                  className="group flex items-start space-x-4 p-4 rounded-lg border border-slate-200 dark:border-slate-800 hover:border-teal-300 dark:hover:border-teal-700 cursor-pointer transition-all duration-200 hover:shadow-md bg-white dark:bg-card/80 hover:bg-slate-50 dark:hover:bg-card/90"
+                  className="group flex items-start space-x-4 p-4 rounded-lg border border-border cursor-pointer transition-all duration-150 hover:shadow-sm bg-card hover:bg-card"
                   onClick={() => openActivity(activity.id)}
                 >
-                  <Avatar className="h-12 w-12 ring-2 ring-slate-200 dark:ring-slate-700">
+                  <Avatar className="h-12 w-12 ring-1 ring-border">
                     <AvatarImage src={activity.user.avatar} alt={activity.user.name} />
-                    <AvatarFallback className="bg-gradient-to-br from-teal-100 to-sky-100 dark:from-slate-900 dark:to-slate-900 dark:border dark:border-slate-700 text-teal-800 dark:text-teal-200 font-semibold">
+                    <AvatarFallback className="bg-muted text-foreground font-semibold">
                       {getInitials(activity.user.name)}
                     </AvatarFallback>
                   </Avatar>

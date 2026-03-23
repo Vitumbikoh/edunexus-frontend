@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getNotifications, markNotificationAsRead, markAllNotificationsAsRead, type Notification } from '@/lib/notifications';
+import { getNotifications, markNotificationAsRead, markAllNotificationsAsRead, isVisibleToPrincipal, type Notification } from '@/lib/notifications';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Clock, FileText, Bell, AlertCircle, School } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 
 const getIcon = (type: string, metadata?: Record<string, any>) => {
   if (metadata?.isBillingInvoice) return <FileText className="h-4 w-4 text-amber-500" />;
@@ -17,6 +18,7 @@ const getIcon = (type: string, metadata?: Record<string, any>) => {
 };
 
 export default function Notifications() {
+  const { user } = useAuth();
   const [page, setPage] = useState(1);
   const limit = 20;
   const { toast } = useToast();
@@ -49,6 +51,10 @@ export default function Notifications() {
     notifications = respAny.items;
   } else {
     notifications = [];
+  }
+
+  if (user?.role === 'principal') {
+    notifications = notifications.filter(isVisibleToPrincipal);
   }
 
   const total = respAny?.total ?? respAny?.data?.total ?? respAny?.meta?.total ?? notifications.length ?? 0;

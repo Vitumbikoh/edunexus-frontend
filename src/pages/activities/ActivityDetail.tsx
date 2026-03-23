@@ -72,14 +72,14 @@ const ActivityDetail: React.FC = () => {
   const renderJSON = (obj: any, title: string) => {
     if (!obj || (typeof obj === 'object' && Object.keys(obj).length === 0)) {
       return (
-        <div className="p-4 bg-gray-50 dark:bg-card/80 rounded-lg border border-gray-200 dark:border-border">
-          <p className="text-sm text-gray-500 dark:text-gray-400 italic">No {title.toLowerCase()} available</p>
+        <div className="p-4 bg-card rounded-lg border border-border">
+          <p className="text-sm text-muted-foreground italic">No {title.toLowerCase()} available</p>
         </div>
       );
     }
     return (
-      <div className="p-4 bg-gray-50 dark:bg-card/80 rounded-lg border border-gray-200 dark:border-border">
-        <pre className="text-xs text-gray-700 dark:text-gray-300 overflow-x-auto max-h-64 whitespace-pre-wrap">
+      <div className="p-4 bg-card rounded-lg border border-border">
+        <pre className="text-xs text-foreground overflow-x-auto max-h-64 whitespace-pre-wrap">
           {JSON.stringify(obj, null, 2)}
         </pre>
       </div>
@@ -94,20 +94,8 @@ const ActivityDetail: React.FC = () => {
   };
 
   const getActionColor = (action: string) => {
-    const lowerAction = action.toLowerCase();
-    if (lowerAction.includes('create') || lowerAction.includes('add') || lowerAction.includes('enroll')) 
-      return 'bg-green-100 text-green-700 dark:bg-transparent dark:border dark:border-border dark:text-green-300';
-    if (lowerAction.includes('update') || lowerAction.includes('edit') || lowerAction.includes('grade') || lowerAction.includes('submit')) 
-      return 'bg-blue-100 text-blue-700 dark:bg-transparent dark:border dark:border-border dark:text-blue-300';
-    if (lowerAction.includes('delete') || lowerAction.includes('remove') || lowerAction.includes('cancel')) 
-      return 'bg-red-100 text-red-700 dark:bg-transparent dark:border dark:border-border dark:text-red-300';
-    if (lowerAction.includes('login') || lowerAction.includes('logout')) 
-      return 'bg-purple-100 text-purple-700 dark:bg-transparent dark:border dark:border-border dark:text-purple-300';
-    if (lowerAction.includes('payment') || lowerAction.includes('invoice') || lowerAction.includes('process')) 
-      return 'bg-emerald-100 text-emerald-700 dark:bg-transparent dark:border dark:border-border dark:text-emerald-300';
-    if (lowerAction.includes('export') || lowerAction.includes('import') || lowerAction.includes('generate') || lowerAction.includes('report')) 
-      return 'bg-orange-100 text-orange-700 dark:bg-transparent dark:border dark:border-border dark:text-orange-300';
-    return 'bg-gray-100 text-gray-700 dark:bg-transparent dark:border dark:border-border dark:text-foreground';
+    void action;
+    return 'bg-muted text-foreground border border-border';
   };
 
   const getLevelIcon = (level: string) => {
@@ -173,7 +161,7 @@ const ActivityDetail: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="bg-gradient-to-r from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 rounded-lg p-6 border border-gray-200 dark:border-border shadow-sm">
+      <div className="bg-card rounded-lg p-6 border border-border shadow-sm">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <div className="space-y-2">
             <div className="flex items-center gap-3">
@@ -186,17 +174,17 @@ const ActivityDetail: React.FC = () => {
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Back
               </Button>
-              <Activity className="h-8 w-8 text-blue-600 dark:text-blue-400" />
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-gray-100 dark:to-gray-300 bg-clip-text text-transparent">
+              <Activity className="h-8 w-8 text-muted-foreground" />
+              <h1 className="text-3xl font-bold text-foreground">
                 Activity Details
               </h1>
             </div>
-            <p className="text-lg text-gray-600 dark:text-gray-300">
+            <p className="text-lg text-muted-foreground">
               Complete information about this system activity
             </p>
           </div>
           
-          <div className="flex items-center gap-2 text-gray-600 dark:text-gray-300">
+          <div className="flex items-center gap-2 text-muted-foreground">
             <Calendar className="h-4 w-4" />
             <span className="font-medium">{new Date(activity.timestamp).toLocaleString()}</span>
           </div>
@@ -204,11 +192,11 @@ const ActivityDetail: React.FC = () => {
       </div>
 
       {/* Main Activity Card */}
-      <Card className="bg-gradient-to-br from-white via-gray-50/30 to-gray-100/50 dark:from-gray-900 dark:via-gray-800/10 dark:to-gray-800/20 border-gray-200/50 shadow-lg">
+      <Card className="bg-card border-border shadow-sm">
         <CardHeader className="pb-4">
           <div className="flex items-center justify-between">
             <div className="space-y-2">
-              <CardTitle className="text-2xl font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-3">
+              <CardTitle className="text-2xl font-semibold text-foreground flex items-center gap-3">
                 {getLevelIcon(activity.level || 'info')}
                 {friendly?.verb || activity.action}
               </CardTitle>
@@ -229,22 +217,22 @@ const ActivityDetail: React.FC = () => {
         <CardContent className="space-y-6">
           {/* Actor & Primary Summary */}
           {activity.performedBy && (
-            <div className="flex items-center space-x-4 p-4 bg-white dark:bg-card/80 rounded-lg border border-gray-200 dark:border-border">
-              <Avatar className="h-12 w-12 ring-2 ring-gray-200 dark:ring-gray-700">
+            <div className="flex items-center space-x-4 p-4 bg-card rounded-lg border border-border">
+              <Avatar className="h-12 w-12 ring-1 ring-border">
                 <AvatarImage src="" alt={activity.performedBy.name || activity.performedBy.username || activity.performedBy.email} />
-                <AvatarFallback className="bg-gradient-to-br from-blue-100 to-blue-200 dark:from-transparent dark:to-transparent dark:bg-transparent dark:border dark:border-border text-blue-700 dark:text-blue-300 font-semibold">
+                <AvatarFallback className="bg-muted text-foreground font-semibold">
                   {getInitials(activity.performedBy.name || activity.performedBy.username || activity.performedBy.email || 'System')}
                 </AvatarFallback>
               </Avatar>
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
-                  <User className="h-4 w-4 text-gray-400" />
-                  <span className="font-medium text-gray-900 dark:text-gray-100">
+                  <User className="h-4 w-4 text-muted-foreground" />
+                  <span className="font-medium text-foreground">
                     {friendly?.actor || activity.performedBy.name || activity.performedBy.username || activity.performedBy.email || 'System'}
                   </span>
                 </div>
                 {(activity.performedBy.email || activity.performedBy.username) && (
-                  <p className="text-sm text-gray-600 dark:text-gray-400">{activity.performedBy.username || activity.performedBy.email}</p>
+                  <p className="text-sm text-muted-foreground">{activity.performedBy.username || activity.performedBy.email}</p>
                 )}
                 {activity.performedBy.role && (
                   <Badge className="text-xs" variant="secondary">
@@ -252,7 +240,7 @@ const ActivityDetail: React.FC = () => {
                   </Badge>
                 )}
                 {friendly?.summary && (
-                  <p className="text-xs text-gray-500 dark:text-gray-400 pt-1">{friendly.summary}</p>
+                  <p className="text-xs text-muted-foreground pt-1">{friendly.summary}</p>
                 )}
               </div>
             </div>
@@ -263,40 +251,40 @@ const ActivityDetail: React.FC = () => {
           {/* Human Friendly Details */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+              <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
                 <Info className="h-5 w-5" />
                 Basic Information
               </h3>
               
               <div className="space-y-3">
-                <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-card/80 rounded-lg">
-                  <span className="font-medium text-gray-700 dark:text-gray-300">Module</span>
-                  <span className="text-gray-900 dark:text-gray-100">{activity.module || 'System'}</span>
+                <div className="flex items-center justify-between p-3 bg-card rounded-lg border border-border">
+                  <span className="font-medium text-muted-foreground">Module</span>
+                  <span className="text-foreground">{activity.module || 'System'}</span>
                 </div>
-                <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-card/80 rounded-lg">
-                  <span className="font-medium text-gray-700 dark:text-gray-300">Action</span>
-                  <span className="text-gray-900 dark:text-gray-100">{friendly?.verb || activity.action}</span>
+                <div className="flex items-center justify-between p-3 bg-card rounded-lg border border-border">
+                  <span className="font-medium text-muted-foreground">Action</span>
+                  <span className="text-foreground">{friendly?.verb || activity.action}</span>
                 </div>
-                <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-card/80 rounded-lg">
-                  <span className="font-medium text-gray-700 dark:text-gray-300">Performed On</span>
-                  <span className="text-gray-900 dark:text-gray-100">{friendly?.target || activity.entityType || '—'}</span>
+                <div className="flex items-center justify-between p-3 bg-card rounded-lg border border-border">
+                  <span className="font-medium text-muted-foreground">Performed On</span>
+                  <span className="text-foreground">{friendly?.target || activity.entityType || '—'}</span>
                 </div>
                 
-                <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-card/80 rounded-lg">
-                  <span className="font-medium text-gray-700 dark:text-gray-300">Level</span>
+                <div className="flex items-center justify-between p-3 bg-card rounded-lg border border-border">
+                  <span className="font-medium text-muted-foreground">Level</span>
                   <div className="flex items-center gap-2">
                     {getLevelIcon(activity.level || 'info')}
-                    <span className={`font-medium ${activity.level === 'error' ? 'text-red-600 dark:text-red-400' : 'text-gray-900 dark:text-gray-100'}`}>
+                    <span className="font-medium text-foreground">
                       {activity.level || 'Info'}
                     </span>
                   </div>
                 </div>
                 
-                <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-card/80 rounded-lg">
-                  <span className="font-medium text-gray-700 dark:text-gray-300">Timestamp</span>
+                <div className="flex items-center justify-between p-3 bg-card rounded-lg border border-border">
+                  <span className="font-medium text-muted-foreground">Timestamp</span>
                   <div className="flex items-center gap-2">
-                    <Clock className="h-4 w-4 text-gray-400" />
-                    <span className="text-gray-900 dark:text-gray-100">
+                    <Clock className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-foreground">
                       {new Date(activity.timestamp).toLocaleString()}
                     </span>
                   </div>
@@ -305,16 +293,16 @@ const ActivityDetail: React.FC = () => {
             </div>
 
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+              <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
                 <Database className="h-5 w-5" />
                 Changed Fields
               </h3>
               {fieldChanges.length === 0 ? (
-                <div className="p-4 bg-gray-50 dark:bg-card/80 rounded-lg border border-gray-200 dark:border-border text-sm text-gray-500 dark:text-gray-400 italic">No data changes captured</div>
+                <div className="p-4 bg-card rounded-lg border border-border text-sm text-muted-foreground italic">No data changes captured</div>
               ) : (
                 <div className="overflow-x-auto">
-                  <table className="w-full text-sm border border-gray-200 dark:border-border rounded-lg overflow-hidden">
-                    <thead className="bg-gray-100 dark:bg-card/85 text-gray-700 dark:text-gray-300">
+                  <table className="w-full text-sm border border-border rounded-lg overflow-hidden">
+                    <thead className="bg-muted text-muted-foreground">
                       <tr>
                         <th className="text-left px-3 py-2 font-medium">Field</th>
                         <th className="text-left px-3 py-2 font-medium">Previous</th>
@@ -323,10 +311,10 @@ const ActivityDetail: React.FC = () => {
                     </thead>
                     <tbody>
                       {fieldChanges.map(fc => (
-                        <tr key={fc.field} className="border-t border-gray-200 dark:border-border">
-                          <td className="px-3 py-2 font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">{fc.field}</td>
-                          <td className="px-3 py-2 text-gray-500 dark:text-gray-400 max-w-xs truncate">{fc.oldValue ?? '—'}</td>
-                          <td className="px-3 py-2 text-gray-900 dark:text-gray-100 max-w-xs truncate">{fc.newValue ?? '—'}</td>
+                        <tr key={fc.field} className="border-t border-border">
+                          <td className="px-3 py-2 font-medium text-muted-foreground whitespace-nowrap">{fc.field}</td>
+                          <td className="px-3 py-2 text-muted-foreground max-w-xs truncate">{fc.oldValue ?? '—'}</td>
+                          <td className="px-3 py-2 text-foreground max-w-xs truncate">{fc.newValue ?? '—'}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -345,8 +333,8 @@ const ActivityDetail: React.FC = () => {
                 <FileText className="h-5 w-5" />
                 Description
               </h3>
-              <div className="p-4 bg-blue-50 dark:bg-transparent rounded-lg border border-blue-200 dark:border-border">
-                <p className="text-gray-700 dark:text-gray-300">{activity.metadata.description}</p>
+              <div className="p-4 bg-card rounded-lg border border-border">
+                <p className="text-foreground">{activity.metadata.description}</p>
               </div>
             </div>
           )}

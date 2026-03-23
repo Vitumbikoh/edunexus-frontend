@@ -550,7 +550,8 @@ export default function Reports() {
 
       const fromTs = toDateBoundary(filters.auditDateFrom, false);
       const toTs = toDateBoundary(filters.auditDateTo, true);
-      const selectedAction = String(filters.auditAction || '').toUpperCase();
+      const selectedActionRaw = String(filters.auditAction || '').toUpperCase();
+      const selectedAction = selectedActionRaw === 'ALL' ? '' : selectedActionRaw;
       const auditLogs = rawAuditLogs.filter((item: any) => {
         const normalizedAction = normalizeAuditAction(item?.action);
         if (normalizedAction === 'OTHER') return false;
