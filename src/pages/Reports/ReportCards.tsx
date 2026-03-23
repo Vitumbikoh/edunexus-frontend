@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
+  Activity,
   Loader2, 
   FileSpreadsheet, 
   FileDown, 
@@ -43,6 +44,7 @@ interface ReportCardsProps {
   isGenerating: boolean; // legacy
   onGenerateReport: (format: "excel" | "pdf", type: string) => void;
   generatingCategory?: { category: string; format: 'excel' | 'pdf' } | null;
+  onViewLogs?: () => void;
 }
 
 export const ReportCards: React.FC<ReportCardsProps> = ({
@@ -58,6 +60,7 @@ export const ReportCards: React.FC<ReportCardsProps> = ({
   isGenerating,
   onGenerateReport,
   generatingCategory,
+  onViewLogs,
 }) => {
   const nonGraduatedClasses = classes.filter((c) => {
     const className = (c?.name || '').trim().toLowerCase();
@@ -538,6 +541,98 @@ export const ReportCards: React.FC<ReportCardsProps> = ({
             >
               <FileDown className="h-4 w-4 mr-1" />
               {generatingCategory?.category === 'financial' && generatingCategory.format === 'pdf' ? <Loader2 className="h-4 w-4 animate-spin" /> : 'PDF'}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="flex flex-col h-full">
+        <CardHeader>
+          <div className="flex items-center gap-3">
+            <Activity className="h-5 w-5 text-primary" />
+            <div>
+              <CardTitle>Audit & Oversight</CardTitle>
+              <p className="text-muted-foreground text-sm">Recent School Admin activity and key events</p>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="p-4 flex flex-col h-full space-y-4">
+          <p className="text-muted-foreground text-sm">
+            Export oversight logs for CREATE, UPDATE, and DELETE operations to support governance and audit tracking.
+          </p>
+
+          <div className="space-y-3 bg-muted/50 p-4 rounded-lg">
+            <h4 className="font-medium text-foreground flex items-center gap-2">
+              <FileText className="h-4 w-4" />
+              Filter Options
+            </h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-foreground">Action Type</Label>
+                <Select value={filters.auditAction} onValueChange={(v) => setFilters((prev: any) => ({ ...prev, auditAction: v }))}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="All actions" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">All actions</SelectItem>
+                    <SelectItem value="CREATE">CREATE</SelectItem>
+                    <SelectItem value="UPDATE">UPDATE</SelectItem>
+                    <SelectItem value="DELETE">DELETE</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-foreground">Date Range</Label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <input
+                    type="date"
+                    value={filters.auditDateFrom}
+                    onChange={(e) => setFilters((prev: any) => ({ ...prev, auditDateFrom: e.target.value }))}
+                    className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                    placeholder="From date"
+                  />
+                  <input
+                    type="date"
+                    value={filters.auditDateTo}
+                    onChange={(e) => setFilters((prev: any) => ({ ...prev, auditDateTo: e.target.value }))}
+                    className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                    placeholder="To date"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex-1" />
+
+          <div className="flex flex-col sm:flex-row gap-2 pt-4 mt-auto">
+            <Button
+              onClick={() => onViewLogs?.()}
+              disabled={!!generatingCategory}
+              variant="secondary"
+              size="sm"
+              className="flex-1"
+            >
+              View Logs
+            </Button>
+            <Button
+              onClick={() => onGenerateReport('excel', 'audit-oversight')}
+              disabled={!!generatingCategory}
+              size="sm"
+              className="flex-1"
+            >
+              <FileSpreadsheet className="h-4 w-4 mr-1" />
+              {generatingCategory?.category === 'audit-oversight' && generatingCategory.format === 'excel' ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Download Excel'}
+            </Button>
+            <Button
+              onClick={() => onGenerateReport('pdf', 'audit-oversight')}
+              disabled={!!generatingCategory}
+              variant="outline"
+              size="sm"
+              className="flex-1"
+            >
+              <FileDown className="h-4 w-4 mr-1" />
+              {generatingCategory?.category === 'audit-oversight' && generatingCategory.format === 'pdf' ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Download PDF'}
             </Button>
           </div>
         </CardContent>

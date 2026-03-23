@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback, useRef } from "react";
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -75,6 +76,7 @@ interface DetailedReportData {
   expenses?: any[];
   examResults?: any[];
   outstandingBalances?: any[];
+  auditLogs?: any[];
 }
 
 type ReportCategory =
@@ -86,10 +88,27 @@ type ReportCategory =
   | 'attendance'
   | 'comprehensive'
   | 'expenses'
-  | 'exam-results';
+  | 'exam-results'
+  | 'audit-oversight';
+
+const normalizeAuditAction = (value: any): 'CREATE' | 'UPDATE' | 'DELETE' | 'OTHER' => {
+  const action = String(value || '').toUpperCase();
+  if (action.includes('CREATE') || action.includes('ADD') || action.endsWith('_CREATED')) return 'CREATE';
+  if (action.includes('UPDATE') || action.includes('EDIT') || action.includes('MODIFY') || action.endsWith('_UPDATED')) return 'UPDATE';
+  if (action.includes('DELETE') || action.includes('REMOVE') || action.endsWith('_DELETED') || action.endsWith('_REMOVED')) return 'DELETE';
+  return 'OTHER';
+};
+
+const toDateBoundary = (value: string, isEnd = false): number | null => {
+  if (!value) return null;
+  const suffix = isEnd ? 'T23:59:59.999' : 'T00:00:00.000';
+  const parsed = new Date(`${value}${suffix}`);
+  return Number.isNaN(parsed.getTime()) ? null : parsed.getTime();
+};
 
 export default function Reports() {
   const { user, token } = useAuth();
+  const navigate = useNavigate();
   const { toast } = useToast();
   const isPrincipal = user?.role === 'principal';
 
@@ -142,6 +161,9 @@ export default function Reports() {
     examClassId: "",
     examTermId: "",
     examAcademicCalendarId: "",
+    auditAction: "",
+    auditDateFrom: "",
+    auditDateTo: "",
   });
 
   const [classes, setClasses] = useState<Array<{ id: string; name: string }>>([]);
@@ -302,7 +324,11 @@ export default function Reports() {
       ];
 
       if (isPrincipal) {
-        requests.push(Promise.resolve(null));
+        requests.push(
+          fetch(`${API_BASE_URL}/admin/reports/fee-payments${paymentsQuery}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+        );
         requests.push(Promise.resolve(null));
       } else {
         requests.push(
@@ -341,7 +367,7 @@ export default function Reports() {
         const txData = await txRes.json().catch(() => ({}));
         const txItems = Array.isArray(txData)
           ? txData
-          : (txData?.transactions || txData?.items || txData?.payments || []);
+          : (txData?.transactions || txData?.items || txData?.payments || txData?.feePayments || []);
         totalFeePayments = txItems.length;
         txRevenue = txItems.reduce((sum: number, item: any) => sum + Number(item?.amount || 0), 0);
       }
@@ -407,6 +433,7 @@ export default function Reports() {
       const needsExpenses = !category || category === 'expenses' || category === 'comprehensive';
       const needsExamResults = !category || category === 'exam-results' || category === 'comprehensive';
       const needsOutstandingBalances = !category || category === 'financial' || category === 'comprehensive';
+      const needsAuditLogs = category === 'audit-oversight';
 
       const requests: Array<Promise<any>> = [
         needsStudents
@@ -432,9 +459,12 @@ export default function Reports() {
         needsOutstandingBalances
           ? fetch(`${base}/admin/reports/outstanding-balances${paymentsQuery}`, { headers: { Authorization: `Bearer ${token}` } })
           : Promise.resolve(null),
+        needsAuditLogs
+          ? fetch(`${base}/activities/recent?limit=100`, { headers: { Authorization: `Bearer ${token}` } })
+          : Promise.resolve(null),
       ];
 
-      const [studentsRes, teachersRes, coursesRes, enrollmentsRes, feePaymentsRes, expensesRes, outstandingBalancesRes] = await Promise.all(requests);
+      const [studentsRes, teachersRes, coursesRes, enrollmentsRes, feePaymentsRes, expensesRes, outstandingBalancesRes, auditLogsRes] = await Promise.all(requests);
 
       // For outstanding balances, treat failures as warnings (return empty array) instead of blocking the entire report
       // This ensures fee payment reports can still be generated even if balance calculation fails
@@ -449,12 +479,12 @@ export default function Reports() {
         outstandingBalancesResOk = null; // Treat as if not requested
       }
 
-      const requiredResponses = [studentsRes, teachersRes, coursesRes, enrollmentsRes, feePaymentsRes, expensesRes].filter(Boolean) as Response[];
+      const requiredResponses = [studentsRes, teachersRes, coursesRes, enrollmentsRes, feePaymentsRes, expensesRes, auditLogsRes].filter(Boolean) as Response[];
       if (!requiredResponses.every(r => r.ok)) {
         throw new Error('Failed to fetch detailed report data');
       }
 
-      const [students, teachers, courses, enrollments, feePayments, expensesPaged, outstandingBalances] = await Promise.all([
+      const [students, teachers, courses, enrollments, feePayments, expensesPaged, outstandingBalances, auditLogsPayload] = await Promise.all([
         studentsRes ? studentsRes.json() : Promise.resolve([]),
         teachersRes ? teachersRes.json() : Promise.resolve([]),
         coursesRes ? coursesRes.json() : Promise.resolve([]),
@@ -462,6 +492,7 @@ export default function Reports() {
         feePaymentsRes ? feePaymentsRes.json() : Promise.resolve([]),
         expensesRes ? expensesRes.json() : Promise.resolve({ expenses: [] }),
         outstandingBalancesResOk ? outstandingBalancesResOk.json() : Promise.resolve([]),
+        auditLogsRes ? auditLogsRes.json() : Promise.resolve([]),
       ]);
 
       const termCalendarMap = new Map(terms.map(t => [t.id, t.academicCalendarId]));
@@ -513,7 +544,28 @@ export default function Reports() {
           });
       }
 
-      const payload = { students, teachers, courses, enrollments, feePayments, expenses, examResults, outstandingBalances };
+      const rawAuditLogs = Array.isArray(auditLogsPayload)
+        ? auditLogsPayload
+        : (auditLogsPayload?.items || auditLogsPayload?.logs || []);
+
+      const fromTs = toDateBoundary(filters.auditDateFrom, false);
+      const toTs = toDateBoundary(filters.auditDateTo, true);
+      const selectedAction = String(filters.auditAction || '').toUpperCase();
+      const auditLogs = rawAuditLogs.filter((item: any) => {
+        const normalizedAction = normalizeAuditAction(item?.action);
+        if (normalizedAction === 'OTHER') return false;
+        if (selectedAction && normalizedAction !== selectedAction) return false;
+
+        const rawTs = item?.timestamp || item?.createdAt || item?.updatedAt;
+        if (!rawTs) return true;
+        const ts = new Date(rawTs).getTime();
+        if (!Number.isFinite(ts)) return true;
+        if (fromTs !== null && ts < fromTs) return false;
+        if (toTs !== null && ts > toTs) return false;
+        return true;
+      });
+
+      const payload = { students, teachers, courses, enrollments, feePayments, expenses, examResults, outstandingBalances, auditLogs };
       setDetailedReportData(payload);
       return payload;
     } catch (e) {
@@ -551,6 +603,9 @@ export default function Reports() {
             break;
           case 'exam-results':
             reportService.generateExamResultsExcel(data.examResults || [], reportData?.schoolInfo);
+            break;
+          case 'audit-oversight':
+            reportService.generateAuditOversightExcel(data.auditLogs || [], reportData?.schoolInfo);
             break;
           case 'attendance':
             toast({ title: 'Attendance Report', description: 'Attendance reporting will be implemented soon', variant: 'default' });
@@ -591,6 +646,9 @@ export default function Reports() {
             break;
           case 'exam-results':
             await reportService.generateExamResultsPDF?.(data.examResults as any, reportData?.schoolInfo);
+            break;
+          case 'audit-oversight':
+            await reportService.generateAuditOversightPDF?.(data.auditLogs as any, reportData?.schoolInfo);
             break;
           case 'attendance':
             toast({ title: 'Attendance PDF', description: 'Attendance PDF reporting will be implemented soon', variant: 'default' });
@@ -746,22 +804,21 @@ export default function Reports() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {!isPrincipal && (
-          <ReportCards
-            reportData={reportData}
-            filters={filters}
-            setFilters={setFilters}
-            classes={classes}
-            students={students}
-              courses={courses}
-            teachers={teachers}
-            terms={terms}
-            academicCalendars={academicCalendars}
-            isGenerating={!!generatingCategory}
-            generatingCategory={generatingCategory}
-            onGenerateReport={handleGenerateReport}
-          />
-        )}
+        <ReportCards
+          reportData={reportData}
+          filters={filters}
+          setFilters={setFilters}
+          classes={classes}
+          students={students}
+            courses={courses}
+          teachers={teachers}
+          terms={terms}
+          academicCalendars={academicCalendars}
+          isGenerating={!!generatingCategory}
+          generatingCategory={generatingCategory}
+          onGenerateReport={handleGenerateReport}
+          onViewLogs={() => navigate('/activities')}
+        />
 
         {/* Library report requires library/finance permissions; hide for principal to avoid forbidden noise */}
         {!isPrincipal && (
@@ -769,20 +826,6 @@ export default function Reports() {
             onGenerateReport={handleGenerateReport}
             generatingCategory={generatingCategory}
           />
-        )}
-
-        {isPrincipal && (
-          <Card className="lg:col-span-2">
-            <CardHeader>
-              <CardTitle>Principal Oversight Mode</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">
-                Detailed exports and operational report modules are restricted for principal accounts.
-                You can still review the summary analytics above for executive oversight.
-              </p>
-            </CardContent>
-          </Card>
         )}
 
         {/* Comprehensive Report Card */}

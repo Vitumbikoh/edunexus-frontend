@@ -601,6 +601,58 @@ const generateExamResultsExcel = (data: any[], schoolInfo?: SchoolInfo) => {
   }
 };
 
+const normalizeAuditAction = (value: any): 'CREATE' | 'UPDATE' | 'DELETE' | 'OTHER' => {
+  const action = String(value || '').toUpperCase();
+  if (action.includes('CREATE') || action.includes('ADD') || action.endsWith('_CREATED')) return 'CREATE';
+  if (action.includes('UPDATE') || action.includes('EDIT') || action.includes('MODIFY') || action.endsWith('_UPDATED')) return 'UPDATE';
+  if (action.includes('DELETE') || action.includes('REMOVE') || action.endsWith('_DELETED') || action.endsWith('_REMOVED')) return 'DELETE';
+  return 'OTHER';
+};
+
+const generateAuditOversightExcel = (data: any[], schoolInfo?: SchoolInfo) => {
+  try {
+    const school = getSchoolInfo(schoolInfo);
+    const headerRows = [
+      [school.name + (school.logo ? ' (Logo Available)' : '')],
+      [school.address || ''],
+      [school.phone ? `Phone: ${school.phone}` : ''],
+      [school.email ? `Email: ${school.email}` : ''],
+      [],
+      ['Audit & Oversight - Recent School Admin Activity'],
+      [],
+    ];
+
+    const dataRows = data.map(item => {
+      const action = normalizeAuditAction(item.action);
+      const timestamp = item.timestamp || item.createdAt || item.updatedAt;
+      const actor = item.performedBy?.name || item.performedBy?.username || item.performedBy?.email || item.userName || 'System';
+
+      return [
+        action,
+        item.entityType || item.module || 'General',
+        actor,
+        timestamp ? new Date(timestamp).toLocaleString() : 'N/A',
+        item.module || 'System',
+        item.id || 'N/A',
+      ];
+    });
+
+    const aoa = [
+      ...headerRows,
+      ['Action', 'Entity', 'Performed By', 'Timestamp', 'Module', 'Log ID'],
+      ...dataRows,
+    ];
+
+    const ws = XLSX.utils.aoa_to_sheet(aoa as any);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Audit Oversight');
+    XLSX.writeFile(wb, 'audit-oversight-report.xlsx');
+  } catch (error) {
+    console.error('Error generating audit oversight Excel:', error);
+    throw new Error('Failed to generate audit oversight Excel report');
+  }
+};
+
 const generateComprehensiveExcel = (data: {
   students: any[];
   teachers: any[];
@@ -1098,6 +1150,54 @@ const generateExamResultsPDF = async (data: any[], schoolInfo?: SchoolInfo) => {
   }
 };
 
+const generateAuditOversightPDF = async (data: any[], schoolInfo?: SchoolInfo) => {
+  try {
+    const { doc, headerFooterOpts } = await createPdfContext(schoolInfo);
+    const createCount = data.filter(row => normalizeAuditAction(row.action) === 'CREATE').length;
+    const updateCount = data.filter(row => normalizeAuditAction(row.action) === 'UPDATE').length;
+    const deleteCount = data.filter(row => normalizeAuditAction(row.action) === 'DELETE').length;
+    const tableStartY = drawReportHeading(
+      doc,
+      'Audit & Oversight Report',
+      `Events: ${data.length} | CREATE: ${createCount} | UPDATE: ${updateCount} | DELETE: ${deleteCount}`,
+      headerFooterOpts,
+    );
+
+    autoTable(doc, {
+      head: [['Action', 'Entity', 'Performed By', 'Timestamp', 'Module', 'Log ID']],
+      body: data.map(item => {
+        const action = normalizeAuditAction(item.action);
+        const timestamp = item.timestamp || item.createdAt || item.updatedAt;
+        const actor = item.performedBy?.name || item.performedBy?.username || item.performedBy?.email || item.userName || 'System';
+
+        return [
+          action,
+          item.entityType || item.module || 'General',
+          actor,
+          formatDisplayDate(timestamp),
+          item.module || 'System',
+          item.id || 'N/A',
+        ];
+      }),
+      startY: tableStartY,
+      ...getProfessionalTableTheme(headerFooterOpts, [99, 102, 241]),
+      columnStyles: {
+        0: { halign: 'center', cellWidth: 52 },
+        1: { cellWidth: 76 },
+        2: { cellWidth: 96 },
+        3: { halign: 'center', cellWidth: 72 },
+        4: { cellWidth: 72 },
+        5: { cellWidth: 120, overflow: 'linebreak' },
+      },
+    });
+
+    doc.save('audit-oversight-report.pdf');
+  } catch (error) {
+    console.error('Error generating audit oversight PDF:', error);
+    throw new Error('Failed to generate audit oversight PDF report');
+  }
+};
+
 const generateComprehensivePDF = async (data: {
   students: any[];
   teachers: any[];
@@ -1320,6 +1420,7 @@ export {
   generateFinancialPDF,
   generateExpensesPDF,
   generateExamResultsPDF,
+  generateAuditOversightPDF,
   generateComprehensivePDF,
   generateStudentsExcel,
   generateTeachersExcel,
@@ -1329,6 +1430,7 @@ export {
   generateFinancialExcel,
   generateExpensesExcel,
   generateExamResultsExcel,
+  generateAuditOversightExcel,
   generateComprehensiveExcel,
 };
 
@@ -1342,6 +1444,7 @@ export const reportService = {
   generateFinancialPDF,
   generateExpensesPDF,
   generateExamResultsPDF,
+  generateAuditOversightPDF,
   generateComprehensivePDF,
   generateStudentsExcel,
   generateTeachersExcel,
@@ -1351,6 +1454,7 @@ export const reportService = {
   generateFinancialExcel,
   generateExpensesExcel,
   generateExamResultsExcel,
+  generateAuditOversightExcel,
   generateComprehensiveExcel,
 };
 

@@ -102,25 +102,13 @@ export default function Activities() {
   };
 
   const getActionColor = (action: string) => {
-    const lowerAction = action.toLowerCase();
-    if (lowerAction.includes('create') || lowerAction.includes('add') || lowerAction.includes('enroll')) return 'text-emerald-700 dark:text-emerald-300';
-    if (lowerAction.includes('update') || lowerAction.includes('edit') || lowerAction.includes('grade') || lowerAction.includes('submit')) return 'text-sky-700 dark:text-sky-300';
-    if (lowerAction.includes('delete') || lowerAction.includes('remove') || lowerAction.includes('cancel')) return 'text-rose-700 dark:text-rose-300';
-    if (lowerAction.includes('login') || lowerAction.includes('logout')) return 'text-indigo-700 dark:text-indigo-300';
-    if (lowerAction.includes('payment') || lowerAction.includes('invoice') || lowerAction.includes('process')) return 'text-teal-700 dark:text-teal-300';
-    if (lowerAction.includes('export') || lowerAction.includes('import') || lowerAction.includes('generate') || lowerAction.includes('report')) return 'text-amber-700 dark:text-amber-300';
-    return 'text-slate-600 dark:text-slate-300';
+    void action;
+    return 'text-foreground';
   };
 
   const getRoleBadgeColor = (role: string) => {
-    const lowerRole = role.toLowerCase();
-    if (lowerRole === 'admin') return 'border border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-300';
-    if (lowerRole === 'principal') return 'border border-indigo-200 bg-indigo-50 text-indigo-700 dark:border-indigo-900 dark:bg-indigo-950/30 dark:text-indigo-300';
-    if (lowerRole === 'teacher') return 'border border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-900 dark:bg-sky-950/30 dark:text-sky-300';
-    if (lowerRole === 'student') return 'border border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-300';
-    if (lowerRole === 'parent') return 'border border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-900 dark:bg-violet-950/30 dark:text-violet-300';
-    if (lowerRole === 'finance') return 'border border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-300';
-    return 'border border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-800 dark:bg-slate-900/50 dark:text-slate-200';
+    void role;
+    return 'border border-border bg-muted text-muted-foreground';
   };
 
   // Filter activities based on search and filters
@@ -139,12 +127,12 @@ export default function Activities() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="bg-gradient-to-r from-slate-50 via-white to-teal-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 rounded-lg p-6 border border-slate-200 dark:border-slate-800 shadow-sm">
+      <div className="bg-card rounded-lg p-6 border border-border shadow-sm">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <div className="space-y-2">
             <div className="flex items-center gap-3">
-              <Activity className="h-8 w-8 text-teal-700 dark:text-teal-300" />
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-900 to-slate-600 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent">
+              <Activity className="h-8 w-8 text-muted-foreground" />
+              <h1 className="text-3xl font-bold text-foreground">
                 Activities
               </h1>
             </div>
@@ -302,8 +290,8 @@ export default function Activities() {
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center py-12 text-center">
-              <div className="p-4 bg-gray-100 dark:bg-card rounded-full mb-4">
-                <Activity className="h-8 w-8 text-gray-400" />
+              <div className="p-4 bg-muted rounded-full mb-4">
+                <Activity className="h-8 w-8 text-muted-foreground" />
               </div>
               <p className="text-gray-500 dark:text-gray-400 font-medium">No activities found</p>
               <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">
