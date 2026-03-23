@@ -3,8 +3,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
+import { format } from "date-fns";
 import { 
   Activity,
+  CalendarIcon,
   Loader2, 
   FileSpreadsheet, 
   FileDown, 
@@ -66,6 +71,22 @@ export const ReportCards: React.FC<ReportCardsProps> = ({
     const className = (c?.name || '').trim().toLowerCase();
     return className !== 'graduated' && !className.includes('graduated');
   });
+
+  const parseDateValue = (value?: string): Date | undefined => {
+    if (!value) return undefined;
+    const parsed = new Date(`${value}T00:00:00`);
+    return Number.isNaN(parsed.getTime()) ? undefined : parsed;
+  };
+
+  const formatDateValue = (date?: Date): string => {
+    if (!date) return '';
+    return format(date, 'yyyy-MM-dd');
+  };
+
+  const formatDisplayDate = (value?: string): string => {
+    const parsed = parseDateValue(value);
+    return parsed ? format(parsed, 'PPP') : 'Choose date';
+  };
 
   return (
     <>
@@ -586,21 +607,55 @@ export const ReportCards: React.FC<ReportCardsProps> = ({
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   <div className="space-y-1">
                     <Label className="text-xs text-muted-foreground">From</Label>
-                    <input
-                      type="date"
-                      value={filters.auditDateFrom}
-                      onChange={(e) => setFilters((prev: any) => ({ ...prev, auditDateFrom: e.target.value }))}
-                      className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-                    />
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className={cn(
+                            "h-9 w-full justify-start text-left font-normal",
+                            !filters.auditDateFrom && "text-muted-foreground"
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {formatDisplayDate(filters.auditDateFrom)}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={parseDateValue(filters.auditDateFrom)}
+                          onSelect={(date) => setFilters((prev: any) => ({ ...prev, auditDateFrom: formatDateValue(date) }))}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
                   </div>
                   <div className="space-y-1">
                     <Label className="text-xs text-muted-foreground">To</Label>
-                    <input
-                      type="date"
-                      value={filters.auditDateTo}
-                      onChange={(e) => setFilters((prev: any) => ({ ...prev, auditDateTo: e.target.value }))}
-                      className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-                    />
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className={cn(
+                            "h-9 w-full justify-start text-left font-normal",
+                            !filters.auditDateTo && "text-muted-foreground"
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {formatDisplayDate(filters.auditDateTo)}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={parseDateValue(filters.auditDateTo)}
+                          onSelect={(date) => setFilters((prev: any) => ({ ...prev, auditDateTo: formatDateValue(date) }))}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
                   </div>
                 </div>
                 <div className="flex gap-2 pt-1">
