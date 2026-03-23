@@ -225,7 +225,7 @@ export default function Payroll() {
         );
       }
 
-      if (run.status === 'APPROVED' && !hasFinalizedForPeriod) {
+      if (run.status === 'APPROVED' && !run.postedExpenseId && !hasFinalizedForPeriod) {
         buttons.push(
           <Button
             key="finalize"
