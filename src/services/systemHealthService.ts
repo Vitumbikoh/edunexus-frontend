@@ -35,6 +35,28 @@ export interface ServiceStatus {
 }
 
 class SystemHealthService {
+  private getFreshToken(token?: string): string {
+    return localStorage.getItem('access_token') || token || '';
+  }
+
+  private async fetchWithAuth(url: string, token?: string): Promise<Response> {
+    const firstToken = this.getFreshToken(token);
+    let response = await fetch(url, {
+      headers: { Authorization: `Bearer ${firstToken}` }
+    });
+
+    if (response.status === 401) {
+      const latestToken = this.getFreshToken(token);
+      if (latestToken && latestToken !== firstToken) {
+        response = await fetch(url, {
+          headers: { Authorization: `Bearer ${latestToken}` }
+        });
+      }
+    }
+
+    return response;
+  }
+
   private formatUptime(seconds: number): string {
     const days = Math.floor(seconds / 86400);
     const hours = Math.floor((seconds % 86400) / 3600);
@@ -69,15 +91,9 @@ class SystemHealthService {
   async getSystemHealth(token: string): Promise<SystemHealthData> {
     // Fetch real system data only; if unavailable, return unknown values (no dummy/random data)
     const [overviewResponse, resourcesResponse, servicesResponse] = await Promise.allSettled([
-      fetch(`${API_CONFIG.BASE_URL}/system/overview`, {
-        headers: { Authorization: `Bearer ${token}` }
-      }),
-      fetch(`${API_CONFIG.BASE_URL}/system/resources`, {
-        headers: { Authorization: `Bearer ${token}` }
-      }),
-      fetch(`${API_CONFIG.BASE_URL}/system/services`, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
+      this.fetchWithAuth(`${API_CONFIG.BASE_URL}/system/overview`, token),
+      this.fetchWithAuth(`${API_CONFIG.BASE_URL}/system/resources`, token),
+      this.fetchWithAuth(`${API_CONFIG.BASE_URL}/system/services`, token)
     ]);
 
     const systemData: SystemHealthData = {
@@ -122,15 +138,9 @@ class SystemHealthService {
   async getDetailedSystemInfo(token: string) {
     try {
       const [overviewResponse, resourcesResponse, servicesResponse] = await Promise.all([
-        fetch(`${API_CONFIG.BASE_URL}/system/overview`, {
-          headers: { Authorization: `Bearer ${token}` }
-        }),
-        fetch(`${API_CONFIG.BASE_URL}/system/resources`, {
-          headers: { Authorization: `Bearer ${token}` }
-        }),
-        fetch(`${API_CONFIG.BASE_URL}/system/services`, {
-          headers: { Authorization: `Bearer ${token}` }
-        })
+        this.fetchWithAuth(`${API_CONFIG.BASE_URL}/system/overview`, token),
+        this.fetchWithAuth(`${API_CONFIG.BASE_URL}/system/resources`, token),
+        this.fetchWithAuth(`${API_CONFIG.BASE_URL}/system/services`, token)
       ]);
 
       const overview = overviewResponse.ok ? await overviewResponse.json() : null;

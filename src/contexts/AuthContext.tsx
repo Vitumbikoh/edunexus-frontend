@@ -319,6 +319,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const isLoginRequest = requestUrl.includes('/auth/login');
         const isRefreshRequest = requestUrl.includes('/auth/refresh');
         const isLogoutRequest = requestUrl.includes('/auth/logout');
+        const isSystemHealthRequest =
+          requestUrl.includes('/system/overview') ||
+          requestUrl.includes('/system/resources') ||
+          requestUrl.includes('/system/services');
         const retryHeader = getHeaderValue(input, init, 'x-auth-retry');
         const alreadyRetried = retryHeader === '1';
 
@@ -345,7 +349,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
         }
 
-        if (response.status === 401 && hasActiveSession && !isLoginRequest && !unauthorizedRedirectRef.current) {
+        if (
+          response.status === 401 &&
+          hasActiveSession &&
+          !isLoginRequest &&
+          !isSystemHealthRequest &&
+          !unauthorizedRedirectRef.current
+        ) {
           unauthorizedRedirectRef.current = true;
           void performLogout();
           if (window.location.pathname !== '/login') {
