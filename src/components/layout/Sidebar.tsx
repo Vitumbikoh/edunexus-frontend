@@ -123,11 +123,22 @@ const adminNavItems: NavItem[] = [
     sectionTitle: "Management",
     subItems: [
       { label: "View Financial Records",  href: "/finance",                       roles: ["admin"] },
+      { label: "Expense Management",      href: "/finance/expenses",              roles: ["admin"] },
+      { label: "Expense Approvals",       href: "/finance/expenses",              roles: ["admin"] },
       { label: "Financial Reports",       href: "/finance/reports",               roles: ["admin"] },
-      { label: "Finance Approvals",       href: "/finance/approvals",             roles: ["admin"] },
-      { label: "Pay Components",          href: "/payroll/components",            roles: ["admin"] },
       { label: "Graduated Outstanding",   href: "/finance/graduated-outstanding", roles: ["admin"] },
       { label: "View Financial Officers", href: "/finance/officers/view",         roles: ["admin"] },
+    ],
+  },
+  {
+    label: "Payroll",
+    icon: Users,
+    roles: ["admin"],
+    subItems: [
+      { label: "Pay Components",   href: "/payroll/components", roles: ["admin"] },
+      { label: "Staff Assignments",href: "/payroll/assignments", roles: ["admin"] },
+      { label: "Salary Run",       href: "/payroll",            roles: ["admin"] },
+      { label: "Payroll Approvals",href: "/finance/approvals?tab=payroll",  roles: ["admin"] },
     ],
   },
   {

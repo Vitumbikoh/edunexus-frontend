@@ -12,7 +12,7 @@ import { API_CONFIG } from '@/config/api';
 import { Input } from '@/components/ui/input';
 import { SearchBar } from '@/components/ui/search-bar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { formatCurrency, getDefaultCurrency } from '@/lib/currency';
 
 interface Expense {
@@ -42,6 +42,10 @@ export default function FinanceApprovals() {
   const { token, user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const requestedTab = searchParams.get('tab');
+  const payrollOnlyMode = requestedTab === 'payroll';
+  const [activeTab, setActiveTab] = useState<'expenses' | 'payroll'>(payrollOnlyMode ? 'payroll' : 'expenses');
   
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(false);
@@ -136,9 +140,14 @@ export default function FinanceApprovals() {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          comments: action === 'approve' ? 'Approved from Finance Approvals' : reason || 'Rejected from Finance Approvals'
-        }),
+        body: JSON.stringify(
+          action === 'approve'
+            ? { comments: 'Approved from Finance Approvals' }
+            : {
+                reason: reason || 'Rejected from Finance Approvals',
+                comments: reason || 'Rejected from Finance Approvals',
+              }
+        ),
       });
 
       if (response.ok) {
@@ -230,25 +239,32 @@ export default function FinanceApprovals() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold">Finance Approvals</h1>
-          <p className="text-muted-foreground">Review and approve expense and payroll requests</p>
+          <h1 className="text-3xl font-bold">{payrollOnlyMode ? 'Payroll Approvals' : 'Finance Approvals'}</h1>
+          <p className="text-muted-foreground">
+            {payrollOnlyMode
+              ? 'Review and approve submitted payroll salary runs'
+              : 'Review and approve expense and payroll requests'}
+          </p>
         </div>
-        <Button 
-          variant="outline" 
-          onClick={() => navigate('/expense-analytics')}
-          className="flex items-center gap-2"
-        >
-          <BarChart3 className="h-4 w-4" />
-          View Analytics
-        </Button>
+        {!payrollOnlyMode && (
+          <Button
+            variant="outline"
+            onClick={() => navigate('/expense-analytics')}
+            className="flex items-center gap-2"
+          >
+            <BarChart3 className="h-4 w-4" />
+            View Analytics
+          </Button>
+        )}
       </div>
 
-      <Tabs defaultValue="expenses" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="expenses">Expense Approvals</TabsTrigger>
+      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'expenses' | 'payroll')} className="w-full">
+        <TabsList className={`grid w-full ${payrollOnlyMode ? 'grid-cols-1' : 'grid-cols-2'}`}>
+          {!payrollOnlyMode && <TabsTrigger value="expenses">Expense Approvals</TabsTrigger>}
           <TabsTrigger value="payroll">Payroll Approvals</TabsTrigger>
         </TabsList>
 
+        {!payrollOnlyMode && (
         <TabsContent value="expenses" className="space-y-6">
           {/* Filters and Search */}
           <Card>
@@ -479,6 +495,7 @@ export default function FinanceApprovals() {
         </CardContent>
       </Card>
         </TabsContent>
+        )}
 
         <TabsContent value="payroll" className="space-y-6">
           {/* Payroll Approvals */}

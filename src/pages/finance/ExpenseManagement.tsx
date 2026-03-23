@@ -265,13 +265,24 @@ export default function ExpenseManagement() {
 
     setActionLoading(expenseId);
     try {
-      const response = await fetch(`${API_CONFIG.BASE_URL}/expenses/${expenseId}/approve`, {
-        method: 'PATCH',
+      const endpoint = action === 'approve'
+        ? `${API_CONFIG.BASE_URL}/expenses/${expenseId}/approve`
+        : `${API_CONFIG.BASE_URL}/expenses/${expenseId}/reject`;
+
+      const payload = action === 'approve'
+        ? { comments: 'Approved from expense management' }
+        : {
+            reason: 'Rejected from expense management',
+            comments: 'Rejected from expense management',
+          };
+
+      const response = await fetch(endpoint, {
+        method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ action }),
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
