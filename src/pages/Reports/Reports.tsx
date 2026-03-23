@@ -91,6 +91,7 @@ type ReportCategory =
 export default function Reports() {
   const { user, token } = useAuth();
   const { toast } = useToast();
+  const isPrincipal = user?.role === 'principal';
 
   const [reportData, setReportData] = useState<ReportDataAPI | null>(null);
   const [kpiOverrides, setKpiOverrides] = useState<{
@@ -291,22 +292,34 @@ export default function Reports() {
         classId: filters.paymentClassId || undefined,
       });
 
-      const [summaryRes, enrollmentsRes, txRes, termTotalsRes] = await Promise.all([
+      const requests: Array<Promise<Response | null>> = [
         fetch(`${API_BASE_URL}/admin/reports${query}`, {
           headers: { Authorization: `Bearer ${token}` },
         }),
         fetch(`${API_BASE_URL}/admin/reports/enrollments${enrollmentsQuery}`, {
           headers: { Authorization: `Bearer ${token}` },
         }),
-        fetch(`${API_BASE_URL}/finance/transactions${paymentsQuery ? `?${paymentsQuery.slice(1)}` : ''}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
-        effectivePaymentTermId
-          ? fetch(`${API_BASE_URL}/finance/v2/term-totals?termId=${encodeURIComponent(effectivePaymentTermId)}`, {
-              headers: { Authorization: `Bearer ${token}` },
-            })
-          : Promise.resolve(null as Response | null),
-      ]);
+      ];
+
+      if (isPrincipal) {
+        requests.push(Promise.resolve(null));
+        requests.push(Promise.resolve(null));
+      } else {
+        requests.push(
+          fetch(`${API_BASE_URL}/finance/transactions${paymentsQuery ? `?${paymentsQuery.slice(1)}` : ''}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+        );
+        requests.push(
+          effectivePaymentTermId
+            ? fetch(`${API_BASE_URL}/finance/v2/term-totals?termId=${encodeURIComponent(effectivePaymentTermId)}`, {
+                headers: { Authorization: `Bearer ${token}` },
+              })
+            : Promise.resolve(null),
+        );
+      }
+
+      const [summaryRes, enrollmentsRes, txRes, termTotalsRes] = await Promise.all(requests);
 
       if (!summaryRes.ok) throw new Error('Failed to fetch report data');
 
@@ -324,7 +337,7 @@ export default function Reports() {
 
       let totalFeePayments = data?.totalFeePayments;
       let txRevenue = 0;
-      if (txRes.ok) {
+      if (txRes?.ok) {
         const txData = await txRes.json().catch(() => ({}));
         const txItems = Array.isArray(txData)
           ? txData
@@ -334,7 +347,7 @@ export default function Reports() {
       }
 
       let totalRevenue = data?.totalRevenue;
-      if (termTotalsRes && termTotalsRes.ok) {
+      if (termTotalsRes?.ok) {
         const totalsData = await termTotalsRes.json().catch(() => null);
         totalRevenue = Number(totalsData?.actualRevenue ?? totalsData?.totalCollected ?? txRevenue ?? 0);
       } else if (txRevenue > 0) {
@@ -352,7 +365,7 @@ export default function Reports() {
     } finally {
       setIsLoading(false);
     }
-  }, [token, filters]);
+  }, [token, filters, isPrincipal]);
 
   const fetchDetailedData = useCallback(async (category?: ReportCategory) => {
     if (!token) return;
@@ -733,28 +746,47 @@ export default function Reports() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <ReportCards
-          reportData={reportData}
-          filters={filters}
-          setFilters={setFilters}
-          classes={classes}
-          students={students}
-            courses={courses}
-          teachers={teachers}
-          terms={terms}
-          academicCalendars={academicCalendars}
-          isGenerating={!!generatingCategory}
-          generatingCategory={generatingCategory}
-          onGenerateReport={handleGenerateReport}
-        />
+        {!isPrincipal && (
+          <ReportCards
+            reportData={reportData}
+            filters={filters}
+            setFilters={setFilters}
+            classes={classes}
+            students={students}
+              courses={courses}
+            teachers={teachers}
+            terms={terms}
+            academicCalendars={academicCalendars}
+            isGenerating={!!generatingCategory}
+            generatingCategory={generatingCategory}
+            onGenerateReport={handleGenerateReport}
+          />
+        )}
 
-        {/* Library Report Card - Integrated with other reports */}
-        <LibraryReportCard
-          onGenerateReport={handleGenerateReport}
-          generatingCategory={generatingCategory}
-        />
+        {/* Library report requires library/finance permissions; hide for principal to avoid forbidden noise */}
+        {!isPrincipal && (
+          <LibraryReportCard
+            onGenerateReport={handleGenerateReport}
+            generatingCategory={generatingCategory}
+          />
+        )}
+
+        {isPrincipal && (
+          <Card className="lg:col-span-2">
+            <CardHeader>
+              <CardTitle>Principal Oversight Mode</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">
+                Detailed exports and operational report modules are restricted for principal accounts.
+                You can still review the summary analytics above for executive oversight.
+              </p>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Comprehensive Report Card */}
+        {!isPrincipal && (
         <Card className="flex flex-col h-full">
           <CardHeader>
             <div className="flex items-center gap-3">
@@ -846,6 +878,7 @@ export default function Reports() {
             </div>
           </CardContent>
         </Card>
+        )}
       </div>
     </div>
   );

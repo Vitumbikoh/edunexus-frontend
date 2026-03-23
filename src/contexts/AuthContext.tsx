@@ -312,6 +312,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     window.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
       let response = await originalFetch.call(window, input, init);
+      let didRefresh = false;
 
       if (response.status === 401) {
         const hasActiveSession = Boolean(localStorage.getItem('access_token'));
@@ -328,6 +329,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         if (hasActiveSession && !isLoginRequest && !isRefreshRequest && !isLogoutRequest && !alreadyRetried) {
           const refreshed = await tryRefreshSession();
+          didRefresh = refreshed;
           if (refreshed) {
             const newToken = localStorage.getItem('access_token');
             if (newToken) {
@@ -356,10 +358,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           !isSystemHealthRequest &&
           !unauthorizedRedirectRef.current
         ) {
-          unauthorizedRedirectRef.current = true;
-          void performLogout();
-          if (window.location.pathname !== '/login') {
-            window.location.replace('/login');
+          const latestToken = localStorage.getItem('access_token');
+          const latestExpiry = latestToken ? getJwtExpiryMs(latestToken) : null;
+          const tokenExpired = !latestExpiry || latestExpiry <= Date.now();
+
+          // Only force logout when session is genuinely expired/invalid.
+          // Keep users logged in for non-expiry 401s (role/path restrictions).
+          if (!didRefresh || tokenExpired) {
+            unauthorizedRedirectRef.current = true;
+            void performLogout();
+            if (window.location.pathname !== '/login') {
+              window.location.replace('/login');
+            }
           }
         }
       }

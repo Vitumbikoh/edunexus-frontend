@@ -268,16 +268,16 @@ export default function PrincipalDashboardContent() {
       </div>
 
       {alerts.length > 0 && (
-        <Card className="border-amber-300 bg-amber-50/40 dark:bg-amber-900/10">
+        <Card className="border-orange-200 bg-orange-50/55 dark:border-orange-900 dark:bg-orange-950/20">
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2">
-              <AlertTriangle className="h-4 w-4 text-amber-600" />
+              <AlertTriangle className="h-4 w-4 text-orange-600 dark:text-orange-300" />
               Executive Alerts
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
             {alerts.map((alert) => (
-              <p key={alert} className="text-sm text-amber-900 dark:text-amber-200">{alert}</p>
+              <p key={alert} className="text-sm text-orange-900 dark:text-orange-100">{alert}</p>
             ))}
           </CardContent>
         </Card>

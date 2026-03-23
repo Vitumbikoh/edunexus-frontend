@@ -103,23 +103,24 @@ export default function Activities() {
 
   const getActionColor = (action: string) => {
     const lowerAction = action.toLowerCase();
-    if (lowerAction.includes('create') || lowerAction.includes('add') || lowerAction.includes('enroll')) return 'text-green-600 dark:text-green-400';
-    if (lowerAction.includes('update') || lowerAction.includes('edit') || lowerAction.includes('grade') || lowerAction.includes('submit')) return 'text-blue-600 dark:text-blue-400';
-    if (lowerAction.includes('delete') || lowerAction.includes('remove') || lowerAction.includes('cancel')) return 'text-red-600 dark:text-red-400';
-    if (lowerAction.includes('login') || lowerAction.includes('logout')) return 'text-purple-600 dark:text-purple-400';
-    if (lowerAction.includes('payment') || lowerAction.includes('invoice') || lowerAction.includes('process')) return 'text-emerald-600 dark:text-emerald-400';
-    if (lowerAction.includes('export') || lowerAction.includes('import') || lowerAction.includes('generate') || lowerAction.includes('report')) return 'text-orange-600 dark:text-orange-400';
-    return 'text-gray-600 dark:text-gray-400';
+    if (lowerAction.includes('create') || lowerAction.includes('add') || lowerAction.includes('enroll')) return 'text-emerald-700 dark:text-emerald-300';
+    if (lowerAction.includes('update') || lowerAction.includes('edit') || lowerAction.includes('grade') || lowerAction.includes('submit')) return 'text-sky-700 dark:text-sky-300';
+    if (lowerAction.includes('delete') || lowerAction.includes('remove') || lowerAction.includes('cancel')) return 'text-rose-700 dark:text-rose-300';
+    if (lowerAction.includes('login') || lowerAction.includes('logout')) return 'text-indigo-700 dark:text-indigo-300';
+    if (lowerAction.includes('payment') || lowerAction.includes('invoice') || lowerAction.includes('process')) return 'text-teal-700 dark:text-teal-300';
+    if (lowerAction.includes('export') || lowerAction.includes('import') || lowerAction.includes('generate') || lowerAction.includes('report')) return 'text-amber-700 dark:text-amber-300';
+    return 'text-slate-600 dark:text-slate-300';
   };
 
   const getRoleBadgeColor = (role: string) => {
     const lowerRole = role.toLowerCase();
-    if (lowerRole === 'admin') return 'bg-red-100 text-red-700 dark:bg-transparent dark:border dark:border-border dark:text-red-300';
-    if (lowerRole === 'teacher') return 'bg-blue-100 text-blue-700 dark:bg-transparent dark:border dark:border-border dark:text-blue-300';
-    if (lowerRole === 'student') return 'bg-green-100 text-green-700 dark:bg-transparent dark:border dark:border-border dark:text-green-300';
-    if (lowerRole === 'parent') return 'bg-purple-100 text-purple-700 dark:bg-transparent dark:border dark:border-border dark:text-purple-300';
-    if (lowerRole === 'finance') return 'bg-orange-100 text-orange-700 dark:bg-transparent dark:border dark:border-border dark:text-orange-300';
-    return 'bg-gray-100 text-gray-700 dark:bg-transparent dark:border dark:border-border dark:text-foreground';
+    if (lowerRole === 'admin') return 'border border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-300';
+    if (lowerRole === 'principal') return 'border border-indigo-200 bg-indigo-50 text-indigo-700 dark:border-indigo-900 dark:bg-indigo-950/30 dark:text-indigo-300';
+    if (lowerRole === 'teacher') return 'border border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-900 dark:bg-sky-950/30 dark:text-sky-300';
+    if (lowerRole === 'student') return 'border border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-300';
+    if (lowerRole === 'parent') return 'border border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-900 dark:bg-violet-950/30 dark:text-violet-300';
+    if (lowerRole === 'finance') return 'border border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-300';
+    return 'border border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-800 dark:bg-slate-900/50 dark:text-slate-200';
   };
 
   // Filter activities based on search and filters
@@ -138,21 +139,21 @@ export default function Activities() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="bg-gradient-to-r from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 rounded-lg p-6 border border-gray-200 dark:border-border shadow-sm">
+      <div className="bg-gradient-to-r from-slate-50 via-white to-teal-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 rounded-lg p-6 border border-slate-200 dark:border-slate-800 shadow-sm">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <div className="space-y-2">
             <div className="flex items-center gap-3">
-              <Activity className="h-8 w-8 text-blue-600 dark:text-blue-400" />
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-gray-100 dark:to-gray-300 bg-clip-text text-transparent">
+              <Activity className="h-8 w-8 text-teal-700 dark:text-teal-300" />
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-900 to-slate-600 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent">
                 Activities
               </h1>
             </div>
-            <p className="text-lg text-gray-600 dark:text-gray-300">
+            <p className="text-lg text-slate-600 dark:text-slate-300">
               Monitor all system activities and user actions
             </p>
           </div>
           
-          <div className="flex items-center gap-2 text-gray-600 dark:text-gray-300">
+          <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300">
             <Clock className="h-4 w-4" />
             <span className="font-medium">Last updated: {new Date().toLocaleTimeString()}</span>
           </div>
@@ -242,12 +243,12 @@ export default function Activities() {
               {filteredActivities.map((activity) => (
                 <div
                   key={activity.id}
-                  className="group flex items-start space-x-4 p-4 rounded-lg border border-gray-200 dark:border-border hover:border-blue-300 dark:hover:border-blue-600 cursor-pointer transition-all duration-200 hover:shadow-md bg-white dark:bg-card/80 hover:bg-gray-50 dark:hover:bg-card/90"
+                  className="group flex items-start space-x-4 p-4 rounded-lg border border-slate-200 dark:border-slate-800 hover:border-teal-300 dark:hover:border-teal-700 cursor-pointer transition-all duration-200 hover:shadow-md bg-white dark:bg-card/80 hover:bg-slate-50 dark:hover:bg-card/90"
                   onClick={() => openActivity(activity.id)}
                 >
-                  <Avatar className="h-12 w-12 ring-2 ring-gray-200 dark:ring-gray-700">
+                  <Avatar className="h-12 w-12 ring-2 ring-slate-200 dark:ring-slate-700">
                     <AvatarImage src={activity.user.avatar} alt={activity.user.name} />
-                    <AvatarFallback className="bg-gradient-to-br from-blue-100 to-blue-200 dark:from-transparent dark:to-transparent dark:bg-transparent dark:border dark:border-border text-blue-700 dark:text-blue-300 font-semibold">
+                    <AvatarFallback className="bg-gradient-to-br from-teal-100 to-sky-100 dark:from-slate-900 dark:to-slate-900 dark:border dark:border-slate-700 text-teal-800 dark:text-teal-200 font-semibold">
                       {getInitials(activity.user.name)}
                     </AvatarFallback>
                   </Avatar>
