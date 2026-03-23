@@ -27,6 +27,7 @@ import {
   Building2,
   BarChart3,
   Bell,
+  Package,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -160,6 +161,15 @@ const adminNavItems: NavItem[] = [
     ],
   },
   {
+    label: "Inventory",
+    icon: Package,
+    roles: ["admin"],
+    subItems: [
+      { label: "Manage Inventory", href: "/inventory/manage", roles: ["admin"] },
+      { label: "My Assigned Assets", href: "/inventory/my-assets", roles: ["admin"] },
+    ],
+  },
+  {
     label: "Setups",
     icon: Calendar,
     roles: ["admin"],
@@ -222,6 +232,7 @@ const teacherNavItems: NavItem[] = [
     ],
   },
   { label: "Learning Materials", icon: Upload, href: "/learning-materials", roles: ["teacher"] },
+  { label: "My Assets", icon: Package, href: "/inventory/my-assets", roles: ["teacher"] },
   {
     label: "Notices",
     icon: Bell,
@@ -298,6 +309,7 @@ const financeNavItems: NavItem[] = [
   { label: "Finance Summary",icon: DollarSign, href: "/finance",            roles: ["finance"] },
   { label: "Transactions",  icon: CreditCard, href: "/finance/transactions",roles: ["finance"] },
   { label: "Expenses",      icon: FileText,   href: "/finance/expenses",    roles: ["finance"] },
+  { label: "Inventory",     icon: Package,    href: "/inventory/manage",    roles: ["finance"] },
   { label: "Payroll",       icon: Users,      href: "/payroll",             roles: ["finance"] },
   { label: "Reports",       icon: ChartPie,   href: "/finance/reports",     roles: ["finance"] },
   {

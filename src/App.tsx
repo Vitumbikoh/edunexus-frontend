@@ -97,6 +97,7 @@ import LibraryCatalog from "./pages/library/LibraryCatalog";
 import Borrowings from "./pages/library/Borrowings";
 import Returnings from "./pages/library/Returnings";
 import HostelManagement from "./pages/hostel/HostelManagement";
+import InventoryManagement from "./pages/inventory/InventoryManagement";
 
 // Admin specific pages
 import StaffManagement from "./pages/admin/StaffManagement";
@@ -386,6 +387,35 @@ const HostelRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
+const InventoryRoute = ({ children }: { children: React.ReactNode }) => {
+  const { user, loading, isAuthenticated } = useAuth();
+
+  if (!loading && !isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (
+    !loading &&
+    user &&
+    user.role !== 'admin' &&
+    user.role !== 'super_admin' &&
+    user.role !== 'finance' &&
+    user.role !== 'teacher'
+  ) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-lg">Verifying permissions...</div>
+      </div>
+    );
+  }
+
+  return <>{children}</>;
+};
+
 const RouteLoader = () => (
   <div className="p-4">
     <LoadingState text="Loading page..." />
@@ -594,6 +624,32 @@ const AppRoutes = () => {
                   <HostelManagement view="allocate" />
                 </Layout>
               </HostelRoute>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/inventory/manage"
+          element={
+            <ProtectedRoute>
+              <InventoryRoute>
+                <Layout>
+                  <InventoryManagement view="manage" />
+                </Layout>
+              </InventoryRoute>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/inventory/my-assets"
+          element={
+            <ProtectedRoute>
+              <InventoryRoute>
+                <Layout>
+                  <InventoryManagement view="my-assets" />
+                </Layout>
+              </InventoryRoute>
             </ProtectedRoute>
           }
         />
