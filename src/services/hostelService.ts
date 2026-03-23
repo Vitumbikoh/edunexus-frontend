@@ -70,6 +70,13 @@ export type HostelStudent = {
   };
 };
 
+export type HostelClass = {
+  id: string;
+  name: string;
+  numericalName?: number;
+  isActive?: boolean;
+};
+
 export type HostelAllocation = {
   id: string;
   studentId: string;
@@ -87,6 +94,23 @@ export type HostelAllocation = {
   room?: HostelRoom;
 };
 
+export type HostelClassAllocationResult = {
+  success: boolean;
+  classId: string;
+  className: string;
+  hostelId?: string;
+  hostelName?: string;
+  totalClassStudents: number;
+  assignedCount: number;
+  alreadyAllocatedCount: number;
+  genderMismatchCount: number;
+  notYetAssignedCount?: number;
+  toBeAssignedNow?: number;
+  unassignedDueToCapacity: number;
+  availableBedsAtStart?: number;
+  message: string;
+};
+
 const withSchoolId = (endpoint: string, schoolId?: string) => {
   if (!schoolId) return endpoint;
   const separator = endpoint.includes('?') ? '&' : '?';
@@ -100,6 +124,10 @@ export const hostelApi = {
 
   getSetup: (opts: { token?: string; schoolId?: string } = {}) => {
     return apiClient.get(withSchoolId('/hostels/setup', opts.schoolId), opts.token) as Promise<HostelSetup>;
+  },
+
+  listClasses: (opts: { token?: string; schoolId?: string } = {}) => {
+    return apiClient.get(withSchoolId('/classes', opts.schoolId), opts.token) as Promise<HostelClass[]>;
   },
 
   updateSetup: (
@@ -232,6 +260,34 @@ export const hostelApi = {
     token?: string,
   ) => {
     return apiClient.post(withSchoolId('/hostels/allocations', data.schoolId), data, token) as Promise<HostelAllocation>;
+  },
+
+  createClassAllocation: (
+    data: {
+      classId: string;
+      hostelId: string;
+      assignedAt?: string;
+      notes?: string;
+      schoolId?: string;
+    },
+    token?: string,
+  ) => {
+    return apiClient.post(withSchoolId('/hostels/allocations/class', data.schoolId), data, token) as Promise<HostelClassAllocationResult>;
+  },
+
+  getClassAllocationPreview: (
+    opts: {
+      classId: string;
+      hostelId: string;
+      token?: string;
+      schoolId?: string;
+    },
+  ) => {
+    const params = new URLSearchParams();
+    params.set('classId', opts.classId);
+    params.set('hostelId', opts.hostelId);
+    if (opts.schoolId) params.set('schoolId', opts.schoolId);
+    return apiClient.get(`/hostels/allocations/class-preview?${params.toString()}`, opts.token) as Promise<HostelClassAllocationResult>;
   },
 
   releaseAllocation: (

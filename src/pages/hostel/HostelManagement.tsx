@@ -4,6 +4,8 @@ import {
   hostelApi,
   Hostel,
   HostelAllocation,
+  HostelClass,
+  HostelClassAllocationResult,
   HostelRoom,
   HostelSetup,
   HostelStudent,
@@ -57,9 +59,14 @@ export default function HostelManagement({ view = 'manage' }: { view?: HostelMan
   const [allocationRoomsLoading, setAllocationRoomsLoading] = useState(false);
   const [allocations, setAllocations] = useState<HostelAllocation[]>([]);
   const [students, setStudents] = useState<HostelStudent[]>([]);
+  const [classes, setClasses] = useState<HostelClass[]>([]);
+  const [classesLoading, setClassesLoading] = useState(false);
+  const [classAllocationPreview, setClassAllocationPreview] = useState<HostelClassAllocationResult | null>(null);
+  const [classAllocationPreviewLoading, setClassAllocationPreviewLoading] = useState(false);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const [allocationStudentSearch, setAllocationStudentSearch] = useState('');
   const [allocationStudentLoading, setAllocationStudentLoading] = useState(false);
@@ -69,6 +76,7 @@ export default function HostelManagement({ view = 'manage' }: { view?: HostelMan
   const [createHostelOpen, setCreateHostelOpen] = useState(false);
   const [createRoomOpen, setCreateRoomOpen] = useState(false);
   const [createAllocationOpen, setCreateAllocationOpen] = useState(false);
+  const [allocationTarget, setAllocationTarget] = useState<'student' | 'class'>('student');
 
   const [hostelForm, setHostelForm] = useState({
     name: '',
@@ -98,6 +106,7 @@ export default function HostelManagement({ view = 'manage' }: { view?: HostelMan
   });
 
   const [allocationForm, setAllocationForm] = useState({
+    classId: '',
     studentId: '',
     hostelId: '',
     roomId: '',
@@ -116,9 +125,10 @@ export default function HostelManagement({ view = 'manage' }: { view?: HostelMan
 
   const canSubmitAllocation =
     !loading &&
-    !!allocationForm.studentId &&
     !!allocationForm.hostelId &&
-    !!allocationForm.roomId;
+    (allocationTarget === 'student'
+      ? !!allocationForm.studentId && !!allocationForm.roomId
+      : !!allocationForm.classId);
 
   const activeAllocationsCount = allocations.filter((allocation) => allocation.status === 'active').length;
   const currentNamingModeLabel =
@@ -212,6 +222,21 @@ export default function HostelManagement({ view = 'manage' }: { view?: HostelMan
     }
   };
 
+  const loadClasses = async () => {
+    try {
+      setClassesLoading(true);
+      const classRows = await hostelApi.listClasses({
+        token: token || undefined,
+        schoolId: superAdminSchoolId,
+      });
+      setClasses(classRows.filter((row) => row.isActive !== false));
+    } catch {
+      setError('Failed to load classes for allocation.');
+    } finally {
+      setClassesLoading(false);
+    }
+  };
+
   useEffect(() => {
     loadAll();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -259,7 +284,7 @@ export default function HostelManagement({ view = 'manage' }: { view?: HostelMan
   }, [allocationStudentSearch, token, superAdminSchoolId]);
 
   useEffect(() => {
-    if (!createAllocationOpen || !allocationForm.hostelId) {
+    if (!createAllocationOpen || allocationTarget !== 'student' || !allocationForm.hostelId) {
       setAllocationRooms([]);
       return;
     }
@@ -292,12 +317,66 @@ export default function HostelManagement({ view = 'manage' }: { view?: HostelMan
     return () => {
       cancelled = true;
     };
-  }, [createAllocationOpen, allocationForm.hostelId, token, superAdminSchoolId]);
+  }, [createAllocationOpen, allocationTarget, allocationForm.hostelId, token, superAdminSchoolId]);
+
+  useEffect(() => {
+    if (
+      !createAllocationOpen ||
+      allocationTarget !== 'class' ||
+      !allocationForm.classId ||
+      !allocationForm.hostelId
+    ) {
+      setClassAllocationPreview(null);
+      return;
+    }
+
+    let cancelled = false;
+
+    const loadPreview = async () => {
+      try {
+        setClassAllocationPreviewLoading(true);
+        const preview = await hostelApi.getClassAllocationPreview({
+          classId: allocationForm.classId,
+          hostelId: allocationForm.hostelId,
+          token: token || undefined,
+          schoolId: superAdminSchoolId,
+        });
+
+        if (!cancelled) {
+          setClassAllocationPreview(preview);
+        }
+      } catch {
+        if (!cancelled) {
+          setClassAllocationPreview(null);
+        }
+      } finally {
+        if (!cancelled) {
+          setClassAllocationPreviewLoading(false);
+        }
+      }
+    };
+
+    loadPreview();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    createAllocationOpen,
+    allocationTarget,
+    allocationForm.classId,
+    allocationForm.hostelId,
+    token,
+    superAdminSchoolId,
+  ]);
 
   const onAllocationDialogChange = (open: boolean) => {
     setCreateAllocationOpen(open);
 
     if (open) {
+      if (classes.length === 0 && !classesLoading) {
+        loadClasses();
+      }
       const defaultHostelId = allocationForm.hostelId || selectedHostelId || hostels[0]?.id || '';
       setAllocationForm((prev) => ({
         ...prev,
@@ -309,6 +388,8 @@ export default function HostelManagement({ view = 'manage' }: { view?: HostelMan
 
     setAllocationRooms([]);
     setAllocationRoomsLoading(false);
+    setAllocationTarget('student');
+    setClassAllocationPreview(null);
   };
 
   const onCreateHostel = async () => {
@@ -427,24 +508,44 @@ export default function HostelManagement({ view = 'manage' }: { view?: HostelMan
   };
 
   const onCreateAllocation = async () => {
-    if (!allocationForm.studentId || !allocationForm.hostelId || !allocationForm.roomId) return;
+    if (!allocationForm.hostelId) return;
+    if (allocationTarget === 'student' && (!allocationForm.studentId || !allocationForm.roomId)) return;
+    if (allocationTarget === 'class' && !allocationForm.classId) return;
 
     try {
       setLoading(true);
       setError(null);
-      await hostelApi.createAllocation(
-        {
-          studentId: allocationForm.studentId,
-          hostelId: allocationForm.hostelId,
-          roomId: allocationForm.roomId,
-          bedNumber: allocationForm.bedNumber || undefined,
-          notes: allocationForm.notes || undefined,
-          schoolId: superAdminSchoolId,
-        },
-        token || undefined,
-      );
+      setSuccessMessage(null);
+
+      if (allocationTarget === 'student') {
+        await hostelApi.createAllocation(
+          {
+            studentId: allocationForm.studentId,
+            hostelId: allocationForm.hostelId,
+            roomId: allocationForm.roomId,
+            bedNumber: allocationForm.bedNumber || undefined,
+            notes: allocationForm.notes || undefined,
+            schoolId: superAdminSchoolId,
+          },
+          token || undefined,
+        );
+        setSuccessMessage('Student allocated successfully.');
+      } else {
+        const result = await hostelApi.createClassAllocation(
+          {
+            classId: allocationForm.classId,
+            hostelId: allocationForm.hostelId,
+            notes: allocationForm.notes || undefined,
+            schoolId: superAdminSchoolId,
+          },
+          token || undefined,
+        );
+        setSuccessMessage(result.message);
+      }
+
       setCreateAllocationOpen(false);
       setAllocationForm({
+        classId: '',
         studentId: '',
         hostelId: selectedHostelId || hostels[0]?.id || '',
         roomId: '',
@@ -453,9 +554,10 @@ export default function HostelManagement({ view = 'manage' }: { view?: HostelMan
       });
       setAllocationStudentSearch('');
       setStudents([]);
+      setAllocationTarget('student');
       await loadAll();
     } catch (err: any) {
-      setError(err?.message || 'Failed to allocate student.');
+      setError(err?.message || 'Failed to allocate to hostel.');
     } finally {
       setLoading(false);
     }
@@ -692,35 +794,117 @@ export default function HostelManagement({ view = 'manage' }: { view?: HostelMan
               </DialogTrigger>
               <DialogContent className="max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
-                  <DialogTitle>Allocate Student to Hostel</DialogTitle>
+                  <DialogTitle>
+                    {allocationTarget === 'class' ? 'Allocate Class to Hostel' : 'Allocate Student to Hostel'}
+                  </DialogTitle>
                 </DialogHeader>
                 <div className="grid gap-3 py-2">
-                  <Label>Search Student (ID or name)</Label>
-                  <Input
-                    value={allocationStudentSearch}
-                    onChange={(e) => setAllocationStudentSearch(e.target.value)}
-                    placeholder="e.g. STU-0132 / Grace / rumphiadmin"
-                  />
-                  {allocationStudentLoading && (
-                    <p className="text-xs text-muted-foreground">Searching students...</p>
-                  )}
-                  <Label>Student</Label>
+                  <Label>Allocate To</Label>
                   <Select
-                    value={allocationForm.studentId}
-                    onValueChange={(value) => setAllocationForm((prev) => ({ ...prev, studentId: value }))}
+                    value={allocationTarget}
+                    onValueChange={(value) => {
+                      const target = value as 'student' | 'class';
+                      setAllocationTarget(target);
+                      setAllocationForm((prev) => ({
+                        ...prev,
+                        studentId: '',
+                        classId: '',
+                        roomId: '',
+                        bedNumber: target === 'class' ? '' : prev.bedNumber,
+                      }));
+                      setAllocationStudentSearch('');
+                      setStudents([]);
+                      setClassAllocationPreview(null);
+                    }}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Select student" />
+                      <SelectValue placeholder="Select allocation target" />
                     </SelectTrigger>
                     <SelectContent>
-                      {students.map((student) => (
-                        <SelectItem key={student.id} value={student.id}>
-                          {student.studentId} - {student.firstName} {student.lastName}
-                          {student.username ? ` (@${student.username})` : ''}
-                        </SelectItem>
-                      ))}
+                      <SelectItem value="student">Student</SelectItem>
+                      <SelectItem value="class">Class</SelectItem>
                     </SelectContent>
                   </Select>
+
+                  {allocationTarget === 'student' && (
+                    <>
+                      <Label>Search Student (ID or name)</Label>
+                      <Input
+                        value={allocationStudentSearch}
+                        onChange={(e) => setAllocationStudentSearch(e.target.value)}
+                        placeholder="e.g. STU-0132 / Grace / rumphiadmin"
+                      />
+                      {allocationStudentLoading && (
+                        <p className="text-xs text-muted-foreground">Searching students...</p>
+                      )}
+                      <Label>Student</Label>
+                      <Select
+                        value={allocationForm.studentId}
+                        onValueChange={(value) => setAllocationForm((prev) => ({ ...prev, studentId: value }))}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select student" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {students.map((student) => (
+                            <SelectItem key={student.id} value={student.id}>
+                              {student.studentId} - {student.firstName} {student.lastName}
+                              {student.username ? ` (@${student.username})` : ''}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </>
+                  )}
+
+                  {allocationTarget === 'class' && (
+                    <>
+                      <Label>Class</Label>
+                      <Select
+                        value={allocationForm.classId}
+                        onValueChange={(value) => setAllocationForm((prev) => ({ ...prev, classId: value }))}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder={classesLoading ? 'Loading classes...' : 'Select class'} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {classes.map((klass) => (
+                            <SelectItem key={klass.id} value={klass.id}>
+                              {klass.name}
+                              {klass.numericalName !== undefined ? ` (${klass.numericalName})` : ''}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+
+                      {(classAllocationPreviewLoading || classAllocationPreview) && (
+                        <div className="rounded-md border bg-muted/20 p-3">
+                          {classAllocationPreviewLoading ? (
+                            <p className="text-xs text-muted-foreground">Calculating class allocation preview...</p>
+                          ) : (
+                            <div className="grid gap-2 sm:grid-cols-2">
+                              <div>
+                                <p className="text-[11px] uppercase text-muted-foreground">Not Yet Assigned</p>
+                                <p className="text-base font-semibold">{classAllocationPreview?.notYetAssignedCount ?? 0}</p>
+                              </div>
+                              <div>
+                                <p className="text-[11px] uppercase text-muted-foreground">To Be Assigned Now</p>
+                                <p className="text-base font-semibold">{classAllocationPreview?.toBeAssignedNow ?? 0}</p>
+                              </div>
+                              <div>
+                                <p className="text-[11px] uppercase text-muted-foreground">Already Assigned</p>
+                                <p className="text-base font-semibold">{classAllocationPreview?.alreadyAllocatedCount ?? 0}</p>
+                              </div>
+                              <div>
+                                <p className="text-[11px] uppercase text-muted-foreground">Likely Left Unassigned</p>
+                                <p className="text-base font-semibold">{classAllocationPreview?.unassignedDueToCapacity ?? 0}</p>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </>
+                  )}
 
                   <Label>Hostel</Label>
                   <Select
@@ -741,39 +925,51 @@ export default function HostelManagement({ view = 'manage' }: { view?: HostelMan
                     </SelectContent>
                   </Select>
 
-                  <Label>Room</Label>
-                  <Select
-                    value={allocationForm.roomId}
-                    onValueChange={(value) => setAllocationForm((prev) => ({ ...prev, roomId: value }))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select room" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {allocationRoomsLoading && (
-                        <SelectItem value="__loading" disabled>
-                          Loading rooms...
-                        </SelectItem>
-                      )}
-                      {selectableRooms.map((room) => (
-                        <SelectItem key={room.id} value={room.id}>
-                          {room.name} ({room.availableBeds ?? 0} beds left)
-                        </SelectItem>
-                      ))}
-                      {!allocationRoomsLoading && selectableRooms.length === 0 && (
-                        <SelectItem value="__empty" disabled>
-                          No rooms found for selected hostel
-                        </SelectItem>
-                      )}
-                    </SelectContent>
-                  </Select>
+                  {allocationTarget === 'student' ? (
+                    <>
+                      <Label>Room</Label>
+                      <Select
+                        value={allocationForm.roomId}
+                        onValueChange={(value) => setAllocationForm((prev) => ({ ...prev, roomId: value }))}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select room" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {allocationRoomsLoading && (
+                            <SelectItem value="__loading" disabled>
+                              Loading rooms...
+                            </SelectItem>
+                          )}
+                          {selectableRooms.map((room) => (
+                            <SelectItem key={room.id} value={room.id}>
+                              {room.name} ({room.availableBeds ?? 0} beds left)
+                            </SelectItem>
+                          ))}
+                          {!allocationRoomsLoading && selectableRooms.length === 0 && (
+                            <SelectItem value="__empty" disabled>
+                              No rooms found for selected hostel
+                            </SelectItem>
+                          )}
+                        </SelectContent>
+                      </Select>
+                    </>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">
+                      Room selection is automatic for class allocation. Students are assigned to the first available rooms in this hostel.
+                    </p>
+                  )}
 
-                  <Label>Bed Number (optional)</Label>
-                  <Input
-                    value={allocationForm.bedNumber}
-                    onChange={(e) => setAllocationForm((prev) => ({ ...prev, bedNumber: e.target.value }))}
-                    placeholder="e.g. B-14"
-                  />
+                  {allocationTarget === 'student' && (
+                    <>
+                      <Label>Bed Number (optional)</Label>
+                      <Input
+                        value={allocationForm.bedNumber}
+                        onChange={(e) => setAllocationForm((prev) => ({ ...prev, bedNumber: e.target.value }))}
+                        placeholder="e.g. B-14"
+                      />
+                    </>
+                  )}
 
                   <Label>Notes (optional)</Label>
                   <Textarea
@@ -802,6 +998,12 @@ export default function HostelManagement({ view = 'manage' }: { view?: HostelMan
       {error && (
         <Card className="border-destructive/40 bg-destructive/5">
           <CardContent className="pt-5 text-sm text-destructive">{error}</CardContent>
+        </Card>
+      )}
+
+      {successMessage && (
+        <Card className="border-emerald-300/50 bg-emerald-50/60">
+          <CardContent className="pt-5 text-sm text-emerald-700">{successMessage}</CardContent>
         </Card>
       )}
 
@@ -1184,7 +1386,7 @@ export default function HostelManagement({ view = 'manage' }: { view?: HostelMan
                 )}
               </TableBody>
             </Table>
-            {createAllocationOpen && !allocationRoomsLoading && selectableRooms.length === 0 && (
+            {allocationTarget === 'student' && createAllocationOpen && !allocationRoomsLoading && selectableRooms.length === 0 && (
               <p className="mt-3 text-xs text-amber-600">
                 No rooms are available in the selected hostel. Create rooms first (Manage Hostels) or pick another hostel.
               </p>
