@@ -124,7 +124,6 @@ const adminNavItems: NavItem[] = [
     subItems: [
       { label: "View Financial Records",  href: "/finance",                       roles: ["admin"] },
       { label: "Expense Management",      href: "/finance/expenses",              roles: ["admin"] },
-      { label: "Expense Approvals",       href: "/finance/expenses",              roles: ["admin"] },
       { label: "Financial Reports",       href: "/finance/reports",               roles: ["admin"] },
       { label: "Graduated Outstanding",   href: "/finance/graduated-outstanding", roles: ["admin"] },
       { label: "View Financial Officers", href: "/finance/officers/view",         roles: ["admin"] },

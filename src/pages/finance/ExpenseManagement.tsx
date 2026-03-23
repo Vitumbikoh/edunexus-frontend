@@ -492,6 +492,11 @@ export default function ExpenseManagement() {
           <p className="text-muted-foreground">Manage school expenses and approval workflows</p>
         </div>
         <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => setActiveTab('approvals')}>
+            <CheckCircle className="h-4 w-4 mr-2" />
+            Expense Approvals
+          </Button>
+
           <Button variant="outline" size="sm">
             <Download className="h-4 w-4 mr-2" />
             Export

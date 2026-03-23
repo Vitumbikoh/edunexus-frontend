@@ -60,35 +60,33 @@ export default function Payroll() {
 
   const handleAction = async (action: string, run: SalaryRun, comments?: string) => {
     try {
-      let result: SalaryRun;
-      
       switch (action) {
         case 'prepare':
-          result = await payrollService.prepare(run.id);
+          await payrollService.prepare(run.id);
           toast.success('Salary run prepared successfully');
           break;
         case 'submit':
-          result = await payrollService.submit(run.id, comments);
+          await payrollService.submit(run.id, comments);
           toast.success('Salary run submitted for approval');
           break;
         case 'approve':
-          result = await payrollService.approve(run.id, comments);
+          await payrollService.approve(run.id, comments);
           toast.success('Salary run approved');
           break;
         case 'reject':
-          result = await payrollService.reject(run.id, comments!);
+          await payrollService.reject(run.id, comments!);
           toast.success('Salary run rejected');
           break;
         case 'finalize':
-          result = await payrollService.finalize(run.id);
+          await payrollService.finalize(run.id);
           toast.success('Salary run finalized and posted to expenses');
           break;
         default:
           return;
       }
-      
-      // Update the specific run in state
-      setRuns(prev => prev.map(r => r.id === run.id ? result : r));
+
+      // Always refresh from server so status transitions are consistent and stale rows disappear.
+      await loadRuns();
     } catch (error) {
       console.error(`Error performing ${action}:`, error);
       toast.error(`Failed to ${action} salary run`);
@@ -128,7 +126,7 @@ export default function Payroll() {
     }
   };
 
-  const getActionButtons = (run: SalaryRun) => {
+  const getActionButtons = (run: SalaryRun, hasFinalizedForPeriod: boolean) => {
     const buttons = [];
 
     // View Details
@@ -227,7 +225,7 @@ export default function Payroll() {
         );
       }
 
-      if (run.status === 'APPROVED') {
+      if (run.status === 'APPROVED' && !hasFinalizedForPeriod) {
         buttons.push(
           <Button
             key="finalize"
@@ -278,6 +276,12 @@ export default function Payroll() {
     const matchesStatus = statusFilter === 'ALL' || run.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
+
+  const finalizedPeriodKeys = new Set(
+    runs
+      .filter((r) => r.status === 'FINALIZED')
+      .map((r) => `${r.period}::${r.termId || ''}`)
+  );
 
   if (loading) {
     return (
@@ -373,7 +377,7 @@ export default function Payroll() {
                   <TableCell>{format(new Date(run.createdAt), 'MMM dd, yyyy')}</TableCell>
                   <TableCell>
                     <div className="flex gap-2 flex-wrap">
-                      {getActionButtons(run)}
+                      {getActionButtons(run, finalizedPeriodKeys.has(`${run.period}::${run.termId || ''}`))}
                     </div>
                   </TableCell>
                 </TableRow>

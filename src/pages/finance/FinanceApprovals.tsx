@@ -259,10 +259,12 @@ export default function FinanceApprovals() {
       </div>
 
       <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'expenses' | 'payroll')} className="w-full">
-        <TabsList className={`grid w-full ${payrollOnlyMode ? 'grid-cols-1' : 'grid-cols-2'}`}>
-          {!payrollOnlyMode && <TabsTrigger value="expenses">Expense Approvals</TabsTrigger>}
-          <TabsTrigger value="payroll">Payroll Approvals</TabsTrigger>
-        </TabsList>
+        {!payrollOnlyMode && (
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="expenses">Expense Approvals</TabsTrigger>
+            <TabsTrigger value="payroll">Payroll Approvals</TabsTrigger>
+          </TabsList>
+        )}
 
         {!payrollOnlyMode && (
         <TabsContent value="expenses" className="space-y-6">
