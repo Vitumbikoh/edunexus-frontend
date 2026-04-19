@@ -7,6 +7,8 @@
     "dev": "vite --host 0.0.0.0 --port 8080",
     "build": "vite build",
     "build:dev": "vite build --mode development",
+    "start:prod": "serve -s dist -l 8080",
+    "prod": "npm run build && npm run start:prod",
     "lint": "eslint .",
     "preview": "vite preview"
   },
@@ -58,6 +60,7 @@
     "react-resizable-panels": "^2.1.3",
     "react-router-dom": "^6.26.2",
     "react-toastify": "^11.0.5",
+    "serve": "^14.2.5",
     "recharts": "^2.12.7",
     "sonner": "^1.5.0",
     "tailwind-merge": "^2.5.2",
